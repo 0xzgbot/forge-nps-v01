@@ -1,0 +1,1 @@
+standing neutral, sitting, walking, running, jumping, leaning, lying down, profile view, back view

@@ -1,0 +1,36 @@
+{
+    "id": "viral",
+    "title": "Viral_Hook Prompt Pack",
+    "entries": [
+        {
+            "id": "viral_entry_1",
+            "title": "1. The Pattern Interrupt (Video/Social)",
+            "model_kernel": "Flux",
+            "base_prompt": "[Visual Hook: Sudden change in scale, color, or motion] + [Text Overlay: Controversial or curiosity-inducing question] + [Audio Trigger: High-energy sync point] + [Pacing: Fast-cut transition to reveal]",
+            "metadata": {
+                "use_case": "Short-form video hooks (TikTok/Reels/Shorts).",
+                "source_file": "Viral_Hook.md"
+            }
+        },
+        {
+            "id": "viral_entry_2",
+            "title": "2. The Personalization Engine (Interactive)",
+            "model_kernel": "Flux",
+            "base_prompt": "[Input Type: e.g., User's photo/voice note] + [Transformation Protocol: How the AI alters the input to fit brand aesthetic] + [Output Goal: A shareable, high-status version of the user's input] + [Call to Action (CTA): \"Upload yours now\"]",
+            "metadata": {
+                "use_case": "AI-powered interactive campaigns (e.g., \"Your Brand, Remixed\").",
+                "source_file": "Viral_Hook.md"
+            }
+        },
+        {
+            "id": "viral_entry_3",
+            "title": "3. The \"Citation Bait\" (Text/SEO)",
+            "model_kernel": "Flux",
+            "base_prompt": "[Core Insight: A unique, data-backed perspective on [Topic]] + [Structure: Clear headings, bulleted lists, and authoritative tone] + [Context: Relatable real-world examples that provide \"human\" nuance]",
+            "metadata": {
+                "use_case": "Creating content designed to be picked up by AI Search Summaries (GEO).",
+                "source_file": "Viral_Hook.md"
+            }
+        }
+    ]
+}
