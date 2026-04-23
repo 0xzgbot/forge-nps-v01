@@ -12,7 +12,7 @@ from core.script.script_parser import ScriptParser
 def test_script_parser():
     print("--- Running J10 Verification Test ---")
     parser = ScriptParser()
-    script_path = "/Users/zgbot/Desktop/forge_nps/scripts/demo/pilot_script.md"
+    script_path = "/Users/zgbot/Desktop/forge_nps_v01/scripts/demo/pilot_script.md"
     
     try:
         parsed = parser.parse(script_path)

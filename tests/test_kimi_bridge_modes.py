@@ -64,7 +64,7 @@ async def test_direct_with_narrative_success():
         assert result["reasoning_trace"] == "I analyzed the script and lore."
         
         # Verify log file creation
-        log_path = f"/Users/zgbot/Desktop/forge_nps/data/reasoning_logs/{session_id}/full_analysis_reasoning.md"
+        log_path = f"/Users/zgbot/Desktop/forge_nps_v01/data/reasoning_logs/{session_id}/full_analysis_reasoning.md"
         assert os.path.exists(log_path)
         with open(log_path, 'r') as f:
             content = f.read()

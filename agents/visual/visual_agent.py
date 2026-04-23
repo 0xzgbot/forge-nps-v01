@@ -8,18 +8,17 @@ from core.routing.architect_router import ArchitectRouter
 from core.dispatch.dispatcher import ComfyDispatcher
 from core.dispatch.comfy_client import ComfyUIClient
 from data.character_banks.bank_loader import get_quality_constants
+from core.consistency.character_consistency_engine import CharacterConsistencyEngine
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("VisualAgent")
 
 class VisualAgent:
-    def __init__(self, comfyui_url: str):
+    def __init__(self, comfyui_url: str, character_engine: CharacterConsistencyEngine = None):
         self.comfyui_url = comfyui_url.rstrip('/')
         self.router = ArchitectRouter()
         self.dispatcher = ComfyDispatcher([self.comfyui_url])
-        # We don't await in __init__, so we might need a setup method or handle it in calls
-        # But requirements say "Add a pre-flight call... in the agent's initialization (log warning if offline, don't crash)."
-        # Since __init__ cannot be async, we will trigger it as a background task or handle connectivity check on first use.
+        self.character_engine = character_engine
         self._connectivity_checked = False
 
     async def _ensure_connectivity(self):
@@ -32,15 +31,18 @@ class VisualAgent:
     async def _build_kernel_payload(self, shot_data: dict, model_hint: str = "flux_2_dev") -> dict:
         """
         Uses ArchitectRouter to get kernel/prompt and appends quality constants.
+        Injects character consistency descriptors if a CharacterEngine is attached.
         """
         concept = f"{shot_data.get('visual_prompt', {}).get('subject', '')}, {shot_data.get('visual_prompt', {}).get('action', '')}"
-        # Use the intent mapping from router or fallback to model_hint as intent
-        # The requirement says: Use ArchitectRouter to get kernel/prompt.
-        # We'll assume shot_data might contain an 'intent'. If not, we map it.
-        intent = shot_data.get('intent', 'high_fidelity_image') 
-        if model_hint in ["z_image_turbo", "flux_2_dev"]: # mapping hint to intent if needed
-             # This is a bit fuzzy but following the requirement's logic
-             pass
+        intent = shot_data.get('intent', 'high_fidelity_image')
+
+        # --- CHARACTER CONSISTENCY: enrich prompt before routing ---
+        if self.character_engine:
+            description = shot_data.get('description', concept)
+            enriched = self.character_engine.enrich_prompt(description, detect=True)
+            if enriched != description:
+                concept = enriched
+                logger.info(f"[CONSISTENCY] Prompt enriched for character lock")
 
         result = self.router.route(intent, concept)
         
@@ -53,25 +55,27 @@ class VisualAgent:
         # Append quality constants
         quality = get_quality_constants()
         
-        # Injecting into the payload structure based on typical ComfyUI workflow patterns
-        # The requirement implies we are building a payload for the dispatcher.
-        # Since different kernels return different structures, we'll normalize them here or 
-        # let the router handle it. The ArchitectRouter returns 'payload'.
-        
         if "prompt" in payload and isinstance(payload["prompt"], dict):
-             # For Flux-style: {"text": "...", "clip_l": "..."}
              for key in payload["prompt"]:
                  if isinstance(payload["prompt"][key], str):
                      payload["prompt"][key] += f", {quality}"
         elif isinstance(payload["prompt"], str):
-             # For simple string prompts (Z-Image)
              payload["prompt"] = f"{payload['prompt']}, {quality}"
+
+        # --- CHARACTER CONSISTENCY: inject deterministic seed ---
+        if self.character_engine:
+            char_names = self.character_engine.detect_characters(shot_data.get('description', concept))
+            shot_idx = shot_data.get('shot_index', 0)
+            seed = self.character_engine.get_seed_for_shot(char_names, shot_idx)
+            if seed >= 0 and "parameters" in payload:
+                payload["parameters"]["seed"] = seed
+                logger.info(f"[CONSISTENCY] Seed locked to {seed} for characters {char_names}")
 
         return payload
 
     async def load_workflow(self, kernel: str) -> dict:
         """Loads JSON workflow from /Users/zgbot/Desktop/forge_nps/workflows/."""
-        wf_path = Path("/Users/zgbot/Desktop/forge_nps/workflows") / f"{kernel}.json"
+        wf_path = Path("/Users/zgbot/Desktop/forge_nps_v01/workflows") / f"{kernel}.json"
         if not wf_path.exists():
             # Fallback for testing if specific kernel file isn't there, 
             # though B1 should have copied them.
@@ -84,16 +88,18 @@ class VisualAgent:
         await self._ensure_connectivity()
         payload = await self._build_kernel_payload(shot_data)
         
-        # The requirement says "Update 'submit_to_comfy()' to use 'ComfyDispatcher.dispatch()' instead of bare httpx calls."
-        # We need to combine the workflow and the prompt-specific payload.
-        
-        # Standard ComfyUI API expects {"prompt": {node_id: { ... }}}
-        # If the provided workflow is already the dict of nodes, we wrap it.
-        # If the workflow is already {"prompt": {nodes}}, we use it directly.
         if "prompt" in workflow and isinstance(workflow["prompt"], dict):
             full_payload = workflow
         else:
             full_payload = {"prompt": workflow}
+        
+        # --- CHARACTER CONSISTENCY: inject Redux anchor if available ---
+        if self.character_engine:
+            char_names = self.character_engine.detect_characters(shot_data.get('description', ''))
+            for char in char_names:
+                if self.character_engine.get_anchor_path(char):
+                    full_payload = self.character_engine.inject_redux_anchor(full_payload, char)
+                    break  # Only inject first character anchor for now
         
         # Inject the generated prompt into the workflow (targeting CLIPTextEncode)
         target_node_id = None
@@ -105,10 +111,8 @@ class VisualAgent:
                     break
         
         if target_node_id:
-            # If payload has a text field (Flux) or is just a string (Z-Image)
             prompt_content = payload.get("prompt", "")
-            if isinstance(payload.get("prompt"), dict): # Flux case
-                 # The router already returns the 'text' in result['prompt']
+            if isinstance(payload.get("prompt"), dict):
                  prompt_content = payload["prompt"].get("text", "")
             
             full_payload["prompt"][target_node_id]["inputs"]["text"] = str(prompt_content)

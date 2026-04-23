@@ -28,7 +28,7 @@ class TestForgeIntegration(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self.handler = ErrorHandler(max_retries=2, base_delay=0.1)
         # Mocking the lore file for auditor test
-        self.lore_path = "/Users/zgbot/Desktop/forge_nps/data/lore_bible/world_bible.json"
+        self.lore_path = "/Users/zgbot/Desktop/forge_nps_v01/data/lore_bible/world_bible.json"
 
     async def test_integration_flow(self):
         print("\n--- Starting Integrated Flow Test ---")

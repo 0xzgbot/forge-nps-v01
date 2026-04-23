@@ -3,6 +3,7 @@ import logging
 from typing import List, Dict, Any, Optional
 
 from core.hermes.memory import EpisodicMemory, SemanticMemory, MemoryConsolidator
+from core.consistency.character_consistency_engine import CharacterConsistencyEngine
 
 logger = logging.getLogger("HermesAgent")
 
@@ -28,11 +29,13 @@ class HermesAgent:
         session_manager=None,
         episodic_memory: Optional[EpisodicMemory] = None,
         semantic_memory: Optional[SemanticMemory] = None,
+        character_engine: Optional[CharacterConsistencyEngine] = None,
     ):
         self.visual_agent = visual_agent
         self.skill_registry = skill_registry
         self.kimi_bridge = kimi_bridge
         self.session_manager = session_manager
+        self.character_engine = character_engine
         self._autonomy_score = 0.0
 
         # Memory subsystems (optional but recommended)

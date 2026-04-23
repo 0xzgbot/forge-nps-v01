@@ -47,7 +47,7 @@ skills_registry = [
 
 @app.get("/")
 async def get_index():
-    return FileResponse("/Users/zgbot/Desktop/forge_nps/dashboard/static/index.html")
+    return FileResponse("/Users/zgbot/Desktop/forge_nps_v01/dashboard/static/index.html")
 
 @app.get("/api/session/{session_id}")
 async def get_session(session_id: str):
@@ -99,7 +99,7 @@ async def run_mock_stream(session_id: str):
 
 # --- Startup & Mounts ---
 
-app.mount("/static", StaticFiles(directory="/Users/zgbot/Desktop/forge_nps/dashboard/static"), name="static")
+app.mount("/static", StaticFiles(directory="/Users/zgbot/Desktop/forge_nps_v01/dashboard/static"), name="static")
 
 if __name__ == "__main__":
     import uvicorn

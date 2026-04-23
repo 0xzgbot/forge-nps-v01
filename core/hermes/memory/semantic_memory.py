@@ -18,7 +18,7 @@ class SemanticMemory:
     Stores durable, queryable insights/rules derived from production history.
     """
 
-    def __init__(self, memory_dir: str = "/Users/zgbot/Desktop/forge_nps/data/hermes_memory/semantic"):
+    def __init__(self, memory_dir: str = "/Users/zgbot/Desktop/forge_nps_v01/data/hermes_memory/semantic"):
         self.memory_dir = Path(memory_dir)
         self.memory_dir.mkdir(parents=True, exist_ok=True)
         self.store_path = self.memory_dir / "insights.json"

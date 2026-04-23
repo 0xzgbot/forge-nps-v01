@@ -8,6 +8,7 @@ from core.bridge.kimi_bridge import KimiBridge
 from core.hermes.hermes_agent import HermesAgent
 from agents.auditor.continuity_auditor import ContinuityAuditor
 from core.feedback.remediation_loop import RemediationLoop
+from core.consistency.character_consistency_engine import CharacterConsistencyEngine
 from core.prompts.director_system_prompt import DIRECTOR_SYSTEM_PROMPT
 
 
@@ -40,6 +41,22 @@ class ForgeOrchestrator:
         print(f"--- STARTING PIPELINE for {script_path} ---")
         self.sm.create_session(script_path, lore_paths)
         print("[1/4] Session created.")
+
+        # --- CHARACTER CONSISTENCY SETUP ---
+        character_engine = None
+        if lore_paths:
+            try:
+                character_engine = CharacterConsistencyEngine(lore_paths[0])
+                if character_engine.characters:
+                    print(f"[1.5/4] Character Consistency Engine loaded: {list(character_engine.characters.keys())}")
+                    missing_anchors = [c for c in character_engine.characters if character_engine.needs_anchor(c)]
+                    if missing_anchors:
+                        print(f"      ⚠️  Missing anchors for: {missing_anchors}")
+                        print(f"      💡 Generate anchors with: python3 -c \"from core.consistency.character_consistency_engine import CharacterConsistencyEngine; e=CharacterConsistencyEngine('{lore_paths[0]}'); print(e.get_anchor_prompt('{missing_anchors[0]}'))\"")
+                if self.hermes:
+                    self.hermes.character_engine = character_engine
+            except Exception as e:
+                print(f"[WARNING] Could not load character consistency: {e}")
 
         print("[2/4] Running Kimi Narrative Intelligence...")
         director_data = await self.kimi.direct_with_narrative(script_path, lore_paths, self.session_id)

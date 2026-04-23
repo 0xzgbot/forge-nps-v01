@@ -89,11 +89,11 @@ class KimiBridge:
         return await self._execute_request(system_prompt, full_prompt, schema, retry_on_validation_error, task_description=task_description, has_visuals=has_visuals)
 
     async def direct_with_narrative(
-        self, 
-        script_path: str, 
-        lore_paths: list[str], 
-        session_id: str, 
-        schema: Type[BaseModel],
+        self,
+        script_path: str,
+        lore_paths: list[str],
+        session_id: str,
+        schema: Type[BaseModel] = None,
         skill_registry: Optional['SkillRegistry'] = None
     ) -> Dict[str, Any]:
         """
@@ -153,7 +153,7 @@ class KimiBridge:
             estimated_tokens = len(mega_prompt.encode('utf-8')) // 4
             
             # Log reasoning trace and estimation to the session directory
-            log_dir = os.path.abspath(os.path.join("/Users/zgbot/Desktop/forge_nps/data/reasoning_logs", session_id))
+            log_dir = os.path.abspath(os.path.join("/Users/zgbot/Desktop/forge_nps_v01/data/reasoning_logs", session_id))
             os.makedirs(log_dir, exist_ok=True)
             
             estimation_log_path = os.path.join(log_dir, "token_estimation.md")
@@ -220,10 +220,10 @@ class KimiBridge:
             raise
 
     async def _execute_request(
-        self, 
-        system_prompt: str, 
-        user_input: str, 
-        schema: Type[BaseModel],
+        self,
+        system_prompt: str,
+        user_input: str,
+        schema: Type[BaseModel] = None,
         retry_on_validation_error: bool = True,
         is_retry: bool = False,
         task_description: Optional[str] = None,
