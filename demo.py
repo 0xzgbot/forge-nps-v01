@@ -335,8 +335,8 @@ async def run_demo(script_path: str, mock: bool, dashboard: bool, idea: Optional
     # 4. Dashboard Launch
     if dashboard:
         logger.info("Launching Dashboard...")
-        print("\n[DASHBOARD] Server running at http://localhost:8000")
-        webbrowser.open("http://localhost:8000")
+        print("\n[DASHBOARD] Server running at http://localhost:7000")
+        webbrowser.open("http://localhost:7000")
 
 
 if __name__ == "__main__":
