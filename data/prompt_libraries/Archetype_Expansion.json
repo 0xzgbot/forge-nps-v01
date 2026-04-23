@@ -1,0 +1,36 @@
+{
+    "id": "archetype",
+    "title": "Archetype_Expansion Prompt Pack",
+    "entries": [
+        {
+            "id": "archetype_entry_1",
+            "title": "1. The Persona Deep-Dive (Character Creation)",
+            "model_kernel": "Flux",
+            "base_prompt": "[Base Archetype: e.g., The Visionary, The Rebel, The Sage] + [Contradiction/Quirk: To add human depth] + [Visual Anchor: Key physical/style trait] + [Vocal Identity: Tone and vocabulary style] + [Core Motivation: What drives them?]",
+            "metadata": {
+                "use_case": "Initial creation of a brand ambassador or influencer persona.",
+                "source_file": "Archetype_Expansion.md"
+            }
+        },
+        {
+            "id": "archetype_entry_2",
+            "title": "2. The Dialogue Simulator (Testing Verbal Identity)",
+            "model_kernel": "Flux",
+            "base_prompt": "[Persona Context: Reference the Deep-Dive profile] + [Stimulus: A user comment/situation] + [Constraint: \"Respond using only [Specific Vocabulary]\" or \"Maintain [Tone]\"] + [Goal: Achieve [Specific Emotional Outcome]\"",
+            "metadata": {
+                "use_case": "Testing how an archetype would respond to specific social media comments or customer inquiries.",
+                "source_file": "Archetype_Expansion.md"
+            }
+        },
+        {
+            "id": "archetype_entry_3",
+            "title": "3. The Archetype Stress Test (Scenario Expansion)",
+            "model_kernel": "Flux",
+            "base_prompt": "[Archetype Profile] + [New Environment/Format: e.g., A high-stakes business negotiation, a casual coffee shop chat] + [Conflict: An unexpected challenge] + [Requirement: Describe their reaction and the resulting dialogue]",
+            "metadata": {
+                "use_case": "Expanding the character's world and ensuring they don't become one-dimensional in new content formats.",
+                "source_file": "Archetype_Expansion.md"
+            }
+        }
+    ]
+}

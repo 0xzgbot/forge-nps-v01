@@ -1,0 +1,8 @@
+{
+  "project_name": "Test Project",
+  "prompt_base": "A {{camera_angle}} shot of a {{subject}} in {{lighting}} lighting.",
+  "parameters": {
+    "resolution": "4k",
+    "aspect_ratio": "16:9"
+  }
+}

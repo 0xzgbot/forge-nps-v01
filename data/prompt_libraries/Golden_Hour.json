@@ -1,0 +1,36 @@
+{
+    "id": "golden",
+    "title": "Golden_Hour Prompt Pack",
+    "entries": [
+        {
+            "id": "golden_entry_1",
+            "title": "1. The Cinematic Product Reveal",
+            "model_kernel": "Flux",
+            "base_prompt": "[Subject: Detailed description of product] + [Environment: Contextual setting] + [Lighting: Golden hour/cinematic/studio] + [Camera: Lens type, angle, depth of field] + [Mood: Specific emotional anchor] --ar 16:9 --v 6.0",
+            "metadata": {
+                "use_case": "Hero images for website landing pages or high-end social media ads.",
+                "source_file": "Golden_Hour.md"
+            }
+        },
+        {
+            "id": "golden_entry_2",
+            "title": "2. The Lifestyle Narrative",
+            "model_kernel": "Flux",
+            "base_prompt": "[Persona: Character description] + [Action: Natural, unposed interaction with product] + [Setting: Relatable yet aspirational environment] + [Lighting: Soft natural light/dappled sunlight] + [Camera: Handheld feel, slight motion blur, shallow DOF] --ar 4:5",
+            "metadata": {
+                "use_case": "Creating authentic-feeling user-generated content (UGC) that feels \"expensive.\"",
+                "source_file": "Golden_Hour.md"
+            }
+        },
+        {
+            "id": "golden_entry_3",
+            "title": "3. The Abstract Texture Study",
+            "model_kernel": "Flux",
+            "base_prompt": "[Macro Subject: Close-up of material/product detail] + [Lighting: Harsh side-lighting to emphasize texture] + [Color Palette: Brand colors applied] + [Atmosphere: Minimalist, clean, high-contrast] --ar 1:1",
+            "metadata": {
+                "use_case": "Backgrounds, social media textures, or macro-detail shots for luxury branding.",
+                "source_file": "Golden_Hour.md"
+            }
+        }
+    ]
+}

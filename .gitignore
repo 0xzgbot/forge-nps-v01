@@ -1,0 +1,36 @@
+# Environment & secrets
+.env
+*.env
+.env.*
+!.env.template
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# macOS
+.DS_Store
+
+# Logs & outputs
+logs/
+data/outputs/
+data/sessions/
+data/reasoning_logs/
+
+# Claude worktrees
+.claude/worktrees/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDE
+.vscode/
+.idea/
+data/hermes_memory/
+agents/agents/qa/venv/
