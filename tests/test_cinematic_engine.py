@@ -6,9 +6,9 @@ from core.prompts.library_loader import LibraryLoader
 class TestCinematicEngine(unittest.TestCase):
     def setUp(self):
         # Use the actual lighting bank for testing
-        self.lighting_bank = "~/Desktop/forge_nps/data/character_banks/lighting_bank.txt"
+        self.lighting_bank = "~/Desktop/forge_nps_v01/data/character_banks/lighting_bank.txt"
         self.engine = CinematicEngine(self.lighting_bank)
-        self.loader = LibraryLoader("~/Desktop/forge_nps/data/prompt_libraries/")
+        self.loader = LibraryLoader("~/Desktop/forge_nps_v01/data/prompt_libraries/")
 
     def test_enhancement_logic(self):
         base_prompt = "a cat"

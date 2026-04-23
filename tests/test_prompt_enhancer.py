@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 
 # Add project root to sys.path so we can import core modules
-project_root = "~/Desktop/forge_nps/"
+project_root = "~/Desktop/forge_nps_v01/"
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 

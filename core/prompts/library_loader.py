@@ -66,7 +66,7 @@ class LibraryLoader:
 
 if __name__ == "__main__":
     # Test the loader with the newly created files
-    loader = LibraryLoader("~/Desktop/forge_nps/data/prompt_libraries/")
+    loader = LibraryLoader("~/Desktop/forge_nps_v01/data/prompt_libraries/")
     libs = loader.load_all()
     print(f"Loaded {len(libs)} libraries.")
     for lib in libs:

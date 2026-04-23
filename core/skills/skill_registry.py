@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import Optional, Dict, List, Any
 
 class SkillRegistry:
-    def __init__(self, registry_path: str = "~/Desktop/forge_nps/core/skills/registry.json"):
+    def __init__(self, registry_path: str = "~/Desktop/forge_nps_v01/core/skills/registry.json"):
         """
         Initialize and load existing data if available. Create the file/directory if not.
         """
@@ -134,7 +134,7 @@ class SkillRegistry:
 
 if __name__ == "__main__":
     # Quick manual test
-    registry = SkillRegistry("~/Desktop/forge_nps/core/skills/test_registry.json")
+    registry = SkillRegistry("~/Desktop/forge_nps_v01/core/skills/test_registry.json")
     print("Initial lookup:", registry.lookup("Photometric", "neon_interior"))
     registry.register_fix("Photometric", "neon_interior", "prompt...", "fix...", True, "reasoning...")
     print("After 1st registration:", registry.lookup("Photometric", "neon_interior"))

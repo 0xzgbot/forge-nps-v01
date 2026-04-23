@@ -6,7 +6,7 @@ import shutil
 from unittest.mock import AsyncMock, MagicMock, patch
 
 # Add project root to sys.path for imports
-PROJECT_ROOT = "~/Desktop/forge_nps"
+PROJECT_ROOT = "~/Desktop/forge_nps_v01"
 if PROJECT_ROOT not in os.sys.path:
     os.sys.path.insert(0, PROJECT_ROOT)
 

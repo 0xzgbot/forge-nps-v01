@@ -9,7 +9,7 @@ class TemplateManager:
     and supports dynamic parameter injection.
     """
 
-    def __init__(self, templates_dir: str = "~/Desktop/forge_nps/templates/"):
+    def __init__(self, templates_dir: str = "~/Desktop/forge_nps_v01/templates/"):
         self.templates_dir = Path(templates_dir)
         if not self.templates_dir.exists():
             raise FileNotFoundError(f"Templates directory not found: {self.templates_dir}")

@@ -27,7 +27,7 @@ class EpisodicMemory:
 
     def __init__(
         self,
-        memory_dir: str = "~/Desktop/forge_nps/data/hermes_memory/episodic",
+        memory_dir: str = "~/Desktop/forge_nps_v01/data/hermes_memory/episodic",
         embedder: Optional[BaseEmbedder] = None,
     ):
         self.memory_dir = Path(memory_dir)

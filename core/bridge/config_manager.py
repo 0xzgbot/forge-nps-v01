@@ -8,9 +8,8 @@ class ConfigManager:
     """
     def __init__(self, env_path: str = ".env"):
         self.env_path = os.path.abspath(env_path)
-        # In a real environment, we would load dotenv here
-        # from dotenv import load_dotenv
-        # load_dotenv(self.env_path)
+        from dotenv import load_dotenv
+        load_dotenv(self.env_path)
 
     def get_nim_endpoint(self) -> str:
         return os.getenv("NIM_ENDPOINT", "")

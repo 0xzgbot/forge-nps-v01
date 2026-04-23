@@ -74,7 +74,7 @@ class ComfyUIBatchSubmitter:
 
         # 3. Download/Save (simulated)
         output_filename = f"{payload['id']}.png"
-        output_path = f"~/Desktop/forge_nps/outputs/{output_filename}"
+        output_path = f"~/Desktop/forge_nps_v01/outputs/{output_filename}"
         
         return {
             "prompt_id": prompt_id,
