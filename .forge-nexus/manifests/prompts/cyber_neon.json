@@ -1,0 +1,18 @@
+{
+  "id": "prompt_cyber_neon",
+  "type": "Prompt",
+  "source_file": "prompts/cyber_neon.md",
+  "content_hash": "3034835b25551bd7",
+  "prompt_type": "positive",
+  "content": "This is a cyberpunk scene with bright neon lights.",
+  "frontmatter": {
+    "type": "positive"
+  },
+  "inheritance_chain": [],
+  "referenced_constants": [],
+  "used_by": {
+    "workflows": [],
+    "characters": []
+  },
+  "semantic_tags": []
+}

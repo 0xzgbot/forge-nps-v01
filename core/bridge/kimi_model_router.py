@@ -23,6 +23,8 @@ class KimiModelRouter:
             "caption": ModelTier.INSTRUCT,
             "hook": ModelTier.INSTRUCT,
             "describe": ModelTier.INSTRUCT,
+            "director schema": ModelTier.INSTRUCT,
+            "generate": ModelTier.INSTRUCT,
             "audit": ModelTier.THINKING,
             "verify": ModelTier.THINKING,
             "consistency": ModelTier.THINKING,

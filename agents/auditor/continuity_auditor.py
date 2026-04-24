@@ -14,25 +14,24 @@ class ErrorCategory(str, Enum):
     TEMPORAL = "Temporal"
     SEMANTIC = "Semantic"
     NONE = "None"
+    SYSTEM_FAILURE = "SystemFailure"
 
 class ContinuityAuditor:
     """
     The Intelligence Auditor component of Forge NPS.
     Uses Kimi's reasoning capabilities to compare visual descriptions 
-    against the established Lore Bible/World Bible.
+    and rendered images against the established Lore Bible/World Bible.
     """
 
-    def __init__(self, lore_bible_path: str):
+    def __init__(self, lore_bible_path: str, kimi_bridge=None):
         self.lore_bible_path = lore_bible_path
         self.lore_context = self._load_lore()
+        self.kimi_bridge = kimi_bridge
 
     def _load_lore(self) -> Dict[str, Any]:
         """Loads the World Bible context into memory."""
         try:
             with open(self.lore_bible_path, 'r', encoding="utf-8") as f:
-                # Attempt to load as JSON first, if it fails or is not JSON, 
-                # we'll implement a simple Markdown parser in a future step.
-                # For now, we handle the error gracefully.
                 content = f.read()
                 try:
                     return json.loads(content)
@@ -41,18 +40,22 @@ class ContinuityAuditor:
                     return {"raw_markdown": content}
         except Exception as e:
             logger.error(f"Failed to load Lore Bible: {e}")
-            # Fallback to empty context if loading fails
             return {}
 
-    async def audit_asset(self, asset_description: str, shot_id: str) -> Dict[str, Any]:
+    async def audit_asset(
+        self,
+        asset_description: str,
+        shot_id: str,
+        image_path: str = None,
+        reference_paths: list = None,
+    ) -> Dict[str, Any]:
         """
         Main entry point for auditing a generated asset.
-        Uses Kimi reasoning to compare descriptions against the Lore Bible.
-        Returns a structured report containing rich diagnostics.
+        If image_path is provided, uses Kimi-VL for visual audit.
+        Otherwise, falls back to semantic text audit.
         """
         logger.info(f"Auditing asset for shot: {shot_id}")
         
-        # INITIALIZE BASE REPORT SCHEMA (Required by J8)
         report = {
             "shot_id": shot_id,
             "is_consistent": True,
@@ -66,11 +69,34 @@ class ContinuityAuditor:
             "violations": [] 
         }
 
+        # Kimi-VL visual audit if image is available
+        if image_path and self.kimi_bridge and hasattr(self.kimi_bridge, "audit_image"):
+            try:
+                vl_result = await self.kimi_bridge.audit_image(
+                    image_path=image_path,
+                    reference_paths=reference_paths or [],
+                    shot_description=asset_description,
+                )
+                if not vl_result.get("is_consistent", True):
+                    report.update({
+                        "is_consistent": False,
+                        "confidence_score": vl_result.get("confidence", 0.9),
+                        "error_category": vl_result.get("error_category", "SEMANTIC"),
+                        "mismatch_report": "; ".join(vl_result.get("issues", [])),
+                        "remediation_prompt": asset_description,
+                        "violations": vl_result.get("issues", []),
+                        "reasoning_trace": [f"[KIMI-VL] {i}" for i in vl_result.get("issues", [])],
+                    })
+                else:
+                    report["confidence_score"] = vl_result.get("confidence", 1.0)
+                    report["reasoning_trace"] = ["[KIMI-VL] Visual audit passed."]
+                logger.info(f"[KIMI-VL] Audit for {shot_id}: consistent={vl_result.get('is_consistent')}")
+                return report
+            except Exception as e:
+                logger.warning(f"Kimi-VL audit failed, falling back to text audit: {e}")
+
+        # Text-based fallback
         try:
-            # PHASE 1: SEMANTIC ANALYSIS (Integration point for Kimi)
-            # In the production build, this calls self.kimi_bridge.analyze(...)
-            # For this task, I am implementing the logic that handles the LLM response structure.
-            
             analysis_result = await self._perform_semantic_audit(asset_description)
             
             if not analysis_result["is_consistent"]:
@@ -91,7 +117,7 @@ class ContinuityAuditor:
         except Exception as e:
             logger.error(f"Audit failed for {shot_id}: {e}")
             report["is_consistent"] = False
-            report["error_category"] = "SystemError"
+            report["error_category"] = ErrorCategory.SYSTEM_FAILURE.value
             report["mismatch_report"] = f"Internal Auditor Error: {str(e)}"
             report["reasoning_trace"].append(f"CRITICAL ERROR during audit process: {str(e)}")
 
@@ -100,30 +126,24 @@ class ContinuityAuditor:
 
     async def _perform_semantic_audit(self, description: str) -> Dict[str, Any]:
         """
-        Internal method to simulate/execute the Kimi semantic comparison.
-        This handles the actual logic of checking against self.lore_context.
+        Internal method to perform text-only semantic comparison against lore.
+        (Placeholder for Kimi-K2 direct text reasoning if bridge is available).
         """
-        # This placeholder simulates a high-fidelity LLM response based on Lore context.
-        # In next step, we will connect the real KimiBridge.
         trace = [f"Parsing description: '{description}'"]
         trace.append("Comparing tokens against Lore Bible semantic clusters...")
 
-        # Logic to detect mismatch (simulating Kimi's reasoning)
-        # We check if any lore-protected terms are contradicted in the description.
-        
-        # Example: If Lore says "Emerald Eyes" and desc says "Red Eyes"
+        # Simulation logic (as per previous implementation)
         if "red eyes" in description.lower() or "crimson eyes" in description.lower():
             return {
                 "is_consistent": False,
                 "confidence": 0.98,
                 "category": ErrorCategory.PHOTOMETRIC.value,
-                "reason": "Color contradiction: Lore specifies emerald green eyes for this entity.",
+                "reason": "Color contradiction: Lore specifies emerald green eyes.",
                 "fix": "Update prompt to specify 'emerald green eyes'.",
                 "anchors": ["char_eye_color"],
-                "trace": trace + ["MATCH FAILURE: Subject eye color does not align with Lore Bible."]
+                "trace": trace + ["MATCH FAILURE: Subject eye color mismatch."]
             }
 
-        # Example: Anatomy check
         if "three arms" in description.lower() or "extra limb" in description.lower():
             return {
                 "is_consistent": False,
@@ -132,10 +152,9 @@ class ContinuityAuditor:
                 "reason": "Anatomical violation: Extra limbs detected.",
                 "fix": "Add negative prompt: 'extra limbs, deformed anatomy'.",
                 "anchors": ["char_anatomy"],
-                "trace": trace + ["MATCH FAILURE: Anatomical structure exceeds defined human model."]
+                "trace": trace + ["MATCH FAILURE: Anatomical structure mismatch."]
             }
 
-        # Default Success
         return {
             "is_consistent": True,
             "confidence": 0.95,
@@ -147,14 +166,13 @@ class ContinuityAuditor:
         }
 
     async def audit_batch(self, shots: List[Dict[str, Any]], director_schema: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Audits a batch of shots concurrently.
-        Detects systemic failures and provides global warnings.
-        """
+        """Audits a batch of shots concurrently."""
         logger.info(f"Starting batch audit for {len(shots)} shots.")
         
-        # Run all audits concurrently
-        tasks = [self.audit_asset(shot['description'], shot['id']) for shot in shots]
+        tasks = [self.audit_asset(shot['description'], shot['id'], 
+                                  image_path=shot.get('image_path'), 
+                                  reference_paths=shot.get('reference_paths')) 
+                 for shot in shots]
         results = await asyncio.gather(*tasks)
 
         summary = {
@@ -166,7 +184,6 @@ class ContinuityAuditor:
             "systemic_error_category": ErrorCategory.NONE.value
         }
 
-        # Count categories for systemic failure detection
         error_counts = {cat.value: 0 for cat in ErrorCategory if cat != ErrorCategory.NONE}
 
         for res in results:
@@ -180,33 +197,24 @@ class ContinuityAuditor:
                     error_counts[cat] += 1
                 summary["systemic_error_category"] = cat
 
-        # Detect systemic failures (e.g., > 50% of shots fail with the same category)
         for cat, count in error_counts.items():
             if count > (len(shots) / 2) and count > 0:
-                summary["global_consistency_warning"] = f"Systemic {cat} failure detected across multiple shots. Review master settings or director schema."
+                summary["global_consistency_warning"] = f"Systemic {cat} failure detected across multiple shots."
                 summary["systemic_error_category"] = cat
                 break
 
-        logger.info(f"Batch audit complete. Consistency rate: {summary['consistent_count']}/{len(shots)}")
         return summary
 
     def get_trace_summary(self, report: Dict[str, Any]) -> str:
-        """Formats the reasoning trace into a clean string for visual overlays in demo videos."""
         trace = report.get("reasoning_trace", [])
-        if not trace:
-            return "No reasoning trace available."
+        if not trace: return "No reasoning trace available."
         return "\n".join([f"• {step}" for step in trace])
 
 if __name__ == '__main__':
-    # Quick test
     import asyncio
     async def main():
-        # Using a dummy path for the quick test run
         auditor = ContinuityAuditor("dummy_lore.json")
-        res = await auditor.audit_asset("A man with wrong color eyes", "shot_001")
+        res = await auditor.audit_asset("A man with red eyes", "shot_001")
         print(f"Is Consistent: {res['is_consistent']}")
         print(f"Category: {res['error_category']}")
-        print(f"Mismatch: {res['mismatch_report']}")
-        print(f"Trace:\n{auditor.get_trace_summary(res)}")
-
     asyncio.run(main())

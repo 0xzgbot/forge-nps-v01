@@ -1,0 +1,17 @@
+{
+  "id": "char_test_char",
+  "type": "Character",
+  "source_file": "characters/test_char.yaml",
+  "content_hash": "9e84a0ac4655f428",
+  "name": "Test Character",
+  "attributes": {
+    "age": 25
+  },
+  "consistency_rules": {},
+  "referenced_by": {
+    "workflows": [],
+    "scenes": [],
+    "assets": []
+  },
+  "linked_prompts": []
+}

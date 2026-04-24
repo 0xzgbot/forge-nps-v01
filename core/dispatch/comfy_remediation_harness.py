@@ -214,7 +214,9 @@ class ComfyRemediationHarness:
         for host, client in self.clients.items():
             ok, info = await client.check_health()
             if ok:
-                logger.info(f"✅ {host} ONLINE — {info.get('system', {}).get('devices', [{}])[0].get('name', 'unknown')}")
+                devices = info.get('system', {}).get('devices', [])
+                device_name = devices[0].get('name', 'unknown') if devices else 'unknown'
+                logger.info(f"✅ {host} ONLINE — {device_name}")
                 online.append(host)
             else:
                 logger.warning(f"❌ {host} OFFLINE — {info.get('error', 'unknown')}")

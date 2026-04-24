@@ -59,6 +59,46 @@
   --motion-strength: 1;
 }
 
+/* Light mode */
+body.light-mode {
+  --bg-primary: #F0F2F5;
+  --bg-panel:   #FFFFFF;
+  --bg-card:    #FFFFFF;
+  --bg-elev:    #E8ECF0;
+  --border:     #D0D7DE;
+  --border-strong: #B0BAC5;
+
+  --text-primary:   #1C2128;
+  --text-secondary: #57606A;
+  --text-dim:       #8C959F;
+
+  --cyan:         #0078A8;
+  --cyan-soft:    #4AA8CC;
+  --magenta:      #A0008A;
+  --magenta-soft: #CC44BB;
+  --amber:        #9A6700;
+  --green:        #1A7F37;
+  --red:          #CF222E;
+  --purple:       #7B3FC4;
+  --orange:       #BC4C00;
+
+  --glow-cyan:    0 0 12px rgba(0, 120, 168, 0.15);
+  --glow-magenta: 0 0 12px rgba(160, 0, 138, 0.15);
+  --glow-amber:   0 0 12px rgba(154, 103, 0, 0.15);
+  --glow-green:   0 0 12px rgba(26, 127, 55, 0.15);
+
+  --scanline-opacity: 0;
+  --grid-opacity: 0.04;
+  --glow-strength: 0.3;
+}
+body.light-mode .grid-bg {
+  background-image:
+    linear-gradient(rgba(0,0,0,var(--grid-opacity)) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,0,0,var(--grid-opacity)) 1px, transparent 1px);
+}
+body.light-mode .scan-sweep { display: none; }
+body.light-mode::before { display: none; }
+
 /* Intensity variants */
 body.intensity-tasteful {
   --scanline-opacity: 0.008;

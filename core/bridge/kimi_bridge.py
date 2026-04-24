@@ -6,7 +6,9 @@ import os
 import json
 import httpx
 import logging
-from typing import Dict, Any, Optional, Type, TypeVar
+import base64
+from pathlib import Path
+from typing import Dict, List, Any, Optional, Type, TypeVar
 from pydantic import BaseModel, ValidationError
 
 logging.basicConfig(level=logging.INFO)
@@ -61,6 +63,83 @@ class KimiBridge:
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json"
         }
+
+    async def audit_image(
+        self, 
+        image_path: str, 
+        reference_paths: list[str], 
+        shot_description: str
+    ) -> Dict[str, Any]:
+        """
+        NEW FEATURE: Visual consistency auditing using Kimi-VL.
+        Compares a rendered image against character/product reference images.
+        """
+        logger.info(f"Starting Kimi-VL audit for {image_path}")
+
+        def encode_image(p):
+            with open(p, "rb") as img_file:
+                return base64.b64encode(img_file.read()).decode('utf-8')
+
+        try:
+            main_image_base64 = encode_image(image_path)
+            
+            # Construct the multimodal payload for Kimi-VL
+            content_list = [
+                {
+                    "type": "text", 
+                    "text": (
+                        f"TASK: Visual Consistency Audit\n"
+                        f"CONTEXT: {shot_description}\n\n"
+                        f"INSTRUCTION: Compare the main image provided against the reference images. "
+                        f"Check for consistency in character features (eye color, hair style, clothing details), "
+                        f"product identity, and overall lighting/style. Return a JSON response with:\n"
+                        f"- is_consistent (boolean)\n"
+                        f"- confidence (float 0-1)\n"
+                        f"- issues (list of strings describing mismatches)\n"
+                        f"- error_category (string: 'character', 'product', 'lighting', 'style', or 'none')\n"
+                    )
+                },
+                {
+                    "type": "image_url",
+                    "image_url": {"url": f"data:image/png;base64,{main_image_base64}"}
+                }
+            ]
+
+            # Add reference images to the content list
+            for ref in reference_paths:
+                if os.path.exists(ref):
+                    ref_b64 = encode_image(ref)
+                    content_list.append({
+                        "type": "image_url",
+                        "image_url": {"url": f"data:image/png;base64,{ref_b64}"}
+                    })
+
+            # Use the 'vision' tier for auditing (requires visual-capable model)
+            payload = {
+                "model": "kimi-2.6-vision", # Hypothetical endpoint name based on implementation plan
+                "messages": [{"role": "user", "content": content_list}],
+                "response_format": {"type": "json_object"}
+            }
+
+            async with httpx.AsyncClient(timeout=120.0) as client:
+                response = await client.post(self.endpoint_url, headers=self.headers, json=payload)
+                response.raise_for_status()
+                data = response.json()
+                content_str = data['choices'][0]['message']['content']
+                
+                # Parse the JSON result
+                result = json.loads(content_str)
+                logger.info("Kimi-VL audit completed successfully.")
+                return result
+
+        except Exception as e:
+            logger.error(f"Kimi-VL audit failed for {image_path}: {e}")
+            return {
+                "is_consistent": False,
+                "confidence": 0.0,
+                "issues": [f"Audit system error: {str(e)}"],
+                "error_category": "system_failure"
+            }
 
     async def direct(
         self, 
@@ -153,7 +232,7 @@ class KimiBridge:
             estimated_tokens = len(mega_prompt.encode('utf-8')) // 4
             
             # Log reasoning trace and estimation to the session directory
-            log_dir = os.path.abspath(os.path.join("~/Desktop/forge_nps_v01/data/reasoning_logs", session_id))
+            log_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "data", "reasoning_logs", session_id))
             os.makedirs(log_dir, exist_ok=True)
             
             estimation_log_path = os.path.join(log_dir, "token_estimation.md")
@@ -165,7 +244,7 @@ class KimiBridge:
             logger.info(f"[{session_id}] Estimated Mega-Prompt tokens: ~{estimated_tokens}")
 
             # 7. Execute the request via NIM
-            result = await self._execute_request(full_system_prompt, mega_prompt, schema)
+            result = await self._execute_request(full_system_prompt, mega_prompt, schema, task_description="director schema generation")
 
             # If schema=None, _execute_request returns raw string — parse it as JSON
             if isinstance(result, str):
@@ -250,7 +329,7 @@ class KimiBridge:
         model_name = router.get_model_endpoint(tier)
         
         logger.info(f"Routing request to {tier.value} ({model_name})")
-
+        
         payload = {
             "model": model_name,
             "messages": [
@@ -264,8 +343,8 @@ class KimiBridge:
         # Only enforce JSON output when a schema is provided
         if schema is not None:
             payload["response_format"] = {"type": "json_object"}
-
-        async with httpx.AsyncClient(timeout=300.0) as client:
+        
+        async with httpx.AsyncClient(timeout=600.0) as client:
             try:
                 logger.info("Sending request to Kimi...")
                 response = await client.post(self.endpoint_url, headers=self.headers, json=payload)

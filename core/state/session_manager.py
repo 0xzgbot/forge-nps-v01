@@ -1,5 +1,6 @@
 import json
 import os
+import asyncio
 from datetime import datetime
 from typing import List, Dict, Any
 
@@ -20,27 +21,32 @@ class SessionManager:
             "total_fixes_by_hermes": 0,
             "total_kimi_escalations": 0
         }
+        self._lock = asyncio.Lock() # Thread-safe lock for async operations
         self.load()
 
     def create_session(self, script_path: str, lore_paths: List[str]) -> Dict[str, Any]:
+        # Synchronous wrapper for initialization
         self.data["script_path"] = script_path
         self.data["lore_paths"] = lore_paths
         self.save()
         return self.data
 
-    def update_shot_status(self, shot_id: str, status: str, data: Dict[str, Any] = None):
-        if shot_id not in self.data["shots"]:
-            self.data["shots"][shot_id] = {}
-        
-        self.data["shots"][shot_id]["status"] = status
-        if data:
-            self.data["shots"][shot_id].update(data)
-        self.save()
+    async def update_shot_status(self, shot_id: str, status: str, data: Dict[str, Any] = None):
+        """Thread-safe asynchronous update of shot status."""
+        async with self._lock:
+            if shot_id not in self.data["shots"]:
+                self.data["shots"][shot_id] = {}
+            
+            self.data["shots"][shot_id]["status"] = status
+            if data:
+                self.data["shots"][shot_id].update(data)
+            self.save()
 
     def get_session_summary(self) -> Dict[str, Any]:
         return self.data
 
     def save(self):
+        """Writes the current state to disk."""
         with open(self.state_path, 'w', encoding='utf-8') as f:
             json.dump(self.data, f, indent=2)
 

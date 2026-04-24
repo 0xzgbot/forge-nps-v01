@@ -1,144 +1,129 @@
-# Forge — The Creative Studio with a Memory
+# Forge — The AI Studio That Remembers
 
-**Brief an AI like a creative director. Get back an entire campaign.**
+**Brief it like a creative director. Get back an entire campaign.**
 
-Forge generates complete creative projects — social media campaigns, TV commercials, short films, product photography series — in any visual style you describe. Wes Anderson symmetry. Photoreal advertising. Animated sequences. Cinematic shorts.
+Forge generates complete creative projects — social media campaigns, short films, product photography series, TV spots — and **remembers everything it learns**. Your 50th render is better than your first, not because you got better at prompting, but because your AI partner got better at remembering.
 
-And **Hermes**, the learning agent inside Forge, ensures your brand identity stays consistent across every post, every frame, every shot. It remembers what worked. It learns from what didn't. Your next campaign is better than your last — automatically.
-
-> 🏆 **Hermes Agent Creative Hackathon** · @Kimi_Moonshot × @NousResearch · May 3  
-> Kimi 2.6 · FLUX2 Dev · LTX 2.3 · WAN 2.2 · Z-Image Turbo · 65 tests passing
+> 🏆 **Hermes Agent Creative Hackathon** · @NousResearch × @Kimi_Moonshot · May 3, 2026  
+> Hermes-3 (Nous Research) · Kimi K2.6 · Kimi-VL · FLUX2 · Z-Image Turbo · LTX 2.3
 
 ---
 
-## What You Can Create
+## The Problem Every Creative Faces
 
-### 📱 Social Media Campaigns
-Feed Forge a brand brief — "Sienna Nomad, outdoor lifestyle, earth tones, adventure vibe" — and it generates a complete campaign: 12 Instagram posts, 3 Stories, a TikTok concept, and a product carousel. Every asset shares the same visual DNA because Hermes remembers the brand rules.
+Generate 24 Instagram posts. Half of them have the wrong hair color. Your product loses its signature detail on render 17. You fix it manually. Next batch — same error, back again.
 
-### 📺 TV Commercials
-A 30-second spot with consistent characters, products, and lighting across every frame. Kimi 2.6 writes the storyboard. LTX 2.3 renders the motion. Hermes makes sure the protagonist's jacket is the same color in frame 1 and frame 900.
-
-### 🎬 Short Films
-Describe a world — characters, mood, palette — and Forge builds the shot list, generates every frame, and audits continuity. Your 50th shot inherits the lessons from your 1st. No more "who is that person?" moments.
-
-### 📸 Product Photography Series
-Generate 100 variations of your product at any angle, in any lighting, with any material. Every render maintains brand identity. Hermes remembers what "on-brand" looks like so you don't have to.
-
-### 🎨 Styled Collections
-Wes Anderson pastels. Noir shadows. Pop-art saturation. Watercolor storybooks. Describe the vibe and Forge renders it — consistently, across an entire collection.
+**AI can make one beautiful thing. It can't remember what beautiful looks like.**
 
 ---
 
-## The Model Stack
+## The Solution: Two AI Brains, One Creative Pipeline
 
-| Model | Role | Best For |
-|-------|------|----------|
-| **Kimi 2.6** (NVIDIA NIM) | Creative Director | Brief parsing, shot lists, world bibles, visual auditing |
-| **FLUX2 Dev NVFP4** | Quality Renderer | Final images, photoreal detail, advertising |
-| **Z-Image Turbo** | Speed Renderer | Drafts, concepts, rapid iteration |
-| **LTX 2.3 NVFP4** | Video Generation | Cinematic shorts, TV spots, motion sequences |
-| **WAN 2.2 NVFP4** | Video Generation | Animated sequences, stylized motion |
+Forge runs two specialized models in a continuous creative loop:
 
-One pipeline. Any style. Any format.
+### 🧠 Hermes-3 (Nous Research — Local, Always On)
+The creative worker. Runs on LM Studio — private, fast, no API costs. Hermes-3:
+- **Writes every shot prompt** from director schemas, shot briefs, and its own memory
+- **Reads its past failures** before each dispatch: *"Last time I shot Sienna at dusk the lighting was wrong — adjusting now"*
+- **Diagnoses failures** when a render doesn't pass visual QA, cross-referencing memory
+- **Streams its inner monologue** to the Hermes Live panel in real time — judges watch the AI think
 
----
+### 🎬 Kimi (API — Precise, Expensive, Used Sparingly)
+The executive layer. Three distinct roles:
 
-## The Problem
+| Model | Role | When Called |
+|-------|------|-------------|
+| **Kimi K2.6** | Creative Director — synthesizes world bible into shot list | Once per campaign |
+| **Kimi-VL** | Visual Auditor — **actually looks at rendered images**, compares to character references | Per render |
+| **Kimi K2-Instruct** | Fixer — full prompt rewrite when Hermes can't repair a failure | Tier-3 fallback |
 
-AI can generate one beautiful thing. But a campaign? A film? A series?
-
-Generate 24 Instagram posts and half of them have the wrong brand colors. Your product render loses its signature detail on shot 17. You fix it manually. Then you generate the next batch and — surprise — the same error comes back.
-
-**Every prompt is a roll of the dice. AI doesn't learn from its mistakes.**
-
-Until now.
-
----
-
-## The Solution: Hermes
-
-Most AI tools are goldfish. They generate and forget.
-
-**Hermes remembers.**
-
-Before dispatching any asset, Hermes asks its memory:
-> *"Have I done something like this before? What worked? What failed?"*
-
-If it finds a similar failure, it **injects the learned fix directly into the prompt** — automatically. The pipeline gets smarter with every render. Your 50th asset is better than your 1st — not because you got better at prompting, but because your creative partner got better at remembering.
-
-### How It Works
-
-1. **Brief** — Kimi 2.6 reads your creative brief and builds a campaign plan + world bible
-2. **Dispatch** — Hermes routes each asset to the right model (FLUX2 for quality, Z-Image for speed, LTX/WAN for video)
-3. **Audit** — Every render is checked against the world bible for consistency
-4. **Repair** — Failures are fixed automatically (up to 3 remediation iterations)
-5. **Learn** — Hermes records every outcome. After a session, it distills episodes into durable semantic rules
+### 🖥️ ComfyUI on the Spark (DGX GPU Cluster)
+All rendering happens on dedicated GPU hardware. Z-Image Turbo for speed. FLUX2 Dev for final quality. LTX 2.3 for video.
 
 ---
 
-## 🎬 Live Demo: Teach Mode
+## What Makes This Different
 
-The fastest way to see Hermes learn is to watch it fail on purpose.
+**Kimi-VL actually looks at the images.**
 
-**Teach Mode** is a controlled learning loop you can run live in the dashboard:
+Every rendered PNG gets sent to Kimi-VL alongside the character reference sheets. Kimi-VL compares them pixel-by-pixel and returns: *"Eye color mismatch — rendered brown, expected emerald. Confidence: 94%."*
 
-1. **Inject an error** — deliberately strip a brand color from the prompt
-2. **Generate** → consistency audit fails (score: 34)
-3. **Hermes records** the failure + the correct fix
-4. **Trigger consolidation** → a new **insight** appears in semantic memory
-5. **Re-generate** the same shot → Hermes auto-injects the fix → passes audit (score: 94)
+No other pipeline does this. Text-based consistency checking guesses. Vision-language model auditing *sees*.
+
+**Hermes-3 learns from every failure.**
+
+After Kimi-VL flags an issue, Hermes-3 reads the finding, queries its episodic memory for similar past failures, and writes a corrected prompt — automatically. That correction gets recorded. Next session, Hermes starts knowing what it learned.
+
+**Memory compounds across sessions.**
+
+Hermes runs a "dream process" after each session: the Consolidator scans every episode, detects patterns, and distills them into durable semantic rules. *"For Sienna shots with warm lighting, always specify iris color explicitly."* That rule lives in semantic memory and gets injected into every future prompt that matches.
+
+---
+
+## Live Demo Arc (60 seconds)
+
+1. **0:00** — Dashboard opens. Home shows campaign renders + Hermes Live streaming
+2. **0:10** — Click "Run Campaign." Kimi K2.6 synthesizes world bible → shot list (API call + model name visible)
+3. **0:20** — Hermes Live streams Hermes-3 inner monologue writing Shot 001 prompt (local, instant)
+4. **0:30** — Spark renders. Image appears in panel
+5. **0:40** — Kimi-VL fires: `👁 Eye color mismatch — found brown, expected emerald. Confidence: 91%`
+6. **0:50** — Hermes-3: `🧠 Memory recall: this happened before. Injecting iris descriptor. Rewriting...`
+7. **0:55** — Corrected render passes audit. Memory panel shows new learned rule born
+8. **1:00** — Memory graph updates with new edge connecting failure → fix → insight
+
+---
+
+## Teach Mode — Watch Hermes Learn Live
+
+The fastest way to see the pipeline in action: run a controlled failure cycle.
 
 ```bash
 curl -X POST http://localhost:7000/api/hermes/teach \
   -H "Content-Type: application/json" \
-  -d '{"concept":"Sienna Nomad bottle, earth tones, adventure vibe","error_type":"strip_hair_color"}'
+  -d '{"concept":"Sienna Nomad product shot","error_type":"strip_hair_color"}'
 ```
 
-Response shows **before/after prompts**, the fix applied, and the new insight born — all in one request.
+Response includes: before/after prompts, fix applied, confidence scores, and the new semantic insight born — all in one request. No setup. Works without GPU.
 
 ---
 
-## 🎛️ Full Dashboard — All Real, All Live
+## Dashboard — 8 Tabs, All Live
 
-8 tabs. Zero mock data. All wired to real APIs.
-
-| Tab | What You See |
+| Tab | What's There |
 |-----|-------------|
-| **Home** | Live Hermes event stream + Teach Mode panel + campaign stats |
-| **Characters** | DNA editor, variation gallery, consistency scores |
+| **Home** | Hermes Live CLI (chat with Hermes-3 directly) + campaign queue + event stream |
+| **Characters** | Add characters via modal (name + description + anchor image upload) · DNA display |
 | **Script** | Shot list with expandable prompts and audit history |
-| **Products** | Product anchors + generation banks |
-| **Renders** | Live Spark queue monitor + real thumbnail gallery |
-| **Memory** | Interactive Cytoscape graph (194 nodes), insights, timeline |
-| **Models** | **Local ↔ API toggle** — switch backends instantly |
-| **Settings** | Runtime config + Export Brain |
+| **Products** | Generation banks (angle, lighting, material, context) |
+| **Renders** | Live Spark queue monitor + real image/video gallery with lightbox |
+| **Memory** | Interactive Cytoscape graph · Timeline · Insights · Consolidation trigger |
+| **Models** | Local ↔ API toggle · LM Studio model auto-detect · NIM health check |
+| **Settings** | Runtime config editor · ComfyUI host management · Brain export |
 
 ---
 
-## ✅ Demo-Ready Features
+## Architecture
 
-| Feature | How to Show It |
-|---------|---------------|
-| **Teach Mode** | Dashboard → run cycle → before/after + insight birth animation |
-| **Hermes Live** | Home tab → watch `/ws/hermes` stream decision events in real time |
-| **Memory Graph** | Memory tab → interactive graph with 194 nodes, 449 edges |
-| **Models Toggle** | Models tab → flip Local/API → test connection → switch back |
-| **Consistency Score** | POST render to `/api/consistency/score` → get 0-100 score |
-| **Export Brain** | Settings → Export → download JSON with insights + registry |
-| **Spark Monitor** | Renders tab → live queue stats + real thumbnails |
-
----
-
-## Backend-Agnostic by Design
-
-Forge doesn't care where the models live:
-
-- **Cloud:** Kimi 2.6 via NVIDIA NIM (`integrate.api.nvidia.com`)
-- **Local:** LM Studio (any GGUF — Qwen, Llama, Phi, Nomic, etc.)
-- **Fallback:** Zero-dependency TF-IDF embedder (no API keys, no GPU needed)
-
-One toggle in the dashboard. Same pipeline. Any model.
+```
+Creative Brief
+    ↓
+Kimi K2.6 (NIM) ────────────────────── Director Schema + Shot List
+    ↓
+Hermes-3 (LM Studio, local) ─────────── Writes each shot prompt
+  ↑ queries episodic + semantic memory
+    ↓
+ComfyUI / Spark (localhost) ──────── Renders PNG
+    ↓
+Kimi-VL (NIM) ───────────────────────── Visual audit: render vs reference image
+    ↓ fails
+Hermes-3 (tier 2) ───────────────────── Diagnoses from memory → corrected prompt
+    ↓ still fails
+Kimi K2-Instruct (tier 3) ───────────── Full prompt rewrite
+    ↓
+HermesAgent.record_outcome() ────────── Logs to episodic memory
+    ↓
+MemoryConsolidator ───────────────────── Distills episodes → semantic rules
+```
 
 ---
 
@@ -150,10 +135,11 @@ pip install -r requirements.txt
 
 # 2. Configure
 cp .env.template .env
-# Edit .env:
-#   KIMI_API_KEY=your_nvapi_key_here
-#   COMFYUI_PRIMARY=http://localhost:8188
+# Set:
+#   KIMI_API_KEY=your_nvapi_key
+#   COMFYUI_PRIMARY=http://your-spark:8188
 #   LMSTUDIO_HOST=http://localhost:1234
+#   NOUS_HERMES_MODEL=Hermes-3-Llama-3.2-3B
 
 # 3. Verify
 python -m pytest        # 65 tests passing
@@ -161,32 +147,10 @@ python -m pytest        # 65 tests passing
 # 4. Launch
 python -m dashboard.forge_dashboard   # http://localhost:7000
 
-# 5. Run Teach Mode (works without API keys)
+# 5. Teach Mode (works without GPU)
 curl -X POST http://localhost:7000/api/hermes/teach \
   -H "Content-Type: application/json" \
   -d '{"concept":"Sienna Nomad product shot","error_type":"strip_hair_color"}'
-```
-
----
-
-## Architecture
-
-```
-Creative Brief
-    ↓
-Kimi 2.6 (NIM) → Campaign Plan + Shot List + World Bible
-    ↓
-HermesAgent (queries memory → augments prompt)
-    ↓
-ArchitectRouter (selects renderer: FLUX2 / Z-Image / LTX / WAN)
-    ↓
-ComfyDispatcher → Spark (localhost:8188)
-    ↓
-ContinuityAuditor (checks consistency against bible)
-    ↓
-RemediationLoop (fixes failures, 3 iterations max)
-    ↓
-Hermes records outcome → Consolidator → Semantic insight
 ```
 
 ---
@@ -195,17 +159,25 @@ Hermes records outcome → Consolidator → Semantic insight
 
 ```
 core/
-  bridge/           # KimiBridge (K2.6), LMStudioClient, ConfigManager
-  consistency/      # Character DNA extraction, anchor seeds
-  dispatch/         # ComfyUI payload validator + dispatcher
-  feedback/         # RemediationLoop (3-tier self-healing)
-  hermes/           # HermesAgent + episodic/semantic memory + consolidator
-  orchestrator/     # ForgeOrchestrator (pipeline coordinator)
-  quality/          # ConsistencyScorer (PIL histogram comparison)
-dashboard/          # FastAPI app + static UI + memory API + spark monitor
-agents/             # ContinuityAuditor, VisualAgent, Production agents
-data/               # Character banks, product banks, lore bible, memory stores
-scripts/            # Batch render pipeline, memory integrity audit
+  bridge/         KimiBridge (K2.6 + VL + Instruct), NousHermesBridge, LMStudioClient, ConfigManager
+  consistency/    Character DNA extraction, anchor seeds, Redux workflow injection
+  dispatch/       ComfyUI payload validator + multi-host dispatcher + remediation harness
+  feedback/       RemediationLoop (3-tier: skill registry → Hermes-3 → Kimi rewrite)
+  hermes/         HermesAgent + EpisodicMemory + SemanticMemory + MemoryConsolidator
+  orchestrator/   ForgeOrchestrator — master pipeline coordinator
+agents/
+  auditor/        ContinuityAuditor (text + Kimi-VL visual modes)
+  visual/         VisualAgent — ComfyUI workflow dispatch + image generation
+  production/     CopywriterAgent, EditorAgent (campaign copy + post-production notes)
+dashboard/
+  forge_dashboard.py    FastAPI app — all API routes + WebSocket streams
+  memory_api.py         Memory data layer (events, insights, graph)
+  static/               Neo-Veridia UI — dark/light mode, JetBrains Mono, neon accents
+data/
+  character_banks/      Anchor images + quality constants + variation banks
+  hermes_memory/        episodic/events.jsonl + semantic/insights.json (live, grows each run)
+  projects/             Brand bibles, world bibles for sample campaigns
+workflows/              hermes_z_image_turbo_api.json, flux2_turbo.json, ltx_2_3.json
 ```
 
 ---
@@ -214,10 +186,38 @@ scripts/            # Batch render pipeline, memory integrity audit
 
 ```bash
 $ python -m pytest
-============================= 65 passed in 54s =============================
+============================= 65 passed =============================
 ```
 
-Core modules tested: bridge, dispatch, memory, consistency, prompts, skills, templates, script parser, orchestrator, payload validator.
+Core modules tested: bridge, dispatch, memory (episodic + semantic + consolidator), consistency engine, prompts, skills, templates, script parser, orchestrator, payload validator.
+
+---
+
+## Model Stack
+
+| Model | Provider | Role |
+|-------|----------|------|
+| **Hermes-3-Llama-3.2-3B** | Nous Research (LM Studio local) | Prompt writing, failure diagnosis, Hermes Live chat |
+| **moonshotai/kimi-k2.6** | Kimi via NVIDIA NIM | Director schema generation (1M context) |
+| **moonshotai/Kimi-VL-A3B-Instruct** | Kimi via NVIDIA NIM | Visual consistency auditing on rendered images |
+| **moonshotai/kimi-k2-instruct** | Kimi via NVIDIA NIM | Tier-3 prompt rewrite (last resort) |
+| **Z-Image Turbo** | ComfyUI / Spark | Fast image generation (8 steps, res_multistep) |
+| **FLUX2 Dev** | ComfyUI / Spark | Quality image generation |
+| **LTX 2.3** | ComfyUI / Spark | Video generation (I2V + T2V) |
+
+---
+
+## Why It Wins Both Tracks
+
+**Main Track** (Creativity + Usefulness + Presentation):
+- Cross-format consistency through visual memory — not just text rules
+- Demonstrable learning arc: watch a failure, a fix, and a new rule born
+- Real use case: brand managers, indie filmmakers, social media studios
+
+**Kimi Track** (Creative use of Kimi models):
+- Kimi K2.6 model name visible in director schema API call
+- Kimi-VL actually analyzing rendered images — unique among hackathon entries
+- Kimi K2-instruct as precision fixer — clean role separation
 
 ---
 
@@ -225,12 +225,12 @@ Core modules tested: bridge, dispatch, memory, consistency, prompts, skills, tem
 
 - Python 3.11+
 - `fastapi`, `uvicorn`, `httpx`, `numpy`, `pydantic`, `Pillow`
-- **Optional:** ComfyUI instance for real generation
-- **Optional:** LM Studio for local inference
-- **Optional:** `KIMI_API_KEY` for cloud generation
+- LM Studio running Hermes-3 (local, any machine)
+- NVIDIA NIM API key (`KIMI_API_KEY`) for cloud Kimi models
+- ComfyUI instance for GPU rendering (optional — Teach Mode works without it)
 
 ---
 
 ## License
 
-MIT — Hackathon MVP. Production licensing TBD post-May 3.
+MIT — Hackathon MVP. Built in 9 days for the Hermes Agent Creative Hackathon.

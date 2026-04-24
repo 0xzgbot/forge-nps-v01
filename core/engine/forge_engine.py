@@ -10,14 +10,14 @@ sys.path.append("~/Desktop/forge_nps_v01")
 
 # Import Forge Components
 try:
-    from pipelines.generation.architect_router import ArchitectRouter
-    from pipelines.generation.dispatcher import Dispatcher
-    from pipelines.generation.semantic_remediation_loop import SemanticRemediationLoop
+    from core.routing.architect_router import ArchitectRouter
+    from core.dispatch.dispatcher import ComfyDispatcher as Dispatcher
+    from core.feedback.remediation_loop import RemediationLoop as SemanticRemediationLoop
 except ImportError as e:
-    print(f"IMPORT ERROR: {e}")
-    # Diagnostic: print the sys.path to see what's happening
-    print(f"Current sys.path: {sys.path}")
-    sys.exit(1)
+    print(f"[ForgeEngine] Import warning: {e}. Some features may be unavailable.")
+    ArchitectRouter = None
+    Dispatcher = None
+    SemanticRemediationLoop = None
 
 # Setup Logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - [FORGE-ENGINE] - %(levelname)s - %(message)s')
@@ -25,14 +25,16 @@ logger = logging.getLogger("ForgeEngine")
 
 class ForgeEngine:
     """
-    The Master Orchestrator for the Forge Neural Production Lab.
-    Coordinates Concept -> Router -> Dispatcher -> QA/Remediation loop.
+    Legacy entry point — superseded by ForgeOrchestrator.
+    Kept for backward-compatibility with older scripts.
     """
     def __init__(self):
+        if ArchitectRouter is None or Dispatcher is None:
+            raise ImportError("ForgeEngine dependencies unavailable. Use ForgeOrchestrator instead.")
         self.router = ArchitectRouter()
-        self.dispatcher = Dispatcher()
-        self.remediation_loop = SemanticRemediationLoop()
-        logger.info("Forge Engine Initialized.")
+        self.dispatcher = Dispatcher(hosts=[])
+        self.remediation_loop = None
+        logger.info("ForgeEngine initialized (legacy mode).")
 
     async def run_production_batch(self, concepts: List[Dict[str, str]]):
         """
