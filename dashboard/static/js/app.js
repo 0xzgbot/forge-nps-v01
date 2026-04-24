@@ -186,8 +186,31 @@ const VIEWS = {};
 VIEWS.home = () => {
   const root = h('div');
 
-  // hero stats
-  const hero = h('div', { class: 'hero-grid' },
+  // ── Campaign Queue — full-width top bar ──
+  const queue = h('div', { class: 'card card-pad queue-panel queue-topbar', 'data-accent': 'amber' },
+    h('div', { class: 'row between' },
+      h('div', { class: 'col gap-1' },
+        h('div', { class: 'display', style: 'font-size: 13px;' }, 'Campaign Queue'),
+        h('div', { class: 'label' }, 'Spark · FLUX2 + LTX + WAN')
+      ),
+      h('div', { class: 'col gap-1', style: 'flex: 1; margin: 0 24px; min-width: 0;' },
+        h('div', { class: 'row between' },
+          h('div', { style: 'font-size: 14px; color: var(--amber); letter-spacing: 0.1em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;' }, 'VAR_014 · cockpit-cu · Elara'),
+          h('div', { class: 'eta' }, 'ETA 3m 12s · 8 of 24 complete')
+        ),
+        h('div', { class: 'progress', style: 'width: 100%; margin-top: 6px;' }, h('div', { class: 'fill', style: 'width: 33%;' }))
+      ),
+      h('div', { class: 'row gap-2', style: 'align-items: center;' },
+        h('div', { class: 'heartbeat' }, ...Array.from({ length: 8 }, () => h('div', { class: 'bar' }))),
+        h('button', { class: 'icon-btn', title: 'Pause' }, '⏸'),
+        h('button', { class: 'icon-btn', title: 'Skip' }, '⏭')
+      )
+    )
+  );
+  root.append(queue);
+
+  // ── Stat pills row ──
+  const hero = h('div', { class: 'hero-grid', style: 'margin-top: 12px;' },
     statCard({ label: 'Total Events',   value: 176, accent: 'cyan'    }),
     statCard({ label: 'Insights',       value: 12,  accent: 'purple'  }),
     statCard({ label: 'Success Rate',   value: 94,  accent: 'green',   suffix: '%' }),
@@ -197,29 +220,27 @@ VIEWS.home = () => {
   );
   root.append(hero);
 
-  // body: recent renders + queue + actions + heartbeat + hermes + teach
+  // ── Main body: Hermes large left | sidebar right ──
   const body = h('div', { class: 'home-body' });
+  const left  = h('div', { class: 'col gap-3' });
+  const right = h('div', { class: 'col gap-3' });
 
-  // left column
-  const left = h('div', { class: 'col gap-3' });
-
-  // Hermes Live panel
-  const hermesCard = h('div', { class: 'card card-pad', 'data-accent': 'purple' },
-    h('div', { class: 'row between', style: 'margin-bottom: 10px;' },
-      h('div', { class: 'display', style: 'font-size: 12px;' }, 'Hermes Live'),
+  // Hermes Live — tall main panel
+  const hermesCard = h('div', { class: 'card card-pad hermes-main', 'data-accent': 'purple' },
+    h('div', { class: 'row between', style: 'margin-bottom: 12px;' },
+      h('div', { class: 'display', style: 'font-size: 13px;' }, 'Hermes Live'),
       h('span', { class: 'ticker' }, 'STREAMING · /ws/hermes')
     ),
-    h('div', { id: 'hermes-panel', class: 'hermes-panel' },
+    h('div', { id: 'hermes-panel', class: 'hermes-panel hermes-panel-tall' },
       h('div', { class: 'label', style: 'opacity:0.5;' }, 'Waiting for events...')
     )
   );
   left.append(hermesCard);
 
-  // Teach Mode card
-  const teachCard = h('div', { id: 'teach-mode-container' });
-  left.append(teachCard);
+  // Teach Mode
+  left.append(h('div', { id: 'teach-mode-container' }));
 
-  // recent renders card
+  // Recent renders strip
   const recent = h('div', { class: 'card card-pad', 'data-accent': 'cyan' });
   recent.append(
     h('div', { class: 'row between', style: 'margin-bottom: 14px;' },
@@ -249,35 +270,8 @@ VIEWS.home = () => {
   recent.append(strip);
   left.append(recent);
 
-  // queue panel
-  const queue = h('div', { class: 'card card-pad queue-panel', 'data-accent': 'amber' },
-    h('div', { class: 'row between' },
-      h('div', { class: 'col gap-1' },
-        h('div', { class: 'display', style: 'font-size: 13px;' }, 'Campaign Queue'),
-        h('div', { class: 'label' }, 'Spark · FLUX2 + LTX + WAN')
-      ),
-      h('div', { class: 'heartbeat' },
-        ...Array.from({ length: 8 }, () => h('div', { class: 'bar' }))
-      )
-    ),
-    h('div', { class: 'current' },
-      h('div', { class: 'col gap-1', style: 'min-width: 0; flex: 1;' },
-        h('div', { style: 'font-size: 14px; color: var(--amber); letter-spacing: 0.1em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;' }, 'VAR_014 · cockpit-cu · Elara'),
-        h('div', { class: 'eta' }, 'ETA 3m 12s · 8 of 24 complete')
-      ),
-      h('div', { class: 'row gap-2', style: 'flex-shrink: 0;' },
-        h('button', { class: 'icon-btn', title: 'Pause' }, '⏸'),
-        h('button', { class: 'icon-btn', title: 'Skip' }, '⏭')
-      )
-    ),
-    h('div', { class: 'progress' }, h('div', { class: 'fill', style: 'width: 33%;' }))
-  );
-  left.append(queue);
-
-  // right column
-  const right = h('div', { class: 'col gap-3' });
-
-  const actionsCard = h('div', { class: 'card card-pad', 'data-accent': 'cyan' },
+  // Quick Actions
+  right.append(h('div', { class: 'card card-pad', 'data-accent': 'cyan' },
     h('div', { class: 'display', style: 'font-size: 13px; margin-bottom: 14px;' }, 'Quick Actions'),
     h('div', { class: 'quick-actions' },
       h('button', { class: 'quick-action', onclick: () => switchTab('renders') },
@@ -297,14 +291,13 @@ VIEWS.home = () => {
         h('div', { class: 'desc' }, 'Consolidate episodic → semantic')
       )
     )
-  );
-  right.append(actionsCard);
+  ));
 
-  // mini-timeline preview
-  const feed = h('div', { class: 'card card-pad', 'data-accent': 'purple' },
+  // Live Feed
+  right.append(h('div', { class: 'card card-pad', 'data-accent': 'purple' },
     h('div', { class: 'row between', style: 'margin-bottom: 10px;' },
       h('div', { class: 'display', style: 'font-size: 13px;' }, 'Live Feed'),
-      h('div', { class: 'ticker' }, 'STREAMING · 24.ms')
+      h('div', { class: 'ticker' }, 'STREAMING · 24ms')
     ),
     h('div', { class: 'timeline' },
       ...TIMELINE.slice(0, 5).map(e => h('div', { class: 'tl-event' },
@@ -315,8 +308,7 @@ VIEWS.home = () => {
         )
       ))
     )
-  );
-  right.append(feed);
+  ));
 
   body.append(left, right);
   root.append(body);

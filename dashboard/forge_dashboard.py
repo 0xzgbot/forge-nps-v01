@@ -427,7 +427,7 @@ async def api_submit_recipe(req: SubmitRecipeRequest):
 
     # Submit via ComfyUI client
     client = ComfyUIClient("http://100.112.87.8:8188")
-    prompt_id = client.submit_prompt(workflow)
+    prompt_id = await client.submit_prompt(workflow)
 
     if prompt_id:
         spark_monitor.add_job(req.recipe, prompt_id, req.recipe.get("filename", "job"))

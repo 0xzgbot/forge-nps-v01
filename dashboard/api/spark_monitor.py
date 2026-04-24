@@ -139,6 +139,24 @@ class SparkMonitor:
                                     if key in node_out:
                                         out_files.extend([f.get("filename", "") for f in node_out[key]])
                         job.outputs = out_files
+                        # Download images from ComfyUI to local renders dir
+                        renders_dir = REPO_ROOT / "data" / "renders"
+                        renders_dir.mkdir(parents=True, exist_ok=True)
+                        for fname in out_files:
+                            if not fname:
+                                continue
+                            dst = renders_dir / fname
+                            if not dst.exists():
+                                try:
+                                    img_resp = requests.get(
+                                        f"{self.host}/view",
+                                        params={"filename": fname, "type": "output"},
+                                        timeout=30
+                                    )
+                                    if img_resp.status_code == 200:
+                                        dst.write_bytes(img_resp.content)
+                                except Exception:
+                                    pass
                         await self._broadcast(pid, job)
                     elif status.get("status_str") == "error":
                         job = self.jobs[pid]
