@@ -1,188 +1,55 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FORGE NPS - Live Dashboard</title>
-    <style>
-        body {
-            font-family: 'Courier New', Courier, monospace;
-            background-color: #0a0a0a;
-            color: #00ff41;
-            margin: 0;
-            padding: 20px;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            grid-template-rows: auto 1fr 1fr;
-            gap: 15px;
-            height: 95vh;
-        }
-
-        h1, h2 { margin: 0; color: #fff; text-transform: uppercase; letter-spacing: 2px; }
-        .panel {
-            border: 1px solid #333;
-            background: #111;
-            padding: 15px;
-            overflow-y: auto;
-            position: relative;
-        }
-
-        #header { grid-column: span 2; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #00ff41; }
-        
-        #reasoning-feed { grid-row: span 2; }
-        #shot-progress { grid-column: 2; }
-        #skill-registry { grid-column: 2; }
-
-        .event-entry {
-            border-left: 2px solid #00ff41;
-            padding: 5px 10px;
-            margin-bottom: 8px;
-            font-size: 0.9em;
-            animation: fadeIn 0.3s ease-out;
-        }
-
-        @keyframes fadeIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
-
-        .timestamp { color: #888; font-size: 0.8em; margin-right: 5px; }
-        .type { font-weight: bold; color: #fff; margin-right: 5px; }
-        .payload { color: #00ff41; }
-
-        .stat-value { font-size: 2em; font-weight: bold; color: #fff; }
-        
-        button {
-            background: #00ff41;
-            color: #000;
-            border: none;
-            padding: 10px 20px;
-            cursor: pointer;
-            font-family: inherit;
-            font-weight: bold;
-        }
-        button:hover { background: #fff; }
-
-        .skill-item {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 5px;
-            padding: 4px;
-            border-bottom: 1px solid #222;
-        }
-        .status-active { color: #00ff41; }
-        .status-ready { color: #888; }
-
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Forge — The AI That Remembers</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/design-system.css">
+  <link rel="stylesheet" href="css/components.css">
+  <script src="https://unpkg.com/cytoscape@3.26.0/dist/cytoscape.min.js"></script>
 </head>
-<body>
+<body class="intensity-balanced">
+  <div class="grid-bg"></div>
+  <div class="scan-sweep"></div>
 
-<div id="header" class="panel">
-    <h1>FORGE NPS LIVE DASHBOARD</h1>
-    <div>
-        SESSION ID: <span id="session-id">--</span>
-        <button onclick="startMock()">START MOCK STREAM</button>
-    </div>
-</div>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" id="brand-mark"></div>
+        <div>
+          <div class="brand-name gradient-text">FORGE</div>
+          <div class="brand-sub">THE AI THAT REMEMBERS</div>
+        </div>
+      </div>
+      <nav class="tabs" id="tabs"></nav>
+      <div class="topbar-right">
+        <span class="ticker">HERMES · 12 INSIGHTS LEARNED · READY</span>
+        <span class="spark-status">
+          <span class="dot d-green"></span> SPARK READY
+        </span>
+        <button class="icon-btn" title="Notifications">⎋</button>
+        <button class="icon-btn" title="Account">◐</button>
+      </div>
+    </header>
 
-<div id="reasoning-feed" class="panel">
-    <h2>LIVE REASONING FEED</h2>
-    <div id="feed-content"></div>
-</div>
+    <main id="view" class="content" data-screen-label="forge-view"></main>
+  </div>
 
-<div id="shot-progress" class="panel">
-    <h2>SHOT PROGRESS</h2>
-    <div id="shot-info">Waiting for shot...</div>
-    <hr>
-    <div>AUTONOMY SCORE: <span id="autonomy-score" class="stat-value">0</span>%</div>
-</div>
+  <div class="intensity-pill" role="group" aria-label="Aesthetic intensity">
+    <button data-intensity="tasteful">Tasteful</button>
+    <button data-intensity="balanced" class="active">Balanced</button>
+    <button data-intensity="full">Full Neon</button>
+  </div>
 
-<div id="skill-registry" class="panel">
-    <h2>SKILL REGISTRY</h2>
-    <div id="skills-list"></div>
-</div>
-
-<script>
-    let sessionId = "demo-" + Math.random().toString(36).substring(7);
-    document.getElementById('session-id').textContent = sessionId;
-    
-    let socket;
-
-    function connect() {
-        socket = new WebSocket(`ws://${window.location.host}/ws/${sessionId}`);
-
-        socket.onopen = () => console.log("Connected to WebSocket");
-        
-        socket.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-            handleMessage(data);
-        };
-
-        socket.onclose = () => {
-            console.log("Disconnected. Retrying...");
-            setTimeout(connect, 2000);
-        };
-    }
-
-    function handleMessage(data) {
-        const type = data.type;
-        const payload = data.payload;
-
-        if (type === "SHOT_STARTED") {
-            document.getElementById('shot-info').innerHTML = `<strong>${payload.name}</strong><br>ID: ${payload.shot_id}`;
-            addFeedEntry("SYSTEM", `Shot Started: ${payload.name}`);
-        } else if (type === "KIMI_THINKING") {
-            addFeedEntry("KIMI", payload.text);
-        } else if (type === "HERMES_ACTION") {
-            addFeedEntry("HERMES", `${payload.action} on ${payload.target}`);
-        } else if (type === "REASONING_UPDATE") {
-            addFeedEntry("REASONING", payload.content);
-        } else if (type === "AUTONOMY_SCORE") {
-            document.getElementById('autonomy-score').textContent = payload.score;
-        } else if (type === "SKILL_USED") {
-            addFeedEntry("SKILL", `Used: ${payload.skill} (${payload.result})`);
-            updateSkillStatus(payload.skill, 'active');
-        }
-    }
-
-    function addFeedEntry(type, text) {
-        const container = document.getElementById('feed-content');
-        const div = document.createElement('div');
-        div.className = 'event-entry';
-        const now = new Date().toLocaleTimeString();
-        div.innerHTML = `<span class="timestamp">[${now}]</span><span class="type">${type}</span><span class="payload">${text}</span>`;
-        container.prepend(div);
-    }
-
-    function updateSkillStatus(name, status) {
-        const items = document.querySelectorAll('.skill-item');
-        items.forEach(item => {
-            if (item.dataset.name === name) {
-                const span = item.querySelector('.status');
-                span.textContent = status;
-                span.className = 'status ' + (status === 'active' ? 'status-active' : 'status-ready');
-            }
-        });
-    }
-
-    function startMock() {
-        socket.send(JSON.stringify({ type: "START_MOCK" }));
-    }
-
-    async function loadSkills() {
-        const res = await fetch('/api/skills');
-        const skills = await res.json();
-        const list = document.getElementById('skills-list');
-        list.innerHTML = '';
-        skills.forEach(s => {
-            const div = document.createElement('div');
-            div.className = 'skill-item';
-            div.dataset.name = s.name;
-            div.innerHTML = `<span>${s.name}</span><span class="status ${'status-' + s.status}">${s.status}</span>`;
-            list.appendChild(div);
-        });
-    }
-
-    // Init
-    connect();
-    loadSkills();
-</script>
+  <script src="js/data.js"></script>
+  <script src="js/video-player.js"></script>
+  <script src="js/hermes-panel.js"></script>
+  <script src="js/spark-widget.js"></script>
+  <script src="js/teach-mode.js"></script>
+  <script src="js/render-gallery.js"></script>
+  <script src="js/app.js"></script>
 </body>
 </html>

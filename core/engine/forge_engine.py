@@ -6,7 +6,7 @@ import os
 from typing import List, Dict, Any
 
 # Ensure project root is in PYTHONPATH for package imports
-sys.path.append("/Users/zgbot/Desktop/forge_nps")
+sys.path.append("/Users/zgbot/Desktop/forge_nps_v01")
 
 # Import Forge Components
 try:

@@ -30,7 +30,7 @@ class TemplateManager:
         if not template_path.exists():
             raise FileNotFoundError(f"Template '{template_name}' not found at {template_path}")
 
-        with open(template_path, 'r') as f:
+        with open(template_path, 'r', encoding="utf-8") as f:
             template_data = json.load(f)
 
         if overlays:

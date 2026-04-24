@@ -15,7 +15,7 @@ class ComfyUIBatchSubmitter:
     """
 
     def __init__(self, 
-                 hosts: List[str] = ["http://100.74.164.1:8188", "http://100.74.164.1:8189"],
+                 hosts: List[str] = ["http://100.112.87.8:8188", "http://100.112.87.8:8189"],
                  poll_interval: int = 5):
         self.hosts = hosts
         self.poll_interval = poll_interval

@@ -1,1 +1,9 @@
-golden hour, cinematic lighting, soft studio light, hard shadows, neon glow, moonlight, overcast, high key, low key
+golden hour
+cinematic lighting
+soft studio light
+hard shadows
+neon glow
+moonlight
+overcast
+high key
+low key

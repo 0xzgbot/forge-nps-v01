@@ -21,8 +21,8 @@ pytest-asyncio>=0.23.0
 fastapi>=0.110.0
 uvicorn>=0.27.0
 
-# Optional: for local embedding fallback (Ollama)
-# ollama>=0.1.0
+# Optional: for local embedding fallback (LM Studio)
+# No pip package needed — LM Studio exposes OpenAI-compatible API on localhost:1234
 
 # Optional: for dashboard/UI rich console output
 # rich>=13.0.0

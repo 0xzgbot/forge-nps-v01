@@ -3,9 +3,9 @@ import jsonschema
 from jsonschema import validate
 
 def test_validation():
-    schema_path = '/Users/zgbot/Desktop/forge_nps/core/schemas/director_schema.json'
+    schema_path = '/Users/zgbot/Desktop/forge_nps_v01/core/schemas/director_schema.json'
     
-    with open(schema_path, 'r') as f:
+    with open(schema_path, 'r', encoding="utf-8") as f:
         schema = json.load(f)
 
     sample_data = {

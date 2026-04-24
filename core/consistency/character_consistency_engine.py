@@ -94,8 +94,16 @@ class CharacterConsistencyEngine:
             # Deterministic seed base from character name
             seed_base = int(hashlib.md5(name.encode()).hexdigest(), 16) % (2**31)
 
-            # Anchor image path
-            anchor_path = self.anchor_dir / f"{self._safe_filename(name)}.png"
+            # Anchor image path (supports .png, .jpg, .jpeg, .webp)
+            safe_name = self._safe_filename(name)
+            anchor_path = None
+            for ext in (".png", ".jpg", ".jpeg", ".webp"):
+                candidate = self.anchor_dir / f"{safe_name}{ext}"
+                if candidate.exists():
+                    anchor_path = candidate
+                    break
+            if anchor_path is None:
+                anchor_path = self.anchor_dir / f"{safe_name}.png"
 
             characters[name.upper()] = {
                 "name": name,

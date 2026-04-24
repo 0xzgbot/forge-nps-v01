@@ -57,7 +57,7 @@ class WorldBibleGenerator:
         # We call Kimi with the specialized system prompt
         response_text = await self.kimi.direct(
             system_prompt=self.SYSTEM_PROMPT,
-            user_prompt=prompt
+            user_input=prompt
         )
 
         # Parse the markdown response into a structured dictionary
@@ -128,7 +128,7 @@ class WorldBibleGenerator:
         
         return await self.kimi.direct(
             system_prompt=self.SYSTEM_PROMPT,
-            user_prompt=refine_prompt
+            user_input=refine_prompt
         )
 
 if __name__ == "__main__":

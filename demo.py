@@ -56,8 +56,8 @@ def print_memory_report(hermes: HermesAgent):
             backend = hermes.episodic.embedder.active_backend
             if backend == "kimi":
                 embedder_name = f"Kimi ({hermes.episodic.embedder.kimi.model})"
-            elif backend == "ollama":
-                embedder_name = f"Ollama ({hermes.episodic.embedder.ollama.model})"
+            elif backend == "lmstudio":
+                embedder_name = f"LM Studio ({hermes.episodic.embedder.lmstudio.model})"
             else:
                 embedder_name = "Numpy TF-IDF (offline fallback)"
 

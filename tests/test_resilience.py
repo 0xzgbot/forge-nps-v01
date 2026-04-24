@@ -5,7 +5,7 @@ import asyncio
 import os
 
 # Ensure project root is in path
-sys.path.append("/Users/zgbot/Desktop/forge_nps")
+sys.path.append("/Users/zgbot/Desktop/forge_nps_v01")
 
 from core.error_handling_protocols import ErrorHandler, TransientError, FatalError
 from agents.auditor.continuity_auditor import ContinuityAuditor
@@ -28,7 +28,7 @@ class TestForgeIntegration(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self.handler = ErrorHandler(max_retries=2, base_delay=0.1)
         # Mocking the lore file for auditor test
-        self.lore_path = "/Users/zgbot/Desktop/forge_nps_v01/data/lore_bible/world_bible.json"
+        self.lore_path = "/Users/zgbot/Desktop/forge_nps_v01/data/lore_bible/world_bible.md"
 
     async def test_integration_flow(self):
         print("\n--- Starting Integrated Flow Test ---")

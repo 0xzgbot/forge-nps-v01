@@ -22,7 +22,7 @@ from .embedder import BaseEmbedder, HybridEmbedder
 class EpisodicMemory:
     """
     Append-only JSONL event log with embedding-based similarity retrieval.
-    Defaults to HybridEmbedder (Ollama neural embeddings + numpy TF-IDF fallback).
+    Defaults to HybridEmbedder (LM Studio local embeddings + numpy TF-IDF fallback).
     """
 
     def __init__(

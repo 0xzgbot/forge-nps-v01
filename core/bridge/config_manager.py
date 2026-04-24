@@ -19,7 +19,7 @@ class ConfigManager:
 
     def get_comfyui_primary(self) -> str:
         # Default to your established primary host from memory
-        return os.getenv("COMFYUI_PRIMARY", "http://100.74.164.1:8188")
+        return os.getenv("COMFYUI_PRIMARY", "http://100.112.87.8:8188")
 
     def get(self, key: str, default: Any = None) -> Any:
         """Generic accessor for configuration values (used by Orchestrator)."""
@@ -27,6 +27,17 @@ class ConfigManager:
         if key == "DIRECTOR_SCHEMA":
             return None # In a real app this might return a Pydantic class or schema dict
         return os.getenv(key, default)
+
+    def validate(self) -> list[str]:
+        """Check for missing critical configurations."""
+        missing = []
+        if not self.get_nim_endpoint():
+            missing.append("NIM_ENDPOINT")
+        if not self.get_kimi_api_key():
+            missing.append("KIMI_API_KEY")
+        if not self.get_comfyui_primary():
+            missing.append("COMFYUI_PRIMARY")
+        return missing
 
 if __name__ == "__main__":
     cm = ConfigManager()

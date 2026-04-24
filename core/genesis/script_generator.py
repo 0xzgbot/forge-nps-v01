@@ -67,7 +67,7 @@ class ScriptGenerator:
 
         script_md = await self.kimi.direct(
             system_prompt=self.SYSTEM_PROMPT,
-            user_prompt=user_prompt
+            user_input=user_prompt
         )
 
         # Use a simplified internal parser for the immediate return structure

@@ -74,14 +74,14 @@ class VisualAgent:
         return payload
 
     async def load_workflow(self, kernel: str) -> dict:
-        """Loads JSON workflow from /Users/zgbot/Desktop/forge_nps/workflows/."""
-        wf_path = Path("/Users/zgbot/Desktop/forge_nps_v01/workflows") / f"{kernel}.json"
+        """Loads JSON workflow from repo workflows/."""
+        wf_path = Path(__file__).parent.parent.parent / "workflows" / f"{kernel}.json"
         if not wf_path.exists():
             # Fallback for testing if specific kernel file isn't there, 
             # though B1 should have copied them.
             logger.warning(f"Workflow {wf_path} not found.")
             return {}
-        with open(wf_path, 'r') as f:
+        with open(wf_path, 'r', encoding="utf-8") as f:
             return json.load(f)
 
     async def submit_to_comfy(self, shot_data: dict, workflow: dict):

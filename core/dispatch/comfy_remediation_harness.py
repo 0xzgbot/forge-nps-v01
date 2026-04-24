@@ -54,8 +54,8 @@ class ComfyRemediationHarness:
 
         # Default hosts from project config
         self.hosts = comfy_hosts or [
-            "http://100.74.164.1:8188",
-            "http://100.74.164.1:8189",
+            "http://100.112.87.8:8188",
+            "http://100.112.87.8:8189",
         ]
         for host in self.hosts:
             self.clients[host] = ComfyUIClient(host)
@@ -103,7 +103,7 @@ class ComfyRemediationHarness:
 
             # Try to load raw content for classification
             try:
-                with open(json_file) as f:
+                with open(json_file, encoding="utf-8") as f:
                     raw = json.load(f)
             except Exception:
                 buckets["corrupt"].append((json_file, report))
@@ -190,7 +190,7 @@ class ComfyRemediationHarness:
         template = None
 
         if ltx_template_path and ltx_template_path.exists():
-            with open(ltx_template_path) as f:
+            with open(ltx_template_path, encoding="utf-8") as f:
                 template = json.load(f)
         else:
             logger.warning("No LTX workflow template provided — skipping video workflow builds.")
@@ -244,7 +244,7 @@ class ComfyRemediationHarness:
             client = self.clients[host]
             for path in queue:
                 try:
-                    with open(path) as f:
+                    with open(path, encoding="utf-8") as f:
                         payload = json.load(f)
 
                     # Ensure fresh seed
@@ -384,7 +384,7 @@ async def main():
     parser = argparse.ArgumentParser(description="ComfyUI Remediation Harness")
     parser.add_argument("project_root", help="Path to project root (e.g., Sienna_Nomad_Project)")
     parser.add_argument("--filter", choices=["image", "anchor", "photo", "all"], default="image")
-    parser.add_argument("--hosts", nargs="+", default=["http://100.74.164.1:8188", "http://100.74.164.1:8189"])
+    parser.add_argument("--hosts", nargs="+", default=["http://100.112.87.8:8188", "http://100.112.87.8:8189"])
     parser.add_argument("--output", default=None, help="Output directory for renders")
     args = parser.parse_args()
 

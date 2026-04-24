@@ -31,13 +31,13 @@ class SkillRegistry:
                     "Wan_2.1": ["fluid motion, no jitter", "maintain character silhouette"]
                 }
             }
-            with open(self.registry_path, 'w') as f:
+            with open(self.registry_path, 'w', encoding="utf-8") as f:
                 json.dump(default_data, f, indent=2)
 
     def _load_registry(self) -> Dict[str, Any]:
         """Load the registry from disk."""
         try:
-            with open(self.registry_path, 'r') as f:
+            with open(self.registry_path, 'r', encoding="utf-8") as f:
                 return json.load(f)
         except (json.JSONDecodeError, IOError) as e:
             print(f"Error loading registry: {e}")
@@ -51,7 +51,7 @@ class SkillRegistry:
     def _save_registry(self):
         """Persist the current data to disk."""
         self.data["last_updated"] = datetime.now().isoformat()
-        with open(self.registry_path, 'w') as f:
+        with open(self.registry_path, 'w', encoding="utf-8") as f:
             json.dump(self.data, f, indent=2)
 
     def lookup(self, error_category: str, shot_type: str) -> Optional[Dict[str, Any]]:

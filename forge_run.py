@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 
 # Add project root to sys.path for seamless imports
-sys.path.append('/Users/zgbot/Desktop/forge_nps')
+sys.path.append('/Users/zgbot/Desktop/forge_nps_v01')
 
 from core.bridge.kimi_bridge import KimiBridge
 from core.genesis.genesis_engine import GenesisEngine
@@ -32,7 +32,7 @@ class ForgeOrchestrator:
         self.kimi = KimiBridge()
         self.genesis = GenesisEngine(self.kimi, projects_dir=projects_dir)
         self.prompt_gen = AssetPromptGenerator(self.kimi)
-        self.submitter = ComfyUIBatchSubmitter(hosts=hosts or ["http://100.74.164.1:8188", "http://100.74.164.1:8189"])
+        self.submitter = ComfyUIBatchSubmitter(hosts=hosts or ["http://100.112.87.8:8188", "http://100.112.87.8:8189"])
 
     async def run_full_production(self, idea: str, project_name: str = None):
         """The complete end-to-end pipeline."""

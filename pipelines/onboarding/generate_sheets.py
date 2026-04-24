@@ -66,7 +66,7 @@ class ComfyClient:
             print(f"Error downloading output: {e}")
             return False
 
-def generate_sheets(project_slug, host="100.74.164.1", port=8188):
+def generate_sheets(project_slug, host="100.112.87.8", port=8188):
     print(f"\n>>> Starting Reference Sheet Generation for project: {project_slug}")
     
     cwd = os.getcwd()

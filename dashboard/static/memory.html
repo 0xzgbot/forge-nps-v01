@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FORGE NPS — Hermes Memory Core</title>
+    <script src="https://unpkg.com/cytoscape@3.26.0/dist/cytoscape.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;800&display=swap');
+
+        :root {
+            --bg-primary: #0A0E14;
+            --bg-panel: #0D1117;
+            --bg-card: #111820;
+            --border: #1E2A3A;
+            --text-primary: #E6EDF3;
+            --text-secondary: #8B949E;
+            --cyan: #00FFFF;
+            --magenta: #FF00FF;
+            --amber: #FFBF00;
+            --green: #00FF41;
+            --red: #FF3333;
+            --purple: #BD00FF;
+            --orange: #FF8800;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Scanline overlay */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0, 255, 255, 0.015) 2px,
+                rgba(0, 255, 255, 0.015) 4px
+            );
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        /* Grid background */
+        .grid-bg {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image:
+                linear-gradient(rgba(0, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Header */
+        .header {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border);
+            background: rgba(10, 14, 20, 0.95);
+            backdrop-filter: blur(10px);
+        }
+
+        .header h1 {
+            font-size: 1.3rem;
+            font-weight: 800;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            background: linear-gradient(90deg, var(--cyan), var(--magenta));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header .subtitle {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            letter-spacing: 2px;
+            margin-top: 2px;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            margin-left: 20px;
+            font-size: 0.8rem;
+            letter-spacing: 1px;
+            transition: color 0.2s;
+        }
+        .nav-links a:hover { color: var(--cyan); }
+
+        /* Stats Bar */
+        .stats-bar {
+            position: relative;
+            z-index: 10;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px;
+            padding: 16px 24px;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 14px 16px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--cyan), transparent);
+        }
+
+        .stat-card.cyan::before { background: linear-gradient(90deg, var(--cyan), transparent); }
+        .stat-card.magenta::before { background: linear-gradient(90deg, var(--magenta), transparent); }
+        .stat-card.amber::before { background: linear-gradient(90deg, var(--amber), transparent); }
+        .stat-card.green::before { background: linear-gradient(90deg, var(--green), transparent); }
+        .stat-card.purple::before { background: linear-gradient(90deg, var(--purple), transparent); }
+
+        .stat-label {
+            font-size: 0.65rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 6px;
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--text-primary);
+        }
+
+        .stat-value.cyan { color: var(--cyan); text-shadow: 0 0 10px rgba(0,255,255,0.3); }
+        .stat-value.magenta { color: var(--magenta); text-shadow: 0 0 10px rgba(255,0,255,0.3); }
+        .stat-value.amber { color: var(--amber); text-shadow: 0 0 10px rgba(255,191,0,0.3); }
+        .stat-value.green { color: var(--green); text-shadow: 0 0 10px rgba(0,255,65,0.3); }
+        .stat-value.purple { color: var(--purple); text-shadow: 0 0 10px rgba(189,0,255,0.3); }
+
+        /* Main Layout */
+        .main-grid {
+            position: relative;
+            z-index: 10;
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            grid-template-rows: auto 1fr;
+            gap: 12px;
+            padding: 0 24px 24px;
+            height: calc(100vh - 180px);
+        }
+
+        /* Search & Controls */
+        .controls-bar {
+            grid-column: 1 / -1;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .search-box {
+            flex: 1;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 10px 14px;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.85rem;
+            outline: none;
+        }
+        .search-box:focus { border-color: var(--cyan); box-shadow: 0 0 8px rgba(0,255,255,0.15); }
+        .search-box::placeholder { color: var(--text-secondary); }
+
+        .btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 10px 18px;
+            font-family: inherit;
+            font-size: 0.8rem;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .btn:hover {
+            border-color: var(--cyan);
+            color: var(--cyan);
+            box-shadow: 0 0 12px rgba(0,255,255,0.15);
+        }
+        .btn.active {
+            background: rgba(0, 255, 255, 0.1);
+            border-color: var(--cyan);
+            color: var(--cyan);
+        }
+
+        /* Graph Panel */
+        .graph-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .graph-panel::before {
+            content: 'MEMORY GRAPH';
+            position: absolute;
+            top: 10px; left: 14px;
+            font-size: 0.65rem;
+            color: var(--text-secondary);
+            letter-spacing: 2px;
+            z-index: 5;
+        }
+
+        #cy {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            overflow: hidden;
+        }
+
+        .panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 14px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .panel-title {
+            font-size: 0.65rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        /* Timeline */
+        .timeline-item {
+            position: relative;
+            padding-left: 18px;
+            padding-bottom: 14px;
+            border-left: 1px solid var(--border);
+            font-size: 0.78rem;
+        }
+        .timeline-item:last-child { border-left: 1px solid transparent; }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -5px; top: 2px;
+            width: 9px; height: 9px;
+            border-radius: 50%;
+            background: var(--border);
+            border: 2px solid var(--bg-card);
+        }
+        .timeline-item.success::before { background: var(--green); box-shadow: 0 0 6px rgba(0,255,65,0.4); }
+        .timeline-item.fail::before { background: var(--red); box-shadow: 0 0 6px rgba(255,51,51,0.4); }
+        .timeline-item.attempt::before { background: var(--cyan); box-shadow: 0 0 6px rgba(0,255,255,0.4); }
+        .timeline-item.insight::before { background: var(--purple); box-shadow: 0 0 6px rgba(189,0,255,0.4); }
+
+        .timeline-time {
+            font-size: 0.65rem;
+            color: var(--text-secondary);
+            margin-bottom: 2px;
+        }
+        .timeline-type {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .timeline-type.attempt { color: var(--cyan); }
+        .timeline-type.success { color: var(--green); }
+        .timeline-type.fail { color: var(--red); }
+        .timeline-desc {
+            color: var(--text-secondary);
+            margin-top: 2px;
+            line-height: 1.4;
+        }
+
+        /* Insights */
+        .insight-item {
+            background: rgba(189, 0, 255, 0.05);
+            border: 1px solid rgba(189, 0, 255, 0.2);
+            border-radius: 4px;
+            padding: 10px 12px;
+            margin-bottom: 10px;
+            font-size: 0.78rem;
+        }
+        .insight-rule {
+            color: var(--text-primary);
+            line-height: 1.4;
+            margin-bottom: 6px;
+        }
+        .insight-meta {
+            display: flex;
+            gap: 12px;
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+        }
+        .insight-meta span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .confidence-bar {
+            width: 40px;
+            height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .confidence-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--purple), var(--magenta));
+        }
+
+        /* Tooltip */
+        .cy-tooltip {
+            position: absolute;
+            background: rgba(13, 17, 23, 0.98);
+            border: 1px solid var(--cyan);
+            border-radius: 4px;
+            padding: 10px 14px;
+            font-size: 0.75rem;
+            color: var(--text-primary);
+            pointer-events: none;
+            z-index: 100;
+            max-width: 280px;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.15);
+            display: none;
+        }
+        .cy-tooltip-row {
+            margin-bottom: 4px;
+        }
+        .cy-tooltip-label {
+            color: var(--text-secondary);
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Loading */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+        .loading::after {
+            content: '';
+            width: 16px; height: 16px;
+            border: 2px solid var(--border);
+            border-top-color: var(--cyan);
+            border-radius: 50%;
+            margin-left: 10px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-primary); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--cyan); }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .main-grid { grid-template-columns: 1fr; grid-template-rows: auto auto 1fr; }
+            .sidebar { flex-direction: row; }
+        }
+    </style>
+</head>
+<body>
+    <div class="grid-bg"></div>
+
+    <header class="header">
+        <div>
+            <h1>Hermes Memory Core</h1>
+            <div class="subtitle">Episodic & Semantic Visualization Layer</div>
+        </div>
+        <nav class="nav-links">
+            <a href="/">Live Dashboard</a>
+            <a href="/memory">Memory Core</a>
+        </nav>
+    </header>
+
+    <div class="stats-bar" id="stats-bar">
+        <div class="stat-card cyan">
+            <div class="stat-label">Total Events</div>
+            <div class="stat-value cyan" id="stat-events">--</div>
+        </div>
+        <div class="stat-card magenta">
+            <div class="stat-label">Insights</div>
+            <div class="stat-value magenta" id="stat-insights">--</div>
+        </div>
+        <div class="stat-card green">
+            <div class="stat-label">Success Rate</div>
+            <div class="stat-value green" id="stat-success">--%</div>
+        </div>
+        <div class="stat-card amber">
+            <div class="stat-label">Sessions</div>
+            <div class="stat-value amber" id="stat-sessions">--</div>
+        </div>
+        <div class="stat-card purple">
+            <div class="stat-label">Confirmations</div>
+            <div class="stat-value purple" id="stat-confirmations">--</div>
+        </div>
+        <div class="stat-card cyan">
+            <div class="stat-label">Time Range</div>
+            <div class="stat-value cyan" id="stat-range" style="font-size: 1rem;">--</div>
+        </div>
+    </div>
+
+    <div class="main-grid">
+        <div class="controls-bar">
+            <input type="text" class="search-box" id="search-input" placeholder="Search events, insights, concepts...">
+            <button class="btn active" id="layout-force">Force</button>
+            <button class="btn" id="layout-circle">Circle</button>
+            <button class="btn" id="layout-grid">Grid</button>
+            <button class="btn" id="layout-concentric">Radial</button>
+            <button class="btn" id="refresh-btn">Refresh</button>
+        </div>
+
+        <div class="graph-panel">
+            <div id="cy"><div class="loading">Loading memory graph</div></div>
+            <div class="cy-tooltip" id="tooltip"></div>
+        </div>
+
+        <div class="sidebar">
+            <div class="panel" id="timeline-panel">
+                <div class="panel-title">Event Timeline</div>
+                <div id="timeline-content"><div class="loading">Loading timeline</div></div>
+            </div>
+            <div class="panel" id="insights-panel">
+                <div class="panel-title">Semantic Insights</div>
+                <div id="insights-content"><div class="loading">Loading insights</div></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Color palette for node types ---
+        const COLORS = {
+            attempt: '#00FFFF',
+            outcome_success: '#00FF41',
+            outcome_fail: '#FF3333',
+            event: '#8B949E',
+            insight: '#BD00FF',
+            session: '#FFBF00',
+            kernel: '#FF8800',
+        };
+
+        const GLOW = {
+            attempt: '0 0 15px rgba(0,255,255,0.5)',
+            outcome_success: '0 0 15px rgba(0,255,65,0.5)',
+            outcome_fail: '0 0 15px rgba(255,51,51,0.5)',
+            event: 'none',
+            insight: '0 0 15px rgba(189,0,255,0.5)',
+            session: '0 0 15px rgba(255,191,0,0.4)',
+            kernel: '0 0 15px rgba(255,136,0,0.4)',
+        };
+
+        let cy = null;
+        let allNodes = [];
+        let allEdges = [];
+
+        // --- Load Stats ---
+        async function loadStats() {
+            try {
+                const res = await fetch('/api/memory/stats');
+                const stats = await res.json();
+                if (stats.error) throw new Error(stats.error);
+                document.getElementById('stat-events').textContent = stats.total_events;
+                document.getElementById('stat-insights').textContent = stats.total_insights;
+                document.getElementById('stat-success').textContent = (stats.success_rate * 100).toFixed(0) + '%';
+                document.getElementById('stat-sessions').textContent = stats.active_sessions;
+                document.getElementById('stat-confirmations').textContent = stats.total_confirmations;
+                document.getElementById('stat-range').textContent = stats.time_range;
+            } catch (e) {
+                console.error('Stats load failed:', e);
+            }
+        }
+
+        // --- Load Graph ---
+        async function loadGraph() {
+            try {
+                const res = await fetch('/api/memory/graph');
+                const data = await res.json();
+                if (data.error) throw new Error(data.error);
+                allNodes = data.nodes;
+                allEdges = data.edges;
+                renderGraph(data.nodes, data.edges);
+            } catch (e) {
+                console.error('Graph load failed:', e);
+                document.getElementById('cy').innerHTML = '<div class="loading">Error loading graph</div>';
+            }
+        }
+
+        function renderGraph(nodes, edges) {
+            const cyNodes = nodes.map(n => ({
+                data: {
+                    id: n.id,
+                    label: n.label,
+                    type: n.type,
+                    ...n.data,
+                    size: n.size || 20,
+                }
+            }));
+
+            const cyEdges = edges.map(e => ({
+                data: {
+                    id: e.id,
+                    source: e.source,
+                    target: e.target,
+                    type: e.type,
+                    label: e.label,
+                }
+            }));
+
+            if (cy) cy.destroy();
+
+            cy = cytoscape({
+                container: document.getElementById('cy'),
+                elements: [...cyNodes, ...cyEdges],
+                style: [
+                    {
+                        selector: 'node',
+                        style: {
+                            'background-color': ele => COLORS[ele.data('type')] || '#8B949E',
+                            'label': 'data(label)',
+                            'width': 'data(size)',
+                            'height': 'data(size)',
+                            'font-size': '9px',
+                            'font-family': 'JetBrains Mono, monospace',
+                            'color': '#E6EDF3',
+                            'text-outline-color': '#0A0E14',
+                            'text-outline-width': 2,
+                            'text-wrap': 'wrap',
+                            'text-max-width': '80px',
+                            'text-valign': 'bottom',
+                            'text-halign': 'center',
+                            'text-margin-y': 4,
+                            'border-width': 1,
+                            'border-color': ele => COLORS[ele.data('type')] || '#8B949E',
+                            'border-opacity': 0.6,
+                        }
+                    },
+                    {
+                        selector: 'edge',
+                        style: {
+                            'width': 1,
+                            'line-color': '#1E2A3A',
+                            'target-arrow-color': '#1E2A3A',
+                            'target-arrow-shape': 'triangle',
+                            'arrow-scale': 0.6,
+                            'curve-style': 'bezier',
+                            'label': 'data(label)',
+                            'font-size': '7px',
+                            'color': '#8B949E',
+                            'text-outline-color': '#0A0E14',
+                            'text-outline-width': 2,
+                        }
+                    },
+                    {
+                        selector: 'node[type="insight"]',
+                        style: {
+                            'shape': 'diamond',
+                            'border-width': 2,
+                            'border-opacity': 0.8,
+                        }
+                    },
+                    {
+                        selector: 'node[type="session"]',
+                        style: {
+                            'shape': 'hexagon',
+                            'border-width': 2,
+                        }
+                    },
+                    {
+                        selector: 'node[type="kernel"]',
+                        style: {
+                            'shape': 'round-rectangle',
+                        }
+                    },
+                    {
+                        selector: ':selected',
+                        style: {
+                            'border-width': 3,
+                            'border-color': '#FFFFFF',
+                            'border-opacity': 1,
+                        }
+                    },
+                ],
+                layout: {
+                    name: 'cose',
+                    padding: 20,
+                    nodeRepulsion: 8000,
+                    idealEdgeLength: 60,
+                    edgeElasticity: 100,
+                    nestingFactor: 5,
+                    gravity: 80,
+                    numIter: 1000,
+                    initialTemp: 200,
+                    coolingFactor: 0.95,
+                    minTemp: 1.0,
+                }
+            });
+
+            // Hover tooltip
+            const tooltip = document.getElementById('tooltip');
+            cy.on('mouseover', 'node', (e) => {
+                const node = e.target;
+                const data = node.data();
+                let html = `<div class="cy-tooltip-label">${data.type.toUpperCase()}</div>`;
+                html += `<div class="cy-tooltip-row" style="font-weight:600;margin-bottom:6px;">${data.id}</div>`;
+                
+                if (data.timestamp) html += `<div class="cy-tooltip-row"><span class="cy-tooltip-label">Time:</span> ${data.timestamp.slice(0,19)}</div>`;
+                if (data.session_id) html += `<div class="cy-tooltip-row"><span class="cy-tooltip-label">Session:</span> ${data.session_id}</div>`;
+                if (data.kernel_id) html += `<div class="cy-tooltip-row"><span class="cy-tooltip-label">Kernel:</span> ${data.kernel_id}</div>`;
+                if (data.error_category) html += `<div class="cy-tooltip-row"><span class="cy-tooltip-label">Error:</span> ${data.error_category}</div>`;
+                if (data.audit_score !== undefined) html += `<div class="cy-tooltip-row"><span class="cy-tooltip-label">Score:</span> ${data.audit_score}</div>`;
+                if (data.confidence !== undefined) html += `<div class="cy-tooltip-row"><span class="cy-tooltip-label">Confidence:</span> ${(data.confidence * 100).toFixed(0)}%</div>`;
+                if (data.confirmations !== undefined) html += `<div class="cy-tooltip-row"><span class="cy-tooltip-label">Confirmations:</span> ${data.confirmations}</div>`;
+                
+                tooltip.innerHTML = html;
+                tooltip.style.display = 'block';
+                const containerRect = document.getElementById('cy').getBoundingClientRect();
+                tooltip.style.left = (e.renderedPosition.x + 15) + 'px';
+                tooltip.style.top = (e.renderedPosition.y + 15) + 'px';
+            });
+
+            cy.on('mouseout', 'node', () => {
+                tooltip.style.display = 'none';
+            });
+
+            // Click to highlight neighborhood
+            cy.on('tap', 'node', (e) => {
+                const node = e.target;
+                const neighborhood = node.neighborhood().add(node);
+                cy.elements().not(neighborhood).style('opacity', 0.15);
+                neighborhood.style('opacity', 1);
+            });
+
+            cy.on('tap', (e) => {
+                if (e.target === cy) {
+                    cy.elements().style('opacity', 1);
+                }
+            });
+        }
+
+        // --- Layout buttons ---
+        document.getElementById('layout-force').addEventListener('click', () => {
+            setLayout('cose');
+            setActiveBtn('layout-force');
+        });
+        document.getElementById('layout-circle').addEventListener('click', () => {
+            setLayout('circle');
+            setActiveBtn('layout-circle');
+        });
+        document.getElementById('layout-grid').addEventListener('click', () => {
+            setLayout('grid');
+            setActiveBtn('layout-grid');
+        });
+        document.getElementById('layout-concentric').addEventListener('click', () => {
+            setLayout('concentric');
+            setActiveBtn('layout-concentric');
+        });
+        document.getElementById('refresh-btn').addEventListener('click', () => {
+            loadGraph();
+            loadStats();
+            loadTimeline();
+            loadInsights();
+        });
+
+        function setLayout(name) {
+            if (!cy) return;
+            const options = { name, padding: 20, animate: true, animationDuration: 500 };
+            if (name === 'cose') {
+                options.nodeRepulsion = 8000;
+                options.idealEdgeLength = 60;
+                options.gravity = 80;
+            }
+            if (name === 'concentric') {
+                options.concentric = n => n.degree();
+                options.levelWidth = () => 2;
+            }
+            cy.layout(options).run();
+        }
+
+        function setActiveBtn(id) {
+            document.querySelectorAll('.controls-bar .btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+
+        // --- Search ---
+        document.getElementById('search-input').addEventListener('input', async (e) => {
+            const query = e.target.value.trim();
+            if (!query) {
+                if (cy) {
+                    cy.elements().style('opacity', 1);
+                    cy.elements().removeClass('dimmed');
+                }
+                return;
+            }
+            try {
+                const res = await fetch(`/api/memory/search?q=${encodeURIComponent(query)}`);
+                const data = await res.json();
+                if (data.error) throw new Error(data.error);
+                const matchedIds = new Set();
+                data.events.forEach(ev => matchedIds.add(ev.event_id));
+                data.insights.forEach(ins => matchedIds.add(ins.insight_id));
+                
+                if (cy) {
+                    cy.nodes().forEach(n => {
+                        if (matchedIds.has(n.id())) {
+                            n.style('opacity', 1);
+                        } else {
+                            n.style('opacity', 0.1);
+                        }
+                    });
+                }
+            } catch (err) {
+                console.error('Search failed:', err);
+            }
+        });
+
+        // --- Load Timeline ---
+        async function loadTimeline() {
+            try {
+                const res = await fetch('/api/memory/timeline?limit=30');
+                const events = await res.json();
+                if (events.error) throw new Error(events.error);
+                const container = document.getElementById('timeline-content');
+                container.innerHTML = '';
+                
+                // API returns sorted descending (latest first)
+                events.forEach(e => {
+                    const div = document.createElement('div');
+                    div.className = 'timeline-item';
+                    
+                    let typeClass = 'event';
+                    if (e.type === 'generation_attempt') typeClass = 'attempt';
+                    else if (e.type === 'outcome' && e.success) typeClass = 'success';
+                    else if (e.type === 'outcome' && !e.success) typeClass = 'fail';
+                    
+                    div.classList.add(typeClass);
+                    
+                    const time = e.timestamp ? e.timestamp.slice(11, 19) : '--:--';
+                    const typeLabel = e.type.replace('_', ' ').toUpperCase();
+                    
+                    div.innerHTML = `
+                        <div class="timeline-time">${time}</div>
+                        <div class="timeline-type ${typeClass}">${typeLabel}</div>
+                        <div class="timeline-desc">${e.concept || e.shot_id || ''}</div>
+                        ${e.error_category ? `<div class="timeline-desc" style="color:var(--red)">Error: ${e.error_category}</div>` : ''}
+                        ${e.fix_applied ? `<div class="timeline-desc" style="color:var(--green)">Fix: ${e.fix_applied}</div>` : ''}
+                    `;
+                    container.appendChild(div);
+                });
+            } catch (e) {
+                console.error('Timeline load failed:', e);
+            }
+        }
+
+        // --- Load Insights ---
+        async function loadInsights() {
+            try {
+                const res = await fetch('/api/memory/insights');
+                const insights = await res.json();
+                if (insights.error) throw new Error(insights.error);
+                const container = document.getElementById('insights-content');
+                container.innerHTML = '';
+                
+                insights.forEach(ins => {
+                    const div = document.createElement('div');
+                    div.className = 'insight-item';
+                    const confPct = Math.round((ins.confidence || 0) * 100);
+                    div.innerHTML = `
+                        <div class="insight-rule">${ins.rule}</div>
+                        <div class="insight-meta">
+                            <span>Confidence: ${confPct}%</span>
+                            <span>Confirmations: ${ins.confirmations}</span>
+                        </div>
+                        <div class="confidence-bar" style="margin-top:6px;">
+                            <div class="confidence-bar-fill" style="width:${confPct}%"></div>
+                        </div>
+                    `;
+                    container.appendChild(div);
+                });
+            } catch (e) {
+                console.error('Insights load failed:', e);
+            }
+        }
+
+        // --- Init & Polling ---
+        async function init() {
+            await loadStats();
+            await loadGraph();
+            await loadTimeline();
+            await loadInsights();
+
+            // Set up polling every 5 seconds
+            setInterval(() => {
+                loadStats();
+                loadTimeline();
+                loadInsights();
+                // We don't necessarily want to reload the whole graph (it would flicker/re-layout)
+                // but we could update node data if needed. For now, let's just refresh stats and timeline.
+            }, 5000);
+        }
+
+        init();
+</script>
+</body>
+</html>

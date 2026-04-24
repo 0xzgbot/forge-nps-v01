@@ -50,7 +50,7 @@ class StrictSchemaGuard:
 
 class KimiBridge:
     """
-    Handles high-context communication with Kimi K2.5 via NVIDIA NIM endpoints.
+    Handles high-context communication with Kimi K2.6 via NVIDIA NIM endpoints.
     Designed for 'Directing' workflows requiring massive context and structured JSON.
     """
     def __init__(self, endpoint_url: str, api_key: str, config_manager: Any):
@@ -66,7 +66,7 @@ class KimiBridge:
         self, 
         system_prompt: str, 
         user_input: str, 
-        schema: Type[BaseModel],
+        schema: Type[BaseModel] = None,
         context_files: list[str] = None,
         retry_on_validation_error: bool = True,
         task_description: Optional[str] = None,
@@ -244,9 +244,13 @@ class KimiBridge:
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_input}
             ],
-            "response_format": {"type": "json_object"},
-            "temperature": 0.2 if tier != ModelTier.INSTRUCT else 0.7 
+            "temperature": 0.2 if tier != ModelTier.INSTRUCT else 0.7,
+            "chat_template_kwargs": {"thinking": False}
         }
+        
+        # Only enforce JSON output when a schema is provided
+        if schema is not None:
+            payload["response_format"] = {"type": "json_object"}
 
         async with httpx.AsyncClient(timeout=300.0) as client:
             try:
@@ -257,13 +261,19 @@ class KimiBridge:
                 data = response.json()
                 content_str = data['choices'][0]['message']['content']
                 
+                # If no schema requested, return raw content string directly
+                if schema is None:
+                    return content_str
+                
                 try:
                     validated_data = StrictSchemaGuard.validate(content_str, schema)
                     return validated_data.model_dump()
                 except (ValidationError, ValueError) as e:
                     if retry_on_validation_error and not is_retry:
                         logger.warning(f"Validation failed: {e}. Attempting remediation...")
-                        err_obj = e if isinstance(e, ValidationError) else ValidationError.from_exception(e)
+                        # Pydantic V2: ValidationError.from_exception() does not exist.
+                        # Just use the exception directly for remediation.
+                        err_obj = e
                         remediation_prompt = StrictSchemaGuard.get_remediation_prompt(err_obj, content_str)
                         
                         return await self._execute_request(

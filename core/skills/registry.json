@@ -1,0 +1,19 @@
+{
+  "version": "1.0",
+  "last_updated": "2026-04-23T22:08:29.507400",
+  "fixes": {},
+  "model_best_practices": {
+    "FLUX": [
+      "cinematic color grading",
+      "film grain subtle"
+    ],
+    "LTX": [
+      "consistent motion blur",
+      "avoid abrupt cuts"
+    ],
+    "Wan_2.1": [
+      "fluid motion, no jitter",
+      "maintain character silhouette"
+    ]
+  }
+}

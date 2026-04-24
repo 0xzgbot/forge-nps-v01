@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 
 # Add project root to sys.path for imports
-PROJECT_ROOT = "/Users/zgbot/Desktop/forge_nps"
+PROJECT_ROOT = "/Users/zgbot/Desktop/forge_nps_v01"
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 

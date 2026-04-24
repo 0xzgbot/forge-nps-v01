@@ -121,7 +121,7 @@ class ComfyPayloadValidator:
             report.add_error(f"File not found: {p}")
             return report
         try:
-            with open(p, "r") as f:
+            with open(p, "r", encoding="utf-8") as f:
                 payload = json.load(f)
         except json.JSONDecodeError as e:
             report = ValidationReport()

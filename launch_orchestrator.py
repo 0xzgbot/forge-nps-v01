@@ -4,7 +4,7 @@ import os
 import asyncio
 
 # Ensure project root is in path
-PROJECT_ROOT = "/Users/zgbot/Desktop/forge_nps"
+PROJECT_ROOT = "/Users/zgbot/Desktop/forge_nps_v01"
 if PROJECT_ROOT not in sys.path:
     sys.path.append(PROJECT_ROOT)
 

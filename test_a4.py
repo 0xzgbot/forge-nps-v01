@@ -1,10 +1,12 @@
 import asyncio
+import pytest
 from core.dispatch.comfy_client import ComfyUIClient
 
+@pytest.mark.asyncio
 async def test():
     # Test without live server:
-    client = ComfyUIClient("http://100.74.164.1:8188")
-    assert client.base_url == "http://100.74.164.1:8188"
+    client = ComfyUIClient("http://100.112.87.8:8188")
+    assert client.base_url == "http://100.112.87.8:8188"
     print("A4 PASS — class instantiates correctly")
 
 if __name__ == "__main__":

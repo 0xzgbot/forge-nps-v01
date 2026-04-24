@@ -1,7 +1,7 @@
 
 import sys
 import os
-sys.path.append('/Users/zgbot/Desktop/forge_nps')
+sys.path.append('/Users/zgbot/Desktop/forge_nps_v01')
 
 try:
     from core.bridge.config_manager import ConfigManager

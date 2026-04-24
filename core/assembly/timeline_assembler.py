@@ -88,7 +88,7 @@ class TimelineAssembler:
         
         # Simulate writing the file (optional but good for demonstration)
         try:
-            with open(placeholder_path, "w") as f:
+            with open(placeholder_path, "w", encoding="utf-8") as f:
                 f.write("# Simulated ffmpeg concat script\n")
                 for shot in assembly.get("production_shots", []):
                     if shot.get("asset_path") and os.path.exists(shot["asset_path"]):

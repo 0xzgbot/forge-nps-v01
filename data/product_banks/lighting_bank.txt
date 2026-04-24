@@ -1,0 +1,8 @@
+softbox studio lighting
+dramatic rim lighting
+natural window light
+harsh neon cyan and magenta accents
+volumetric top-down light
+subtle ambient occlusion shadows
+high-contrast chiaroscuro lighting
+clean laboratory white lighting

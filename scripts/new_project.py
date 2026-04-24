@@ -3,7 +3,7 @@ import shutil
 import sys
 
 # Use absolute paths derived from the environment or project root
-BASE_DIR = "/Users/zgbot/Desktop/forge_nps"
+BASE_DIR = "/Users/zgbot/Desktop/forge_nps_v01"
 TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
 PROJECTS_DIR = os.path.join(BASE_DIR, "projects")
 SCRIPTS_DIR = os.path.join(BASE_DIR, "scripts")

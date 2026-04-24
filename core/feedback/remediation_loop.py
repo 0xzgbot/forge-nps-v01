@@ -166,8 +166,10 @@ class RemediationLoop:
         try:
             analysis = await self.hermes.kimi_bridge.analyze_failure(
                 shot_id=shot_id,
-                failure_description=mismatch,
-                director_schema=director_schema,
+                audit_result={"failure_description": mismatch},
+                original_directive={"director_schema": director_schema},
+                lore_paths=lore_paths,
+                schema=None,
             )
             return analysis.get("fix_prompt", remediation_prompt)
         except Exception as e:
@@ -186,8 +188,10 @@ class RemediationLoop:
         try:
             analysis = await self.hermes.kimi_bridge.analyze_failure(
                 shot_id=shot_id,
-                failure_description=f"FINAL ATTEMPT — complete prompt rewrite needed. Issue: {mismatch}",
-                director_schema=director_schema,
+                audit_result={"failure_description": f"FINAL ATTEMPT — complete prompt rewrite needed. Issue: {mismatch}"},
+                original_directive={"director_schema": director_schema},
+                lore_paths=lore_paths,
+                schema=None,
             )
             return analysis.get("fix_prompt", mismatch)
         except Exception as e:
@@ -200,7 +204,7 @@ class RemediationLoop:
         os.makedirs(log_dir, exist_ok=True)
         path = os.path.join(log_dir, f"{shot_id}_iteration_{iteration}.json")
         try:
-            with open(path, "w") as f:
+            with open(path, "w", encoding="utf-8") as f:
                 json.dump(entry, f, indent=2)
         except OSError as e:
             logger.warning(f"[REMEDIATION] Could not persist log: {e}")
