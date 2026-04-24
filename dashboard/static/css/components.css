@@ -815,6 +815,20 @@
   border: 1px solid var(--border);
   border-radius: var(--r-sm);
 }
+.hermes-panel-tall {
+  max-height: 480px;
+  min-height: 480px;
+  font-size: 12px;
+}
+.hermes-main {
+  flex: 1;
+}
+.queue-topbar {
+  margin-bottom: 0;
+}
+.queue-topbar .progress {
+  margin-top: 6px;
+}
 .hermes-event {
   display: flex;
   gap: 10px;

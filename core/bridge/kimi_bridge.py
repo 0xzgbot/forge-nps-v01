@@ -167,14 +167,27 @@ class KimiBridge:
             # 7. Execute the request via NIM
             result = await self._execute_request(full_system_prompt, mega_prompt, schema)
 
+            # If schema=None, _execute_request returns raw string — parse it as JSON
+            if isinstance(result, str):
+                import json as _json
+                try:
+                    # Strip markdown fences if present
+                    raw = result.strip()
+                    if raw.startswith("```"):
+                        raw = raw.split("```")[1]
+                        if raw.startswith("json"):
+                            raw = raw[4:]
+                    result = _json.loads(raw.strip())
+                except Exception:
+                    result = {"shots": [], "raw_response": result}
+
             # 8. Save the generated narrative_reasoning_trace to data/reasoning_logs/{session_id}/full_analysis_reasoning.md
-            # Check if reasoning trace is in result (returned by Kimi or via schema)
             trace_content = result.get("narrative_reasoning_trace") or result.get("reasoning_trace", "No reasoning trace provided.")
             log_path = os.path.join(log_dir, "full_analysis_reasoning.md")
             
             with open(log_path, 'w', encoding='utf-8') as f:
                 f.write(f"# Narrative Reasoning Trace - Session {session_id}\n\n")
-                f.write(trace_content)
+                f.write(trace_content if isinstance(trace_content, str) else json.dumps(trace_content, indent=2))
             
             logger.info(f"Reasoning trace saved to {log_path}")
 
