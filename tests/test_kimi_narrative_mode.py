@@ -20,11 +20,11 @@ class TestKimiNarrativeMode(unittest.IsolatedAsyncioTestCase):
         
         # Create dummy files for testing
         self.script_path = "/tmp/test_script.md"
-        with open(self.script_path, "w") as f:
+        with open(self.script_path, "w", encoding="utf-8") as f:
             f.write("# SCRIPT: Test Pilot\n## SCENE 1: The Awakening\n**Characters:** Elara Vance\n**Visuals:** A dark room.\n**Action:** She wakes up.")
         
         self.lore_path = "/tmp/test_lore.md"
-        with open(self.lore_path, "w") as f:
+        with open(self.lore_path, "w", encoding="utf-8") as f:
             f.write("WORLD BIBLE: The planet is called Xylos.")
             
         self.session_id = "test_session_123"
@@ -78,7 +78,7 @@ class TestKimiNarrativeMode(unittest.IsolatedAsyncioTestCase):
         # Verify Reasoning Log creation
         expected_log = f"~/Desktop/forge_nps_v01/data/reasoning_logs/{self.session_id}/full_analysis_reasoning.md"
         self.assertTrue(os.path.exists(expected_log))
-        with open(expected_log, "r") as f:
+        with open(expected_log, "r", encoding="utf-8") as f:
             content = f.read()
             self.assertIn("This is a reasoning trace.", content)
 

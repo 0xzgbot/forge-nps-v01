@@ -153,5 +153,91 @@ class KimiVLClient(KimiBridge):
             logger.error(f"Visual remediation failed: {e}")
             raise
 
+
+    async def audit_frame(
+        self,
+        image_base64: str,
+        mime_type: str,
+        expected_description: str,
+        lore_excerpt: str,
+        shot_id: str,
+    ) -> dict:
+        """
+        Audit a single video frame sent from the browser.
+        image_base64: Raw base64 string (NO data: URI prefix)
+        mime_type: image/jpeg or image/png
+        """
+        import json
+        import re
+        import logging
+        from pydantic import BaseModel
+
+        logger = logging.getLogger("KimiVLClient")
+        
+        image_data_url = f"data:{mime_type};base64,{image_base64}"
+        
+        prompt = (
+            f"You are a Visual Continuity Auditor for a film production pipeline.\n\n"
+            f"LORE BIBLE EXCERPT:\n{lore_excerpt}\n\n"
+            f"EXPECTED SHOT DESCRIPTION:\n{expected_description}\n\n"
+            f"TASK:\nExamine the attached rendered frame. Compare it against the lore bible and expected description above.\n\n"
+            f"Check for these specific categories of error:\n"
+            f"1. CHARACTER: Does the character match their defined appearance (hair, eyes, clothing, signature items)?\n"
+            f"2. LIGHTING: Does the lighting match the described mood/time of day?\n"
+            f"3. PROP: Are key props present and correct?\n"
+            f"4. BACKGROUND: Does the environment match the setting?\n"
+            f"5. ANATOMY: Are hands, faces, and proportions correct?\n"
+            f"6. STYLE: Does the image match the stated aesthetic (e.g., cinematic, anime, photoreal)?\n\n"
+            f"Respond in this exact JSON format:\n"
+            f"{{\n"
+            f"  \"is_consistent\": true or false,\n"
+            f"  \"confidence_score\": 0.0 to 1.0,\n"
+            f"  \"error_category\": \"character\" | \"lighting\" | \"prop\" | \"background\" | \"anatomy\" | \"style\" | \"other\" | null,\n"
+            f"  \"mismatch_details\": \"Brief description of what is wrong, if anything. Be specific.\",\n"
+            f"  \"suggested_fix\": \"Specific prompt adjustment to fix the issue, or null if consistent.\"\n"
+            f"}}"
+        )
+
+        payload = {
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "image_url", "image_url": {"url": image_data_url}},
+                        {"type": "text", "text": prompt},
+                    ]
+                }
+            ],
+            "response_format": {"type": "json_object"},
+            "temperature": 0.1
+        }
+
+        class AuditResult(BaseModel):
+            is_consistent: bool | None
+            confidence_score: float
+            error_category: str | None
+            mismatch_details: str
+            suggested_fix: str | None
+
+        try:
+            verdict = await self._execute_visual_request(
+                payload=payload,
+                schema=AuditResult,
+                task_description=f"Visual audit for shot {shot_id}"
+            )
+            return verdict
+        except Exception as e:
+            logger.error(f"Kimi frame audit failed: {e}")
+            if "429" in str(e):
+                return {
+                    "is_consistent": None,
+                    "confidence_score": 0.0,
+                    "error_category": "rate_limited",
+                    "mismatch_details": "Kimi VL rate limit hit. Retry later.",
+                    "suggested_fix": None,
+                }
+            raise e
+
+
 if __name__ == "__main__":
     print("KimiVLClient module loaded.")

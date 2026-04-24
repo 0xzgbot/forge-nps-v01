@@ -10,7 +10,7 @@ def caption_images(slug):
     Extracts metadata from filename via robust regex.
     Expected format: {slug}_char1_train_{idx}_{pose}_{view}_{crop}_{lighting}_{bg}.png
     """
-    project_root = f"~/Desktop/forge_nps/projects/{slug}"
+    project_root = f"~/Desktop/forge_nps_v01/projects/{slug}"
     images_dir = os.path.join(project_root, "assets/training_images")
     
     if not os.path.exists(images_dir):
@@ -21,7 +21,7 @@ def caption_images(slug):
     trigger_word = f"{slug}_char1"
     project_file = os.path.join(project_root, "PROJECT.md")
     if os.path.exists(project_file):
-        with open(project_file, 'r') as f:
+        with open(project_file, 'r', encoding="utf-8") as f:
             content = f.read()
             match = re.search(r"Trigger word:\s*(\S+)", content)
             if match:
@@ -65,7 +65,7 @@ def caption_images(slug):
         # Format: {trigger_word}, {pose}, {view}, {crop}, {lighting}, {bg}, {natural_caption}
         caption_line = f"{trigger_word}, {pose}, {view}, {crop}, {lighting}, {bg}, {natural_caption}"
 
-        with open(txt_path, 'w') as f:
+        with open(txt_path, 'w', encoding="utf-8") as f:
             f.write(caption_line)
         count += 1
 

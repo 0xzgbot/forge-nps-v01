@@ -12,7 +12,7 @@ from core.routing.prompt_enhancer import PromptEnhancer
 def test_prompt_enhancer():
     # Setup dummy lighting bank for testing purposes
     lighting_bank_path = "/tmp/test_lighting_bank.txt"
-    with open(lighting_bank_path, "w") as f:
+    with open(lighting_bank_path, "w", encoding="utf-8") as f:
         f.write("golden hour, moonlight, cinematic lighting, noir shadow, volumetric lighting")
 
     enhancer = PromptEnhancer(lighting_bank_path)

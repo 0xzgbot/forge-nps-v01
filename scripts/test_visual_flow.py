@@ -3,7 +3,7 @@ import json
 import sys
 import os
 
-sys.path.append("~/Desktop/forge_nps")
+sys.path.append("~/Desktop/forge_nps_v01")
 from agents.visual.visual_agent import VisualAgent
 
 async def run_test():

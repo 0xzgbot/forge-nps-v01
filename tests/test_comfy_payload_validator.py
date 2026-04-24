@@ -8,7 +8,7 @@ import os
 import tempfile
 from pathlib import Path
 
-PROJECT_ROOT = "~/Desktop/forge_nps"
+PROJECT_ROOT = "~/Desktop/forge_nps_v01"
 if PROJECT_ROOT not in os.sys.path:
     os.sys.path.insert(0, PROJECT_ROOT)
 
@@ -233,14 +233,14 @@ class TestFileValidation:
 
     def test_validate_real_file(self, validator, valid_api_workflow, tmp_path):
         path = tmp_path / "test.json"
-        with open(path, "w") as f:
+        with open(path, "w", encoding="utf-8") as f:
             json.dump(valid_api_workflow, f)
         report = validator.validate_file(path)
         assert report.is_valid is True
 
     def test_validate_malformed_json(self, validator, tmp_path):
         path = tmp_path / "bad.json"
-        with open(path, "w") as f:
+        with open(path, "w", encoding="utf-8") as f:
             f.write("not json at all {{{")
         report = validator.validate_file(path)
         assert report.is_valid is False

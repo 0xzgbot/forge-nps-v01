@@ -22,13 +22,13 @@ PROMPT_FILE = Path("~/Desktop/projects/hackathon_vid/03_prompts/flux2_anchor_fra
 OUTPUT_DIR = Path("~/Desktop/projects/hackathon_vid/04_assets")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-with open("~/Downloads/image_flux2_text_to_image_TURBO.json") as f:
+with open("~/Downloads/image_flux2_text_to_image_TURBO.json", encoding="utf-8") as f:
     TEMPLATE = json.load(f)
 
 
 def parse_anchors(filepath: Path) -> list[tuple[str, str]]:
     """Parse [ANCHOR_X.X] titles and prompt texts from markdown."""
-    with open(filepath) as f:
+    with open(filepath, encoding="utf-8") as f:
         content = f.read()
 
     pattern = r'### \[(ANCHOR_\d+\.\d+)\] .*?\n(.*?)(?=\n\s*### \[|\n\s*---|\s*$)'

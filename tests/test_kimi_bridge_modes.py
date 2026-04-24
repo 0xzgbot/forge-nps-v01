@@ -6,7 +6,7 @@ import sys
 import os
 
 # Add the project root to sys.path so we can import modules correctly
-sys.path.append("~/Desktop/forge_nps")
+sys.path.append("~/Desktop/forge_nps_v01")
 
 from core.bridge.kimi_bridge import KimiBridge, StrictSchemaGuard
 
@@ -32,8 +32,8 @@ async def test_direct_with_narrative_success():
     lore_path = "/tmp/lore.txt"
     session_id = "test_session_123"
     
-    with open(script_path, 'w') as f: f.write("Scene 1: Elara enters.")
-    with open(lore_path, 'w') as f: f.write("Elara is a warrior.")
+    with open(script_path, 'w', encoding="utf-8") as f: f.write("Scene 1: Elara enters.")
+    with open(lore_path, 'w', encoding="utf-8") as f: f.write("Elara is a warrior.")
 
     mock_response_content = json.dumps({
         "reasoning_trace": "I analyzed the script and lore.",
@@ -66,7 +66,7 @@ async def test_direct_with_narrative_success():
         # Verify log file creation
         log_path = f"~/Desktop/forge_nps_v01/data/reasoning_logs/{session_id}/full_analysis_reasoning.md"
         assert os.path.exists(log_path)
-        with open(log_path, 'r') as f:
+        with open(log_path, 'r', encoding="utf-8") as f:
             content = f.read()
             assert "I analyzed the script and lore." in content
 
@@ -77,7 +77,7 @@ async def test_direct_with_narrative_success():
 @pytest.mark.asyncio
 async def test_analyze_failure_success():
     lore_path = "/tmp/lore_fail.txt"
-    with open(lore_path, 'w') as f: f.write("Lore content.")
+    with open(lore_path, 'w', encoding="utf-8") as f: f.write("Lore content.")
 
     mock_response_content = json.dumps({
         "root_cause": "Lighting mismatch",

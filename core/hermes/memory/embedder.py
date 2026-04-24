@@ -88,20 +88,21 @@ class KimiEmbedder(BaseEmbedder):
         return bool(self.api_key and self.api_key != "dummy_key")
 
 
-class OllamaEmbedder(BaseEmbedder):
+class LMStudioEmbedder(BaseEmbedder):
     """
-    Local neural embeddings via Ollama.
-    Model: all-minilm (384-d, 45MB) — perfect for hackathon laptops.
+    Local neural embeddings via LM Studio's OpenAI-compatible server.
+    LM Studio loads any embedding model (e.g. nomic-embed-text, all-minilm, bge-small-en).
+    Endpoint: configured via LMSTUDIO_HOST env var (default: http://localhost:1234/v1)
     """
 
     def __init__(
         self,
-        model: str = "all-minilm:latest",
-        host: str = "http://localhost:11434",
+        model: str = "text-embedding-nomic-embed-text-v1.5",
+        base_url: str = "http://localhost:1234/v1",
         cache_size: int = 512,
     ):
         self.model = model
-        self.host = host
+        self.base_url = base_url.rstrip("/")
         self._cache: Dict[str, np.ndarray] = {}
         self._cache_size = cache_size
 
@@ -111,20 +112,20 @@ class OllamaEmbedder(BaseEmbedder):
 
         try:
             import urllib.request
-            payload = json.dumps({"model": self.model, "prompt": text}).encode("utf-8")
+            payload = json.dumps({"model": self.model, "input": text}).encode("utf-8")
             req = urllib.request.Request(
-                f"{self.host}/api/embeddings",
+                f"{self.base_url}/embeddings",
                 data=payload,
                 headers={"Content-Type": "application/json"},
                 method="POST",
             )
             with urllib.request.urlopen(req, timeout=30) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
-                vec = np.array(data["embedding"], dtype=np.float32)
-        except Exception as e:
+                vec = np.array(data["data"][0]["embedding"], dtype=np.float32)
+        except Exception:
             # Graceful degradation: return a zero vector so the caller
             # can fall back to keyword search or another backend.
-            vec = np.zeros(384, dtype=np.float32)
+            vec = np.zeros(1, dtype=np.float32)
 
         # Simple LRU-style cache eviction
         if len(self._cache) >= self._cache_size:
@@ -134,14 +135,12 @@ class OllamaEmbedder(BaseEmbedder):
 
     @property
     def is_available(self) -> bool:
-        """Check if Ollama is reachable and the model is loaded."""
+        """Check if LM Studio server is reachable."""
         try:
             import urllib.request
-            req = urllib.request.Request(f"{self.host}/api/tags", method="GET")
+            req = urllib.request.Request(f"{self.base_url}/models", method="GET")
             with urllib.request.urlopen(req, timeout=2) as resp:
-                data = json.loads(resp.read().decode("utf-8"))
-                models = [m["name"] for m in data.get("models", [])]
-                return self.model in models
+                return resp.status == 200
         except Exception:
             return False
 
@@ -205,13 +204,13 @@ class HybridEmbedder(BaseEmbedder):
     """
     Priority chain for hackathon demos:
       1. Kimi (Moonshot) embeddings — on-brand, cloud-quality
-      2. Ollama all-minilm — local, offline-capable
+      2. LM Studio local — any loaded embedding model, offline-capable
       3. Numpy TF-IDF — zero-dependency fallback
     """
 
     def __init__(self):
         self.kimi = KimiEmbedder()
-        self.ollama = OllamaEmbedder()
+        self.lmstudio = LMStudioEmbedder()
         self.fallback = NumpyTfidfEmbedder()
         self._backend_name = "unknown"
         self._fallback_corpus: List[str] = []
@@ -224,11 +223,11 @@ class HybridEmbedder(BaseEmbedder):
                 self._backend_name = "kimi"
                 return vec
 
-        # 2. Try Ollama local
-        if self.ollama.is_available:
-            vec = self.ollama.embed(text)
+        # 2. Try LM Studio local
+        if self.lmstudio.is_available:
+            vec = self.lmstudio.embed(text)
             if np.linalg.norm(vec) > 1e-9:
-                self._backend_name = "ollama"
+                self._backend_name = "lmstudio"
                 return vec
 
         # 3. Fallback to TF-IDF
@@ -244,5 +243,5 @@ class HybridEmbedder(BaseEmbedder):
     def register_corpus(self, corpus: List[str]):
         """Provide the fallback embedder with documents to build TF-IDF vocab."""
         self._fallback_corpus = corpus
-        if not self.kimi.is_available and not self.ollama.is_available:
+        if not self.kimi.is_available and not self.lmstudio.is_available:
             self.fallback.fit(corpus)

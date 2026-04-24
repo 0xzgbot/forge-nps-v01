@@ -29,7 +29,7 @@ class ContinuityAuditor:
     def _load_lore(self) -> Dict[str, Any]:
         """Loads the World Bible context into memory."""
         try:
-            with open(self.lore_bible_path, 'r') as f:
+            with open(self.lore_bible_path, 'r', encoding="utf-8") as f:
                 # Attempt to load as JSON first, if it fails or is not JSON, 
                 # we'll implement a simple Markdown parser in a future step.
                 # For now, we handle the error gracefully.

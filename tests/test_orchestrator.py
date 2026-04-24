@@ -6,7 +6,7 @@ import asyncio
 # Since we are in a script context, we need to ensure paths are correct
 import sys
 import os
-sys.path.append("~/Desktop/forge_nps")
+sys.path.append("~/Desktop/forge_nps_v01")
 
 from core.orchestrator.forge_orchestrator import ForgeOrchestrator
 

@@ -1,7 +1,7 @@
 from .episodic_memory import EpisodicMemory
 from .semantic_memory import SemanticMemory
 from .consolidator import MemoryConsolidator
-from .embedder import BaseEmbedder, KimiEmbedder, OllamaEmbedder, NumpyTfidfEmbedder, HybridEmbedder
+from .embedder import BaseEmbedder, KimiEmbedder, LMStudioEmbedder, NumpyTfidfEmbedder, HybridEmbedder
 
 __all__ = [
     "EpisodicMemory",
@@ -9,7 +9,7 @@ __all__ = [
     "MemoryConsolidator",
     "BaseEmbedder",
     "KimiEmbedder",
-    "OllamaEmbedder",
+    "LMStudioEmbedder",
     "NumpyTfidfEmbedder",
     "HybridEmbedder",
 ]

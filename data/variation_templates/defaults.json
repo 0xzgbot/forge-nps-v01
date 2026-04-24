@@ -1,0 +1,48 @@
+{
+  "description": "Default variation template for seed-image batch pipeline.",
+  "dimensions": [
+    {
+      "name": "pose",
+      "bank_file": "pose_bank.txt",
+      "weight": 1.0,
+      "required": true
+    },
+    {
+      "name": "view",
+      "bank_file": "view_bank.txt",
+      "weight": 1.0,
+      "required": true
+    },
+    {
+      "name": "lighting",
+      "bank_file": "lighting_bank.txt",
+      "weight": 1.0,
+      "required": true
+    },
+    {
+      "name": "background",
+      "bank_file": "background_bank.txt",
+      "weight": 0.8,
+      "required": false
+    },
+    {
+      "name": "extras",
+      "bank_file": "extras_bank.txt",
+      "weight": 0.5,
+      "required": false
+    },
+    {
+      "name": "crop",
+      "bank_file": "crop_bank.txt",
+      "weight": 0.7,
+      "required": false
+    }
+  ],
+  "quality_constants": "photorealism, hyperrealistic, sharp focus, professional photography, high detail, 8k resolution, cinema lens",
+  "seed_image_usage": "round_robin",
+  "seed_assignment": {
+    "mode": "deterministic",
+    "anchor_prime": 7919,
+    "per_image_offset": 131071
+  }
+}

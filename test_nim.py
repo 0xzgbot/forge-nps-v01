@@ -1,6 +1,8 @@
 import asyncio
+import pytest
 from core.bridge.nim_client import NIMClient
 
+@pytest.mark.asyncio
 async def test():
     client = NIMClient('http://localhost:8000')
     print(f"Initial available: {client.is_available}")

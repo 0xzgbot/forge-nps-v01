@@ -12,9 +12,9 @@ async def test_timeline_assembler():
     temp_asset = "/tmp/test_shot.mp4"
     temp_audio = "/tmp/test_audio.wav"
     
-    with open(temp_asset, "w") as f:
+    with open(temp_asset, "w", encoding="utf-8") as f:
         f.write("dummy video content")
-    with open(temp_audio, "w") as f:
+    with open(temp_audio, "w", encoding="utf-8") as f:
         f.write("dummy audio content")
 
     session_summary = {
@@ -56,7 +56,7 @@ async def test_timeline_assembler():
     
     if os.path.exists(concat_path):
         print("Concat script content:")
-        with open(concat_path, "r") as f:
+        with open(concat_path, "r", encoding="utf-8") as f:
             print(f.read())
 
     # Cleanup

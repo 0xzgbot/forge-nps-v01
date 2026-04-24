@@ -13,7 +13,7 @@ except ImportError:
         def poll_job(self, pid, timeout_sec=5): return f"mock_{pid}.png"
         def download_output(self, filename, save_path): 
             target = os.path.join(save_path, os.path.basename(filename))
-            with open(target, 'w') as f: f.write("image data")
+            with open(target, 'w', encoding="utf-8") as f: f.write("image data")
     class MockTools: ComfyClient = MockComfyClient
     comfy_client = MockTools()
 
@@ -22,8 +22,8 @@ GPU_PORT = 8188
 DISTRIBUTION = {"isolation": 0.30, "environmental": 0.40, "closeup": 0.20, "fullbody": 0.10}
 
 def get_project_data(slug):
-    path = f"~/Desktop/forge_nps/projects/{slug}/PROJECT.md"
-    with open(path, 'r') as f: return f.read()
+    path = f"~/Desktop/forge_nps_v01/projects/{slug}/PROJECT.md"
+    with open(path, 'r', encoding="utf-8") as f: return f.read()
 
 def parse_character_info(content, slug):
     subject = "cyberpunk woman"; trigger = f"{slug}_char1"
@@ -35,7 +35,7 @@ def parse_character_info(content, slug):
 
 def load_banks(slug):
     banks = {}
-    dir_path = f"~/Desktop/forge_nps/projects/{slug}/banks"
+    dir_path = f"~/Desktop/forge_nps_v01/projects/{slug}/banks"
     for fn in os.listdir(dir_path):
         if fn.endswith(".txt"):
             with open(os.path.join(dir_path, fn), 'r') as f:
@@ -66,7 +66,7 @@ def main():
     slug = args.slug
     content = get_project_data(slug); subject, trigger = parse_character_info(content, slug); banks = load_banks(slug)
     client = comfy_client.ComfyClient(host="localhost", port=GPU_PORT)
-    output_dir = f"~/Desktop/forge_nps/projects/{slug}/assets/training_images"; os.makedirs(output_dir, exist_ok=True)
+    output_dir = f"~/Desktop/forge_nps_v01/projects/{slug}/assets/training_images"; os.makedirs(output_dir, exist_ok=True)
     
     prompt_jobs = []
     for i in range(args.count):

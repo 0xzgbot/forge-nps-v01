@@ -5,7 +5,7 @@ import asyncio
 from unittest.mock import MagicMock, AsyncMock
 
 # Force Project Root into path
-PROJECT_ROOT = "~/Desktop/forge_nps"
+PROJECT_ROOT = "~/Desktop/forge_nps_v01"
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 

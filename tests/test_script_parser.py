@@ -3,7 +3,7 @@ import os
 import json
 
 # Add project root to path to ensure imports work
-project_root = "~/Desktop/forge_nps"
+project_root = "~/Desktop/forge_nps_v01"
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 

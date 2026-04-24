@@ -1,11 +1,31 @@
 import asyncio
 import logging
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Callable
 
 from core.hermes.memory import EpisodicMemory, SemanticMemory, MemoryConsolidator
 from core.consistency.character_consistency_engine import CharacterConsistencyEngine
 
 logger = logging.getLogger("HermesAgent")
+
+# Optional event emitter for dashboard integration.
+# Set this to a coroutine function(event_type: str, payload: dict) -> None
+# to stream Hermes decision events to the dashboard WebSocket.
+_event_emitter: Optional[Callable[[str, Dict[str, Any]], Any]] = None
+
+
+def set_event_emitter(emitter: Optional[Callable[[str, Dict[str, Any]], Any]]):
+    """Register an async event emitter for Hermes decision events."""
+    global _event_emitter
+    _event_emitter = emitter
+
+
+async def _emit(event_type: str, payload: Dict[str, Any]):
+    """Emit a Hermes event if an emitter is registered."""
+    if _event_emitter is not None:
+        try:
+            await _event_emitter(event_type, payload)
+        except Exception:
+            pass
 
 
 class HermesAgent:
@@ -57,6 +77,7 @@ class HermesAgent:
         when similar past events exist.
         """
         logger.info(f"Hermes: Dispatching {len(shot_list)} shots...")
+        await _emit("DISPATCH_START", {"shot_count": len(shot_list)})
         results = []
 
         for shot in shot_list:
@@ -64,6 +85,8 @@ class HermesAgent:
             concept = shot.get("description", "")
             intent = shot.get("intent", "high_fidelity_image")
             kernel_id = shot.get("kernel_id", "zimage_turbo")
+
+            await _emit("MEMORY_QUERY", {"shot_id": shot_id, "concept": concept})
 
             # --- MEMORY RETRIEVAL (Karpathy-style: query before act) ---
             similar = self.episodic.query_similar(
@@ -73,11 +96,17 @@ class HermesAgent:
                 top_k=2,
             )
             memory_augmentation = ""
+            recall_count = len(similar)
             if similar:
                 best = similar[0]
                 if best.get("success") and best.get("fix_applied"):
                     memory_augmentation = f" [Learned: {best['fix_applied']}]"
                     logger.info(f"[HERMES MEMORY] Recalled fix for {shot_id}: {best['fix_applied'][:60]}...")
+                    await _emit("MEMORY_RECALL", {
+                        "shot_id": shot_id,
+                        "fix": best["fix_applied"],
+                        "similarity": best.get("similarity", 0.0),
+                    })
 
             # Also pull semantic insights
             insights = self.semantic.query_relevant(
@@ -90,11 +119,18 @@ class HermesAgent:
                 top_rule = insights[0]["rule"]
                 memory_augmentation += f" [Rule: {top_rule[:80]}...]"
                 logger.info(f"[HERMES MEMORY] Applied semantic rule for {shot_id}")
+                await _emit("PROMPT_AUGMENT", {
+                    "shot_id": shot_id,
+                    "rule": top_rule,
+                    "recall_count": recall_count + len(insights),
+                })
 
             # Inject memory into prompt if visual agent supports it
             enriched_description = concept + memory_augmentation
 
             logger.info(f"[HERMES] Dispatching shot: {shot_id}")
+            await _emit("DISPATCH_SHOT", {"shot_id": shot_id, "prompt": enriched_description})
+
             if self.visual_agent and hasattr(self.visual_agent, "generate"):
                 # Real path
                 result = await self.visual_agent.generate(
@@ -126,6 +162,7 @@ class HermesAgent:
                 "memory_recall_count": len(similar) + len(insights),
             })
 
+        await _emit("DISPATCH_COMPLETE", {"shot_count": len(shot_list)})
         return results
 
     # ------------------------------------------------------------------
@@ -163,15 +200,34 @@ class HermesAgent:
             f"[HERMES MEMORY] Recorded outcome for {shot_id}: "
             f"success={success}, iterations={iterations_required}"
         )
+        # Fire-and-forget event emission (sync-safe)
+        try:
+            loop = asyncio.get_running_loop()
+            loop.create_task(_emit("OUTCOME_RECORD", {
+                "shot_id": shot_id,
+                "success": success,
+                "score": audit_score,
+                "error_category": error_category,
+                "fix": fix_applied,
+            }))
+        except RuntimeError:
+            pass  # No running loop, skip emission
 
-    def consolidate_session(self, session_events: List[Dict[str, Any]] = None):
+    async def consolidate_session(self, session_events: List[Dict[str, Any]] = None):
         """
         Trigger the 'dream' process: turn recent episodes into semantic rules.
         Returns list of new insights generated.
         """
+        await _emit("CONSOLIDATION_START", {"event_count": len(session_events) if session_events else "all"})
         new_insights = self.consolidator.consolidate(session_events)
         if new_insights:
             logger.info(f"[HERMES MEMORY] Consolidated {len(new_insights)} new insights")
+            for ins in new_insights:
+                await _emit("INSIGHT_BORN", {
+                    "insight_id": ins.get("insight_id", ""),
+                    "rule": ins.get("rule", ""),
+                    "confidence": ins.get("confidence", 0),
+                })
         return new_insights
 
     # ------------------------------------------------------------------

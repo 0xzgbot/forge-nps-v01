@@ -6,7 +6,7 @@ import sys
 import os
 
 # Add the project root to sys.path so we can import modules correctly
-sys.path.append(os.path.abspath("./Desktop/forge_nps"))
+sys.path.append(os.path.abspath("~/Desktop/forge_nps_v01"))
 
 from core.bridge.kimi_bridge import KimiBridge, StrictSchemaGuard
 

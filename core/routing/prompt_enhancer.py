@@ -95,7 +95,7 @@ if __name__ == "__main__":
     import os
     # Create a dummy lighting bank for the test
     dummy_bank = "/tmp/test_lighting.txt"
-    with open(dummy_bank, "w") as f:
+    with open(dummy_bank, "w", encoding="utf-8") as f:
         f.write("golden hour, moonlight, cinematic lighting, studio lighting")
 
     enhancer = PromptEnhancer(dummy_bank)

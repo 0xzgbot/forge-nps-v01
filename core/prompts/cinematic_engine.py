@@ -16,7 +16,7 @@ class CinematicEngine:
     def _load_lighting_bank(self) -> list[str]:
         try:
             if self.lighting_bank_path.exists():
-                with open(self.lighting_bank_path, 'r') as f:
+                with open(self.lighting_bank_path, 'r', encoding="utf-8") as f:
                     content = f.read().strip()
                     # Split by comma and strip whitespace
                     return [item.strip() for item in content.split(',') if item.strip()]

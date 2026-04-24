@@ -103,7 +103,7 @@ class ComfyRemediationHarness:
 
             # Try to load raw content for classification
             try:
-                with open(json_file) as f:
+                with open(json_file, encoding="utf-8") as f:
                     raw = json.load(f)
             except Exception:
                 buckets["corrupt"].append((json_file, report))
@@ -190,7 +190,7 @@ class ComfyRemediationHarness:
         template = None
 
         if ltx_template_path and ltx_template_path.exists():
-            with open(ltx_template_path) as f:
+            with open(ltx_template_path, encoding="utf-8") as f:
                 template = json.load(f)
         else:
             logger.warning("No LTX workflow template provided — skipping video workflow builds.")
@@ -244,7 +244,7 @@ class ComfyRemediationHarness:
             client = self.clients[host]
             for path in queue:
                 try:
-                    with open(path) as f:
+                    with open(path, encoding="utf-8") as f:
                         payload = json.load(f)
 
                     # Ensure fresh seed

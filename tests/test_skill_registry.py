@@ -18,7 +18,7 @@ class TestSkillRegistry(unittest.TestCase):
     def test_initialization(self):
         """Test that registry initializes correctly and creates default file."""
         self.assertTrue(os.path.exists(self.registry_path))
-        with open(self.registry_path, 'r') as f:
+        with open(self.registry_path, 'r', encoding="utf-8") as f:
             data = json.load(f)
         self.assertEqual(data["version"], "1.0")
         self.assertIn("model_best_practices", data)

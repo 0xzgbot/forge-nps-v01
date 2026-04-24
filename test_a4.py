@@ -1,6 +1,8 @@
 import asyncio
+import pytest
 from core.dispatch.comfy_client import ComfyUIClient
 
+@pytest.mark.asyncio
 async def test():
     # Test without live server:
     client = ComfyUIClient("http://localhost:8188")

@@ -28,6 +28,17 @@ class ConfigManager:
             return None # In a real app this might return a Pydantic class or schema dict
         return os.getenv(key, default)
 
+    def validate(self) -> list[str]:
+        """Check for missing critical configurations."""
+        missing = []
+        if not self.get_nim_endpoint():
+            missing.append("NIM_ENDPOINT")
+        if not self.get_kimi_api_key():
+            missing.append("KIMI_API_KEY")
+        if not self.get_comfyui_primary():
+            missing.append("COMFYUI_PRIMARY")
+        return missing
+
 if __name__ == "__main__":
     cm = ConfigManager()
     missing = cm.validate()

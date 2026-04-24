@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 
 # Add project root to sys.path for seamless imports
-sys.path.append('~/Desktop/forge_nps')
+sys.path.append('~/Desktop/forge_nps_v01')
 
 from core.bridge.kimi_bridge import KimiBridge
 from core.genesis.genesis_engine import GenesisEngine

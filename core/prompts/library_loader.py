@@ -14,7 +14,7 @@ class LibraryLoader:
 
         for file_path in self.library_dir.glob("*.json"):
             try:
-                with open(file_path, 'r') as f:
+                with open(file_path, 'r', encoding="utf-8") as f:
                     data = json.load(f)
                     libraries.append(data)
             except Exception as e:
