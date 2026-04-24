@@ -1,0 +1,1 @@
+{"1": {"class_type": "CheckpointLoaderSimple", "inputs": {"ckpt_name": "flux2-dev"}, "pos": [0, 0]}, "2": {"class_type": "CLIPTextEncode", "inputs": {"text": "{{prompt.neon_glow}}"}, "pos": [100, 100]}}

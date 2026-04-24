@@ -1,0 +1,32 @@
+{
+  "id": "wf_z_image_turbo_api",
+  "type": "Workflow",
+  "source_file": "workflows/z_image_turbo_api.json",
+  "content_hash": "59ae5678873fb10b",
+  "metadata": {
+    "comfyui_version": "unknown",
+    "node_count": 1,
+    "total_edges": 0
+  },
+  "nodes": [
+    {
+      "node_id": "prompt",
+      "class_type": "Unknown",
+      "category": "Unknown",
+      "inputs": {},
+      "outputs": [
+        "UNKNOWN"
+      ],
+      "position": [
+        0,
+        0
+      ]
+    }
+  ],
+  "edges": [],
+  "entry_points": [],
+  "outputs": [],
+  "referenced_prompts": [],
+  "referenced_models": [],
+  "referenced_characters": []
+}

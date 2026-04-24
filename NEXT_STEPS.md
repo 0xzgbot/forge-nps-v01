@@ -1,75 +1,70 @@
-# FORGE NPS — Next Steps (Post-Backend Completion)
+# FORGE NPS — Next Steps to Demo Day
 
-**Date:** 2026-04-23  
+**Date:** 2026-04-24  
 **Deadline:** May 3 (~9 days)  
-**Status:** Backend is complete. 65 tests passing. UI is the remaining work.
+**Status:** Architecture reviewed. Core bugs fixed. Pipeline integration in progress.
 
 ---
 
-## ✅ What's Done (Don't Touch)
+## ✅ What's Solid (Don't Touch)
 
-- All backend APIs built and tested (65/65 passing)
-- Hermes WebSocket streaming live decision events
-- Teach Mode backend — controlled learning loop
-- Prompt Builder → ComfyUI submission fully wired
-- Spark Monitor with live queue progress
-- Consistency Scorer (PIL histogram, 0-100)
-- LM Studio integration (replaces Ollama)
-- Models page with Local/API toggle
-- Settings page with live config editor + restart
-- Export Brain endpoint
-- All documentation updated
+- 65/65 tests passing
+- Hermes WebSocket streaming (`/ws/hermes`) live and instrumented
+- Teach Mode backend — controlled learning demo fully wired
+- Spark Monitor — live queue via `/ws/spark` + REST fallback
+- Memory system — episodic JSONL + semantic JSON + Cytoscape graph
+- Settings page — runtime config editor with `data/config.json` persistence
+- Consistency Scorer — PIL histogram, 0-100 score
+- Export Brain — `GET /api/hermes/export` downloads full JSON skill pack
+- LM Studio integration — auto-detect loaded models, health check in Settings
 
 ---
 
-## 🔥 Critical Path to Demo Day
+## 🔥 What Must Get Built Before May 3
 
-### Days 1-2: Claude Code — Core UI
-1. **Hermes Live Panel** — Subscribe to `/ws/hermes`, render event cards with icons
-2. **Teach Mode UI** — Toggle, error dropdown, "Run Teach Cycle" button, before/after split view
-3. **Spark Monitor Widget** — Poll `/api/spark/state` every 2s, show queue depth + progress
+### Priority 1 — The Pipeline Core (blocks demo)
+1. **`core/bridge/nous_hermes_bridge.py`** — Hermes-3 LM Studio wrapper
+   - `generate_shot_prompt()`, `analyze_failure()`, `chat()` methods
+   - Wraps existing `LMStudioClient`
+2. **`VisualAgent.generate()`** — implement the missing method
+   - Uses existing `_build_kernel_payload()` + `submit_to_comfy()`
+   - Loads `hermes_z_image_turbo_api.json` from `/Users/zgbot/workflows/`
+3. **Kimi-VL `audit_image()`** — add to `core/bridge/kimi_bridge.py`
+   - Base64 encode rendered PNG + character ref → Kimi-VL → audit result
+4. **Wire `HermesAgent.dispatch_shots()` line 129** — call Hermes-3 for prompts
+5. **Wire remediation tier 2** — Kimi-VL finding → Hermes-3 diagnosis → corrected prompt
 
-### Days 3-4: Claude Code — Gallery + Polish
-4. **Render Gallery** — Real `<img>` thumbnails from `data/seed_outputs/`, score badges
-5. **Insight Birth Animation** — "Consolidate Now" button → animated graph update
-6. **Export Brain Button** — Settings → triggers `GET /api/hermes/export` download
+### Priority 2 — Dashboard (for demo visuals)
+6. **Hermes Live CLI** — input + Send button → `POST /api/hermes/chat` → real Hermes-3 response
+7. **"Add Character" modal** — name + description + anchor image upload → saves to disk + reloads engine
+8. **Pipeline events tagged** — `[HERMES-3 🧠]` `[KIMI-VL 👁]` `[KIMI K2 ✍]` in Hermes Live panel
 
-### Days 5-6: Integration & Testing
-7. End-to-end test: Build recipe → Submit → Monitor progress → Score output → Teach Mode → Export brain
-8. Fix any UI bugs, empty states, responsive issues
-
-### Days 7-8: Demo Recording
-9. Record 90-second teach mode narrative
-10. Record dashboard walkthrough
-11. Capture screenshots for submission
-
-### Days 9-10: Buffer & Submit
-12. Final test run
-13. Package and submit
+### Priority 3 — Demo content
+9. **Wire Sienna renders to home screen** — show real existing images from `data/outputs/`
+10. **Record 60-second demo video** — follow script in `docs/DEMO_SCRIPT.md`
 
 ---
 
 ## 🎯 Demo-Day Success Criteria
 
-1. Judge opens dashboard → clicks "Teach Mode" → watches Hermes learn in 60 seconds
-2. Live WebSocket shows Hermes thinking before every shot
-3. 5 real renders in gallery with consistency scores
-4. Memory graph shows ≥1 insight connected to source events
-5. "Export Brain" button downloads a JSON file
-6. All 65 tests still pass
+1. Click "Run Campaign" → Kimi K2.6 model name visible in output → shot list generated
+2. Hermes Live panel streams Hermes-3 writing prompts in real time (local, instant)
+3. Spark receives real ComfyUI job (check queue at 100.112.87.8:8188)
+4. Kimi-VL audit result appears in panel: model name visible + visual finding
+5. Hermes-3 corrects and re-dispatches — corrected render passes
+6. Memory graph shows new learned rule after session
+7. Hermes Live panel: type a message → get real Hermes-3 response
+8. All 65 tests still pass
 
 ---
 
-## 🚫 Post-Hackathon Only (May 4+)
+## 🚫 Skip Until May 4
 
 - LTX 2.3 video pipeline
-- 120-photo batch renders
+- Product anchor upload system
+- Script file parser / shot editor
+- Project creation UI
 - Cosmos vision integration
-- VIME vector database
-- FP4 quantization
-- Mac app wrapper
-- Full website build
-- Audio agent / voice pipeline
 
 ---
 
@@ -80,18 +75,21 @@
 python -m pytest
 
 # Launch dashboard
-python -m dashboard.forge_dashboard
+python -m dashboard.forge_dashboard   # http://localhost:7000
 
 # Teach mode demo
 curl -X POST http://localhost:7000/api/hermes/teach \
   -H "Content-Type: application/json" \
-  -d '{"concept":"Elara Vance portrait, neon glow","error_type":"strip_hair_color"}'
+  -d '{"concept":"Sienna product shot, earth tones","error_type":"strip_hair_color"}'
+
+# Check Hermes-3 via LM Studio
+curl http://100.74.164.1:1234/v1/models
+
+# Check Spark
+curl http://100.112.87.8:8188/system_stats
 
 # Consistency score
 curl -X POST http://localhost:7000/api/consistency/score \
   -H "Content-Type: application/json" \
   -d '{"render_path":"data/seed_outputs/VAR_000.png"}'
-
-# Export brain
-curl http://localhost:7000/api/hermes/export > hermes_brain.json
 ```

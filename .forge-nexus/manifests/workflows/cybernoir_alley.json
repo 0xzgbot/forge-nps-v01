@@ -1,0 +1,57 @@
+{
+  "id": "wf_cybernoir_alley",
+  "type": "Workflow",
+  "source_file": "workflows/cybernoir_alley.json",
+  "content_hash": "3d6b5b506baaac9d",
+  "metadata": {
+    "comfyui_version": "unknown",
+    "node_count": 2,
+    "total_edges": 0
+  },
+  "nodes": [
+    {
+      "node_id": "1",
+      "class_type": "CheckpointLoaderSimple",
+      "category": "Loader",
+      "inputs": {
+        "ckpt_name": "flux2-dev"
+      },
+      "outputs": [
+        "MODEL",
+        "CLIP",
+        "VAE"
+      ],
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "node_id": "2",
+      "class_type": "CLIPTextEncode",
+      "category": "Conditioning",
+      "inputs": {
+        "text": "{{prompt.neon_glow}}"
+      },
+      "outputs": [
+        "CONDITIONING"
+      ],
+      "position": [
+        100,
+        100
+      ]
+    }
+  ],
+  "edges": [],
+  "entry_points": [
+    "1"
+  ],
+  "outputs": [],
+  "referenced_prompts": [
+    "prompt_neon_glow"
+  ],
+  "referenced_models": [
+    "flux2-dev"
+  ],
+  "referenced_characters": []
+}

@@ -1,0 +1,17 @@
+{
+  "id": "char_elena",
+  "type": "Character",
+  "source_file": "characters/elena.yaml",
+  "content_hash": "631058b9b8c6011d",
+  "name": "Elena",
+  "attributes": {},
+  "consistency_rules": {},
+  "referenced_by": {
+    "workflows": [],
+    "scenes": [],
+    "assets": []
+  },
+  "linked_prompts": [
+    "prompt_neon_glow"
+  ]
+}

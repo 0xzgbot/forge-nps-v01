@@ -1,0 +1,23 @@
+{
+  "id": "prompt_test_prompt",
+  "type": "Prompt",
+  "source_file": "prompts/test_prompt.md",
+  "content_hash": "832876a29d87c7fa",
+  "prompt_type": "positive",
+  "content": "This is a test prompt.",
+  "frontmatter": {
+    "type": "positive",
+    "tags": [
+      "test"
+    ]
+  },
+  "inheritance_chain": [],
+  "referenced_constants": [],
+  "used_by": {
+    "workflows": [],
+    "characters": []
+  },
+  "semantic_tags": [
+    "test"
+  ]
+}

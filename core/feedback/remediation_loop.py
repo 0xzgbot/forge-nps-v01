@@ -11,9 +11,9 @@ logger = logging.getLogger("RemediationLoop")
 class RemediationLoop:
     """
     Iterative self-healing engine. Three escalation tiers:
-      iter 1 — Hermes skill registry fix
-      iter 2 — Kimi root-cause escalation
-      iter 3 — Direct Kimi prompt rewrite, final attempt
+      iter 1 — Hermes skill registry fix (fastest)
+      iter 2 — Kimi-VL + Hermes-3 diagnosis (The "Brain" loop)
+      iter 3 — Full Kimi direct rewrite (Final attempt)
     After max_iterations marks shot for human review and continues.
     """
 
@@ -49,15 +49,23 @@ class RemediationLoop:
                 iteration, shot_id, current_audit, director_schema, lore_paths
             )
 
-            # Re-generate with updated description
+            # Re-generate with updated description/prompt from Hermes Brain
             regen_description = fix_applied or current_audit.get("remediation_prompt", "")
+            
+            # IMPORTANT: Use the actual creative prompt that Hermes-3 generated in Step 6!
             re_result = await self.hermes.dispatch_shots(
                 [{"shot_id": shot_id, "description": regen_description}],
                 director_schema,
             )
+            
             asset_path = re_result[0].get("asset_path", asset_path) if re_result else asset_path
 
-            current_audit = await self.auditor.audit_asset(regen_description, shot_id)
+            # Re-audit the new attempt (this will trigger Kimi-VL if image_path is present in result)
+            current_audit = await self.auditor.audit_asset(
+                asset_description=regen_description, 
+                shot_id=shot_id,
+                image_path=re_result[0].get("asset_path") if re_result else None
+            )
 
             log_entry = {
                 "shot_id": shot_id,
@@ -116,32 +124,48 @@ class RemediationLoop:
         lore_paths: List[str],
     ):
         remediation_prompt = audit_report.get("remediation_prompt", "")
-        error_category = audit_report.get("error_category", "")
         mismatch = audit_report.get("mismatch_report", "")
         kimi_root_cause: Optional[str] = None
 
         if iteration == 1:
             method = "skill_registry"
-            skill_key = f"{error_category.lower()}_fix"
+            skill_key = f"{audit_report.get('error_category', '').lower()}_fix"
             known_fix = (
                 self.hermes.skill_registry.get_skill(skill_key)
                 if self.hermes.skill_registry
                 else None
             )
-            fix_applied = (
-                known_fix.get("fix_template", remediation_prompt)
-                if known_fix
-                else remediation_prompt
-            )
+            if known_fix and isinstance(known_fix, dict):
+                fix_applied = known_fix.get("fix_template", remediation_prompt)
+            elif known_fix and isinstance(known_fix, str):
+                fix_applied = known_fix
+            else:
+                fix_applied = remediation_prompt
             logger.info(f"[REMEDIATION] iter1 skill_registry fix: {fix_applied[:80]}")
 
         elif iteration == 2:
-            method = "kimi_escalated"
-            kimi_root_cause = await self._escalate_to_kimi(
-                shot_id, mismatch, remediation_prompt, director_schema, lore_paths
-            )
-            fix_applied = kimi_root_cause or remediation_prompt
-            logger.info(f"[REMEDIATION] iter2 kimi_escalated: {fix_applied[:80]}")
+            # NEW TIER 2: Kimi-VL + Hermes-3 Diagnosis (The Brain Loop)
+            method = "kimi_hermes_brain"
+            if self.hermes.hermes_brain and self.hermes.kimi_bridge:
+                try:
+                    # We pass the mismatch findings to Hermes-3 to get a creative fix
+                    # This uses the NousHermesBridge.analyze_failure we built in Step 2!
+                    analysis = await self.hermes.hermes_brain.analyze_failure(
+                        visual_audit_result=audit_report, # Pass the full audit (including VL issues)
+                        original_prompt=audit_report.get("remediation_prompt", ""),
+                        memory_context="" 
+                    )
+                    fix_applied = analysis.get("revised_prompt", remediation_prompt)
+                    kimi_root_cause = analysis.get("diagnosis", "Visual mismatch detected.")
+                except Exception as e:
+                    logger.error(f"[REMEDIATION] Tier-2 Brain failure: {e}")
+                    fix_applied = remediation_prompt
+                    kimi_root_cause = f"Brain error: {str(e)}"
+            else:
+                # Fallback if brain/bridge is missing
+                fix_applied = remediation_prompt
+                kimi_root_cause = "Brain components unavailable."
+            logger.info(f"[REMEDIATION] iter2 brain-diagnosis: {fix_applied[:80]}")
 
         else:
             method = "kimi_direct_rewrite"
@@ -152,29 +176,6 @@ class RemediationLoop:
             logger.info(f"[REMEDIATION] iter3 kimi_direct_rewrite: {fix_applied[:80]}")
 
         return method, fix_applied, kimi_root_cause
-
-    async def _escalate_to_kimi(
-        self,
-        shot_id: str,
-        mismatch: str,
-        remediation_prompt: str,
-        director_schema: Dict[str, Any],
-        lore_paths: List[str],
-    ) -> str:
-        if not self.hermes.kimi_bridge:
-            return remediation_prompt
-        try:
-            analysis = await self.hermes.kimi_bridge.analyze_failure(
-                shot_id=shot_id,
-                audit_result={"failure_description": mismatch},
-                original_directive={"director_schema": director_schema},
-                lore_paths=lore_paths,
-                schema=None,
-            )
-            return analysis.get("fix_prompt", remediation_prompt)
-        except Exception as e:
-            logger.warning(f"[REMEDIATION] Kimi escalation failed: {e}")
-            return remediation_prompt
 
     async def _kimi_direct_rewrite(
         self,

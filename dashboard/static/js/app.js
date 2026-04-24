@@ -18,7 +18,7 @@ const h = (tag, attrs = {}, ...kids) => {
   return el;
 };
 
-const TABS = ['home','characters','script','products','renders','memory','models','settings'];
+const TABS = ['home','characters','script','products','renders','memory','settings'];
 const TAB_LABELS = {
   home: 'Home', characters: 'Characters', script: 'Script',
   products: 'Products', renders: 'Renders', memory: 'Memory', models: 'Models', settings: 'Settings'
@@ -44,6 +44,15 @@ function boot() {
   // Intensity pill
   $$('.intensity-pill button').forEach(b => {
     b.addEventListener('click', () => setIntensity(b.dataset.intensity));
+  });
+  // Light/dark toggle
+  const themeBtn = $('#theme-toggle');
+  const isLight = localStorage.getItem('forge-theme') === 'light';
+  if (isLight) document.body.classList.add('light-mode');
+  themeBtn && themeBtn.addEventListener('click', () => {
+    const light = document.body.classList.toggle('light-mode');
+    localStorage.setItem('forge-theme', light ? 'light' : 'dark');
+    themeBtn.title = light ? 'Switch to dark mode' : 'Switch to light mode';
   });
   // Hash routing
   const hash = (location.hash || '').replace(/^#\/?/, '');
@@ -149,6 +158,28 @@ function openVideoLightbox(renderData) {
             lore_excerpt: window.currentLoreExcerpt || "No lore loaded."
         }
     );
+}
+
+function openImageLightbox(renderData) {
+    const lightbox = document.createElement('div');
+    lightbox.className = 'lightbox-overlay';
+    lightbox.innerHTML = `
+        <div class="lightbox-content image-lightbox">
+            <div class="lightbox-header">
+                <h3>${renderData.shot_id}</h3>
+                <button class="btn-ghost" onclick="closeLightbox()">Close</button>
+            </div>
+            <img src="${renderData.asset_path}" style="max-width:100%;max-height:70vh;object-fit:contain;border-radius:4px;" />
+            <div class="lightbox-meta">
+                <p><strong style="color: var(--cyan)">Prompt:</strong> ${renderData.prompt || 'N/A'}</p>
+                <p><strong style="color: var(--amber)">Seed:</strong> ${renderData.seed || 'N/A'}</p>
+                <p><strong style="color: var(--magenta)">Score:</strong> ${renderData.score || 'N/A'}</p>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(lightbox);
+    window.closeLightbox = () => lightbox.remove();
+    lightbox.addEventListener('click', e => { if (e.target === lightbox) lightbox.remove(); });
 }
 
 function createRenderCard(renderData) {
@@ -853,9 +884,9 @@ VIEWS.memory = () => {
 /* ---------- MODELS ---------- */
 VIEWS.models = () => {
   const root = h('div');
-  root.append(sectionHead('Models', 'Local vs API Backend'));
+  root.append(sectionHead('Models', 'Local vs API Backend', { style: 'margin-top: 0;' }));
 
-  const grid = h('div', { class: 'settings-grid', style: 'max-width: 960px;' });
+  const grid = h('div', { class: 'settings-grid' });
 
   // --- Toggle Switch ---
   const toggleCard = h('div', { class: 'card', 'data-accent': 'cyan', style: 'grid-column: 1 / -1;' });
@@ -918,66 +949,10 @@ VIEWS.models = () => {
   grid.append(toggleCard);
 
   // --- Local Card ---
-  const localCard = h('div', { class: 'card model-backend-card', 'data-accent': 'green' });
-  const localStatus = h('div', { class: 'model-status' });
-  const localDropdown = h('select', { class: 'input model-dropdown' });
-  const localTestBtn = h('button', { class: 'btn btn-sm', onclick: testLocal }, 'Test Connection');
+  function updateLocalCard(info) { /* stub — LM Studio config is in the settings grid below */ }
+  async function testLocal() { await fetch('/api/models/test-local'); }
 
-  localCard.append(
-    h('div', { class: 'display', style: 'font-size: 12px; margin-bottom: 8px;' }, 'LM Studio'),
-    localStatus,
-    h('div', { class: 'setting-row', style: 'margin-top: 12px;' },
-      h('span', { class: 'lbl' }, 'Model'),
-      localDropdown
-    ),
-    localTestBtn
-  );
-
-  function updateLocalCard(info) {
-    localStatus.innerHTML = '';
-    localStatus.append(
-      h('span', { class: 'dot d-' + (info.available ? 'green' : 'red') }),
-      h('span', { class: 'label' }, info.available ? 'Online' : 'Offline'),
-      h('span', { class: 'label', style: 'opacity: 0.5; margin-left: auto;' }, info.host || '')
-    );
-    localDropdown.innerHTML = '';
-    if (info.models && info.models.length) {
-      info.models.forEach(m => localDropdown.append(h('option', { value: m }, m)));
-    } else {
-      localDropdown.append(h('option', {}, 'No models loaded'));
-    }
-  }
-
-  async function testLocal() {
-    localTestBtn.textContent = 'Testing...';
-    try {
-      const r = await fetch('/api/models/test-local');
-      const data = await r.json();
-      alert('LM Studio OK\nModels: ' + (data.models || []).join(', '));
-    } catch (e) {
-      alert('LM Studio unreachable. Is it running on ' + (localCard.dataset.host || 'localhost:1234') + '?');
-    }
-    localTestBtn.textContent = 'Test Connection';
-  }
-
-  grid.append(localCard);
-
-  // --- API Card ---
-  const apiCard = h('div', { class: 'card model-backend-card', 'data-accent': 'magenta' });
   const apiStatus = h('div', { class: 'model-status' });
-  const apiDropdown = h('select', { class: 'input model-dropdown' });
-  const apiTestBtn = h('button', { class: 'btn btn-sm', onclick: testApi }, 'Test Connection');
-
-  apiCard.append(
-    h('div', { class: 'display', style: 'font-size: 12px; margin-bottom: 8px;' }, 'Kimi / NVIDIA NIM'),
-    apiStatus,
-    h('div', { class: 'setting-row', style: 'margin-top: 12px;' },
-      h('span', { class: 'lbl' }, 'Model'),
-      apiDropdown
-    ),
-    apiTestBtn
-  );
-
   function updateApiCard(info) {
     apiStatus.innerHTML = '';
     apiStatus.append(
@@ -985,68 +960,8 @@ VIEWS.models = () => {
       h('span', { class: 'label' }, info.available ? 'Ready' : 'Not configured'),
       h('span', { class: 'label', style: 'opacity: 0.5; margin-left: auto;' }, info.endpoint || '')
     );
-    apiDropdown.innerHTML = '';
-    if (info.models && info.models.length) {
-      info.models.forEach(m => apiDropdown.append(h('option', { value: m }, m)));
-    } else {
-      apiDropdown.append(h('option', {}, 'No API key'));
-    }
   }
-
-  async function testApi() {
-    apiTestBtn.textContent = 'Testing...';
-    try {
-      const r = await fetch('/api/models/test-api');
-      const data = await r.json();
-      alert('API ' + (data.healthy ? 'Healthy' : 'Unreachable') + '\nKey: ' + (data.api_key_configured ? 'Configured' : 'Missing'));
-    } catch (e) {
-      alert('API test failed: ' + e.message);
-    }
-    apiTestBtn.textContent = 'Test Connection';
-  }
-
-  grid.append(apiCard);
-
-  // --- GPU Farm Card ---
-  const gpuCard = h('div', { class: 'card', 'data-accent': 'amber', style: 'grid-column: 1 / -1;' });
-  const gpuGrid = h('div', { class: 'gpu-farm-grid', style: 'display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 10px;' });
-  
-  const gpus = [
-    { name: 'RTX 3090 #1', vram: '24 GB', model: 'FLUX2 Dev NVFP4', status: 'hero', temp: 68, load: 94 },
-    { name: 'RTX 3090 #2', vram: '24 GB', model: 'FLUX2 Dev NVFP4', status: 'hero', temp: 71, load: 91 },
-    { name: 'GTX 1080 Ti #1', vram: '11 GB', model: 'Z-Image Turbo', status: 'draft', temp: 74, load: 88 },
-    { name: 'GTX 1080 Ti #2', vram: '11 GB', model: 'Z-Image Turbo', status: 'draft', temp: 72, load: 85 },
-  ];
-  
-  gpus.forEach(gpu => {
-    const gpuEl = h('div', { class: 'card', style: 'padding: 12px; border: 1px solid rgba(255,255,255,0.06);' },
-      h('div', { class: 'row between', style: 'margin-bottom: 8px;' },
-        h('span', { class: 'display', style: 'font-size: 11px; color: var(--amber);' }, gpu.name),
-        h('span', { class: 'label', style: 'opacity: 0.6;' }, gpu.vram)
-      ),
-      h('div', { class: 'label', style: 'margin-bottom: 8px;' }, gpu.model),
-      h('div', { class: 'row between', style: 'font-size: 11px; opacity: 0.7;' },
-        h('span', {}, `Load: ${gpu.load}%`),
-        h('span', {}, `Temp: ${gpu.temp}°C`)
-      ),
-      h('div', { class: 'progress mono', style: 'margin-top: 6px; height: 4px;' },
-        h('div', { class: 'fill', style: `width: ${gpu.load}%; background: var(--amber);` })
-      )
-    );
-    gpuGrid.appendChild(gpuEl);
-  });
-  
-  gpuCard.append(
-    h('div', { class: 'row between', style: 'margin-bottom: 4px;' },
-      h('div', { class: 'display', style: 'font-size: 12px;' }, 'GPU Farm'),
-      h('span', { class: 'ticker' }, '4 GPUs · 70 GB TOTAL VRAM')
-    ),
-    h('div', { class: 'label', style: 'opacity: 0.5; margin-bottom: 8px;' },
-      'Kimi 2.5 (cloud) = Hermes brain. All 4 GPUs = rendering only.'
-    ),
-    gpuGrid
-  );
-  grid.append(gpuCard);
+  async function testApi() { await fetch('/api/models/test-api'); }
 
   root.append(grid);
 
@@ -1056,11 +971,16 @@ VIEWS.models = () => {
   return root;
 };
 
-/* ---------- SETTINGS ---------- */
+/* ---------- SETTINGS (merged with Models) ---------- */
 VIEWS.settings = () => {
   const root = h('div');
-  root.append(sectionHead('Settings', 'Configuration & System'));
-  const grid = h('div', { class: 'settings-grid', style: 'max-width: 960px;' });
+  root.append(sectionHead('Settings', 'Models, Configuration & System'));
+
+  // ── Models section (merged from Models tab) ──
+  const modelsWrap = h('div', { style: 'margin-bottom: 16px;' });
+  modelsWrap.append(VIEWS.models());
+  root.append(modelsWrap);
+  const grid = h('div', { class: 'settings-grid' });
 
   const statusBar = h('div', { class: 'label', style: 'margin-bottom: 12px; opacity: 0.6; font-size: 11px;' }, 'Loading configuration...');
   root.append(statusBar);
@@ -1107,18 +1027,90 @@ VIEWS.settings = () => {
 
   // --- API Keys Section ---
   const apiCard = h('div', { class: 'card setting-group', 'data-accent': 'cyan' });
-  apiCard.append(h('div', { class: 'display', style: 'font-size: 12px; margin-bottom: 4px;' }, 'API Keys'));
-  const kimiRow = makeRow('Kimi API Key', 'KIMI_API_KEY', { type: 'password' });
-  const nimRow = makeRow('NIM Endpoint', 'NIM_ENDPOINT');
-  apiCard.append(kimiRow, nimRow);
+  const nimStatus = h('div', { class: 'model-status' });
+  const apiTestBtn = h('button', { class: 'btn btn-sm', style: 'color: var(--green); border-color: var(--green); margin-top: 4px;', onclick: async () => {
+    apiTestBtn.textContent = 'Testing...';
+    try {
+      const r = await fetch('/api/models/test-api');
+      const d = await r.json();
+      nimStatus.innerHTML = '';
+      nimStatus.append(
+        h('span', { class: 'dot d-' + (d.healthy ? 'green' : 'red') }),
+        h('span', { class: 'label' }, d.healthy ? 'Ready' : 'Unreachable'),
+        h('span', { class: 'label', style: 'opacity:0.5; margin-left:auto;' }, d.api_key_configured ? 'Key ✓' : 'No key')
+      );
+    } catch(e) { nimStatus.textContent = '✗ error'; }
+    apiTestBtn.textContent = 'Test Connection';
+  }}, 'Test Connection');
+  apiCard.append(
+    h('div', { class: 'display', style: 'font-size: 12px; margin-bottom: 4px;' }, 'Kimi / NVIDIA NIM'),
+    nimStatus,
+    makeRow('API Key', 'KIMI_API_KEY', { type: 'password' }),
+    makeRow('NIM Endpoint', 'NIM_ENDPOINT'),
+    apiTestBtn
+  );
   grid.append(apiCard);
+
+  function makeTestBtn(label, onClick) {
+    const btn = h('button', { class: 'btn btn-sm', style: 'color: var(--green); border-color: var(--green);', onclick: onClick }, label);
+    return btn;
+  }
+
+  function addComfyTestBtn(row) {
+    const input = row._input;
+    const status = h('span', { class: 'label', style: 'margin-left: 8px; min-width: 80px;' }, '');
+    const btn = makeTestBtn('Test', async () => {
+      const url = input.value.trim();
+      if (!url) return;
+      status.textContent = 'testing…';
+      try {
+        const r = await fetch('/api/spark/test?url=' + encodeURIComponent(url));
+        if (r.ok) {
+          status.style.color = 'var(--green)';
+          status.textContent = '✓ online';
+        } else {
+          status.style.color = 'var(--red, #ff4444)';
+          status.textContent = '✗ offline';
+        }
+      } catch { status.style.color = 'var(--red, #ff4444)'; status.textContent = '✗ error'; }
+    });
+    row.append(btn, status);
+  }
 
   // --- ComfyUI Hosts Section ---
   const comfyCard = h('div', { class: 'card setting-group', 'data-accent': 'green' });
   comfyCard.append(h('div', { class: 'display', style: 'font-size: 12px; margin-bottom: 4px;' }, 'ComfyUI Hosts'));
   const primaryRow = makeRow('Primary Host', 'COMFYUI_PRIMARY');
   const secondaryRow = makeRow('Secondary Host', 'COMFYUI_SECONDARY');
+  addComfyTestBtn(primaryRow);
+  addComfyTestBtn(secondaryRow);
   comfyCard.append(primaryRow, secondaryRow);
+
+  // Extra servers added dynamically
+  const extraServers = h('div', { id: 'extra-comfy-servers' });
+  comfyCard.append(extraServers);
+
+  let extraCount = 3;
+  const addServerBtn = h('button', {
+    class: 'btn btn-ghost',
+    style: 'margin-top: 10px; color: var(--green); border-color: var(--green);',
+    onclick: () => {
+      const key = `COMFYUI_EXTRA_${extraCount}`;
+      const row = makeRow(`Server ${extraCount}`, key);
+      addComfyTestBtn(row);
+      // Add remove button
+      const removeBtn = h('button', {
+        class: 'icon-btn',
+        title: 'Remove',
+        style: 'color: var(--red, #ff4444); margin-left: 6px;',
+        onclick: () => { row.remove(); }
+      }, '✕');
+      row.append(removeBtn);
+      extraServers.append(row);
+      extraCount++;
+    }
+  }, '+ Add Server');
+  comfyCard.append(addServerBtn);
   grid.append(comfyCard);
 
   // --- LM Studio Section ---
@@ -1127,6 +1119,38 @@ VIEWS.settings = () => {
   const lmHostRow = makeRow('LM Studio Host', 'LMSTUDIO_HOST');
   const lmEmbedRow = makeRow('Embedding Model', 'LMSTUDIO_EMBED_MODEL');
   const lmChatRow = makeRow('Chat Model', 'LMSTUDIO_CHAT_MODEL');
+
+  // LM Studio test btn — also auto-fills loaded models
+  const lmStatus = h('span', { class: 'label', style: 'margin-left: 8px; min-width: 120px;' }, '');
+  const lmTestBtn = makeTestBtn('Test & Detect Models', async () => {
+    lmStatus.textContent = 'testing…';
+    lmStatus.style.color = '';
+    try {
+      const r = await fetch('/api/models/test-local');
+      if (r.ok) {
+        const d = await r.json();
+        lmStatus.style.color = 'var(--green)';
+        lmStatus.textContent = `✓ ${(d.models || []).length} model(s) loaded`;
+        // Auto-fill chat and embed fields from detected models
+        const models = d.models || [];
+        const chatModel = models.find(m => !m.toLowerCase().includes('embed') && !m.toLowerCase().includes('nomic')) || models[0];
+        const embedModel = models.find(m => m.toLowerCase().includes('embed') || m.toLowerCase().includes('nomic'));
+        if (chatModel && !lmChatRow._input.value) {
+          lmChatRow._input.value = chatModel;
+          saveKey('LMSTUDIO_CHAT_MODEL', chatModel);
+        }
+        if (embedModel && !lmEmbedRow._input.value) {
+          lmEmbedRow._input.value = embedModel;
+          saveKey('LMSTUDIO_EMBED_MODEL', embedModel);
+        }
+      } else {
+        lmStatus.style.color = 'var(--red, #ff4444)';
+        lmStatus.textContent = '✗ not reachable';
+      }
+    } catch { lmStatus.style.color = 'var(--red, #ff4444)'; lmStatus.textContent = '✗ error'; }
+  });
+  lmHostRow.append(lmTestBtn, lmStatus);
+
   lmCard.append(
     lmHostRow,
     lmEmbedRow,
@@ -1145,6 +1169,35 @@ VIEWS.settings = () => {
   const visualRow = makeRow('Visual Model', 'KIMI_VISUAL_MODEL');
   modelCard.append(instructRow, thinkingRow, visualRow);
   grid.append(modelCard);
+
+  // --- GPU Farm Section ---
+  const gpuCard = h('div', { class: 'card setting-group', 'data-accent': 'amber', style: 'grid-column: 1 / -1;' });
+  const gpuGridEl = h('div', { style: 'display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 10px;' });
+  const gpuList = [
+    { name: 'RTX 3090 #1', vram: '24 GB', model: 'FLUX2 Dev NVFP4', temp: 68, load: 94 },
+    { name: 'RTX 3090 #2', vram: '24 GB', model: 'FLUX2 Dev NVFP4', temp: 71, load: 91 },
+    { name: 'GTX 1080 Ti #1', vram: '11 GB', model: 'Z-Image Turbo', temp: 74, load: 88 },
+    { name: 'GTX 1080 Ti #2', vram: '11 GB', model: 'Z-Image Turbo', temp: 72, load: 85 },
+  ];
+  gpuList.forEach(gpu => gpuGridEl.appendChild(h('div', { class: 'card', style: 'padding: 12px; border: 1px solid var(--border);' },
+    h('div', { class: 'row between', style: 'margin-bottom: 8px;' },
+      h('span', { class: 'display', style: 'font-size: 11px; color: var(--amber);' }, gpu.name),
+      h('span', { class: 'label', style: 'opacity: 0.6;' }, gpu.vram)
+    ),
+    h('div', { class: 'label', style: 'margin-bottom: 8px;' }, gpu.model),
+    h('div', { class: 'row between', style: 'font-size: 11px; opacity: 0.7;' },
+      h('span', {}, `Load: ${gpu.load}%`), h('span', {}, `Temp: ${gpu.temp}°C`)
+    ),
+    h('div', { class: 'progress mono', style: 'margin-top: 6px; height: 4px;' },
+      h('div', { class: 'fill', style: `width: ${gpu.load}%; background: var(--amber);` })
+    )
+  )));
+  gpuCard.append(
+    h('div', { class: 'display', style: 'font-size: 12px; margin-bottom: 4px;' }, 'GPU Farm'),
+    h('div', { class: 'label', style: 'opacity: 0.5; margin-bottom: 8px;' }, '4 GPUs · 70 GB TOTAL VRAM · rendering only'),
+    gpuGridEl
+  );
+  grid.append(gpuCard);
 
   // --- Export Brain Section ---
   const exportCard = h('div', { class: 'card setting-group', 'data-accent': 'purple' });

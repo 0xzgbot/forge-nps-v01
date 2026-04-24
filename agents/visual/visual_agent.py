@@ -6,7 +6,6 @@ from pathlib import Path
 
 from core.routing.architect_router import ArchitectRouter
 from core.dispatch.dispatcher import ComfyDispatcher
-from core.dispatch.comfy_client import ComfyUIClient
 from data.character_banks.bank_loader import get_quality_constants
 from core.consistency.character_consistency_engine import CharacterConsistencyEngine
 
@@ -77,14 +76,89 @@ class VisualAgent:
         """Loads JSON workflow from repo workflows/."""
         wf_path = Path(__file__).parent.parent.parent / "workflows" / f"{kernel}.json"
         if not wf_path.exists():
-            # Fallback for testing if specific kernel file isn't there, 
-            # though B1 should have copied them.
             logger.warning(f"Workflow {wf_path} not found.")
             return {}
         with open(wf_path, 'r', encoding="utf-8") as f:
             return json.load(f)
 
+    async def generate(self, shot_id: str, description: str, director_schema: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        IMPLEMENTATION OF STEP 5: High-precision image/video generation via ComfyUI.
+        Uses Hermes-3 prompts and handles both T2I (Flux) and I2V (LTX).
+        """
+        logger.info(f"[VisualAgent] Starting generation for shot {shot_id}")
+        await self._ensure_connectivity()
+
+        # 1. Prepare base data
+        shot_data = {
+            "id": shot_id,
+            "description": description,
+            "visual_prompt": {"subject": description}, # Fallback mapping
+            "intent": director_schema.get("intent", "high_fidelity_image"),
+            "shot_index": director_schema.get("shot_index", 0)
+        }
+
+        # 2. Determine workflow type (Image vs Video)
+        is_video = shot_data["intent"] == "video_generation" or "ltx" in description.lower()
+        kernel = "ltx_2_3" if is_video else "flux_2_dev"
+
+        try:
+            # 3. Load the target workflow
+            workflow = await self.load_workflow(kernel)
+            if not workflow:
+                return {"status": "ERROR", "message": f"Could not load workflow for kernel: {kernel}"}
+
+            # 4. Build enriched payload (handles prompt enrichment & character locking)
+            payload = await self._build_kernel_payload(shot_data, model_hint=kernel)
+
+            # 5. Inject the generated/enriched prompt into the workflow nodes
+            target_node_id = None
+            prompt_dict = workflow.get("prompt", {})
+            if isinstance(prompt_dict, dict):
+                for node_id, node_info in prompt_dict.items():
+                    # Target CLIPTextEncode for images or similar text input nodes for video
+                    if isinstance(node_info, dict) and node_info.get("class_type") in ["CLIPTextEncode", "FluxGuidance"]:
+                        target_node_id = node_id
+                        break
+            
+            if not target_node_id:
+                 return {"status": "ERROR", "message": "No text encoding node found in workflow."}
+
+            # Inject the final prompt string from our payload
+            final_prompt_text = payload.get("prompt", "")
+            if isinstance(payload.get("prompt"), dict):
+                final_prompt_text = payload["prompt"].get("text", str(payload["prompt"]))
+            
+            workflow["prompt"][target_node_id]["inputs"]["text"] = str(final_prompt_text)
+
+            # 6. Handle I2V (Image-to-Video) if anchor image is provided in schema/data
+            if is_video and shot_data.get("anchor_image_path"):
+                img_p = shot_data["anchor_image_path"]
+                for node_id, node_info in workflow["prompt"].items():
+                    if node_info.get("class_type") == "LoadImage":
+                        node_info["inputs"]["image"] = Path(img_p).name # Comfy expects filename if in input dir
+                        break
+
+            # 7. Submit to ComfyUI via Dispatcher
+            logger.info(f"[VisualAgent] Submitting {kernel} job for shot {shot_id}")
+            response = await self.dispatcher.dispatch(workflow)
+
+            if response["status"] == "success":
+                return {
+                    "status": "SUCCESS",
+                    "asset_path": response["response"].get("filename"), # Comfy returns filename in response
+                    "prompt_used": final_prompt_text,
+                    "metadata": response["response"]
+                }
+            else:
+                return {"status": "FAILED", "message": response.get("reason", "ComfyUI dispatch error")}
+
+        except Exception as e:
+            logger.error(f"[VisualAgent] Generation failed for {shot_id}: {e}")
+            return {"status": "ERROR", "message": str(e)}
+
     async def submit_to_comfy(self, shot_data: dict, workflow: dict):
+        """Legacy/Helper method to submit raw workflows."""
         await self._ensure_connectivity()
         payload = await self._build_kernel_payload(shot_data)
         
@@ -154,9 +228,9 @@ class VisualAgent:
         # but we'll follow a generic injection pattern.
         for node_id, node_info in full_payload["prompt"].items():
             if "motion_strength" in node_info.get("inputs", {}):
-                 node_info["inputs"]["motion_strength"] = motion_strength
+                node_info["inputs"]["motion_strength"] = motion_strength
             if "frame_guidance" in node_info.get("inputs", {}):
-                 node_info["inputs"]["frame_guidance"] = frame_guidance
+                node_info["inputs"]["frame_guidance"] = frame_guidance
 
         # If I2V (anchor image provided), we'd need to handle the load_image node too.
         if anchor_image_path:

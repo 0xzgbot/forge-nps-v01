@@ -32,7 +32,7 @@ class LMStudioClient:
         embed_model: str = "",
         timeout: float = 60.0,
     ):
-        self.base_url = (base_url or os.getenv("LMSTUDIO_HOST", "http://localhost:1234")).rstrip("/")
+        self.base_url = (base_url or os.getenv("LMSTUDIO_HOST", "http://localhost:1234")).rstrip("/").removesuffix("/v1")
         self.chat_model = chat_model or os.getenv("LMSTUDIO_CHAT_MODEL", "")
         self.embed_model = embed_model or os.getenv("LMSTUDIO_EMBED_MODEL", "")
         self.timeout = timeout

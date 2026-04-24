@@ -438,6 +438,16 @@ async def api_submit_recipe(req: SubmitRecipeRequest):
 
 # --- Spark Monitor Endpoints ---
 
+@app.get("/api/spark/test")
+async def api_spark_test(url: str):
+    """Test a ComfyUI host and return system info."""
+    from core.dispatch.comfy_client import ComfyUIClient
+    client = ComfyUIClient(url)
+    ok, info = await client.check_health()
+    if not ok:
+        raise HTTPException(status_code=503, detail=info.get("error", "Unreachable"))
+    return {"url": url, "healthy": True, "info": info}
+
 @app.get("/api/spark/state")
 async def api_spark_state():
     """Current Spark queue state."""
@@ -682,6 +692,9 @@ async def on_startup():
     from core.hermes.hermes_agent import set_event_emitter
     set_event_emitter(emit_hermes_event)
     spark_monitor.start()
+    # Apply data/config.json overrides to environment on boot
+    from core.bridge.runtime_config import apply_to_environment
+    apply_to_environment()
 
 
 @app.on_event("shutdown")
