@@ -51,6 +51,17 @@ const CHARACTERS = [
   }
 ];
 
+
+const PRODUCTS = [
+  {
+    id: 'emberdrive_mk2',
+    name: 'Emberdrive Mk-II',
+    description: 'High-performance propulsion module designed for deep-space maneuvers and rapid atmospheric entry.',
+    anchor_prompt: 'Studio product photography of Emberdrive Mk-II, sleek obsidian chassis with glowing amber heat sinks, internal turbine components visible through semi-transparent casing, macro lens detail, dramatic rim lighting, dark technical background, 8k'
+  }
+];
+
+
 const SHOTS = [
   { n: 1,  id: 'SHOT_001', chars: ['ELARA'],           status: 'done',    seed: 849271, prompt: 'Wes Anderson style — Elara centered in a pastel coral room, symmetrical framing, soft key light, playful props, 35mm film grain' },
   { n: 2,  id: 'SHOT_002', chars: ['ELARA'],           status: 'retry',   seed: 849272, prompt: 'photoreal advertising — Elara holding a chrome water bottle, studio lighting, white seamless background, product sharp, shallow depth of field' },

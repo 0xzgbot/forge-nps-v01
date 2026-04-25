@@ -1,0 +1,17 @@
+model:
+  default: gemma-4-26b-a4b-it
+  provider: custom
+  base_url: http://localhost:1234/v1
+providers: {}
+fallback_providers: []
+toolsets:
+- hermes-cli
+agent:
+  max_turns: 60
+  gateway_timeout: 1800
+terminal:
+  backend: local
+  modal_mode: auto
+  cwd: .
+  timeout: 180
+  auto_source_bashrc: true

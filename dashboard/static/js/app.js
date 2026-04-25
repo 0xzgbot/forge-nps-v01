@@ -1,3 +1,5 @@
+/* Forge NPS — App shell, tabs, view rendering */
+
 const $ = (s, p = document) => p.querySelector(s);
 const $$ = (s, p = document) => [...p.querySelectorAll(s)];
 const h = (tag, attrs = {}, ...kids) => {
@@ -16,181 +18,99 @@ const h = (tag, attrs = {}, ...kids) => {
   return el;
 };
 
-// Redesign-compatible Navigation Data (Injected from Design Source)
-const NAV = [{ id: 'home',       label: 'Home',       icon: home },
-      { id: 'characters', label: 'Characters', icon: people, meta: '3' },
-      { id: 'script',     label: 'Script',     icon: script },
-      { id: 'products',   label: 'Products',   icon: cube },
-      { id: 'renders',    label: 'Renders',    icon: grid,    meta: '24' },
-      { id: 'memory',     label: 'Memory',     icon: brain,   meta: '12' },
-      { id: 'settings',   label: 'Settings',   icon: gear }];
-
-// SVG Icon Factories (from Redesign HTML)
-function home(){return `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9l7-6 7 6v8a1 1 0 0 1-1 1h-3v-5H7v5H4a1 1 0 0 1-1-1z"/></svg>`}
-function people(){return `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="3"/><path d="M2 17a5 5 0 0 1 10 0"/><circle cx="14" cy="7" r="2.5"/><path d="M13 13a4 4 0 0 1 5 4"/></svg>`}
-function script(){return `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="3" width="12" height="14" rx="1"/><path d="M7 7h6M7 10h6M7 13h4"/></svg>`}
-function cube(){return `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 3l7 4v6l-7 4-7-4V7z"/><path d="M3 7l7 4 7-4M10 11v6"/></svg>`}
-function grid(){return `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="6" height="6" rx="1"/><rect x="11" y="3" width="6" height="6" rx="1"/><rect x="3" y="11" width="6" height="6" rx="1"/><rect x="11" y="11" width="6" height="6" rx="1"/></svg>`}
-function brain(){return `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M7 4a3 3 0 0 0-3 3v6a3 3 0 0 0 3 3h6a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3H7z"/><path d="M10 4v12M7 8h6M7 12h6"/></svg>`}
-function gear(){return `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="10" cy="10" r="3"/><path d="M10 2v2m0 12v2M2 10h2m12 0h2M4.5 4.5l1.4 1.4m8.2 8.2 1.4 1.4m-8.2-8.2 1.4-1.4m8.2 8.2 1.4-1.4"/></svg>`}
-
-
-
-    
-    new ForgeVideoPlayer(
-        "video-player-container",
-        renderData.asset_path,
-        {
-            shot_id: renderData.shot_id,
-            description: renderData.prompt,
-            lore_excerpt: window.currentLoreExcerpt || "No lore loaded."
-        }
-    );
-}
-
-function openImageLightbox(renderData) {
-    const lightbox = document.createElement('div');
-    lightbox.className = 'lightbox-overlay';
-    lightbox.innerHTML = `
-        <div class="lightbox-content image-lightbox">
-            <div class="lightbox-header">
-                <h3>${renderData.shot_id}</h3>
-                <button class="btn-ghost" onclick="closeLightbox()">Close</button>
-            </div>
-            <img src="${renderData.asset_path}" style="max-width:100%;max-height:70vh;object-fit:contain;border-radius:4px;" />
-            <div class="lightbox-meta">
-                <p><strong style="color: var(--cyan)">Prompt:</strong> ${renderData.prompt || 'N/A'}</p>
-                <p><strong style="color: var(--amber)">Seed:</strong> ${renderData.seed || 'N/A'}</p>
-                <p><strong style="color: var(--magenta)">Score:</strong> ${renderData.score || 'N/A'}</p>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(lightbox);
-    window.closeLightbox = () => lightbox.remove();
-    lightbox.addEventListener('click', e => { if (e.target === lightbox) lightbox.remove(); });
-}
-
-function createRenderCard(renderData) {
-    const isVideo = renderData.asset_path.match(/\.(mp4|webm|mov)$/i);
-    
-    const card = h('div', { class: 'render-card' });
-    card.innerHTML = `
-        ${isVideo
-            ? `<div class="video-thumbnail">
-                <video src="${renderData.asset_path}" muted preload="metadata"></video>
-                <div class="play-overlay">Play</div>
-               </div>`
-            : `<img src="${renderData.asset_path}" loading="lazy">`
-        }
-        <div class="render-meta">
-            <span class="badge-${renderData.status || 'ready'}">${renderData.status || 'ready'}</span>
-            <span class="shot-id">${renderData.shot_id}</span>
-        </div>
-    `;
-    
-    card.addEventListener('click', () => {
-        if (isVideo) { openVideoLightbox(renderData); }
-        else if (typeof openImageLightbox === 'function') { openImageLightbox(renderData); }
-    });
-    
-    return card;
-}
-
-/* ======================================================================
-   HERMES AGENT CHAT PANEL
-   ====================================================================== */
-
-const HERMES_PROFILES_META = {
-  live:      { title: 'Hermes Live · Creative Director',   accent: 'purple',  placeholder: 'Ask Hermes to write a shot, plan a campaign...' },
-  character: { title: 'Hermes Character · Architect',      accent: 'magenta', placeholder: 'Describe a character, refine DNA, ask about anchors...' },
-  script:    { title: 'Hermes Script · Screenwriter',      accent: 'cyan',    placeholder: 'Write a scene, generate shot list, develop story...' },
-  product:   { title: 'Hermes Product · Stylist',          accent: 'amber',   placeholder: 'Describe a product, plan placement, style notes...' },
+const TABS = ['home','characters','script','products','renders','memory','settings'];
+const TAB_LABELS = {
+  home: 'Home', characters: 'Characters', script: 'Script',
+  products: 'Products', renders: 'Renders', memory: 'Memory', settings: 'Settings'
 };
 
-function makeHermesChatPanel(profileId) {
-  const meta = HERMES_PROFILES_META[profileId] || HERMES_PROFILES_META.live;
-  const panelId = `hermes-chat-${profileId}`;
-  const histId  = `hermes-hist-${profileId}`;
-  const inputId = `hermes-input-${profileId}`;
+let activeTab = 'home';
+let activeCharId = 'elara';
+let expandedShot = null;
 
-  const hist = h('div', { id: histId, class: 'hermes-chat-history' },
-    h('div', { class: 'hermes-chat-welcome' },
-      h('span', { style: `color: var(--${meta.accent});` }, `◆ ${meta.title}`),
-      h('span', { class: 'label', style: 'margin-top:4px;' }, 'Powered by Hermes Agent · Nous Research')
-    )
-  );
-
-  function appendMsg(role, text) {
-    const cls = role === 'user' ? 'hermes-chat-user' : 'hermes-chat-agent';
-    const prefix = role === 'user' ? '▶' : '◆';
-    const color  = role === 'user' ? 'var(--text)' : `var(--${meta.accent})`;
-    const msg = h('div', { class: cls },
-      h('span', { style: `color:${color};margin-right:6px;` }, prefix),
-      h('span', {}, text)
-    );
-    hist.append(msg);
-    hist.scrollTop = hist.scrollHeight;
-  }
-
-  async function sendMessage() {
-    const input = document.getElementById(inputId);
-    const btn = document.querySelector(`#${panelId} .hermes-send-btn`);
-    const msg = input ? input.value.trim() : '';
-    if (!msg) return;
-    input.value = '';
-    input.disabled = true;
-    if (btn) { btn.disabled = true; btn.textContent = '...'; }
-    appendMsg('user', msg);
-    const thinking = h('div', { class: 'hermes-chat-thinking' },
-      h('span', { style: `color:var(--${meta.accent});opacity:0.6;` }, `◆ ${profileId} is thinking…`)
-    );
-    hist.append(thinking);
-    hist.scrollTop = hist.scrollHeight;
-    try {
-      const r = await fetch('/api/hermes/profile/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ profile: profileId, message: msg })
-      });
-      thinking.remove();
-      if (!r.ok) {
-        const err = await r.text();
-        appendMsg('agent', `⚠ Error: ${err.slice(0, 200)}`);
-      } else {
-        const data = await r.json();
-        appendMsg('agent', data.response || '(no response)');
-      }
-    } catch(e) {
-      thinking.remove();
-      appendMsg('agent', `⚠ ${e.message}`);
-    } finally {
-      if (input) input.disabled = false;
-      if (btn) { btn.disabled = false; btn.textContent = '↵'; }
-      if (input) input.focus();
-    }
-  }
-
-  const input = h('input', {
-    id: inputId,
-    type: 'text',
-    class: 'hermes-chat-input',
-    placeholder: meta.placeholder,
+/* ---------- Boot ---------- */
+function boot() {
+  initSparkSocket();
+  // Brand
+  $('#brand-mark').innerHTML = logoSVG();
+  // Tabs
+  const tabsEl = $('#tabs');
+  TABS.forEach(t => {
+    tabsEl.append(h('button', {
+      class: 'tab' + (t === activeTab ? ' active' : ''),
+      'data-tab': t,
+      onclick: () => switchTab(t)
+    }, TAB_LABELS[t]));
   });
-  input.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
+  // Intensity pill
+  $$('.intensity-pill button').forEach(b => {
+    b.addEventListener('click', () => setIntensity(b.dataset.intensity));
+  });
+  // Hash routing
+  const hash = (location.hash || '').replace(/^#\/?/, '');
+  if (TABS.includes(hash)) activeTab = hash;
+  window.addEventListener('hashchange', () => {
+    const nh = (location.hash || '').replace(/^#\/?/, '');
+    if (TABS.includes(nh) && nh !== activeTab) switchTab(nh, false);
+  });
+  switchTab(activeTab, false);
+}
 
-  const sendBtn = h('button', { class: 'hermes-send-btn' }, '↵');
-  sendBtn.addEventListener('click', sendMessage);
+function setIntensity(level) {
+  document.body.classList.remove('intensity-tasteful','intensity-full');
+  if (level === 'tasteful') document.body.classList.add('intensity-tasteful');
+  if (level === 'full') document.body.classList.add('intensity-full');
+  $$('.intensity-pill button').forEach(b => b.classList.toggle('active', b.dataset.intensity === level));
+}
 
-  return h('div', { id: panelId, class: 'card card-pad hermes-chat-panel', 'data-accent': meta.accent },
-    h('div', { class: 'row between', style: 'margin-bottom:10px;' },
-      h('div', { class: 'display', style: 'font-size:12px;' }, meta.title),
-      h('span', { class: 'ticker' }, 'HERMES AGENT · NOUS RESEARCH')
-    ),
-    hist,
-    h('div', { class: 'hermes-chat-footer' },
-      input,
-      sendBtn
-    )
+function switchTab(name, updateHash = true) {
+  activeTab = name;
+  if (updateHash) location.hash = '#/' + name;
+  $$('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+  const view = $('#view');
+  view.innerHTML = '';
+  const render = VIEWS[name] || VIEWS.home;
+  view.append(render());
+  view.style.animation = 'none';
+  // force reflow for re-anim
+  void view.offsetWidth;
+  view.style.animation = '';
+  animateStatCounts();
+  if (name === 'memory') setTimeout(initMemoryGraph, 30);
+}
+
+function animateStatCounts() {
+  $$('[data-countup]').forEach(el => {
+    const target = parseFloat(el.dataset.countup);
+    const isPct = el.dataset.suffix === '%';
+    const decimals = el.dataset.decimals ? +el.dataset.decimals : 0;
+    const dur = 700;
+    const start = performance.now();
+    const ease = t => 1 - Math.pow(1-t, 3);
+    function tick(now) {
+      const p = Math.min(1, (now - start) / dur);
+      const v = target * ease(p);
+      el.textContent = v.toFixed(decimals) + (isPct ? '%' : '');
+      if (p < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  });
+}
+
+/* ---------- Shared bits ---------- */
+function statCard({ label, value, accent, sub, decimals=0, suffix='' }) {
+  return h('div', { class: 'card stat', 'data-accent': accent },
+    h('div', { class: 'stat-label' }, h('span', { class: `dot d-${accent}` }), label),
+    h('div', { class: 'stat-value', 'data-countup': value, 'data-decimals': decimals, 'data-suffix': suffix }, '0'),
+    sub ? h('div', { class: 'stat-sub' }, sub) : null
+  );
+}
+
+function sectionHead(title, meta) {
+  return h('div', { class: 'section-head' },
+    h('h2', {}, title),
+    h('div', { class: 'bar' }),
+    meta ? h('div', { class: 'meta' }, meta) : null
   );
 }
 
@@ -201,76 +121,249 @@ function makeHermesChatPanel(profileId) {
 
 const VIEWS = {};
 
-/* ---------- HOME ---------- */
+
+VIEWS.home = async () => {
+  const root = h('div');
+
+  // 3.1 Fetch Stats
+  let stats = { total: 0, insights: 0, success: 0, queue: 0, sessions: 0, window: 0 };
+  try {
+    const r = await fetch('/api/memory/stats');
+    if (r.ok) stats = await r.json();
+  } catch(e) { console.error("Stats fetch failed", e); }
+
+  // Hero Stats
+  const hero = h('div', { class: 'hero-grid' },
+    statCard({ label: 'Total Events',   value: stats.total, accent: 'cyan' }),
+    statCard({ label: 'Insights',       value: stats.insights, accent: 'purple' }),
+    statCard({ label: 'Success Rate',   value: stats.success, accent: 'green', suffix: '%' }),
+    statCard({ label: 'Queue Depth',    value: stats.queue, accent: 'amber', sub: h('span', {}, 'staged') }),
+    statCard({ label: 'Active Sessions',value: stats.sessions, accent: 'magenta' }),
+    statCard({ label: 'Time Window',    value: stats.window, accent: 'cyan', suffix: 'h' })
+  );
+  root.append(hero);
+
+  const body = h('div', { class: 'home-body' });
+  const left = h('div', { class: 'col gap-3' });
+
+  // 3.2 Recent Renders (Real Images)
+  const recent = h('div', { class: 'card card-pad', 'data-accent': 'cyan' });
+  recent.append(h('div', { class: 'row between', style: 'margin-bottom: 14px;' },
+    h('div', { class: 'col gap-1' }, h('div', { class: 'display', style: 'font-size: 13px;' }, 'Recent Renders')),
+    h('div', { class: 'row gap-2' }, h('button', { class: 'chip active' }, 'All'))
+  ));
+
+  const strip = h('div', { class: 'recent-strip' });
+  try {
+      const r = await fetch('/api/renders');
+      if (r.ok) {
+          const renders = await r.json();
+          renders.slice(0, 8).forEach((rd, i) => {
+              strip.append(h('div', { class: 'thumb' }, 
+                  h('img', { 
+                      src: rd.url, 
+                      style: 'width:100%; height:100%; object-fit:cover; border-radius:4px;',
+                      onerror: (e) => e.target.src = '/static/img/placeholder.png'
+                  }),
+                  h('div', { class: 'meta-overlay' },
+                      h('div', { style: 'color: var(--cyan); font-size: 10px;' }, rd.name),
+                      h('div', { class: 'muted', style: 'font-size: 8px;' }, `seed ${rd.seed || 0}`)
+                  )
+              ));
+          });
+      } else { strip.textContent = "No renders found."; }
+  } catch(e) { strip.textContent = "Failed to load renders."; }
+  recent.append(strip);
+  left.append(recent);
+
+  // 3.3 Campaign Queue (WebSocket wired in initSparkSocket)
+  const queue = h('div', { class: 'card card-pad queue-panel', 'data-accent': 'amber' },
+    h('div', { class: 'row between' },
+      h('div', { class: 'col gap-1' },
+        h('div', { class: 'display', style: 'font-size: 13px;' }, 'Live Queue'),
+        h('div', { class: 'label' }, 'Spark · node-02')
+      ),
+      h('div', { class: 'heartbeat' }, ...Array.from({ length: 8 }, () => h('div', { class: 'bar' })))
+    ),
+    h('div', { class: 'current' },
+      h('div', { class: 'col gap-1', style: 'min-width: 0; flex: 1;' },
+        h('div', { class: 'job-name', style: 'font-size: 14px; color: var(--amber); letter-spacing: 0.1em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;' }, 'Waiting...'),
+        h('div', { class: 'eta' }, '--')
+      ),
+      h('div', { class: 'row gap-2', style: 'flex-shrink: 0;' }, h('button', { class: 'icon-btn' }, '⏸'), h('button', { class: 'icon-btn' }, '⏭'))
+    ),
+    h('div', { class: 'progress' }, h('div', { class: 'fill', style: 'width: 0%;' }))
+  );
+  left.append(queue);
+
+  const right = h('div', { class: 'col gap-3' });
+  // Quick Actions (unchanged but re-added to ensure context)
+  const actionsCard = h('div', { class: 'card card-pad', 'data-accent': 'cyan' },
+    h('div', { class: 'display', style: 'font-size: 13px; margin-bottom: 14px;' }, 'Quick Actions'),
+    h('div', { class: 'quick-actions' },
+      h('button', { class: 'quick-action', onclick: () => window.startBatch() }, h('div', { class: 'title', style: 'color: var(--green);' }, '▶ Start Batch'), h('div', { class: 'desc' }, 'Dispatch 24 renders to Spark')),
+      h('button', { class: 'quick-action', onclick: () => switchTab('characters') }, h('div', { class: 'title', style: 'color: var(--magenta);' }, '◉ Review Anchors'), h('div', { class: 'desc' }, 'Check character DNA integrity')),
+      h('button', { class: 'quick-action', onclick: () => switchTab('memory') }, h('div', { class: 'title', style: 'color: var(--purple);' }, '⎈ Run Memory Audit'), h('div', { class: 'desc' }, 'Consolidate episodic → semantic'))
+    )
+  );
+  right.append(actionsCard);
+
+  body.append(left, right);
+  root.append(body);
+  return root;
+};
+
+
+
+VIEWS.characters = async () => {
+  const root = h('div');
+  const char = CHARACTERS.find(c => c.id === activeCharId) || CHARACTERS[0];
+
+  // Selector (unchanged logic but using h for clean code)
+  const selector = h('div', { class: 'char-selector' });
+  CHARACTERS.forEach(c => {
+    selector.append(h('div', {
+      class: 'card char-pick interactive' + (c.id === char.id ? ' active' : ''),
+      'data-accent': c.accent,
+      onclick: () => { activeCharId = c.id; switchTab('characters', false); }
+    },
+      h('div', { class: 'portrait', html: portraitSVG(c, 56) }),
+      h('div', { class: 'col gap-1' }, h('div', { class: 'name' }, c.name), h('div', { class: 'role' }, c.role)),
+      h('div', { style: 'margin-left: auto;' }, h('span', { class: `dot d-${c.score >= 90 ? 'green' : 'amber'}` }))
+    ));
+  });
+  selector.append(h('div', { class: 'card char-pick interactive', style: 'border-style: dashed; justify-content: center;' },
+    h('div', { class: 'col gap-1', style: 'align-items: center; text-align: center;' }, h('div', { style: 'color: var(--text-secondary); font-size: 20px;' }, '+'), h('div', { class: 'label' }, 'Add Character'))
+  ));
+  root.append(selector);
+
+  // Hero (3.4 Anchor image with real GET)
+  const hero = h('div', { class: 'char-hero' });
+  const anchor = h('div', { class: 'card anchor-card', 'data-accent': char.accent });
+  
+  const imgEl = h('img', { 
+    id: `anchor-img-${char.id}`,
+    class: 'anchor-img-real',
+    style: 'width:100%; height:100%; object-fit:cover; border-radius:4px;',
+    src: `/static/img/placeholder-char.png` // fallback
+  });
+
+  // Attempt to load real image immediately
+  fetch(`/api/characters/anchor/${char.id}`)
+    .then(r => r.ok ? r.blob().then(blob => URL.createObjectURL(blob)) : Promise.reject())
+    .then(url => imgEl.src = url)
+    .catch(() => { imgEl.src = `/static/img/placeholder-char.png`; });
+
+  anchor.append(
+    imgEl,
+    h('div', { class: 'anchor-footer' },
+      h('div', { class: 'consistency' }, 
+        h('div', { class: 'row between' }, h('span', { class: 'label' }, 'Consistency Score'), h('span', { class: 'score' }, char.score + '%')),
+        h('div', { class: 'progress mono green' }, h('div', { class: 'fill', style: `width: ${char.score}%;` }))
+      ),
+      h('button', { class: 'btn btn-primary', onclick: () => window.renderCharacterAnchor(char) }, '↻ Regenerate Anchor')
+    )
+  );
+  hero.append(anchor);
+
+  // DNA Editor (kept from original)
+  const dna = h('div', { class: 'card dna-editor', 'data-accent': 'magenta' });
+  const dnaBody = h('div', { class: 'dna-body' });
+  const edit = h('div', { class: 'dna-pane' });
+  edit.append(h('h3', {}, 'Character DNA · markdown source'), h('div', { class: 'dna-md', html: `
+<span class="h"># ${char.name}</span>
+<span class="c"># ${char.role}</span>
+<span class="h">## HAIR</span><span class="k">description:</span> <span class="v">"${char.dna.hair}"</span>
+<span class="h">## EYES</span><span class="k">description:</span> <span class="v">"${char.dna.eyes}"</span>
+<span class="h">## BUILD</span><span class="k">description:</span> <span class="v">"${char.dna.build}"</span>
+<span class="h">## CLOTHING</span><span class="k">description:</span> <span class="v">"${char.dna.clothing}"</span>
+<span class="h">## SIGNATURE</span><span class="k">description:</span> <span class="v">"${char.dna.signature}"</span>
+<span class="h">## PALETTE</span><span class="k">hex:</span> <span class="v">${char.dna.palette.map(p=>`"${p}"`).join(', ')}</span>` }));
+
+  const preview = h('div', { class: 'dna-pane dna-preview' },
+    h('h3', {}, 'Rendered preview'),
+    h('h4', {}, 'Hair'), h('p', {}, char.dna.hair),
+    h('h4', {}, 'Eyes'), h('p', {}, char.dna.eyes),
+    h('h4', {}, 'Build'), h('p', {}, char.dna.build),
+    h('h4', {}, 'Clothing'), h('p', {}, char.dna.clothing),
+    h('h4', {}, 'Signature'), h('p', {}, char.dna.signature),
+    h('h4', {}, 'Palette'),
+    h('div', { class: 'row gap-2', style: 'margin-top: 4px;' }, ...char.dna.palette.map(c => h('div', { style: `width: 32px; height: 32px; border-radius: 4px; border: 1px solid var(--border); background: ${c};`, title: c })))
+  );
+  dnaBody.append(edit, preview);
+  dna.append(dnaBody, h('div', { class: 'row between', style: 'padding: 12px 18px; border-top: 1px solid var(--border);' }, h('div', { class: 'label' }, 'last saved 2m ago · 14 revisions'), h('div', { class: 'row gap-2' }, h('button', { class: 'btn btn-ghost' }, 'Export'), h('button', { class: 'btn btn-primary' }, '✓ Save DNA'))));
+  hero.append(dna);
+
+  root.append(hero, sectionHead('Variation Gallery', `${char.name} · 24 frames`), h('div', { class: 'filter-chips', style: 'margin-bottom: 12px;' }, h('button', { class: 'chip active' }, 'All · 24'), h('button', { class: 'chip' }, 'Pose · 8'), h('button', { class: 'chip' }, 'Lighting · 6'), h('button', { class: 'chip' }, 'Background · 4'), h('button', { class: 'chip' }, 'Best Only · 11')), h('div', { class: 'var-gallery' }));
+  // Gallery logic simplified for brevity in this reconstruction script
+  for (let i = 0; i < 12; i++) {
+    root.querySelector('.var-gallery').append(h('div', { class: 'thumb', html: frameSVG(`${char.name}_V${String(i+1).padStart(2,'0')}`, i, char.accent) + `<div class="meta-overlay"><div style="color: var(--${char.accent}); font-size: 10px;">V${String(i+1).padStart(2,'0')}</div><div class="muted">seed ${849271+i}</div></div>` }));
+  }
+
+  return root;
+};
+
+
+
+VIEWS.memory = async () => {
+  const root = h('div');
+  let stats = { events: 0, nodes: 0, density: 0 };
+  try {
+    const r = await fetch('/api/memory/stats');
+    if (r.ok) stats = await r.json();
+  } catch(e) { console.error("Memory stats failed", e); }
+
+  root.append(sectionHead('Cognitive Memory Audit', 'Semantic Density: High'));
+  root.append(h('div', { class: 'hero-grid' },
+    statCard({ label: 'Total Events', value: stats.events || 0, accent: 'cyan' }),
+    statCard({ label: 'Knowledge Nodes', value: stats.nodes || 0, accent: 'purple' }),
+    statCard({ label: 'Semantic Density', value: stats.density || 0, accent: 'magenta', suffix: '%' })
+  ));
+
+  // Graph Placeholder
+  root.append(h('div', { class: 'card card-pad', style: 'margin-top: 24px; height: 300px;' }, h('div', { class: 'label' }, 'Semantic Knowledge Graph (Loading...)')));
+  setTimeout(initMemoryGraph, 100);
+
+  return root;
+};
+
+
+
+
+
 VIEWS.home = () => {
   const root = h('div');
 
-  // ── Campaign Queue — full-width top bar ──
-  const queue = h('div', { class: 'card card-pad queue-panel queue-topbar', 'data-accent': 'amber' },
-    h('div', { class: 'row between' },
-      h('div', { class: 'col gap-1' },
-        h('div', { class: 'display', style: 'font-size: 13px;' }, 'Campaign Queue'),
-        h('div', { class: 'label' }, 'Spark · FLUX2 + LTX + WAN')
-      ),
-      h('div', { class: 'col gap-1', style: 'flex: 1; margin: 0 24px; min-width: 0;' },
-        h('div', { class: 'row between' },
-          h('div', { style: 'font-size: 14px; color: var(--amber); letter-spacing: 0.1em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;' }, 'VAR_014 · cockpit-cu · Elara'),
-          h('div', { class: 'eta' }, 'ETA 3m 12s · 8 of 24 complete')
-        ),
-        h('div', { class: 'progress', style: 'width: 100%; margin-top: 6px;' }, h('div', { class: 'fill', style: 'width: 33%;' }))
-      ),
-      h('div', { class: 'row gap-2', style: 'align-items: center;' },
-        h('div', { class: 'heartbeat' }, ...Array.from({ length: 8 }, () => h('div', { class: 'bar' }))),
-        h('button', { class: 'icon-btn', title: 'Pause' }, '⏸'),
-        h('button', { class: 'icon-btn', title: 'Skip' }, '⏭')
-      )
-    )
-  );
-  root.append(queue);
-
-  // ── Stat pills row ──
-  const hero = h('div', { class: 'hero-grid', style: 'margin-top: 12px;' },
+  // hero stats
+  const hero = h('div', { class: 'hero-grid' },
     statCard({ label: 'Total Events',   value: 176, accent: 'cyan'    }),
     statCard({ label: 'Insights',       value: 12,  accent: 'purple'  }),
     statCard({ label: 'Success Rate',   value: 94,  accent: 'green',   suffix: '%' }),
     statCard({ label: 'Queue Depth',    value: 22,  accent: 'amber',   sub: h('span', {}, 'of 24 staged') }),
-    statCard({ label: 'Active Models',  value: 4,   accent: 'magenta', sub: h('span', {}, 'FLUX2 · LTX · WAN · Z-Image') }),
-    statCard({ label: 'Styles',         value: 8,   accent: 'cyan',    suffix: '+' })
+    statCard({ label: 'Active Sessions',value: 1,   accent: 'magenta', sub: h('span', {}, 'node-02 · 45GB VRAM') }),
+    statCard({ label: 'Time Window',    value: 24,  accent: 'cyan',    suffix: 'h' })
   );
   root.append(hero);
 
-  // ── Main body: Hermes large left | sidebar right ──
+  // body: recent renders + queue + actions + heartbeat
   const body = h('div', { class: 'home-body' });
-  const left  = h('div', { class: 'col gap-3' });
-  const right = h('div', { class: 'col gap-3' });
 
-  // Hermes Live — event stream + interactive chat
-  const hermesCard = h('div', { class: 'card card-pad hermes-main', 'data-accent': 'purple' },
-    h('div', { class: 'row between', style: 'margin-bottom: 12px;' },
-      h('div', { class: 'display', style: 'font-size: 13px;' }, 'Hermes Live · Pipeline Events'),
-      h('span', { class: 'ticker' }, 'STREAMING · /ws/hermes')
-    ),
-    h('div', { id: 'hermes-panel', class: 'hermes-panel hermes-panel-tall' },
-      h('div', { class: 'label', style: 'opacity:0.5;' }, 'Waiting for events...')
-    )
-  );
-  left.append(hermesCard);
-  left.append(makeHermesChatPanel('live'));
+  // left column
+  const left = h('div', { class: 'col gap-3' });
 
-
-  // Recent renders strip
+  // recent renders card
   const recent = h('div', { class: 'card card-pad', 'data-accent': 'cyan' });
   recent.append(
     h('div', { class: 'row between', style: 'margin-bottom: 14px;' },
       h('div', { class: 'col gap-1' },
-        h('div', { class: 'display', style: 'font-size: 13px;' }, 'Recent Campaign Assets'),
-        h('div', { class: 'label' }, 'Last 8 · FLUX2 Dev + Z-Image Turbo')
+        h('div', { class: 'display', style: 'font-size: 13px;' }, 'Recent Renders'),
+        h('div', { class: 'label' }, 'Last 8 · session node-02')
       ),
       h('div', { class: 'row gap-2' },
         h('button', { class: 'chip active' }, 'All'),
-        h('button', { class: 'chip' }, 'Social'),
-        h('button', { class: 'chip' }, 'Products'),
-        h('button', { class: 'chip' }, 'Video')
+        h('button', { class: 'chip' }, 'Elara'),
+        h('button', { class: 'chip' }, 'Orin'),
+        h('button', { class: 'chip' }, 'Vex')
       )
     )
   );
@@ -288,8 +381,35 @@ VIEWS.home = () => {
   recent.append(strip);
   left.append(recent);
 
-  // Quick Actions
-  right.append(h('div', { class: 'card card-pad', 'data-accent': 'cyan' },
+  // queue panel
+  const queue = h('div', { class: 'card card-pad queue-panel', 'data-accent': 'amber' },
+    h('div', { class: 'row between' },
+      h('div', { class: 'col gap-1' },
+        h('div', { class: 'display', style: 'font-size: 13px;' }, 'Live Queue'),
+        h('div', { class: 'label' }, 'Spark · node-02 · FLUX2 NVFP4 Turbo')
+      ),
+      h('div', { class: 'heartbeat' },
+        ...Array.from({ length: 8 }, () => h('div', { class: 'bar' }))
+      )
+    ),
+    h('div', { class: 'current' },
+      h('div', { class: 'col gap-1', style: 'min-width: 0; flex: 1;' },
+        h('div', { style: 'font-size: 14px; color: var(--amber); letter-spacing: 0.1em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;' }, 'VAR_014 · cockpit-cu · Elara'),
+        h('div', { class: 'eta' }, 'ETA 3m 12s · 8 of 24 complete')
+      ),
+      h('div', { class: 'row gap-2', style: 'flex-shrink: 0;' },
+        h('button', { class: 'icon-btn', title: 'Pause' }, '⏸'),
+        h('button', { class: 'icon-btn', title: 'Skip' }, '⏭')
+      )
+    ),
+    h('div', { class: 'progress' }, h('div', { class: 'fill', style: 'width: 33%;' }))
+  );
+  left.append(queue);
+
+  // right column
+  const right = h('div', { class: 'col gap-3' });
+
+  const actionsCard = h('div', { class: 'card card-pad', 'data-accent': 'cyan' },
     h('div', { class: 'display', style: 'font-size: 13px; margin-bottom: 14px;' }, 'Quick Actions'),
     h('div', { class: 'quick-actions' },
       h('button', { class: 'quick-action', onclick: () => switchTab('renders') },
@@ -309,13 +429,14 @@ VIEWS.home = () => {
         h('div', { class: 'desc' }, 'Consolidate episodic → semantic')
       )
     )
-  ));
+  );
+  right.append(actionsCard);
 
-  // Live Feed
-  right.append(h('div', { class: 'card card-pad', 'data-accent': 'purple' },
+  // mini-timeline preview
+  const feed = h('div', { class: 'card card-pad', 'data-accent': 'purple' },
     h('div', { class: 'row between', style: 'margin-bottom: 10px;' },
       h('div', { class: 'display', style: 'font-size: 13px;' }, 'Live Feed'),
-      h('div', { class: 'ticker' }, 'STREAMING · 24ms')
+      h('div', { class: 'ticker' }, 'STREAMING · 24.ms')
     ),
     h('div', { class: 'timeline' },
       ...TIMELINE.slice(0, 5).map(e => h('div', { class: 'tl-event' },
@@ -326,14 +447,15 @@ VIEWS.home = () => {
         )
       ))
     )
-  ));
+  );
+  right.append(feed);
 
   body.append(left, right);
   root.append(body);
   return root;
 };
 
-/* ---------- CHARACTERS ---------- */
+
 VIEWS.characters = () => {
   const root = h('div');
   const char = CHARACTERS.find(c => c.id === activeCharId) || CHARACTERS[0];
@@ -357,33 +479,20 @@ VIEWS.characters = () => {
     ));
   });
   // add new
-  const addCard = h('div', { class: 'card char-pick interactive', style: 'border-style: dashed; justify-content: center;' },
+  selector.append(h('div', { class: 'card char-pick interactive', style: 'border-style: dashed; justify-content: center;' },
     h('div', { class: 'col gap-1', style: 'align-items: center; text-align: center;' },
       h('div', { style: 'color: var(--text-secondary); font-size: 20px;' }, '+'),
       h('div', { class: 'label' }, 'Add Character')
     )
-  );
-  addCard.addEventListener('click', () => window.openAddCharacterModal());
-  selector.append(addCard);
+  ));
   root.append(selector);
 
   // hero: anchor + DNA editor
   const hero = h('div', { class: 'char-hero' });
 
   const anchor = h('div', { class: 'card anchor-card', 'data-accent': char.accent });
-  const anchorImgDiv = h('div', { class: 'anchor-img' });
-  const anchorSvg = h('div', { id: `anchor-svg-${char.id}`, html: portraitSVG(char, 520) });
-  const anchorImg = document.createElement('img');
-  anchorImg.id = `anchor-img-${char.id}`;
-  anchorImg.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:4px;display:none;';
-  anchorImg.onerror = () => { anchorImg.style.display = 'none'; anchorSvg.style.display = ''; };
-  anchorImg.onload = () => { anchorImg.style.display = ''; anchorSvg.style.display = 'none'; };
-  anchorImg.src = `/api/characters/anchor/${char.id}`;
-  anchorImgDiv.append(anchorImg, anchorSvg);
-  const regenBtn = h('button', { class: 'btn btn-primary', id: `regen-btn-${char.id}` }, '↻ Render on Spark');
-  regenBtn.addEventListener('click', () => window.renderCharacterAnchor(char));
   anchor.append(
-    anchorImgDiv,
+    h('div', { class: 'anchor-img', html: portraitSVG(char, 520) }),
     h('div', { class: 'anchor-footer' },
       h('div', { class: 'consistency' },
         h('div', { class: 'row between' },
@@ -392,8 +501,7 @@ VIEWS.characters = () => {
         ),
         h('div', { class: 'progress mono green' }, h('div', { class: 'fill', style: `width: ${char.score}%;` }))
       ),
-      regenBtn,
-      h('span', { id: `regen-status-${char.id}`, style: 'font-size:11px;color:var(--text-dim);margin-left:8px;' }, '')
+      h('button', { class: 'btn btn-primary' }, '↻ Regenerate Anchor')
     )
   );
   hero.append(anchor);
@@ -451,7 +559,6 @@ VIEWS.characters = () => {
   hero.append(dna);
   root.append(hero);
 
-  root.append(makeHermesChatPanel('character'));
   // variation gallery
   root.append(h('div', { style: 'height: 16px;' }));
   root.append(sectionHead('Variation Gallery', `${char.name} · 24 frames`));
@@ -475,12 +582,10 @@ VIEWS.characters = () => {
   }
   root.append(gal);
 
-  root.append(h('div', { style: 'height: 16px;' }));
-
   return root;
 };
 
-/* ---------- SCRIPT ---------- */
+
 VIEWS.script = () => {
   const root = h('div');
 
@@ -504,7 +609,6 @@ VIEWS.script = () => {
     )
   );
   root.append(toolbar);
-  root.append(makeHermesChatPanel('script'));
 
   const card = h('div', { class: 'card', 'data-accent': 'cyan' });
   const table = h('table', { class: 'script-table' });
@@ -578,13 +682,10 @@ VIEWS.script = () => {
   table.append(tbody);
   card.append(table);
   root.append(card);
-
-  root.append(h('div', { style: 'height: 16px;' }));
-
   return root;
 };
 
-/* ---------- PRODUCTS ---------- */
+
 VIEWS.products = () => {
   const root = h('div');
   root.append(sectionHead('Product Anchor · Emberdrive MKII', 'variant pipeline · 0 drift'));
@@ -640,7 +741,6 @@ VIEWS.products = () => {
   );
   hero.append(dna);
   root.append(hero);
-  root.append(makeHermesChatPanel('product'));
 
   root.append(h('div', { style: 'height: 16px;' }));
   root.append(sectionHead('Generation Banks', 'tune each axis independently'));
@@ -701,8 +801,6 @@ VIEWS.products = () => {
   }
   root.append(gal);
 
-  root.append(h('div', { style: 'height: 16px;' }));
-
   return root;
 };
 
@@ -714,10 +812,9 @@ VIEWS.renders = () => {
     h('div', { class: 'field' },
       h('span', { class: 'label' }, 'Workflow'),
       h('select', { class: 'select' },
-        h('option', {}, 'FLUX2 Dev NVFP4 — Quality'),
-        h('option', {}, 'Z-Image Turbo — Speed'),
-        h('option', {}, 'LTX 2.3 NVFP4 — Video'),
-        h('option', {}, 'WAN 2.2 NVFP4 — Animation')
+        h('option', {}, 'FLUX2 NVFP4 Turbo'),
+        h('option', {}, 'FLUX.1 Dev'),
+        h('option', {}, 'Z-Image Turbo')
       )
     ),
     h('div', { class: 'field' },
@@ -738,7 +835,7 @@ VIEWS.renders = () => {
         h('select', { class: 'select', style: 'flex: 1;' },
           h('option', {}, 'ELARA · pilot anchor'),
           h('option', {}, 'ORIN · mechanist'),
-          h('option', {}, 'VEX-09 · companion')
+          h('option', {}, 'VEX-09 · drone')
         )
       )
     ),
@@ -753,11 +850,50 @@ VIEWS.renders = () => {
 
   const layout = h('div', { class: 'render-layout' });
 
-  // Spark Monitor Widget sidebar (live)
-  const monitor = h('div', { id: 'spark-widget', class: 'card card-pad', 'data-accent': 'amber' });
+  // Queue monitor sidebar
+  const monitor = h('div', { class: 'card card-pad queue-monitor', 'data-accent': 'amber' },
+    h('div', { class: 'row between' },
+      h('div', { class: 'display', style: 'font-size: 12px;' }, 'Queue Monitor'),
+      h('span', { class: 'spark-status' }, h('span', { class: 'dot d-green' }), 'SPARK ONLINE')
+    ),
+    h('div', { class: 'row-stats' },
+      h('div', { class: 'stat-mini' },
+        h('div', { class: 'lbl' }, 'Queued'), h('div', { class: 'val' }, '22')),
+      h('div', { class: 'stat-mini' },
+        h('div', { class: 'lbl' }, 'Running'), h('div', { class: 'val', style: 'color: var(--amber);' }, '2')),
+      h('div', { class: 'stat-mini' },
+        h('div', { class: 'lbl' }, 'Done'), h('div', { class: 'val', style: 'color: var(--green);' }, '8')),
+      h('div', { class: 'stat-mini' },
+        h('div', { class: 'lbl' }, 'VRAM'), h('div', { class: 'val' }, '45GB'))
+    ),
+    h('div', { style: 'margin-top: 14px;' },
+      h('div', { class: 'row between', style: 'margin-bottom: 6px;' },
+        h('span', { class: 'label' }, 'Progress'),
+        h('span', { class: 'label' }, '8 / 24')
+      ),
+      h('div', { class: 'progress' }, h('div', { class: 'fill', style: 'width: 33%;' })),
+      h('div', { style: 'margin-top: 8px; font-size: 11px; color: var(--text-secondary);' }, 'ETA  ~12m 04s remaining'),
+      h('div', { style: 'margin-top: 16px;' },
+        h('span', { class: 'label' }, 'Current'),
+        h('div', { style: 'margin-top: 6px; font-size: 13px; color: var(--amber);' }, 'VAR_014 · cockpit-cu · Elara')
+      )
+    ),
+    h('div', { class: 'divider' }),
+    h('div', { class: 'col gap-2' },
+      h('span', { class: 'label' }, 'Cluster nodes'),
+      h('div', { class: 'row between', style: 'font-size: 11px;' },
+        h('span', {}, h('span', { class: 'dot d-green', style: 'margin-right: 8px;' }), 'node-02 · primary'),
+        h('span', { class: 'muted' }, '45GB')
+      ),
+      h('div', { class: 'row between', style: 'font-size: 11px;' },
+        h('span', {}, h('span', { class: 'dot d-dim', style: 'margin-right: 8px;' }), 'node-03 · standby'),
+        h('span', { class: 'muted' }, 'offline')
+      )
+    )
+  );
   layout.append(monitor);
 
-  // render gallery (real thumbnails)
+  // render grid
   const grid = h('div', { class: 'render-grid' });
   const accents = ['cyan','magenta','amber','green'];
   // 8 complete
@@ -827,56 +963,33 @@ VIEWS.memory = () => {
   );
   layout.append(graph);
 
-  // side: insights + timeline + actions
+  // side: insights + timeline
   const side = h('div', { class: 'mem-side' });
-
-  // Actions card
-  const actionsCard = h('div', { class: 'card card-pad', 'data-accent': 'cyan' },
-    h('div', { class: 'display', style: 'font-size: 12px; margin-bottom: 10px;' }, 'Actions'),
-    h('button', {
-      class: 'btn btn-primary consolidate-btn',
-      id: 'consolidate-btn',
-      onclick: async () => {
-        const btn = $('#consolidate-btn');
-        btn.textContent = 'Consolidating...';
-        btn.disabled = true;
-        try {
-          const r = await fetch('/api/memory/consolidate', { method: 'POST' });
-          const data = await r.json();
-          btn.textContent = `${data.new_insights} insights born ✓`;
-          setTimeout(() => { btn.textContent = 'Consolidate Now'; btn.disabled = false; }, 3000);
-          // Refresh insights if on memory tab
-          if (activeTab === 'memory') switchTab('memory', false);
-        } catch (e) {
-          btn.textContent = 'Failed';
-          setTimeout(() => { btn.textContent = 'Consolidate Now'; btn.disabled = false; }, 3000);
-        }
-      }
-    }, 'Consolidate Now'),
-    h('div', { class: 'label', style: 'margin-top: 8px; opacity: 0.5;' }, 'Trigger episodic → semantic dream')
-  );
-  side.append(actionsCard);
-
-  // Insights card (live)
   const insightsCard = h('div', { class: 'card card-pad', 'data-accent': 'purple' },
     h('div', { class: 'row between', style: 'margin-bottom: 12px;' },
-      h('div', { class: 'display', style: 'font-size: 12px;' }, 'What Hermes Has Learned'),
-      h('span', { class: 'badge b-purple', id: 'insight-count' }, '—')
+      h('div', { class: 'display', style: 'font-size: 12px;' }, 'Semantic Insights'),
+      h('span', { class: 'badge b-purple' }, INSIGHTS.length + ' RULES')
     ),
-    h('div', { class: 'insights', id: 'insights-list' },
-      h('div', { class: 'label', style: 'opacity:0.5;' }, 'Loading...')
+    h('div', { class: 'insights' },
+      ...INSIGHTS.map(i => h('div', { class: 'insight' },
+        h('div', { class: 'rule' }, i.rule),
+        h('div', { class: 'confidence-bar' }, h('div', { class: 'fill', style: `width: ${i.confidence * 100}%;` })),
+        h('div', { class: 'meta' },
+          h('span', {}, `conf ${Math.round(i.confidence * 100)}%  ·  ${i.confirms} confirms`),
+          h('span', {}, i.age + ' ago')
+        )
+      ))
     )
   );
   side.append(insightsCard);
 
-  // Timeline card (live)
   const tlCard = h('div', { class: 'card card-pad', 'data-accent': 'cyan' },
     h('div', { class: 'row between', style: 'margin-bottom: 10px;' },
       h('div', { class: 'display', style: 'font-size: 12px;' }, 'Timeline'),
       h('span', { class: 'label' }, 'last 8')
     ),
-    h('div', { class: 'timeline', id: 'timeline-list' },
-      ...TIMELINE.slice(0, 8).map(e => h('div', { class: 'tl-event' },
+    h('div', { class: 'timeline' },
+      ...TIMELINE.map(e => h('div', { class: 'tl-event' },
         h('div', { class: 'tl-time' }, e.t),
         h('div', { class: 'tl-body' },
           h('div', { class: 'tl-type' }, e.type),
@@ -892,498 +1005,199 @@ VIEWS.memory = () => {
   return root;
 };
 
-/* ---------- MODELS ---------- */
-VIEWS.models = () => {
-  const root = h('div');
-  root.append(sectionHead('Models', 'Local vs API Backend', { style: 'margin-top: 0;' }));
+/* ---------- SETTINGS ---------- */
+VIEWS.settings = async () => {
+  const root = h('div', { class: 'col gap-3' });
 
-  const grid = h('div', { class: 'settings-grid' });
-
-  // --- Toggle Switch ---
-  const toggleCard = h('div', { class: 'card', 'data-accent': 'cyan', style: 'grid-column: 1 / -1;' });
-  const toggleRow = h('div', { class: 'model-toggle-row' });
-
-  const localLabel = h('span', { class: 'model-toggle-label' }, 'LOCAL');
-  const apiLabel = h('span', { class: 'model-toggle-label' }, 'API');
-
-  const switchTrack = h('div', { class: 'model-toggle-track' });
-  const switchThumb = h('div', { class: 'model-toggle-thumb' });
-  switchTrack.append(switchThumb);
-
-  let currentMode = 'api'; // default until fetch
-
-  async function fetchStatus() {
-    try {
-      const r = await fetch('/api/models/status');
-      const data = await r.json();
-      currentMode = data.mode;
-      updateToggle(data.mode);
-      updateLocalCard(data.local);
-      updateApiCard(data.api);
-    } catch (e) {
-      console.warn('Models status fetch failed', e);
-    }
-  }
-
-  function updateToggle(mode) {
-    switchThumb.style.left = mode === 'local' ? '4px' : 'calc(100% - 28px)';
-    localLabel.classList.toggle('active', mode === 'local');
-    apiLabel.classList.toggle('active', mode === 'api');
-  }
-
-  switchTrack.addEventListener('click', async () => {
-    const newMode = currentMode === 'api' ? 'local' : 'api';
-    try {
-      const r = await fetch('/api/models/mode', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: newMode })
-      });
-      if (r.ok) {
-        currentMode = newMode;
-        updateToggle(newMode);
-        fetchStatus();
-      }
-    } catch (e) {
-      alert('Failed to switch mode: ' + e.message);
-    }
-  });
-
-  toggleRow.append(localLabel, switchTrack, apiLabel);
-  toggleCard.append(
-    h('div', { class: 'display', style: 'font-size: 11px; margin-bottom: 12px; opacity: 0.7;' }, 'BACKEND MODE'),
-    toggleRow,
-    h('div', { class: 'label', style: 'margin-top: 12px; opacity: 0.5;' },
-      'Toggle between LM Studio (local GPU) and Kimi/NIM (cloud API). Hermes will route all inference through the selected backend.'
-    )
-  );
-  grid.append(toggleCard);
-
-  // --- Local Card ---
-  function updateLocalCard(info) { /* stub — LM Studio config is in the settings grid below */ }
-  async function testLocal() { await fetch('/api/models/test-local'); }
-
-  const apiStatus = h('div', { class: 'model-status' });
-  function updateApiCard(info) {
-    apiStatus.innerHTML = '';
-    apiStatus.append(
-      h('span', { class: 'dot d-' + (info.available ? 'green' : 'red') }),
-      h('span', { class: 'label' }, info.available ? 'Ready' : 'Not configured'),
-      h('span', { class: 'label', style: 'opacity: 0.5; margin-left: auto;' }, info.endpoint || '')
-    );
-  }
-  async function testApi() { await fetch('/api/models/test-api'); }
-
-  root.append(grid);
-
-  // Fetch status on mount
-  setTimeout(fetchStatus, 50);
-
-  return root;
-};
-
-/* ---------- SETTINGS (merged with Models) ---------- */
-VIEWS.settings = () => {
-  const root = h('div');
-  root.append(sectionHead('Settings', 'Models, Configuration & System'));
-
-  // ── Models section (merged from Models tab) ──
-  const modelsWrap = h('div', { style: 'margin-bottom: 16px;' });
-  modelsWrap.append(VIEWS.models());
-  root.append(modelsWrap);
-  const grid = h('div', { class: 'settings-grid' });
-
-  const statusBar = h('div', { class: 'label', style: 'margin-bottom: 12px; opacity: 0.6; font-size: 11px;' }, 'Loading configuration...');
-  root.append(statusBar);
-
-  // Helper to create a saveable input row
-  function makeRow(label, key, opts = {}) {
-    const input = h('input', {
-      class: 'input',
-      type: opts.type || 'text',
-      value: opts.value || '',
-      'data-key': key,
-      onblur: () => saveKey(key, input.value),
-    });
-    const row = h('div', { class: 'setting-row' },
-      h('span', { class: 'lbl' }, label),
-      input,
-      h('button', {
-        class: 'btn btn-sm',
-        onclick: () => { saveKey(key, input.value); }
-      }, 'Save')
-    );
-    row._input = input;
-    return row;
-  }
-
-  async function saveKey(key, value) {
-    statusBar.textContent = 'Saving ' + key + '...';
-    try {
-      const r = await fetch('/api/config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ updates: { [key]: value } })
-      });
-      if (r.ok) {
-        statusBar.textContent = key + ' saved ✓';
-        setTimeout(() => { statusBar.textContent = 'Configuration auto-saved to data/config.json'; }, 2000);
-      } else {
-        statusBar.textContent = 'Save failed for ' + key;
-      }
-    } catch (e) {
-      statusBar.textContent = 'Network error: ' + e.message;
-    }
-  }
-
-  // --- API Keys Section ---
-  const apiCard = h('div', { class: 'card setting-group', 'data-accent': 'cyan' });
-  const nimStatus = h('div', { class: 'model-status' });
-  const apiTestBtn = h('button', { class: 'btn btn-sm', style: 'color: var(--green); border-color: var(--green); margin-top: 4px;', onclick: async () => {
-    apiTestBtn.textContent = 'Testing...';
-    try {
-      const r = await fetch('/api/models/test-api');
-      const d = await r.json();
-      nimStatus.innerHTML = '';
-      nimStatus.append(
-        h('span', { class: 'dot d-' + (d.healthy ? 'green' : 'red') }),
-        h('span', { class: 'label' }, d.healthy ? 'Ready' : 'Unreachable'),
-        h('span', { class: 'label', style: 'opacity:0.5; margin-left:auto;' }, d.api_key_configured ? 'Key ✓' : 'No key')
-      );
-    } catch(e) { nimStatus.textContent = '✗ error'; }
-    apiTestBtn.textContent = 'Test Connection';
-  }}, 'Test Connection');
-  apiCard.append(
-    h('div', { class: 'display', style: 'font-size: 12px; margin-bottom: 4px;' }, 'Kimi / NVIDIA NIM'),
-    nimStatus,
-    makeRow('API Key', 'KIMI_API_KEY', { type: 'password' }),
-    makeRow('NIM Endpoint', 'NIM_ENDPOINT'),
-    makeRow('Director Model (K2.6)', 'KIMI_INSTRUCT_MODEL'),
-    makeRow('Thinking Model', 'KIMI_THINKING_MODEL'),
-    makeRow('Visual Model (VL)', 'KIMI_VISUAL_MODEL'),
-    apiTestBtn
-  );
-  grid.append(apiCard);
-
-  function makeTestBtn(label, onClick) {
-    const btn = h('button', { class: 'btn btn-sm', style: 'color: var(--green); border-color: var(--green);', onclick: onClick }, label);
-    return btn;
-  }
-
-  function addComfyTestBtn(row) {
-    const input = row._input;
-    const status = h('span', { class: 'label', style: 'margin-left: 8px; min-width: 80px;' }, '');
-    const btn = makeTestBtn('Test', async () => {
-      const url = input.value.trim();
-      if (!url) return;
-      status.textContent = 'testing…';
-      try {
-        const r = await fetch('/api/spark/test?url=' + encodeURIComponent(url));
-        if (r.ok) {
-          status.style.color = 'var(--green)';
-          status.textContent = '✓ online';
-        } else {
-          status.style.color = 'var(--red, #ff4444)';
-          status.textContent = '✗ offline';
-        }
-      } catch { status.style.color = 'var(--red, #ff4444)'; status.textContent = '✗ error'; }
-    });
-    row.append(btn, status);
-  }
-
-  // --- ComfyUI Hosts Section ---
-  const comfyCard = h('div', { class: 'card setting-group', 'data-accent': 'green' });
-  comfyCard.append(h('div', { class: 'display', style: 'font-size: 12px; margin-bottom: 4px;' }, 'ComfyUI Hosts'));
-  const primaryRow = makeRow('Primary Host', 'COMFYUI_PRIMARY');
-  const secondaryRow = makeRow('Secondary Host', 'COMFYUI_SECONDARY');
-  addComfyTestBtn(primaryRow);
-  addComfyTestBtn(secondaryRow);
-  comfyCard.append(primaryRow, secondaryRow);
-
-  // Extra servers added dynamically
-  const extraServers = h('div', { id: 'extra-comfy-servers' });
-  comfyCard.append(extraServers);
-
-  let extraCount = 3;
-  const addServerBtn = h('button', {
-    class: 'btn btn-ghost',
-    style: 'margin-top: 10px; color: var(--green); border-color: var(--green);',
-    onclick: () => {
-      const key = `COMFYUI_EXTRA_${extraCount}`;
-      const row = makeRow(`Server ${extraCount}`, key);
-      addComfyTestBtn(row);
-      // Add remove button
-      const removeBtn = h('button', {
-        class: 'icon-btn',
-        title: 'Remove',
-        style: 'color: var(--red, #ff4444); margin-left: 6px;',
-        onclick: () => { row.remove(); }
-      }, '✕');
-      row.append(removeBtn);
-      extraServers.append(row);
-      extraCount++;
-    }
-  }, '+ Add Server');
-  comfyCard.append(addServerBtn);
-  grid.append(comfyCard);
-
-  // --- LM Studio Section (col 1, row 2) ---
-  const sparkCard = h('div', { class: 'card setting-group', style: 'border-color: #FFB300; box-shadow: 0 0 18px 2px rgba(255,179,0,0.25);' });
-  const sparkStatus = h('div', { style: 'display:flex;align-items:center;gap:10px;margin-bottom:10px;' });
-  const sparkDot = h('span', { style: 'width:10px;height:10px;border-radius:50%;background:#555;display:inline-block;flex-shrink:0;' });
-  const sparkLabel = h('span', { style: 'font-size:12px;color:var(--text-dim);' }, 'Not checked');
-  const sparkTestBtn = h('button', {
-    class: 'btn btn-sm',
-    style: 'margin-left:auto;color:#FFB300;border-color:#FFB300;'
-  }, 'Test Spark');
-  const sparkMetrics = h('div', { style: 'display:none;margin-top:10px;display:flex;flex-direction:column;gap:6px;' });
-
-  function sparkMeter(label, usedGb, totalGb, pct, color) {
-    return h('div', {},
-      h('div', { style: 'display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px;' },
-        h('span', { style: 'color:var(--text-dim);' }, label),
-        h('span', { style: `color:${color};` }, `${usedGb} / ${totalGb} GB · ${pct}%`)
+  // Hermes Chat Panel
+  const hermesPanel = h('div', { class: 'card card-pad', 'data-accent': 'purple' },
+    h('div', { class: 'row between', style: 'margin-bottom: 14px;' },
+      h('div', { class: 'col gap-1' },
+        h('div', { class: 'display', style: 'font-size: 13px;' }, 'Hermes Command Center'),
+        h('div', { class: 'label' }, 'Direct Neural Link · Profile: <span id="active-hermes-profile">live</span>')
       ),
-      h('div', { style: 'height:4px;background:var(--border);border-radius:2px;overflow:hidden;' },
-        h('div', { style: `width:${pct}%;height:100%;background:${color};border-radius:2px;transition:width 0.4s;` })
+      h('div', { class: 'row gap-2' },
+          h('select', { id: 'hermes-profile-sel', style: 'background: transparent; color: inherit; border: 1px solid var(--border); padding: 2px 4px; font-size: 11px;' },
+              ['live', 'character', 'script', 'product'].map(p => h('option', { value: p, text: p.charAt(0).toUpperCase() + p.slice(1) }))
+          )
       )
-    );
-  }
-
-  sparkTestBtn.addEventListener('click', async () => {
-    sparkLabel.textContent = 'Connecting...';
-    sparkDot.style.background = '#FFB300';
-    sparkMetrics.innerHTML = '';
-    try {
-      const r = await fetch('/api/spark/stats');
-      if (!r.ok) throw new Error('offline');
-      const d = await r.json();
-      sparkDot.style.background = '#00FF41';
-      sparkLabel.textContent = `Online · ${d.gpu_name.split(' ').slice(0,3).join(' ')} · ComfyUI ${d.comfyui_version}`;
-      sparkMetrics.style.display = 'flex';
-      sparkMetrics.append(
-        sparkMeter('VRAM', d.vram_used_gb, d.vram_total_gb, d.vram_pct, '#FFB300'),
-        sparkMeter('RAM',  d.ram_used_gb,  d.ram_total_gb,  d.ram_pct,  '#00FFFF')
-      );
-    } catch(e) {
-      sparkDot.style.background = '#ff4444';
-      sparkLabel.textContent = '✗ Unreachable';
-    }
-  });
-  sparkStatus.append(sparkDot, sparkLabel, sparkTestBtn);
-  sparkCard.append(
-    h('div', { style: 'display:flex;align-items:center;gap:8px;margin-bottom:8px;' },
-      h('div', { class: 'display', style: 'font-size:12px;color:#FFB300;letter-spacing:0.1em;' }, '⚡ SPARK · DGX GPU CLUSTER'),
     ),
-    sparkStatus,
-    sparkMetrics,
-    makeRow('Primary Host', 'COMFYUI_PRIMARY'),
-    makeRow('Secondary Host', 'COMFYUI_SECONDARY'),
-    makeRow('Workflow File', 'COMFYUI_WORKFLOW'),
-  );
-  // --- LM Studio Section ---
-  const lmCard = h('div', { class: 'card setting-group', 'data-accent': 'purple' });
-  lmCard.append(h('div', { class: 'display', style: 'font-size: 12px; margin-bottom: 4px;' }, 'LM Studio (Local Inference)'));
-  const lmHostRow = makeRow('LM Studio Host', 'LMSTUDIO_HOST');
-  const lmEmbedRow = makeRow('Embedding Model', 'LMSTUDIO_EMBED_MODEL');
-  const lmChatRow = makeRow('Chat Model', 'LMSTUDIO_CHAT_MODEL');
-
-  // LM Studio test btn — also auto-fills loaded models
-  const lmStatus = h('span', { class: 'label', style: 'margin-left: 8px; min-width: 120px;' }, '');
-  const lmTestBtn = makeTestBtn('Test & Detect Models', async () => {
-    lmStatus.textContent = 'testing…';
-    lmStatus.style.color = '';
-    try {
-      const r = await fetch('/api/models/test-local');
-      if (r.ok) {
-        const d = await r.json();
-        lmStatus.style.color = 'var(--green)';
-        lmStatus.textContent = `✓ ${(d.models || []).length} model(s) loaded`;
-        // Auto-fill chat and embed fields from detected models
-        const models = d.models || [];
-        const chatModel = models.find(m => !m.toLowerCase().includes('embed') && !m.toLowerCase().includes('nomic')) || models[0];
-        const embedModel = models.find(m => m.toLowerCase().includes('embed') || m.toLowerCase().includes('nomic'));
-        if (chatModel && !lmChatRow._input.value) {
-          lmChatRow._input.value = chatModel;
-          saveKey('LMSTUDIO_CHAT_MODEL', chatModel);
-        }
-        if (embedModel && !lmEmbedRow._input.value) {
-          lmEmbedRow._input.value = embedModel;
-          saveKey('LMSTUDIO_EMBED_MODEL', embedModel);
-        }
-      } else {
-        lmStatus.style.color = 'var(--red, #ff4444)';
-        lmStatus.textContent = '✗ not reachable';
-      }
-    } catch { lmStatus.style.color = 'var(--red, #ff4444)'; lmStatus.textContent = '✗ error'; }
-  });
-  lmHostRow.append(lmTestBtn, lmStatus);
-
-  lmCard.append(
-    lmHostRow,
-    lmEmbedRow,
-    lmChatRow,
-    h('div', { class: 'label', style: 'margin-top: 8px; opacity: 0.5;' },
-      'Point at any machine running LM Studio. Examples: http://localhost:1234 | http://192.168.1.50:1234 | http://localhost:1234'
+    h('div', { class: 'chat-container', style: 'height: 300px; overflow-y: auto; margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px;' },
+        h('div', { id: 'hermes-chat-history', class: 'chat-history', style: 'display:flex; flex-direction:column; gap:8px;' }, h('div', { class: 'muted', style: 'font-size: 12px; text-align: center;' }, 'System Ready. Awaiting command...'))
+    ),
+    h('div', { class: 'row gap-2' },
+        h('input', { id: 'hermes-chat-input', type: 'text', placeholder: 'Ask Hermes about configuration...', style: 'flex: 1; background: var(--bg-secondary); border: 1px solid var(--border); color: inherit; padding: 8px 12px; border-radius: 4px;' }),
+        h('button', { class: 'btn btn-primary', id: 'hermes-send-btn' }, 'Send')
     )
   );
-  grid.append(lmCard);
-  grid.append(sparkCard);
 
-  // --- Export Brain Section ---
-  const exportCard = h('div', { class: 'card setting-group', 'data-accent': 'purple' });
-  exportCard.append(
-    h('div', { class: 'display', style: 'font-size: 12px; margin-bottom: 8px;' }, 'Hermes Brain'),
-    h('div', { class: 'setting-row' },
-      h('span', { class: 'lbl' }, 'Export'),
-      h('button', {
-        class: 'btn',
-        onclick: async () => {
+  // Initialize Hermes Chat logic
+  setTimeout(() => {
+      const input = $('#hermes-chat-input');
+      const btn = $('#hermes-send-btn');
+      const history = $('#hermes-chat-history');
+      const sel = $('#hermes-profile-sel');
+
+      const appendMsg = (role, text) => {
+          const msg = h('div', { class: `chat-msg ${role}`, style: 'padding: 6px 10px; border-radius: 4px; max-width: 85%; font-size: 13px;' }, 
+              h('div', { class: 'msg-text' }, text)
+          );
+          if (role === 'user') msg.style.alignSelf = 'flex-end'; else msg.style.alignSelf = 'flex-start';
+          if (role === 'user') msg.style.backgroundColor = 'var(--bg-secondary)';
+          else msg.style.backgroundColor = 'rgba(150, 0, 255, 0.1)';
+
+          history.append(msg);
+          history.scrollTop = history.scrollHeight;
+      };
+
+      const send = async () => {
+          const val = input.value.trim();
+          if (!val) return;
+          const profile = sel.value;
+          $('#active-hermes-profile').textContent = profile;
+          appendMsg('user', val);
+          input.value = '';
+
           try {
-            const r = await fetch('/api/hermes/export');
-            const data = await r.json();
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `hermes_brain_${data.exported_at.replace(/[:T]/g, '-')}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-            statusBar.textContent = 'Brain exported ✓';
+              const r = await fetch('/api/hermes/profile/chat', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ message: val, profile })
+              });
+              if (!r.ok) throw new Error(await r.text());
+              const data = await r.json();
+              appendMsg('hermes', data.response);
           } catch (e) {
-            statusBar.textContent = 'Export failed: ' + e.message;
+              appendMsg('error', `Error: ${e.message}`);
           }
-        }
-      }, '⎘ Export Brain')
-    ),
-    h('div', { class: 'label', style: 'margin-top: 8px; opacity: 0.5;' },
-      'Downloads semantic insights + skill registry + episodic summary as JSON.'
-    )
-  );
-  grid.append(exportCard);
+      };
 
-  // --- Restart Section ---
-  const restartCard = h('div', { class: 'card setting-group', 'data-accent': 'red' });
-  restartCard.append(
-    h('div', { class: 'display', style: 'font-size: 12px; margin-bottom: 8px;' }, 'System'),
-    h('div', { class: 'setting-row' },
-      h('span', { class: 'lbl' }, 'Dashboard'),
-      h('button', {
-        class: 'btn btn-danger',
-        onclick: async () => {
-          if (!confirm('Restart the dashboard server? You will need to refresh the page after.')) return;
-          try {
-            const r = await fetch('/api/restart', { method: 'POST' });
-            const data = await r.json();
-            statusBar.textContent = data.message;
-          } catch (e) {
-            statusBar.textContent = 'Restart triggered. Refresh page in 3 seconds.';
-          }
-        }
-      }, 'Restart Server')
-    ),
-    h('div', { class: 'label', style: 'margin-top: 8px; opacity: 0.5;' },
-      'Config is saved to data/config.json and overrides .env. Restart applies changes.'
-    )
-  );
-  grid.append(restartCard);
-
-  root.append(grid);
-
-  // Load real config on mount
-  setTimeout(async () => {
-    try {
-      const r = await fetch('/api/config');
-      const cfg = await r.json();
-      // Populate all inputs by data-key
-      $$('[data-key]').forEach(el => {
-        const key = el.dataset.key;
-        if (cfg[key] !== undefined) el.value = cfg[key];
-      });
-      statusBar.textContent = 'Configuration loaded from .env + data/config.json';
-    } catch (e) {
-      statusBar.textContent = 'Failed to load configuration';
-    }
+      btn.onclick = send;
+      input.onkeydown = (e) => { if (e.key === 'Enter') send(); };
   }, 50);
 
+  // Single column of cards - no sidebar sub-nav
+  const container = h('div', { class: 'settings-container' });
+  
+  // 1. API Keys Card
+  container.append(h('div', { class: 'card setting-group', 'data-accent': 'cyan' },
+    h('div', { class: 'display', style: 'font-size: 12px; margin-bottom: 4px;' }, 'API Keys'),
+    h('div', { class: 'setting-row' },
+      h('span', { class: 'lbl' }, 'Kimi API'),
+      h('input', { class: 'input', type: 'password', value: 'sk_k25_••••••••••••••••••••' }),
+      h('button', { class: 'btn btn-sm' }, 'Show')
+    ),
+    h('div', { class: 'setting-row' },
+      h('span', { class: 'lbl' }, 'NVIDIA NIM'),
+      h('input', { class: 'input', value: 'https://integrate.api.nvidia.com/v1' }),
+      h('button', { class: 'btn btn-sm' }, 'Test')
+    ),
+    h('div', { class: 'setting-row' },
+      h('span', { class: 'lbl' }, 'Anthropic'),
+      h('input', { class: 'input', type: 'password', value: 'sk_ant_••••••••••••' }),
+      h('button', { class: 'btn btn-sm' }, 'Show')
+    )
+  ));
+
+  // 2. ComfyUI Hosts Card
+  container.append(h('div', { class: 'card setting-group', 'data-accent': 'green' },
+    h('div', { class: 'display', style: 'font-size: 12px; margin-bottom: 4px;' }, 'ComfyUI Hosts'),
+    h('div', { class: 'setting-row' },
+      h('span', { class: 'lbl' }, h('span', { class: 'dot d-green', style: 'margin-right: 8px;' }), 'Primary'),
+      h('input', { class: 'input', value: 'localhost:8188' }),
+      h('button', { 
+        class: 'btn btn-sm', 
+        onclick: async function() {
+          const input = this.closest('.setting-row').querySelector('input');
+          const status = this.closest('.setting-row').querySelector('.ping-status');
+          const url = 'http://' + input.value;
+          this.textContent = '...';
+          try {
+            const r = await fetch('/api/spark/test?url=' + encodeURIComponent(url));
+            const d = await r.json();
+            if (d.healthy) {
+              status.textContent = '● Online ' + (d.info?.latency_ms ? d.info.latency_ms + 'ms' : '');
+              status.style.color = 'var(--green)';
+            } else {
+              status.textContent = '● Offline';
+              status.style.color = 'var(--red)';
+            }
+          } catch(e) { 
+            status.textContent = '● Error'; 
+            status.style.color = 'var(--red)'; 
+          }
+          this.textContent = 'Ping';
+        }
+      }, 'Ping'),
+      h('span', { class: 'ping-status', style: 'font-size:11px; margin-left: 8px;' }, '')
+    ),
+    h('div', { class: 'setting-row' },
+      h('span', { class: 'lbl' }, h('span', { class: 'dot d-dim', style: 'margin-right: 8px;' }), 'Secondary'),
+      h('input', { class: 'input', value: 'localhost:8189' }),
+      h('button', { 
+        class: 'btn btn-sm', 
+        onclick: async function() {
+          const input = this.closest('.setting-row').querySelector('input');
+          const status = this.closest('.setting-row').querySelector('.ping-status');
+          const url = 'http://' + input.value;
+          this.textContent = '...';
+          try {
+            const r = await fetch('/api/spark/test?url=' + encodeURIComponent(url));
+            const d = await r.json();
+            if (d.healthy) {
+              status.textContent = '● Online ' + (d.info?.latency_ms ? d.info.latency_ms + 'ms' : '');
+              status.style.color = 'var(--green)';
+            } else {
+              status.textContent = '● Offline';
+              status.style.color = 'var(--red)';
+            }
+          } catch(e) { 
+            status.textContent = '● Error'; 
+            status.style.color = 'var(--red)'; 
+          }
+          this.textContent = 'Ping';
+        }
+      }, 'Ping'),
+      h('span', { class: 'ping-status', style: 'font-size:11px; margin-left: 8px;' }, '')
+    ),
+    h('button', { class: 'btn btn-ghost', style: 'align-self: flex-start; margin-top: 4px;' }, '+ Add host')
+  ));
+
+  // 3. Models & Backends Card
+  container.append(h('div', { class: 'card setting-group', 'data-accent': 'magenta' },
+    h('div', { class: 'display', style: 'font-size: 12px; margin-bottom: 4px;' }, 'Model Config'),
+    h('div', { class: 'setting-row' },
+      h('span', { class: 'lbl' }, 'FLUX2 Model'),
+      h('input', { class: 'input', value: 'flux2-dev-nvfp4.safetensors' }),
+      h('button', { class: 'btn btn-sm' }, 'Pick')
+    ),
+    h('div', { class: 'setting-row' },
+      h('span', { class: 'lbl' }, 'CLIP Model'),
+      h('input', { class: 'input', value: 'mistral_3_small_flux2_bf16.safetensors' }),
+      h('button', { class: 'btn btn-sm' }, 'Pick')
+    ),
+    h('div', { class: 'setting-row' },
+      h('span', { class: 'lbl' }, 'Turbo LoRA'),
+      h('input', { class: 'input', value: 'Flux_2-Turbo-LoRA_comfyui.safetensors' }),
+      h('button', { class: 'btn btn-sm' }, 'Pick')
+    )
+  ));
+
+  // 4. Prompt Banks Card
+  container.append(h('div', { class: 'card setting-group', 'data-accent': 'amber' },
+    h('div', { class: 'display', style: 'font-size: 12px; margin-bottom: 8px;' }, 'Prompt Banks'),
+    h('div', { class: 'bank-tabs' },
+      ['Pose','View','Lighting','Background','Extras'].map((name, i) => h('button', { 
+        class: 'bank-tab' + (i === 0 ? ' active' : ''),
+        onclick: (e) => { $$('.bank-tab').forEach(t => t.classList.remove('active')); e.currentTarget.classList.add('active'); }
+      }, name))
+    ),
+    h('textarea', { class: 'textarea', style: 'min-height: 150px; margin-top: 8px;' }, 'hero wide\nextreme close-up\nover-the-shoulder\nlow-angle\ntracking shot\nportrait\nmacro detail\nprofile · side\nthree-quarter\noverhead')
+  ));
+
+  root.append(hermesPanel, container);
   return root;
 };
-
-/* ---------- Models page init ---------- */
-function initModelsPage() {
-  // Status is fetched inside VIEWS.models render
-}
-
-/* ---------- Memory live data loader ---------- */
-async function loadMemoryLiveData() {
-  try {
-    const [insightsR, timelineR, statsR] = await Promise.all([
-      fetch('/api/memory/insights').catch(() => null),
-      fetch('/api/memory/timeline?limit=8').catch(() => null),
-      fetch('/api/memory/stats').catch(() => null),
-    ]);
-
-    if (insightsR && insightsR.ok) {
-      const insights = await insightsR.json();
-      const list = $('#insights-list');
-      const count = $('#insight-count');
-      if (list) {
-        list.innerHTML = '';
-        (insights || []).slice(0, 8).forEach(i => {
-          list.appendChild(h('div', { class: 'insight' },
-            h('div', { class: 'rule' }, i.rule || i.text || 'Insight'),
-            h('div', { class: 'confidence-bar' }, h('div', { class: 'fill', style: `width: ${(i.confidence || 0) * 100}%;` })),
-            h('div', { class: 'meta' },
-              h('span', {}, `conf ${Math.round((i.confidence || 0) * 100)}%  ·  ${i.confirms || 0} confirms`),
-              h('span', {}, i.age || 'recent')
-            )
-          ));
-        });
-      }
-      if (count) count.textContent = (insights || []).length + ' INSIGHTS';
-    }
-
-    if (timelineR && timelineR.ok) {
-      const timeline = await timelineR.json();
-      const list = $('#timeline-list');
-      if (list) {
-        list.innerHTML = '';
-        (timeline || []).slice(0, 8).forEach(e => {
-          list.appendChild(h('div', { class: 'tl-event' },
-            h('div', { class: 'tl-time' }, e.t || e.timestamp?.split('T')[1]?.slice(0,5) || '--:--'),
-            h('div', { class: 'tl-body' },
-              h('div', { class: 'tl-type' }, e.type || 'event'),
-              h('div', { class: 'tl-desc' }, e.desc || e.concept || '')
-            )
-          ));
-        });
-      }
-    }
-
-    if (statsR && statsR.ok) {
-      const stats = await statsR.json();
-      // Update stat cards if they have data-countup
-      $$('[data-countup]').forEach(el => {
-        const key = el.closest('.card')?.querySelector('.stat-label')?.textContent?.toLowerCase();
-        if (key && stats[key] !== undefined) {
-          el.dataset.countup = stats[key];
-          el.textContent = stats[key];
-        }
-      });
-    }
-  } catch (e) {
-    console.warn('Memory live data load failed', e);
-  }
-}
-
-/* ---------- Memory graph init ---------- */
-function initMemoryGraph() {
-  if (!window.cytoscape) return;
-  const container = document.getElementById('graph-canvas');
-  if (!container) return;
-
-  const elements = [
-    ...GRAPH.nodes.map(n => ({ data: { id: n.id, label: n.label, type: n.type, color: NODE_COLORS[n.type] } })),
     ...GRAPH.edges.map((e, i) => ({ data: { id: 'e'+i, source: e.source, target: e.target } }))
   ];
 
@@ -1491,83 +1305,79 @@ function initMemoryGraph() {
 document.addEventListener('DOMContentLoaded', boot);
 
 
-// Redesign Navigation Integration
-function navigate(id) {
-  // Update Sidebar UI (Redesign pattern)
-  document.querySelectorAll('.rail-item[data-view]').forEach(el => {
-    el.classList.toggle('active', el.dataset.view === id);
-  });
-  
-  // Update Crumbs
-  const item = NAV.find(n => n.id === id);
-  if (item && $('#crumbSection')) {
-      $('#crumbSection').textContent = item.label;
-  }
+// --- Character Management ---
 
-  // Render View into the Redesign workspace container
-  const viewContainer = $('#view');
-  if (viewContainer) {
-    viewContainer.innerHTML = '';
-    const renderFunc = VIEWS[id] || VIEWS.home;
-    viewContainer.append(renderFunc());
-    viewContainer.style.animation = 'none';
-    void viewContainer.offsetWidth; // reflow
-    viewContainer.style.animation = '';
-  }
-
-  // Maintain compatibility with existing global state
-  activeTab = id; 
-
-  // Post-render hooks (preserving original logic)
-  if (id === 'home') { setTimeout(() => initHermesPanel($('#hermes-panel')), 30); }
-  if (id === 'renders') { 
-      setTimeout(() => initSparkWidget($('#spark-widget')), 30); 
-      setTimeout(() => initRenderGallery($('#render-gallery')), 30); 
-  }
-  if (id === 'memory') { setTimeout(initMemoryGraph, 30); }
-}
-
-// Compatibility Shim for old switchTab calls in existing code
-window.switchTab = function(name, updateHash = true) {
-    navigate(name);
+window.openAddCharacterModal = function() {
+    const modal = h('div', { id: 'modal-overlay', class: 'modal-overlay' }, [
+        h('div', { class: 'modal-content' }, [
+            h('h3', {}, 'Add New Character'),
+            h('div', { class: 'form-group' }, [
+                h('label', {}, 'Name'),
+                h('input', { id: 'new-char-name', type: 'text', placeholder: 'e.g. Elara Vance' })
+            ]),
+            h('div', { class: 'form-group' }, [
+                h('label', {}, 'Description/Bio'),
+                h('textarea', { id: 'new-char-desc', placeholder: 'Brief backstory...' })
+            ]),
+            h('div', { class: 'modal-actions' }, [
+                h('button', { class: 'btn-secondary', onclick: () => document.getElementById('modal-overlay').remove() }, 'Cancel'),
+                h('button', { class: 'btn-primary', onclick: window.generateAndRenderCharacter() }, 'Generate + Render')
+            ])
+        ])
+    ]);
+    document.body.appendChild(modal);
 };
 
-function boot() {
-  // Initialize Sidebar Nav Items (Redesign pattern)
-  const railNav = $('#railNav');
-  if (railNav) {
-      railNav.innerHTML = ''; // Clear existing
-      NAV.forEach((n, i) => {
-          const el = document.createElement('div');
-          el.className = 'rail-item' + (n.id === activeTab ? ' active' : '');
-          el.dataset.view = n.id;
-          el.innerHTML = `
-            <span class="ico">${n.icon()}</span>
-            <span class="label">${n.label}</span>
-            ${n.meta ? `<span class="meta">${n.meta}</span>` : ''}
-          `;
-          el.addEventListener('click', () => navigate(n.id));
-          railNav.appendChild(el);
-      });
-  }
+window.renderCharacterAnchor = async function(char) {
+    console.log(`Rendering anchor for: ${char.id}`);
+    const container = document.querySelector(`#char-anchor-${char.id}`);
+    if (container) container.innerHTML = '<div class="loading-spinner"></div>';
 
-  // Re-init original app logic (intensity, theme)
-  $$('.intensity-pill button').forEach(b => {
-    b.addEventListener('click', () => setIntensity(b.dataset.intensity));
-  });
-  
-  const themeBtn = $('#theme-toggle');
-  if (themeBtn) {
-      const isLight = localStorage.getItem('forge-theme') === 'light';
-      if (isLight) document.body.classList.add('light-mode');
-      themeBtn.addEventListener('click', () => {
-        const light = document.body.classList.toggle('light-mode');
-        localStorage.setItem('forge-theme', light ? 'light' : 'dark');
-      });
-  }
+    try {
+        const res = await fetch('/api/characters/render', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: char.id, prompt: char.anchor_prompt })
+        });
+        if (!res.ok) throw new Error('Render request failed');
+        const data = await res.json();
+        
+        // Polling or direct update depending on API behavior
+        if (data.anchor_url) {
+            container.innerHTML = `<img src="${data.anchor_url}" class="character-anchor-img" alt="${char.id}">`;
+        }
+    } catch (err) {
+        console.error('Render error:', err);
+        if (container) container.innerHTML = '<div class="error">Failed to render</div>';
+    }
+};
 
-  // Initial Load
-  navigate(activeTab);
-}
+window.generateAndRenderCharacter = async function() {
+    const name = document.getElementById('new-char-name').value;
+    const desc = document.getElementById('new-char-desc').value;
 
-window.addEventListener('DOMContentLoaded', boot);
+    if (!name || !desc) {
+        alert('Name and Description are required.');
+        return;
+    }
+
+    try {
+        // 1. Generate via Hermes
+        const genRes = await fetch('/api/hermes/generate-character', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ description: desc })
+        });
+        if (!genRes.ok) throw new Error('Character generation failed');
+        const charData = await genRes.json();
+
+        // 2. Render via Spark (using the returned character info)
+        // Assuming charData contains { id, anchor_prompt }
+        await window.renderCharacterAnchor(charData);
+        
+        document.getElementById('modal-overlay').remove();
+    } catch (err) {
+        console.error('Sequence error:', err);
+        alert('Process failed: ' + err.message);
+    }
+};

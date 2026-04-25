@@ -547,12 +547,12 @@ button, input, textarea, select {
   gap: 2px;
 }
 
-/* Hover-expand: rail visually grows to expanded width while pointer is over it */
+/* Hover-expand: rail overlays content, does not push it */
 .app:not(.rail-pinned) .rail:hover {
   width: var(--rail-expanded);
-  position: absolute;
+  position: fixed;
   top: 0; bottom: 0; left: 0;
-  z-index: 30;
+  z-index: 100;
   box-shadow: var(--shadow-pop);
 }
 
