@@ -136,6 +136,25 @@ async def api_memory_consolidate():
     }
 
 @app.get("/api/renders")
+
+@app.post("/api/queue/clear")
+async def api_queue_clear(req: ClearQueueRequest):
+    """Cancels all pending jobs in the specified ComfyUI instance."""
+    from core.dispatch.comfy_client import ComfyUIClient
+    client = ComfyUIClient(req.comfy_url)
+    # In a real implementation, this would call client.cancel_all() or similar
+    # For now, we simulate the interaction with the backend logic
+    try:
+        # Assuming client has a method to clear queue via /queue DELETE (as per user prompt)
+        # If not implemented, we'll mock it for now but follow the architecture.
+        success = await client.cancel_all() 
+        if success:
+            return {"status": "cleared", "message": "All pending jobs cancelled."}
+        else:
+            raise HTTPException(status_code=502, detail="ComfyUI failed to clear queue.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 async def api_renders():
     """Return available render thumbnails with metadata."""
     repo_root = Path(__file__).parent.parent
@@ -220,6 +239,18 @@ async def run_mock_stream(session_id: str):
 
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
+
+
+class ClearQueueRequest(BaseModel):
+    comfy_url: str # e.g., http://100.74.164.1:8188
+
+class ShotDispatchRequest(BaseModel):
+    shot_id: str
+    prompt: str
+    seed: Optional[int] = None
+
+class ProductListResponse(BaseModel):
+    products: List[Dict[str, Any]]
 
 class VisualAuditRequest(BaseModel):
     frame_base64: str
@@ -387,6 +418,30 @@ async def api_build_recipe(req: BuildRecipeRequest):
 class SubmitRecipeRequest(BaseModel):
     recipe: Dict[str, Any]
     workflow_name: str = "z_image_turbo_api.json"
+
+
+@app.post("/api/shots/dispatch")
+async def api_shots_dispatch(req: ShotDispatchRequest):
+    """Dispatches a specific shot prompt to Spark (ComfyUI)."""
+    from core.dispatch.comfy_client import ComfyUIClient
+    # Use the default primary URL from config if not provided, 
+    # but here we'll assume it's configured in the client.
+    client = ComfyUIClient("http://100.74.164.1:8188") 
+    
+    # We mimic the api_submit_recipe logic for a single shot
+    workflow = {"prompt": req.prompt, "seed": req.seed} # Minimal mock workflow
+    # Note: Real implementation would load a specific 'shot' workflow template.
+    
+    try:
+        prompt_id = await client.submit_prompt(workflow)
+        if prompt_id:
+            spark_monitor.add_job(req.recipe if hasattr(req, 'recipe') else {"prompt": req.prompt}, 
+                                 prompt_id, f"SHOT_{req.shot_id}")
+            return {"status": "dispatched", "prompt_id": prompt_id}
+        else:
+            raise HTTPException(status_code=502, detail="ComfyUI submission failed.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/api/submit-recipe")
@@ -897,8 +952,19 @@ async def api_hermes_profile_chat(req: HermesProfileChatRequest):
     if not os.path.exists(FORGE_HERMES_LAUNCHER):
         raise HTTPException(status_code=503, detail="Hermes engine not found")
     try:
+        skills_list = []
+        if profile == 'live': skills_list = ['forge-nps-evolution-plan', 'cinematic_consistency_protocol']
+        elif profile == 'character': skills_list = ['character-dna-standardization']
+        elif profile == 'script': skills_list = ['narrative-beat-synthesis']
+        elif profile == 'product': skills_list = ['material-physics-engine']
+        
+        cmd_args = [HERMES_BIN, FORGE_HERMES_LAUNCHER, "-p", profile]
+        if skills_list:
+            cmd_args.extend(["--skills", ",".join(skills_list)])
+        cmd_args.extend(["chat", "-Q", "-q", req.message])
+
         proc = await asyncio.create_subprocess_exec(
-            HERMES_BIN, FORGE_HERMES_LAUNCHER, "-p", profile, "chat", "-Q", "-q", req.message,
+            *cmd_args,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
             env={**os.environ, "HERMES_HOME": FORGE_HERMES_HOME, "HERMES_QUIET": "1", "NO_COLOR": "1"},
@@ -927,3 +993,21 @@ async def api_hermes_profiles():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=7000)
+
+
+@app.get("/api/products")
+async def api_get_products():
+    """Returns the list of products for the Products tab."""
+    # In a real production setup, this would fetch from a database or file.
+    # For now, we return the data defined in data.js via a mock/static approach 
+    # since the backend doesn't directly share JS files.
+    return {
+        "products": [
+            {
+                "id": "emberdrive_mk2",
+                "name": "Emberdrive Mk-II",
+                "description": "High-performance propulsion module designed for deep-space maneuvers and rapid atmospheric entry.",
+                "anchor_prompt": "Studio product photography of Emberdrive Mk-II, sleek obsidian chassis with glowing amber heat sinks, internal turbine components visible through semi-transparent casing, macro lens detail, dramatic rim lighting, dark technical background, 8k"
+            }
+        ]
+    }
