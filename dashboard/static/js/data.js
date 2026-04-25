@@ -7,6 +7,7 @@ const CHARACTERS = [
     role: 'Pilot · Protagonist',
     accent: 'cyan',
     score: 94,
+    anchor_prompt: 'Portrait of ELARA, female pilot protagonist, platinum crop hair with undercut left side and singed tips, pale amber reflective eyes, lean athletic build, charcoal flight jacket over graphite undersuit with copper piping along seams, ember-glow tattoo on left forearm, softbox studio lighting, neutral dark background, highly detailed, cinematic, 8k',
     dna: {
       hair: 'Platinum crop, undercut left side, singed tips from the Hollow',
       eyes: 'Pale amber, reflective — pupils dilate in low-light',
@@ -22,6 +23,7 @@ const CHARACTERS = [
     role: 'Mechanist · Ally',
     accent: 'magenta',
     score: 88,
+    anchor_prompt: 'Portrait of ORIN, male mechanist, jet black shoulder-length hair pulled into utilitarian knot, deep indigo eyes with surgical steadiness, tall broad-framed build, heat-resistant apron soot-scored, copper tools at belt, right hand three-fingered prosthetic with exposed servos, softbox studio lighting, neutral dark background, highly detailed, cinematic, 8k',
     dna: {
       hair: 'Jet black, shoulder length, pulled into a utilitarian knot',
       eyes: 'Deep indigo, surgical steadiness',
@@ -37,6 +39,7 @@ const CHARACTERS = [
     role: 'Drone · Companion',
     accent: 'amber',
     score: 91,
+    anchor_prompt: 'VEX-09 compact quadrotor drone, palm-sized, brushed alloy chassis, single large cyan aperture eye with iris shutter, polished gunmetal shell with faint cyan trace lines, amber underglow lighting effect, four-fold manipulator arms, studio product photography, neutral dark background, highly detailed, 8k',
     dna: {
       hair: '—',
       eyes: 'Single cyan aperture, 120° pan, iris shutter animated',
