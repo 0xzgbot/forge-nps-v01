@@ -1,5 +1,3 @@
-/* Forge NPS — App shell, tabs, view rendering */
-
 const $ = (s, p = document) => p.querySelector(s);
 const $$ = (s, p = document) => [...p.querySelectorAll(s)];
 const h = (tag, attrs = {}, ...kids) => {
@@ -18,136 +16,26 @@ const h = (tag, attrs = {}, ...kids) => {
   return el;
 };
 
-const TABS = ['home','characters','script','products','renders','memory','settings'];
-const TAB_LABELS = {
-  home: 'Home', characters: 'Characters', script: 'Script',
-  products: 'Products', renders: 'Renders', memory: 'Memory', models: 'Models', settings: 'Settings'
-};
+// Redesign-compatible Navigation Data (Injected from Design Source)
+const NAV = [{ id: 'home',       label: 'Home',       icon: home },
+      { id: 'characters', label: 'Characters', icon: people, meta: '3' },
+      { id: 'script',     label: 'Script',     icon: script },
+      { id: 'products',   label: 'Products',   icon: cube },
+      { id: 'renders',    label: 'Renders',    icon: grid,    meta: '24' },
+      { id: 'memory',     label: 'Memory',     icon: brain,   meta: '12' },
+      { id: 'settings',   label: 'Settings',   icon: gear }];
 
-let activeTab = 'home';
-let activeCharId = 'elara';
-let expandedShot = null;
+// SVG Icon Factories (from Redesign HTML)
+function home(){return `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9l7-6 7 6v8a1 1 0 0 1-1 1h-3v-5H7v5H4a1 1 0 0 1-1-1z"/></svg>`}
+function people(){return `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="3"/><path d="M2 17a5 5 0 0 1 10 0"/><circle cx="14" cy="7" r="2.5"/><path d="M13 13a4 4 0 0 1 5 4"/></svg>`}
+function script(){return `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="3" width="12" height="14" rx="1"/><path d="M7 7h6M7 10h6M7 13h4"/></svg>`}
+function cube(){return `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 3l7 4v6l-7 4-7-4V7z"/><path d="M3 7l7 4 7-4M10 11v6"/></svg>`}
+function grid(){return `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="6" height="6" rx="1"/><rect x="11" y="3" width="6" height="6" rx="1"/><rect x="3" y="11" width="6" height="6" rx="1"/><rect x="11" y="11" width="6" height="6" rx="1"/></svg>`}
+function brain(){return `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M7 4a3 3 0 0 0-3 3v6a3 3 0 0 0 3 3h6a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3H7z"/><path d="M10 4v12M7 8h6M7 12h6"/></svg>`}
+function gear(){return `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="10" cy="10" r="3"/><path d="M10 2v2m0 12v2M2 10h2m12 0h2M4.5 4.5l1.4 1.4m8.2 8.2 1.4 1.4m-8.2-8.2 1.4-1.4m8.2 8.2 1.4-1.4"/></svg>`}
 
-/* ---------- Boot ---------- */
-function boot() {
-  // Brand
-  $('#brand-mark').innerHTML = logoSVG();
-  // Tabs
-  const tabsEl = $('#tabs');
-  TABS.forEach(t => {
-    tabsEl.append(h('button', {
-      class: 'tab' + (t === activeTab ? ' active' : ''),
-      'data-tab': t,
-      onclick: () => switchTab(t)
-    }, TAB_LABELS[t]));
-  });
-  // Intensity pill
-  $$('.intensity-pill button').forEach(b => {
-    b.addEventListener('click', () => setIntensity(b.dataset.intensity));
-  });
-  // Light/dark toggle
-  const themeBtn = $('#theme-toggle');
-  const isLight = localStorage.getItem('forge-theme') === 'light';
-  if (isLight) document.body.classList.add('light-mode');
-  themeBtn && themeBtn.addEventListener('click', () => {
-    const light = document.body.classList.toggle('light-mode');
-    localStorage.setItem('forge-theme', light ? 'light' : 'dark');
-    themeBtn.title = light ? 'Switch to dark mode' : 'Switch to light mode';
-  });
-  // Hash routing
-  const hash = (location.hash || '').replace(/^#\/?/, '');
-  if (TABS.includes(hash)) activeTab = hash;
-  window.addEventListener('hashchange', () => {
-    const nh = (location.hash || '').replace(/^#\/?/, '');
-    if (TABS.includes(nh) && nh !== activeTab) switchTab(nh, false);
-  });
-  switchTab(activeTab, false);
-}
 
-function setIntensity(level) {
-  document.body.classList.remove('intensity-tasteful','intensity-full');
-  if (level === 'tasteful') document.body.classList.add('intensity-tasteful');
-  if (level === 'full') document.body.classList.add('intensity-full');
-  $$('.intensity-pill button').forEach(b => b.classList.toggle('active', b.dataset.intensity === level));
-}
 
-function switchTab(name, updateHash = true) {
-  activeTab = name;
-  if (updateHash) location.hash = '#/' + name;
-  $$('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
-  const view = $('#view');
-  view.innerHTML = '';
-  const render = VIEWS[name] || VIEWS.home;
-  view.append(render());
-  view.style.animation = 'none';
-  // force reflow for re-anim
-  void view.offsetWidth;
-  view.style.animation = '';
-  animateStatCounts();
-  if (name === 'home') { setTimeout(() => initHermesPanel($('#hermes-panel')), 30); setTimeout(() => initTeachMode($('#teach-mode-container')), 30); }
-  if (name === 'renders') { setTimeout(() => initSparkWidget($('#spark-widget')), 30); setTimeout(() => initRenderGallery($('#render-gallery')), 30); }
-  if (name === 'memory') { setTimeout(initMemoryGraph, 30); setTimeout(loadMemoryLiveData, 50); }
-  if (name === 'models') setTimeout(initModelsPage, 30);
-}
-
-function animateStatCounts() {
-  $$('[data-countup]').forEach(el => {
-    const target = parseFloat(el.dataset.countup);
-    const isPct = el.dataset.suffix === '%';
-    const decimals = el.dataset.decimals ? +el.dataset.decimals : 0;
-    const dur = 700;
-    const start = performance.now();
-    const ease = t => 1 - Math.pow(1-t, 3);
-    function tick(now) {
-      const p = Math.min(1, (now - start) / dur);
-      const v = target * ease(p);
-      el.textContent = v.toFixed(decimals) + (isPct ? '%' : '');
-      if (p < 1) requestAnimationFrame(tick);
-    }
-    requestAnimationFrame(tick);
-  });
-}
-
-/* ---------- Shared bits ---------- */
-function statCard({ label, value, accent, sub, decimals=0, suffix='' }) {
-  return h('div', { class: 'card stat', 'data-accent': accent },
-    h('div', { class: 'stat-label' }, h('span', { class: `dot d-${accent}` }), label),
-    h('div', { class: 'stat-value', 'data-countup': value, 'data-decimals': decimals, 'data-suffix': suffix }, '0'),
-    sub ? h('div', { class: 'stat-sub' }, sub) : null
-  );
-}
-
-function sectionHead(title, meta) {
-  return h('div', { class: 'section-head' },
-    h('h2', {}, title),
-    h('div', { class: 'bar' }),
-    meta ? h('div', { class: 'meta' }, meta) : null
-  );
-}
-
-function openVideoLightbox(renderData) {
-    const lightbox = document.createElement('div');
-    lightbox.className = 'lightbox-overlay';
-    lightbox.innerHTML = `
-        <div class="lightbox-content video-lightbox">
-            <div class="lightbox-header">
-                <h3>${renderData.shot_id}</h3>
-                <button class="btn-ghost" onclick="closeLightbox()">Close</button>
-            </div>
-            <div id="video-player-container"></div>
-            <div class="lightbox-meta">
-                <p><strong style="color: var(--cyan)">Prompt:</strong> ${renderData.prompt}</p>
-                <p><strong style="color: var(--amber)">Seed:</strong> ${renderData.seed || 'N/A'}</p>
-                <p><strong style="color: var(--magenta)">Score:</strong> ${renderData.score || 'N/A'}</p>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(lightbox);
-
-    // Global close function for the button
-    window.closeLightbox = () => {
-        lightbox.remove();
-    };
     
     new ForgeVideoPlayer(
         "video-player-container",
@@ -209,8 +97,108 @@ function createRenderCard(renderData) {
 }
 
 /* ======================================================================
+   HERMES AGENT CHAT PANEL
+   ====================================================================== */
+
+const HERMES_PROFILES_META = {
+  live:      { title: 'Hermes Live · Creative Director',   accent: 'purple',  placeholder: 'Ask Hermes to write a shot, plan a campaign...' },
+  character: { title: 'Hermes Character · Architect',      accent: 'magenta', placeholder: 'Describe a character, refine DNA, ask about anchors...' },
+  script:    { title: 'Hermes Script · Screenwriter',      accent: 'cyan',    placeholder: 'Write a scene, generate shot list, develop story...' },
+  product:   { title: 'Hermes Product · Stylist',          accent: 'amber',   placeholder: 'Describe a product, plan placement, style notes...' },
+};
+
+function makeHermesChatPanel(profileId) {
+  const meta = HERMES_PROFILES_META[profileId] || HERMES_PROFILES_META.live;
+  const panelId = `hermes-chat-${profileId}`;
+  const histId  = `hermes-hist-${profileId}`;
+  const inputId = `hermes-input-${profileId}`;
+
+  const hist = h('div', { id: histId, class: 'hermes-chat-history' },
+    h('div', { class: 'hermes-chat-welcome' },
+      h('span', { style: `color: var(--${meta.accent});` }, `◆ ${meta.title}`),
+      h('span', { class: 'label', style: 'margin-top:4px;' }, 'Powered by Hermes Agent · Nous Research')
+    )
+  );
+
+  function appendMsg(role, text) {
+    const cls = role === 'user' ? 'hermes-chat-user' : 'hermes-chat-agent';
+    const prefix = role === 'user' ? '▶' : '◆';
+    const color  = role === 'user' ? 'var(--text)' : `var(--${meta.accent})`;
+    const msg = h('div', { class: cls },
+      h('span', { style: `color:${color};margin-right:6px;` }, prefix),
+      h('span', {}, text)
+    );
+    hist.append(msg);
+    hist.scrollTop = hist.scrollHeight;
+  }
+
+  async function sendMessage() {
+    const input = document.getElementById(inputId);
+    const btn = document.querySelector(`#${panelId} .hermes-send-btn`);
+    const msg = input ? input.value.trim() : '';
+    if (!msg) return;
+    input.value = '';
+    input.disabled = true;
+    if (btn) { btn.disabled = true; btn.textContent = '...'; }
+    appendMsg('user', msg);
+    const thinking = h('div', { class: 'hermes-chat-thinking' },
+      h('span', { style: `color:var(--${meta.accent});opacity:0.6;` }, `◆ ${profileId} is thinking…`)
+    );
+    hist.append(thinking);
+    hist.scrollTop = hist.scrollHeight;
+    try {
+      const r = await fetch('/api/hermes/profile/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profile: profileId, message: msg })
+      });
+      thinking.remove();
+      if (!r.ok) {
+        const err = await r.text();
+        appendMsg('agent', `⚠ Error: ${err.slice(0, 200)}`);
+      } else {
+        const data = await r.json();
+        appendMsg('agent', data.response || '(no response)');
+      }
+    } catch(e) {
+      thinking.remove();
+      appendMsg('agent', `⚠ ${e.message}`);
+    } finally {
+      if (input) input.disabled = false;
+      if (btn) { btn.disabled = false; btn.textContent = '↵'; }
+      if (input) input.focus();
+    }
+  }
+
+  const input = h('input', {
+    id: inputId,
+    type: 'text',
+    class: 'hermes-chat-input',
+    placeholder: meta.placeholder,
+  });
+  input.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
+
+  const sendBtn = h('button', { class: 'hermes-send-btn' }, '↵');
+  sendBtn.addEventListener('click', sendMessage);
+
+  return h('div', { id: panelId, class: 'card card-pad hermes-chat-panel', 'data-accent': meta.accent },
+    h('div', { class: 'row between', style: 'margin-bottom:10px;' },
+      h('div', { class: 'display', style: 'font-size:12px;' }, meta.title),
+      h('span', { class: 'ticker' }, 'HERMES AGENT · NOUS RESEARCH')
+    ),
+    hist,
+    h('div', { class: 'hermes-chat-footer' },
+      input,
+      sendBtn
+    )
+  );
+}
+
+/* ======================================================================
    VIEWS
    ====================================================================== */
+
+
 const VIEWS = {};
 
 /* ---------- HOME ---------- */
@@ -256,10 +244,10 @@ VIEWS.home = () => {
   const left  = h('div', { class: 'col gap-3' });
   const right = h('div', { class: 'col gap-3' });
 
-  // Hermes Live — tall main panel
+  // Hermes Live — event stream + interactive chat
   const hermesCard = h('div', { class: 'card card-pad hermes-main', 'data-accent': 'purple' },
     h('div', { class: 'row between', style: 'margin-bottom: 12px;' },
-      h('div', { class: 'display', style: 'font-size: 13px;' }, 'Hermes Live'),
+      h('div', { class: 'display', style: 'font-size: 13px;' }, 'Hermes Live · Pipeline Events'),
       h('span', { class: 'ticker' }, 'STREAMING · /ws/hermes')
     ),
     h('div', { id: 'hermes-panel', class: 'hermes-panel hermes-panel-tall' },
@@ -267,9 +255,8 @@ VIEWS.home = () => {
     )
   );
   left.append(hermesCard);
+  left.append(makeHermesChatPanel('live'));
 
-  // Teach Mode
-  left.append(h('div', { id: 'teach-mode-container' }));
 
   // Recent renders strip
   const recent = h('div', { class: 'card card-pad', 'data-accent': 'cyan' });
@@ -370,20 +357,33 @@ VIEWS.characters = () => {
     ));
   });
   // add new
-  selector.append(h('div', { class: 'card char-pick interactive', style: 'border-style: dashed; justify-content: center;' },
+  const addCard = h('div', { class: 'card char-pick interactive', style: 'border-style: dashed; justify-content: center;' },
     h('div', { class: 'col gap-1', style: 'align-items: center; text-align: center;' },
       h('div', { style: 'color: var(--text-secondary); font-size: 20px;' }, '+'),
       h('div', { class: 'label' }, 'Add Character')
     )
-  ));
+  );
+  addCard.addEventListener('click', () => window.openAddCharacterModal());
+  selector.append(addCard);
   root.append(selector);
 
   // hero: anchor + DNA editor
   const hero = h('div', { class: 'char-hero' });
 
   const anchor = h('div', { class: 'card anchor-card', 'data-accent': char.accent });
+  const anchorImgDiv = h('div', { class: 'anchor-img' });
+  const anchorSvg = h('div', { id: `anchor-svg-${char.id}`, html: portraitSVG(char, 520) });
+  const anchorImg = document.createElement('img');
+  anchorImg.id = `anchor-img-${char.id}`;
+  anchorImg.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:4px;display:none;';
+  anchorImg.onerror = () => { anchorImg.style.display = 'none'; anchorSvg.style.display = ''; };
+  anchorImg.onload = () => { anchorImg.style.display = ''; anchorSvg.style.display = 'none'; };
+  anchorImg.src = `/api/characters/anchor/${char.id}`;
+  anchorImgDiv.append(anchorImg, anchorSvg);
+  const regenBtn = h('button', { class: 'btn btn-primary', id: `regen-btn-${char.id}` }, '↻ Render on Spark');
+  regenBtn.addEventListener('click', () => window.renderCharacterAnchor(char));
   anchor.append(
-    h('div', { class: 'anchor-img', html: portraitSVG(char, 520) }),
+    anchorImgDiv,
     h('div', { class: 'anchor-footer' },
       h('div', { class: 'consistency' },
         h('div', { class: 'row between' },
@@ -392,7 +392,8 @@ VIEWS.characters = () => {
         ),
         h('div', { class: 'progress mono green' }, h('div', { class: 'fill', style: `width: ${char.score}%;` }))
       ),
-      h('button', { class: 'btn btn-primary' }, '↻ Regenerate Anchor')
+      regenBtn,
+      h('span', { id: `regen-status-${char.id}`, style: 'font-size:11px;color:var(--text-dim);margin-left:8px;' }, '')
     )
   );
   hero.append(anchor);
@@ -450,6 +451,7 @@ VIEWS.characters = () => {
   hero.append(dna);
   root.append(hero);
 
+  root.append(makeHermesChatPanel('character'));
   // variation gallery
   root.append(h('div', { style: 'height: 16px;' }));
   root.append(sectionHead('Variation Gallery', `${char.name} · 24 frames`));
@@ -472,6 +474,8 @@ VIEWS.characters = () => {
       </div>` }));
   }
   root.append(gal);
+
+  root.append(h('div', { style: 'height: 16px;' }));
 
   return root;
 };
@@ -500,6 +504,7 @@ VIEWS.script = () => {
     )
   );
   root.append(toolbar);
+  root.append(makeHermesChatPanel('script'));
 
   const card = h('div', { class: 'card', 'data-accent': 'cyan' });
   const table = h('table', { class: 'script-table' });
@@ -573,6 +578,9 @@ VIEWS.script = () => {
   table.append(tbody);
   card.append(table);
   root.append(card);
+
+  root.append(h('div', { style: 'height: 16px;' }));
+
   return root;
 };
 
@@ -632,6 +640,7 @@ VIEWS.products = () => {
   );
   hero.append(dna);
   root.append(hero);
+  root.append(makeHermesChatPanel('product'));
 
   root.append(h('div', { style: 'height: 16px;' }));
   root.append(sectionHead('Generation Banks', 'tune each axis independently'));
@@ -691,6 +700,8 @@ VIEWS.products = () => {
       </div>` }));
   }
   root.append(gal);
+
+  root.append(h('div', { style: 'height: 16px;' }));
 
   return root;
 };
@@ -1047,6 +1058,9 @@ VIEWS.settings = () => {
     nimStatus,
     makeRow('API Key', 'KIMI_API_KEY', { type: 'password' }),
     makeRow('NIM Endpoint', 'NIM_ENDPOINT'),
+    makeRow('Director Model (K2.6)', 'KIMI_INSTRUCT_MODEL'),
+    makeRow('Thinking Model', 'KIMI_THINKING_MODEL'),
+    makeRow('Visual Model (VL)', 'KIMI_VISUAL_MODEL'),
     apiTestBtn
   );
   grid.append(apiCard);
@@ -1113,6 +1127,60 @@ VIEWS.settings = () => {
   comfyCard.append(addServerBtn);
   grid.append(comfyCard);
 
+  // --- LM Studio Section (col 1, row 2) ---
+  const sparkCard = h('div', { class: 'card setting-group', style: 'border-color: #FFB300; box-shadow: 0 0 18px 2px rgba(255,179,0,0.25);' });
+  const sparkStatus = h('div', { style: 'display:flex;align-items:center;gap:10px;margin-bottom:10px;' });
+  const sparkDot = h('span', { style: 'width:10px;height:10px;border-radius:50%;background:#555;display:inline-block;flex-shrink:0;' });
+  const sparkLabel = h('span', { style: 'font-size:12px;color:var(--text-dim);' }, 'Not checked');
+  const sparkTestBtn = h('button', {
+    class: 'btn btn-sm',
+    style: 'margin-left:auto;color:#FFB300;border-color:#FFB300;'
+  }, 'Test Spark');
+  const sparkMetrics = h('div', { style: 'display:none;margin-top:10px;display:flex;flex-direction:column;gap:6px;' });
+
+  function sparkMeter(label, usedGb, totalGb, pct, color) {
+    return h('div', {},
+      h('div', { style: 'display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px;' },
+        h('span', { style: 'color:var(--text-dim);' }, label),
+        h('span', { style: `color:${color};` }, `${usedGb} / ${totalGb} GB · ${pct}%`)
+      ),
+      h('div', { style: 'height:4px;background:var(--border);border-radius:2px;overflow:hidden;' },
+        h('div', { style: `width:${pct}%;height:100%;background:${color};border-radius:2px;transition:width 0.4s;` })
+      )
+    );
+  }
+
+  sparkTestBtn.addEventListener('click', async () => {
+    sparkLabel.textContent = 'Connecting...';
+    sparkDot.style.background = '#FFB300';
+    sparkMetrics.innerHTML = '';
+    try {
+      const r = await fetch('/api/spark/stats');
+      if (!r.ok) throw new Error('offline');
+      const d = await r.json();
+      sparkDot.style.background = '#00FF41';
+      sparkLabel.textContent = `Online · ${d.gpu_name.split(' ').slice(0,3).join(' ')} · ComfyUI ${d.comfyui_version}`;
+      sparkMetrics.style.display = 'flex';
+      sparkMetrics.append(
+        sparkMeter('VRAM', d.vram_used_gb, d.vram_total_gb, d.vram_pct, '#FFB300'),
+        sparkMeter('RAM',  d.ram_used_gb,  d.ram_total_gb,  d.ram_pct,  '#00FFFF')
+      );
+    } catch(e) {
+      sparkDot.style.background = '#ff4444';
+      sparkLabel.textContent = '✗ Unreachable';
+    }
+  });
+  sparkStatus.append(sparkDot, sparkLabel, sparkTestBtn);
+  sparkCard.append(
+    h('div', { style: 'display:flex;align-items:center;gap:8px;margin-bottom:8px;' },
+      h('div', { class: 'display', style: 'font-size:12px;color:#FFB300;letter-spacing:0.1em;' }, '⚡ SPARK · DGX GPU CLUSTER'),
+    ),
+    sparkStatus,
+    sparkMetrics,
+    makeRow('Primary Host', 'COMFYUI_PRIMARY'),
+    makeRow('Secondary Host', 'COMFYUI_SECONDARY'),
+    makeRow('Workflow File', 'COMFYUI_WORKFLOW'),
+  );
   // --- LM Studio Section ---
   const lmCard = h('div', { class: 'card setting-group', 'data-accent': 'purple' });
   lmCard.append(h('div', { class: 'display', style: 'font-size: 12px; margin-bottom: 4px;' }, 'LM Studio (Local Inference)'));
@@ -1160,44 +1228,7 @@ VIEWS.settings = () => {
     )
   );
   grid.append(lmCard);
-
-  // --- Model Config Section ---
-  const modelCard = h('div', { class: 'card setting-group', 'data-accent': 'magenta' });
-  modelCard.append(h('div', { class: 'display', style: 'font-size: 12px; margin-bottom: 4px;' }, 'NIM Model Names'));
-  const instructRow = makeRow('Instruct Model', 'KIMI_INSTRUCT_MODEL');
-  const thinkingRow = makeRow('Thinking Model', 'KIMI_THINKING_MODEL');
-  const visualRow = makeRow('Visual Model', 'KIMI_VISUAL_MODEL');
-  modelCard.append(instructRow, thinkingRow, visualRow);
-  grid.append(modelCard);
-
-  // --- GPU Farm Section ---
-  const gpuCard = h('div', { class: 'card setting-group', 'data-accent': 'amber', style: 'grid-column: 1 / -1;' });
-  const gpuGridEl = h('div', { style: 'display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 10px;' });
-  const gpuList = [
-    { name: 'RTX 3090 #1', vram: '24 GB', model: 'FLUX2 Dev NVFP4', temp: 68, load: 94 },
-    { name: 'RTX 3090 #2', vram: '24 GB', model: 'FLUX2 Dev NVFP4', temp: 71, load: 91 },
-    { name: 'GTX 1080 Ti #1', vram: '11 GB', model: 'Z-Image Turbo', temp: 74, load: 88 },
-    { name: 'GTX 1080 Ti #2', vram: '11 GB', model: 'Z-Image Turbo', temp: 72, load: 85 },
-  ];
-  gpuList.forEach(gpu => gpuGridEl.appendChild(h('div', { class: 'card', style: 'padding: 12px; border: 1px solid var(--border);' },
-    h('div', { class: 'row between', style: 'margin-bottom: 8px;' },
-      h('span', { class: 'display', style: 'font-size: 11px; color: var(--amber);' }, gpu.name),
-      h('span', { class: 'label', style: 'opacity: 0.6;' }, gpu.vram)
-    ),
-    h('div', { class: 'label', style: 'margin-bottom: 8px;' }, gpu.model),
-    h('div', { class: 'row between', style: 'font-size: 11px; opacity: 0.7;' },
-      h('span', {}, `Load: ${gpu.load}%`), h('span', {}, `Temp: ${gpu.temp}°C`)
-    ),
-    h('div', { class: 'progress mono', style: 'margin-top: 6px; height: 4px;' },
-      h('div', { class: 'fill', style: `width: ${gpu.load}%; background: var(--amber);` })
-    )
-  )));
-  gpuCard.append(
-    h('div', { class: 'display', style: 'font-size: 12px; margin-bottom: 4px;' }, 'GPU Farm'),
-    h('div', { class: 'label', style: 'opacity: 0.5; margin-bottom: 8px;' }, '4 GPUs · 70 GB TOTAL VRAM · rendering only'),
-    gpuGridEl
-  );
-  grid.append(gpuCard);
+  grid.append(sparkCard);
 
   // --- Export Brain Section ---
   const exportCard = h('div', { class: 'card setting-group', 'data-accent': 'purple' });
@@ -1458,3 +1489,85 @@ function initMemoryGraph() {
 }
 
 document.addEventListener('DOMContentLoaded', boot);
+
+
+// Redesign Navigation Integration
+function navigate(id) {
+  // Update Sidebar UI (Redesign pattern)
+  document.querySelectorAll('.rail-item[data-view]').forEach(el => {
+    el.classList.toggle('active', el.dataset.view === id);
+  });
+  
+  // Update Crumbs
+  const item = NAV.find(n => n.id === id);
+  if (item && $('#crumbSection')) {
+      $('#crumbSection').textContent = item.label;
+  }
+
+  // Render View into the Redesign workspace container
+  const viewContainer = $('#view');
+  if (viewContainer) {
+    viewContainer.innerHTML = '';
+    const renderFunc = VIEWS[id] || VIEWS.home;
+    viewContainer.append(renderFunc());
+    viewContainer.style.animation = 'none';
+    void viewContainer.offsetWidth; // reflow
+    viewContainer.style.animation = '';
+  }
+
+  // Maintain compatibility with existing global state
+  activeTab = id; 
+
+  // Post-render hooks (preserving original logic)
+  if (id === 'home') { setTimeout(() => initHermesPanel($('#hermes-panel')), 30); }
+  if (id === 'renders') { 
+      setTimeout(() => initSparkWidget($('#spark-widget')), 30); 
+      setTimeout(() => initRenderGallery($('#render-gallery')), 30); 
+  }
+  if (id === 'memory') { setTimeout(initMemoryGraph, 30); }
+}
+
+// Compatibility Shim for old switchTab calls in existing code
+window.switchTab = function(name, updateHash = true) {
+    navigate(name);
+};
+
+function boot() {
+  // Initialize Sidebar Nav Items (Redesign pattern)
+  const railNav = $('#railNav');
+  if (railNav) {
+      railNav.innerHTML = ''; // Clear existing
+      NAV.forEach((n, i) => {
+          const el = document.createElement('div');
+          el.className = 'rail-item' + (n.id === activeTab ? ' active' : '');
+          el.dataset.view = n.id;
+          el.innerHTML = `
+            <span class="ico">${n.icon()}</span>
+            <span class="label">${n.label}</span>
+            ${n.meta ? `<span class="meta">${n.meta}</span>` : ''}
+          `;
+          el.addEventListener('click', () => navigate(n.id));
+          railNav.appendChild(el);
+      });
+  }
+
+  // Re-init original app logic (intensity, theme)
+  $$('.intensity-pill button').forEach(b => {
+    b.addEventListener('click', () => setIntensity(b.dataset.intensity));
+  });
+  
+  const themeBtn = $('#theme-toggle');
+  if (themeBtn) {
+      const isLight = localStorage.getItem('forge-theme') === 'light';
+      if (isLight) document.body.classList.add('light-mode');
+      themeBtn.addEventListener('click', () => {
+        const light = document.body.classList.toggle('light-mode');
+        localStorage.setItem('forge-theme', light ? 'light' : 'dark');
+      });
+  }
+
+  // Initial Load
+  navigate(activeTab);
+}
+
+window.addEventListener('DOMContentLoaded', boot);

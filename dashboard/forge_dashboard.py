@@ -1,6 +1,9 @@
 from pydantic import BaseModel
 import base64
 import os
+import re
+import random
+import shutil
 from pathlib import Path
 from core.bridge.kimi_vl_client import KimiVLClient
 from core.bridge.lmstudio_client import LMStudioClient
@@ -737,6 +740,188 @@ async def api_restart():
 
     threading.Thread(target=_delayed_exit, daemon=True).start()
     return {"status": "restarting", "message": "Server will restart in 1 second"}
+
+
+# --- Spark Stats ---
+
+@app.get("/api/spark/stats")
+async def api_spark_stats():
+    import httpx
+    host = os.getenv("COMFYUI_PRIMARY", "http://localhost:8188").rstrip("/")
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            r = await client.get(f"{host}/system_stats")
+            r.raise_for_status()
+            data = r.json()
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    system = data.get("system", {})
+    devices = data.get("devices", [])
+    gpu = devices[0] if devices else {}
+    ram_total = system.get("ram_total", 0)
+    ram_free = system.get("ram_free", 0)
+    vram_total = gpu.get("vram_total", 0)
+    vram_free = gpu.get("vram_free", 0)
+    def gb(b): return round(b / 1024**3, 1)
+    def pct(used, total): return round(used / total * 100) if total else 0
+    vram_used = vram_total - vram_free
+    ram_used = ram_total - ram_free
+    return {
+        "gpu_name": gpu.get("name", "Unknown"),
+        "vram_used_gb": gb(vram_used), "vram_total_gb": gb(vram_total), "vram_pct": pct(vram_used, vram_total),
+        "ram_used_gb": gb(ram_used), "ram_total_gb": gb(ram_total), "ram_pct": pct(ram_used, ram_total),
+        "comfyui_version": system.get("comfyui_version", ""),
+    }
+
+
+# --- Character Generation & Rendering ---
+
+_hermes_bridge = None
+
+def _get_hermes_bridge():
+    global _hermes_bridge
+    if _hermes_bridge is None:
+        from core.bridge.nous_hermes_bridge import NousHermesBridge
+        _hermes_bridge = NousHermesBridge()
+    return _hermes_bridge
+
+
+class GenerateCharacterRequest(BaseModel):
+    description: str
+
+
+@app.post("/api/hermes/generate-character")
+async def api_generate_character(req: GenerateCharacterRequest):
+    bridge = _get_hermes_bridge()
+    if not bridge.is_available:
+        raise HTTPException(status_code=503, detail="Hermes (LM Studio) is offline")
+    result = await bridge.generate_character(req.description)
+    if not result:
+        raise HTTPException(status_code=500, detail="Hermes failed to generate character")
+    return result
+
+
+class RenderCharacterRequest(BaseModel):
+    name: str
+    prompt: str
+    seed: Optional[int] = None
+
+
+@app.post("/api/characters/render")
+async def api_render_character(req: RenderCharacterRequest):
+    from core.dispatch.comfy_client import ComfyUIClient
+    import json as _json
+
+    workflow_path = Path("~/workflows/hermes_z_image_turbo_api.json")
+    if not workflow_path.exists():
+        workflow_path = Path(__file__).parent.parent / "workflows" / "z_image_turbo_api.json"
+    if not workflow_path.exists():
+        raise HTTPException(status_code=404, detail="No ComfyUI workflow file found")
+
+    with open(workflow_path, "r") as f:
+        workflow = _json.load(f)
+
+    seed = req.seed or random.randint(1, 999_999_999)
+    safe_name = re.sub(r'[^a-z0-9]+', '_', req.name.lower()).strip('_')
+    negative_markers = ["blurry,", "low quality,", "distorted,", "worst quality,", "deformed", "bad anatomy", "extra fingers", "watermark"]
+    prompt_block = workflow.get("prompt", workflow)
+    for node_id, node in prompt_block.items():
+        if not isinstance(node, dict):
+            continue
+        ct = node.get("class_type", "")
+        if ct == "CLIPTextEncode":
+            text = node.get("inputs", {}).get("text", "")
+            is_negative = len(text) < 200 and sum(1 for m in negative_markers if m in text.lower()) >= 2
+            if not is_negative:
+                prompt_block[node_id]["inputs"]["text"] = req.prompt
+        if ct in ("KSampler", "SamplerCustom", "SamplerCustomAdvanced") and "seed" in node.get("inputs", {}):
+            prompt_block[node_id]["inputs"]["seed"] = seed
+        if ct in ("RandomNoise", "FluxNoise") and "noise_seed" in node.get("inputs", {}):
+            prompt_block[node_id]["inputs"]["noise_seed"] = seed
+        if ct == "SaveImage":
+            prompt_block[node_id]["inputs"]["filename_prefix"] = f"char_{safe_name}"
+
+    client = ComfyUIClient("http://localhost:8188")
+    prompt_id = await client.submit_prompt(workflow)
+    if not prompt_id:
+        raise HTTPException(status_code=502, detail="ComfyUI submission failed")
+
+    filename = await client.poll_job(prompt_id, timeout_sec=300)
+    if not filename:
+        raise HTTPException(status_code=504, detail="Render timed out")
+
+    anchors_dir = Path(__file__).parent.parent / "data" / "character_banks" / "anchors"
+    anchors_dir.mkdir(parents=True, exist_ok=True)
+    saved = await client.download_outputs(prompt_id, str(anchors_dir))
+    if not saved:
+        raise HTTPException(status_code=500, detail="Image download from Spark failed")
+
+    dest = anchors_dir / f"{safe_name}.jpg"
+    shutil.copy(saved[0], str(dest))
+    return {"status": "complete", "anchor_url": f"/api/characters/anchor/{safe_name}", "prompt_id": prompt_id}
+
+
+@app.get("/api/characters/anchor/{name}")
+async def api_character_anchor(name: str):
+    safe_name = re.sub(r'[^a-z0-9]+', '_', name.lower()).strip('_')
+    anchors_dir = Path(__file__).parent.parent / "data" / "character_banks" / "anchors"
+    for ext in ['.jpg', '.jpeg', '.png', '.webp']:
+        img_path = anchors_dir / f"{safe_name}{ext}"
+        if img_path.exists():
+            return FileResponse(str(img_path))
+    raise HTTPException(status_code=404, detail=f"No anchor image for '{name}'")
+
+
+# --- Hermes Agent Profile Chat ---
+
+HERMES_PROFILES = {
+    "live": "Creative Director",
+    "character": "Character Architect",
+    "script": "Screenwriter",
+    "product": "Product Stylist",
+}
+
+HERMES_BIN = "python3"
+FORGE_HERMES_LAUNCHER = str(Path(__file__).parent.parent / "hermes_engine" / "hermes")
+FORGE_HERMES_HOME = str(Path(__file__).parent.parent / "hermes_home")
+
+
+class HermesProfileChatRequest(BaseModel):
+    message: str
+    profile: str = "live"
+
+
+@app.post("/api/hermes/profile/chat")
+async def api_hermes_profile_chat(req: HermesProfileChatRequest):
+    profile = req.profile if req.profile in HERMES_PROFILES else "live"
+    if not os.path.exists(FORGE_HERMES_LAUNCHER):
+        raise HTTPException(status_code=503, detail="Hermes engine not found")
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            HERMES_BIN, FORGE_HERMES_LAUNCHER, "-p", profile, "chat", "-Q", "-q", req.message,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            env={**os.environ, "HERMES_HOME": FORGE_HERMES_HOME, "HERMES_QUIET": "1", "NO_COLOR": "1"},
+        )
+        try:
+            stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=120.0)
+        except asyncio.TimeoutError:
+            proc.kill()
+            raise HTTPException(status_code=504, detail="Hermes response timed out")
+        output = stdout.decode("utf-8", errors="replace").strip()
+        if not output and stderr:
+            err = stderr.decode("utf-8", errors="replace").strip()
+            raise HTTPException(status_code=500, detail=f"Hermes error: {err[:300]}")
+        return {"profile": profile, "role": HERMES_PROFILES[profile], "response": output}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/hermes/profiles")
+async def api_hermes_profiles():
+    return [{"id": k, "role": v} for k, v in HERMES_PROFILES.items()]
 
 
 if __name__ == "__main__":
