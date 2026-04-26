@@ -34,3 +34,12 @@ data/reasoning_logs/
 .idea/
 data/hermes_memory/
 agents/agents/qa/venv/
+
+# Hermes auth
+hermes_home/auth.json
+hermes_home/auth.lock
+hermes_home/models_dev_cache.json
+
+# Hermes home caches
+hermes_home/profiles/character/skills/
+hermes_home/.skip_upstream_prompt

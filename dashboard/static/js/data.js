@@ -78,7 +78,10 @@ const STATUS_BADGE = {
   running: { label: 'RUNNING',   cls: 'b-amber'   },
   retry:   { label: 'RETRYING',  cls: 'b-amber'   },
   queued:  { label: 'QUEUED',    cls: 'b-cyan'    },
-  failed:  { label: 'FAILED',    cls: 'b-red'     }
+  failed:  { label: 'FAILED',    cls: 'b-red'     },
+  ready:   { label: 'READY',     cls: 'b-cyan'    },
+  PASS:    { label: 'PASS',      cls: 'b-green'   },
+  FAIL:    { label: 'FAIL',      cls: 'b-red'     },
 };
 
 const INSIGHTS = [
