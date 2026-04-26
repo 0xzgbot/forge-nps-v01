@@ -1,10 +1,22 @@
-from pydantic import BaseModel
+import json
+import uuid
+import time
+from datetime import datetime
+from typing import AsyncGenerator, List, Dict, Any, Optional
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query, HTTPException
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
 import base64
 import os
 import re
 import random
 import shutil
 from pathlib import Path
+import httpx
+from PIL import Image
+import io
+
+# ... (existing imports from top of file)
 from core.bridge.kimi_vl_client import KimiVLClient
 from core.bridge.lmstudio_client import LMStudioClient
 from core.bridge.config_manager import ConfigManager
@@ -12,13 +24,7 @@ from core.hermes.memory.episodic_memory import EpisodicMemory
 from core.hermes.memory.semantic_memory import SemanticMemory
 from core.skills.skill_registry import SkillRegistry
 import asyncio
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query, HTTPException
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, JSONResponse
-from typing import List, Dict, Any, Optional
-import json
-import uuid
-import time
+from pydantic import BaseModel
 
 from .memory_api import (
     get_memory_stats,
@@ -72,9 +78,113 @@ skills_registry = [
 
 # --- Endpoints ---
 
-@app.get("/")
-async def get_index():
-    return FileResponse(STATIC_DIR / "index.html")
+@app.post("/api/renders/audit-batch")
+async def api_renders_audit_batch():
+    """Performs a batch visual audit using local LM Studio Gemma 4 model."""
+    repo_root = Path(__file__).parent.parent
+    sienna_dir = repo_root / "dashboard" / "static" / "renders" / "sienna"
+    anchor_path = repo_root / "data" / "character_banks" / "anchors" / "elara_vance.jpg"
+    
+    lmstudio_host = os.getenv("LMSTUDIO_HOST", "http://100.74.164.1:1234")
+    vision_model = os.getenv("LMSTUDIO_VISION_MODEL", "gemma-4-26b-a4b-it")
+
+    if not sienna_dir.exists():
+        raise HTTPException(status_code=404, detail="Sienna renders directory not found.")
+    if not anchor_path.exists():
+        raise HTTPException(status_code=404, detail="Character anchor image not found.")
+
+    async def audit_generator() -> AsyncGenerator[str, None]:
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            # 1. Pre-encode Anchor
+            with Image.open(anchor_path) as img:
+                if img.mode != 'RGB': img = img.convert('RGB')
+                buffered = io.BytesIO()
+                img.save(buffered, format="JPEG")
+                anchor_b64 = base64.b64encode(buffered.getvalue()).decode('utf-8')
+
+            render_files = sorted([f for f in sienna_dir.iterdir() if f.suffix.lower() in (".png", ".jpg", ".jpeg")])
+            
+            for render_file in render_files:
+                try:
+                    # 2. Encode Render (with resizing)
+                    with Image.open(render_file) as img:
+                        if img.mode != 'RGB': img = img.convert('RGB')
+                        if img.width > 1024 or img.height > 1024:
+                            img.thumbnail((640, 640))
+                        buffered = io.BytesIO()
+                        img.save(buffered, format="JPEG")
+                        render_b64 = base64.b64encode(buffered.getvalue()).decode('utf-8')
+
+                    # 3. Construct Prompt
+                    prompt_text = (
+                        "Compare the two images provided. Image 1 is a character render. "
+                        "Image 2 is the official character reference for Elara Vance. "
+                        "Elara has platinum crop hair, amber/gold eyes, a charcoal flight jacket with copper piping on seams, "
+                        "and an ember-glow forearm tattoo. "
+                        "Does Image 1 maintain high visual consistency with Image 2? "
+                        "Respond ONLY with a JSON object in this format: "
+                        '{"is_consistent": boolean, "confidence": float (0.0-1.0), "issues": ["issue1", "issue2"]}'
+                    )
+
+                    # 4. Call LM Studio
+                    payload = {
+                        "model": vision_model,
+                        "messages": [
+                            {
+                                "role": "user",
+                                "content": [
+                                    {"type": "text", "text": prompt_text},
+                                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{render_b64}"}},
+                                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{anchor_b64}"}}
+                                ]
+                            }
+                        ],
+                        "temperature": 0.1,
+                        "max_tokens": 150
+                    }
+
+                    resp = await client.post(f"{lmstudio_host}/v1/chat/completions", json=payload)
+                    if resp.status_code != 200:
+                        raise Exception(f"LM Studio error: {resp.text}")
+
+                    raw_content = resp.json()['choices'][0]['message']['content']
+                    clean_json_str = re.sub(r'^```json\s*|```$', '', raw_content.strip(), flags=re.MULTILINE)
+                    verdict = json.loads(clean_json_str)
+
+                    # 5. Process Results
+                    confidence = float(verdict.get("confidence", 0.0))
+                    score = int(confidence * 100)
+                    status = "PASS" if confidence >= 0.75 else "FAIL"
+                    issues = verdict.get("issues", [])
+
+                    # 6. Persistence (Sidecar)
+                    sidecar_path = render_file.with_suffix(render_file.suffix + ".json")
+                    sidecar_data = {
+                        "score": score,
+                        "status": status,
+                        "issues": issues,
+                        "confidence": confidence,
+                        "timestamp": datetime.now().isoformat(),
+                        "prompt": f"Sienna Nomad — {render_file.stem}" 
+                    }
+                    with open(sidecar_path, "w", encoding="utf-8") as sf:
+                        json.dump(sidecar_data, sf, indent=2)
+
+                    # 7. Stream result back
+                    yield json.dumps({
+                        "filename": render_file.name,
+                        "status": status,
+                        "score": score,
+                        "error": None
+                    }) + "\n"
+
+                except Exception as e:
+                    yield json.dumps({
+                        "filename": render_file.name,
+                        "error": str(e)
+                    }) + "\n"
+
+    return StreamingResponse(audit_generator(), media_type="application/x-ndjson")
 
 @app.get("/memory")
 async def get_memory_page():
@@ -135,8 +245,6 @@ async def api_memory_consolidate():
         "insights": insights,
     }
 
-@app.get("/api/renders")
-
 @app.post("/api/queue/clear")
 async def api_queue_clear(req: ClearQueueRequest):
     """Cancels all pending jobs in the specified ComfyUI instance."""
@@ -155,6 +263,7 @@ async def api_queue_clear(req: ClearQueueRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/api/renders")
 async def api_renders():
     """Return available render thumbnails with metadata."""
     repo_root = Path(__file__).parent.parent
@@ -174,7 +283,7 @@ async def api_renders():
                     except Exception:
                         pass
                 results.append({
-                    "src": f"/static/renders/{f.name}",
+                    "src": f"/renders/{f.name}",
                     "prompt": meta.get("prompt", f.stem),
                     "score": meta.get("score", 0),
                     "status": meta.get("status", "ready"),
@@ -185,11 +294,19 @@ async def api_renders():
     if sienna_dir.exists():
         for f in sorted(sienna_dir.iterdir()):
             if f.suffix.lower() in (".png", ".jpg", ".jpeg", ".webp"):
+                sidecar = f.with_suffix(f.suffix + ".json")
+                meta = {"score": 0, "status": "unaudited", "prompt": f"Sienna Nomad — {f.stem}"}
+                if sidecar.exists():
+                    try:
+                        with open(sidecar, "r", encoding="utf-8") as mf:
+                            meta = json.load(mf)
+                    except Exception:
+                        pass
                 results.append({
                     "src": f"/static/renders/sienna/{f.name}",
-                    "prompt": f"Sienna Nomad — {f.stem}",
-                    "score": 88,
-                    "status": "PASS",
+                    "prompt": meta.get("prompt", f"Sienna Nomad — {f.stem}"),
+                    "score": meta.get("score", 0),
+                    "status": meta.get("status", "unaudited"),
                 })
     
     # Fallback mock data if no renders on disk
@@ -238,6 +355,14 @@ async def run_mock_stream(session_id: str):
 # --- Startup & Mounts ---
 
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+
+_data_renders_dir = Path(__file__).parent.parent / "data" / "renders"
+if _data_renders_dir.exists():
+    app.mount("/renders", StaticFiles(directory=str(_data_renders_dir)), name="data-renders")
+
+@app.get("/")
+async def root():
+    return FileResponse(STATIC_DIR / "index.html")
 
 
 
@@ -418,6 +543,136 @@ async def api_build_recipe(req: BuildRecipeRequest):
 class SubmitRecipeRequest(BaseModel):
     recipe: Dict[str, Any]
     workflow_name: str = "z_image_turbo_api.json"
+
+
+# --- In-memory shots store (seeded with demo data) ---
+_SHOTS_STORE: List[Dict[str, Any]] = [
+    {"id": "SHOT_001", "n": 1, "chars": ["Elara"], "status": "ready",
+     "prompt": "Elara Vance, emerald iris, auburn hair lit by amber forge glow, 3/4 portrait, shallow DOF",
+     "seed": 849271},
+    {"id": "SHOT_002", "n": 2, "chars": ["Elara", "Orin"], "status": "ready",
+     "prompt": "Elara and Orin in mechanist workshop, blue-steel tools, rim lighting, cinematic wide",
+     "seed": 849272},
+    {"id": "SHOT_003", "n": 3, "chars": ["Vex-09"], "status": "queued",
+     "prompt": "Vex-09 drone, neon city patrol, rain-slicked streets, lens flare, extreme low angle",
+     "seed": 849273},
+    {"id": "SHOT_004", "n": 4, "chars": ["Elara"], "status": "queued",
+     "prompt": "Elara reading schematics, overexposed window behind, moody contrast, close-up hands",
+     "seed": 849274},
+]
+
+
+class UpdateShotRequest(BaseModel):
+    shot_id: str
+    prompt: str
+
+class ReparseRequest(BaseModel):
+    path: str = ""
+
+
+@app.get("/api/shots")
+async def api_get_shots():
+    return _SHOTS_STORE
+
+
+@app.get("/api/scripts")
+async def api_list_scripts():
+    """Return all available script/bible files from disk."""
+    repo_root = Path(__file__).parent.parent
+    scripts = []
+
+    # Brand bibles from data/projects/*/brand_bible/BRAND_BIBLE.md
+    projects_dir = repo_root / "data" / "projects"
+    if projects_dir.exists():
+        for project_dir in sorted(projects_dir.iterdir()):
+            bible = project_dir / "brand_bible" / "BRAND_BIBLE.md"
+            if bible.exists():
+                scripts.append({
+                    "name": bible.name,
+                    "label": project_dir.name.replace("_", " ").title() + " — Brand Bible",
+                    "path": str(bible.relative_to(repo_root)),
+                    "type": "brand_bible",
+                })
+
+    return scripts
+
+
+@app.post("/api/script/reparse")
+async def api_script_reparse(req: ReparseRequest = None):
+    """Re-read shot list from a script file. Accepts optional path relative to repo root."""
+    repo_root = Path(__file__).parent.parent
+
+    if req and req.path:
+        # Sanitize — must stay inside repo root
+        candidate = (repo_root / req.path).resolve()
+        if not str(candidate).startswith(str(repo_root)):
+            raise HTTPException(status_code=400, detail="Invalid path")
+        script_path = candidate
+    else:
+        script_path = repo_root / "data" / "lore_bible" / "world_bible.md"
+
+    if not script_path.exists():
+        return {"status": "ok", "count": len(_SHOTS_STORE)}
+
+    text = script_path.read_text(encoding="utf-8")
+    shots_found = []
+    for i, line in enumerate(text.splitlines()):
+        if line.strip().startswith("## SHOT") or line.strip().startswith("### SHOT"):
+            parts = line.strip().lstrip("#").strip().split("—", 1)
+            shot_id = parts[0].strip().replace(" ", "_")
+            prompt = parts[1].strip() if len(parts) > 1 else "TBD"
+            shots_found.append({
+                "id": shot_id, "n": len(shots_found) + 1, "chars": [],
+                "status": "ready", "prompt": prompt,
+                "seed": random.randint(100000, 999999)
+            })
+    if shots_found:
+        _SHOTS_STORE.clear()
+        _SHOTS_STORE.extend(shots_found)
+    return {"status": "ok", "count": len(_SHOTS_STORE)}
+
+
+@app.post("/api/script/add-shot")
+async def api_script_add_shot():
+    n = len(_SHOTS_STORE) + 1
+    new_shot = {
+        "id": f"SHOT_{str(n).zfill(3)}",
+        "n": n, "chars": [], "status": "ready",
+        "prompt": "New shot — edit prompt here",
+        "seed": random.randint(100000, 999999)
+    }
+    _SHOTS_STORE.append(new_shot)
+    return new_shot
+
+
+@app.post("/api/script/update-shot")
+async def api_script_update_shot(req: UpdateShotRequest):
+    for shot in _SHOTS_STORE:
+        if shot["id"] == req.shot_id:
+            shot["prompt"] = req.prompt
+            return {"status": "ok"}
+    raise HTTPException(status_code=404, detail=f"Shot {req.shot_id} not found")
+
+
+@app.post("/api/shots/dispatch-all")
+async def api_shots_dispatch_all():
+    from core.dispatch.comfy_client import ComfyUIClient
+    client = ComfyUIClient("http://100.112.87.8:8188")
+    dispatched = []
+    errors = []
+    for shot in _SHOTS_STORE:
+        if shot["status"] in ("ready", "queued"):
+            try:
+                workflow = {"prompt": shot["prompt"], "seed": shot["seed"]}
+                prompt_id = await client.submit_prompt(workflow)
+                if prompt_id:
+                    shot["status"] = "dispatched"
+                    dispatched.append(shot["id"])
+                else:
+                    errors.append(shot["id"])
+            except Exception as e:
+                errors.append(f"{shot['id']}: {e}")
+    return {"dispatched": dispatched, "errors": errors}
 
 
 @app.post("/api/shots/dispatch")
