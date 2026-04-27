@@ -14,7 +14,9 @@ No external dependencies needed beyond urllib.
 
 import json
 import os
-from typing import Any, Dict, List, Optional
+import asyncio
+import httpx
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -67,6 +69,32 @@ class LMStudioClient:
                 return [m.get("id", "") for m in data.get("data", [])]
         except Exception as e:
             return []
+
+    async def auto_detect_model(self) -> Tuple[bool, List[str], str]:
+        """
+        Query /v1/models at startup. If models are found, auto-select the first
+        as chat_model (and embed_model if embed_model is empty).
+        Returns (success, model_list, selected_model).
+        """
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                resp = await client.get(f"{self.base_url}/v1/models")
+                if resp.status_code != 200:
+                    return (False, [], "")
+                data = resp.json()
+                models = [m.get("id", "") for m in data.get("data", [])]
+                models = [m for m in models if m]  # filter empty
+                if not models:
+                    return (False, [], "")
+                # Auto-select first model
+                selected = models[0]
+                if not self.chat_model:
+                    self.chat_model = selected
+                if not self.embed_model:
+                    self.embed_model = selected
+                return (True, models, selected)
+        except Exception:
+            return (False, [], "")
 
     # ------------------------------------------------------------------
     # Chat completions

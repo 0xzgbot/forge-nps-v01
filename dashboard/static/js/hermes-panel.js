@@ -82,12 +82,15 @@
     });
   }
 
+  let reconnectDelay = 3000;
+
   function connect() {
     if (ws) return;
     const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
     ws = new WebSocket(`${proto}//${location.host}/ws/hermes`);
     ws.onopen = () => {
       connected = true;
+      reconnectDelay = 3000;
       updateStatus();
     };
     ws.onmessage = (e) => {
@@ -102,7 +105,8 @@
       connected = false;
       updateStatus();
       ws = null;
-      setTimeout(connect, 3000);
+      setTimeout(connect, reconnectDelay);
+      reconnectDelay = Math.min(reconnectDelay * 1.5, 30000);
     };
     ws.onerror = () => {
       connected = false;
