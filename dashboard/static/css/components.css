@@ -432,16 +432,53 @@
 .tl-body .tl-type { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--amber); }
 .tl-body .tl-desc { font-size: 11px; color: var(--text-primary); margin-top: 3px; line-height: 1.5; }
 
-.insights { display: flex; flex-direction: column; gap: 10px; }
-.insight {
-  padding: 12px 14px;
-  background: rgba(189,0,255,0.04);
-  border: 1px solid rgba(189,0,255,0.25);
-  border-radius: var(--r-sm);
+/* ---------- Memory Rulebook ---------- */
+.rulebook {
   display: flex; flex-direction: column; gap: 8px;
+  max-height: 420px; overflow-y: auto; padding-right: 4px;
 }
-.insight .rule { font-size: 12px; color: var(--text-primary); line-height: 1.5; }
-.insight .meta { display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: var(--text-dim); letter-spacing: 0.14em; }
+.rulebook::-webkit-scrollbar { width: 4px; }
+.rulebook::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.rule-entry {
+  padding: 10px 12px;
+  background: rgba(189,0,255,0.03);
+  border: 1px solid rgba(189,0,255,0.2);
+  border-radius: var(--r-sm);
+  display: flex; flex-direction: column; gap: 6px;
+  animation: fadeInRule 0.4s ease;
+}
+@keyframes fadeInRule {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.rule-header {
+  display: flex; align-items: center; gap: 6px; justify-content: space-between;
+}
+.rule-label {
+  font-size: 12px; color: var(--text-primary); line-height: 1.45; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.rule-kernel {
+  font-size: 9px; letter-spacing: 0.12em; color: var(--purple); background: rgba(189,0,255,0.12); padding: 2px 6px; border-radius: 3px; white-space: nowrap; flex-shrink: 0;
+}
+.rule-pass-tag { color: var(--green); background: rgba(0,255,65,0.12); }
+.rule-fail-tag { color: var(--red); background: rgba(255,75,75,0.12); }
+
+.rule-body { display: flex; flex-direction: column; gap: 4px; }
+
+.rule-confidence-row { display: flex; align-items: center; gap: 6px; }
+.rule-conf-bar {
+  height: 3px; background: var(--border); border-radius: 999px; overflow: hidden; flex: 1; min-width: 0;
+}
+.rule-conf-bar > .fill { height: 100%; background: linear-gradient(90deg, var(--purple), var(--cyan)); box-shadow: 0 0 6px rgba(189,0,255, calc(0.4 * var(--glow-strength))); transition: width 0.3s ease; }
+.rule-conf-text { font-size: 10px; color: var(--text-secondary); font-family: var(--font-mono); white-space: nowrap; min-width: 32px; text-align: right; }
+
+.rule-meta-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.rule-confirm-badge { font-size: 9px; color: var(--amber); background: rgba(255,191,0,0.1); padding: 1px 5px; border-radius: 3px; letter-spacing: 0.06em; }
+.rule-age { font-size: 9px; color: var(--text-dim); letter-spacing: 0.08em; }
+.rule-error-tag { font-size: 9px; color: var(--red); background: rgba(255,75,75,0.1); padding: 1px 5px; border-radius: 3px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 .confidence-bar {
   height: 4px; background: var(--border); border-radius: 999px; overflow: hidden; width: 100%;
 }
@@ -714,20 +751,43 @@
   display: block;
   object-fit: contain;
 }
-.renders-badge {
+/* ---------- Audit Score Badges on Render Tiles ---------- */
+.audit-chip {
   position: absolute;
-  top: 6px;
-  right: 6px;
-  font-size: 9px;
-  font-weight: 700;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 7px;
+  border-radius: 4px;
   font-family: var(--font-mono);
-  padding: 2px 6px;
-  border-radius: 3px;
-  background: rgba(0,0,0,0.7);
-  color: var(--green);
-  letter-spacing: 0.05em;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  z-index: 2;
+  backdrop-filter: blur(4px);
 }
-.renders-badge.fail { color: var(--error); }
+.audit-chip.pass {
+  background: rgba(0, 255, 65, 0.18);
+  border: 1px solid rgba(0, 255, 65, 0.45);
+  color: #00FF41;
+}
+.audit-chip.fail {
+  background: rgba(255, 75, 75, 0.18);
+  border: 1px solid rgba(255, 75, 75, 0.45);
+  color: #FF4B4B;
+}
+.audit-chip.unaudited {
+  background: rgba(0, 0, 0, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--text-secondary);
+}
+.audit-score {
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1;
+}
 
 /* ---------- Render Gallery (real thumbnails, legacy) ---------- */
 .render-grid-real {
@@ -991,4 +1051,181 @@
 .model-dropdown {
   flex: 1;
   min-width: 200px;
+}
+
+/* ---------- Toast Notifications ---------- */
+.toast-container {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.toast {
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  animation: slideIn 0.2s ease;
+  max-width: 360px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  border: 1px solid var(--border);
+  background: var(--bg-elev, #222226);
+  color: var(--text, #F5F5F7);
+  pointer-events: auto;
+  transition: opacity 0.3s ease;
+}
+
+.toast-success {
+  border-color: rgba(0, 255, 65, 0.3);
+  background: rgba(0, 255, 65, 0.08);
+}
+
+.toast-error {
+  border-color: rgba(255, 69, 58, 0.3);
+  background: rgba(255, 69, 58, 0.08);
+}
+
+.toast-warning {
+  border-color: rgba(255, 191, 0, 0.3);
+  background: rgba(255, 191, 0, 0.08);
+}
+
+.toast-info {
+  border-color: rgba(10, 132, 255, 0.3);
+  background: rgba(10, 132, 255, 0.08);
+}
+
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+/* ---------- Loading Overlay ---------- */
+.loading-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 14, 20, 0.8);
+  z-index: 100;
+  border-radius: 4px;
+}
+
+.loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ---------- Modal Overlay ---------- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-content {
+  background: var(--bg-panel, #222226);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 24px;
+  width: 90%;
+  max-width: 500px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.modal-content h3 {
+  margin-bottom: 12px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+/* ---------- Search Overlay ---------- */
+.search-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 9998;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 15vh;
+}
+
+.search-result {
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  border-bottom: 1px solid var(--border);
+  transition: background 150ms ease;
+}
+
+.search-result:hover {
+  background: var(--bg-row-hover);
+}
+
+/* ---------- Settings Container ---------- */
+.settings-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.settings-container .card.setting-group {
+  max-width: 100%;
+}
+
+/* ---------- Length Selector ---------- */
+.length-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.length-btn {
+  padding: 6px 16px;
+  border: 1px solid var(--border, #2A3A4F);
+  background: var(--bg, #0A0E14);
+  color: var(--text-secondary, #8B949E);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.length-btn:hover {
+  background: var(--bg-secondary, #0D1420);
+  color: var(--text, #E6EDF3);
+}
+
+.length-btn.active {
+  background: rgba(0, 212, 255, 0.15);
+  border-color: var(--cyan, #00D4FF);
+  color: var(--cyan, #00D4FF);
 }

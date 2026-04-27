@@ -149,7 +149,11 @@ class KimiBridge:
         context_files: list[str] = None,
         retry_on_validation_error: bool = True,
         task_description: Optional[str] = None,
-        has_visuals: bool = False
+        has_visuals: bool = False,
+        model_name=None,
+        temperature=None,
+        max_tokens=2048,
+        json_mode=False
     ) -> Dict[str, Any]:
         """
         The primary entry point for the 'Director' role. 
@@ -165,7 +169,13 @@ class KimiBridge:
                     logger.error(f"Failed to read context file {file_path}: {e}")
 
         full_prompt = f"{context_text}\n\n{user_input}"
-        return await self._execute_request(system_prompt, full_prompt, schema, retry_on_validation_error, task_description=task_description, has_visuals=has_visuals)
+        json_payload = {"response_format": {"type": "json_object"}} if json_mode else None
+        kwargs_for_execute = {"retry_on_validation_error": retry_on_validation_error, "task_description": task_description, "has_visuals": has_visuals}
+        if model_name is not None:
+            kwargs_for_execute["model_name_override"] = model_name
+        if temperature is not None:
+            kwargs_for_execute["temp_override"] = temperature
+        result = await self._execute_request(system_prompt, full_prompt, schema=schema, **kwargs_for_execute)
 
     async def direct_with_narrative(
         self,
@@ -319,7 +329,9 @@ class KimiBridge:
         retry_on_validation_error: bool = True,
         is_retry: bool = False,
         task_description: Optional[str] = None,
-        has_visuals: bool = False
+        has_visuals: bool = False,
+        model_name_override: Optional[str] = None,
+        temp_override: Optional[float] = None
     ) -> Dict[str, Any]:
         from core.bridge.kimi_model_router import KimiModelRouter
         
@@ -331,12 +343,12 @@ class KimiBridge:
         logger.info(f"Routing request to {tier.value} ({model_name})")
         
         payload = {
-            "model": model_name,
+            "model": model_name_override or model_name,
             "messages": [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_input}
             ],
-            "temperature": 0.2 if tier != ModelTier.INSTRUCT else 0.7,
+            "temperature": temp_override if temp_override is not None else (0.2 if tier != ModelTier.INSTRUCT else 0.7),
             "chat_template_kwargs": {"thinking": False}
         }
         

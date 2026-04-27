@@ -72,7 +72,8 @@
         }, 400);
       }
     } catch (e) {
-      results.innerHTML = `<div class="label" style="color: var(--red);">Error: ${e.message}</div>`;
+      results.innerHTML = '';
+      results.appendChild(h('div', { class: 'label', style: 'color: var(--red);' }, 'Error: ' + String(e.message)));
     }
 
     btn.textContent = '▶ Run Teach Cycle';

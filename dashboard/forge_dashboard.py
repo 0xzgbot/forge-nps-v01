@@ -3,8 +3,9 @@ import uuid
 import time
 from datetime import datetime
 from typing import AsyncGenerator, List, Dict, Any, Optional
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query, HTTPException
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query, HTTPException, UploadFile, Form
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
+
 from fastapi.staticfiles import StaticFiles
 import base64
 import os
@@ -212,6 +213,12 @@ async def api_memory_stats():
     """Memory statistics for dashboard cards."""
     return get_memory_stats()
 
+
+@app.get("/api/stats")
+async def api_stats():
+    """Alias for /api/memory/stats — used by home view."""
+    return get_memory_stats()
+
 @app.get("/api/memory/timeline")
 async def api_memory_timeline(limit: int = Query(50, ge=1, le=200)):
     """Recent episodic events formatted for timeline display."""
@@ -308,7 +315,59 @@ async def api_renders():
                     "score": meta.get("score", 0),
                     "status": meta.get("status", "unaudited"),
                 })
-    
+
+    # Scan campaigns folder recursively
+    campaigns_root = repo_root / "data" / "campaigns"
+    if campaigns_root.exists():
+        for campaign_dir in sorted(campaigns_root.iterdir()):
+            if campaign_dir.is_dir():
+                campaign_name = campaign_dir.name
+                # Recursively find all images in this campaign
+                for f in sorted(campaign_dir.rglob("*")):
+                    if f.is_file() and f.suffix.lower() in (".png", ".jpg", ".jpeg", ".webp"):
+                        meta_path = f.with_suffix(f.suffix + ".json")
+                        meta = {"score": 0, "status": "ready", "prompt": f.stem}
+                        if meta_path.exists():
+                            try:
+                                with open(meta_path, "r", encoding="utf-8") as mf:
+                                    meta = json.load(mf)
+                            except Exception:
+                                pass
+                        rel = f.relative_to(campaigns_root)
+                        results.append({
+                            "src": f"/campaigns/{rel}",
+                            "prompt": meta.get("prompt", f.stem),
+                            "score": meta.get("score", 0),
+                            "status": meta.get("status", "ready"),
+                            "campaign": campaign_name,
+                        })
+
+    # Scan renders/campaigns folder recursively (data/renders/campaigns/**/*.png)
+    renders_campaign_root = repo_root / "data" / "renders" / "campaigns"
+    if renders_campaign_root.exists():
+        for campaign_dir in sorted(renders_campaign_root.iterdir()):
+            if not campaign_dir.is_dir():
+                continue
+            # Also scan nested sub-campaigns recursively
+            for f in sorted(campaign_dir.rglob("*")):
+                if f.is_file() and f.suffix.lower() in (".png", ".jpg", ".jpeg", ".webp"):
+                    meta_path = f.with_suffix(f.suffix + ".json")
+                    meta = {"score": 0, "status": "ready", "prompt": f.stem}
+                    if meta_path.exists():
+                        try:
+                            with open(meta_path, "r", encoding="utf-8") as mf:
+                                meta = json.load(mf)
+                        except Exception:
+                            pass
+                    rel = f.relative_to(renders_campaign_root)
+                    results.append({
+                        "src": f"/renders/campaigns/{rel}",
+                        "prompt": meta.get("prompt", f.stem),
+                        "score": meta.get("score", 0),
+                        "status": meta.get("status", "ready"),
+                        "campaign": campaign_dir.name,
+                    })
+
     # Fallback mock data if no renders on disk
     if not results:
         results = [
@@ -359,6 +418,11 @@ app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 _data_renders_dir = Path(__file__).parent.parent / "data" / "renders"
 if _data_renders_dir.exists():
     app.mount("/renders", StaticFiles(directory=str(_data_renders_dir)), name="data-renders")
+
+# Serve campaigns folder for render outputs
+_campaigns_dir = Path(__file__).parent.parent / "data" / "campaigns"
+_campaigns_dir.mkdir(parents=True, exist_ok=True)
+app.mount("/campaigns", StaticFiles(directory=str(_campaigns_dir)), name="campaigns")
 
 @app.get("/")
 async def root():
@@ -599,7 +663,8 @@ async def api_list_scripts():
 
 @app.post("/api/script/reparse")
 async def api_script_reparse(req: ReparseRequest = None):
-    """Re-read shot list from a script file. Accepts optional path relative to repo root."""
+    """Re-read shot list from a script file. Accepts optional path relative to repo root.
+    Uses Kimi to extract shots from brand bibles when available, falls back to regex."""
     repo_root = Path(__file__).parent.parent
 
     if req and req.path:
@@ -615,6 +680,17 @@ async def api_script_reparse(req: ReparseRequest = None):
         return {"status": "ok", "count": len(_SHOTS_STORE)}
 
     text = script_path.read_text(encoding="utf-8")
+
+    # Try Kimi-powered parsing first
+    kimi_shots = await _parse_shots_with_kimi(text, str(script_path))
+    if kimi_shots:
+        _SHOTS_STORE.clear()
+        _SHOTS_STORE.extend(kimi_shots)
+        # Persist shots to disk
+        _persist_shots(script_path, kimi_shots)
+        return {"status": "parsed_by_kimi", "count": len(_SHOTS_STORE), "parser": "kimi"}
+
+    # Fallback: regex-based parsing for ## SHOT headers
     shots_found = []
     for i, line in enumerate(text.splitlines()):
         if line.strip().startswith("## SHOT") or line.strip().startswith("### SHOT"):
@@ -629,7 +705,212 @@ async def api_script_reparse(req: ReparseRequest = None):
     if shots_found:
         _SHOTS_STORE.clear()
         _SHOTS_STORE.extend(shots_found)
-    return {"status": "ok", "count": len(_SHOTS_STORE)}
+    return {"status": "ok", "count": len(_SHOTS_STORE), "parser": "regex"}
+
+
+KIMI_SHOT_PARSER_SYSTEM = """You are a cinematic shot list extractor for an AI filmmaking pipeline.
+Given a brand bible or creative brief, extract individual shots as a JSON array.
+
+Rules:
+- Extract every visual scene, character moment, or product shot implied by the text
+- Each shot must have: id, n (sequential number), chars (array of character names), status, prompt, seed
+- The prompt must be a complete, self-contained image generation prompt (1-2 sentences)
+- Include camera direction, lighting, composition details
+- Derive character names from the text; use empty array if none mentioned
+- Seed is a random integer between 100000 and 999999
+- Status is always "ready"
+- IDs follow format SHOT_001, SHOT_002, etc.
+- Generate 8-15 shots unless the source material clearly dictates fewer
+
+Return ONLY a JSON array. No markdown, no explanation."""
+
+
+async def _parse_shots_with_kimi(bible_text: str, source_path: str) -> Optional[List[Dict[str, Any]]]:
+    """Send brand bible to Kimi for shot extraction."""
+    cm = ConfigManager()
+    api_key = cm.get_kimi_api_key()
+    if not api_key or api_key == "dummy_key":
+        return None
+
+    endpoint = cm.get("KIMI_ENDPOINT", "") or cm.get_nim_endpoint()
+    if not endpoint:
+        endpoint = "https://integrate.api.nvidia.com/v1/chat/completions"
+    # Ensure endpoint has /chat/completions path
+    if not endpoint.endswith("/chat/completions"):
+        endpoint = endpoint.rstrip("/") + "/chat/completions"
+
+    user_prompt = f"""Extract a complete shot list from the following creative brief/brand bible.
+
+--- SOURCE DOCUMENT ---
+{bible_text}
+--- END SOURCE ---
+
+Return a JSON array of shot objects."""
+
+    payload = {
+        "model": cm.get("KIMI_INSTRUCT_MODEL", "moonshotai/kimi-k2.5"),
+        "messages": [
+            {"role": "system", "content": KIMI_SHOT_PARSER_SYSTEM},
+            {"role": "user", "content": user_prompt}
+        ],
+        "temperature": 0.7,
+        "response_format": {"type": "json_object"}
+    }
+
+    try:
+        # Ensure API key is ASCII-safe for HTTP headers
+        safe_key = api_key.encode("ascii", "ignore").decode("ascii")
+        if not safe_key:
+            return None
+
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            response = await client.post(
+                endpoint,
+                headers={"Authorization": f"Bearer {safe_key}", "Content-Type": "application/json"},
+                json=payload
+            )
+            response.raise_for_status()
+            data = response.json()
+            content_str = data["choices"][0]["message"]["content"]
+
+            # Parse JSON — strip markdown fences if present
+            raw = content_str.strip()
+            if raw.startswith("```"):
+                raw = raw.split("```")[1]
+                if raw.startswith("json"):
+                    raw = raw[4:]
+            shots = json.loads(raw.strip())
+
+            if not isinstance(shots, list):
+                shots = shots.get("shots", []) if isinstance(shots, dict) else []
+
+            # Normalize each shot
+            normalized = []
+            for i, s in enumerate(shots):
+                normalized.append({
+                    "id": s.get("id", f"SHOT_{str(i+1).zfill(3)}"),
+                    "n": s.get("n", i + 1),
+                    "chars": s.get("chars", []),
+                    "status": "ready",
+                    "prompt": s.get("prompt", "TBD"),
+                    "seed": s.get("seed", random.randint(100000, 999999))
+                })
+
+            return normalized if normalized else None
+
+    except Exception as e:
+        print(f"WARNING: Kimi shot parsing failed, falling back to regex: {e}")
+        return None
+
+
+def _persist_shots(source_path: Path, shots: List[Dict[str, Any]]) -> None:
+    """Persist shots to data/projects/{project}/shots.json alongside the source bible."""
+    try:
+        source_dir = source_path.parent
+        shots_path = source_dir / "shots.json"
+        with open(shots_path, "w") as f:
+            json.dump(shots, f, indent=2)
+    except Exception as e:
+        # Also try project-level directory
+        try:
+            shots_path = source_path.parent.parent / "shots.json"
+            with open(shots_path, "w") as f:
+                json.dump(shots, f, indent=2)
+        except Exception:
+            pass
+
+
+class ParseScriptRequest(BaseModel):
+    path: str = ""
+    use_kimi: bool = True
+
+
+@app.post("/api/script/parse-with-kimi")
+async def api_parse_with_kimi(req: ParseScriptRequest = None):
+    """Explicitly parse a brand bible with Kimi to extract shots.
+    Returns detailed status including whether Kimi was used."""
+    repo_root = Path(__file__).parent.parent
+    use_kimi = (req and req.use_kimi) if req else True
+
+    if req and req.path:
+        candidate = (repo_root / req.path).resolve()
+        if not str(candidate).startswith(str(repo_root)):
+            raise HTTPException(status_code=400, detail="Invalid path")
+        script_path = candidate
+    else:
+        script_path = repo_root / "data" / "lore_bible" / "world_bible.md"
+
+    if not script_path.exists():
+        raise HTTPException(status_code=404, detail=f"Script not found: {script_path}")
+
+    text = script_path.read_text(encoding="utf-8")
+
+    if use_kimi:
+        kimi_shots = await _parse_shots_with_kimi(text, str(script_path))
+        if kimi_shots:
+            _SHOTS_STORE.clear()
+            _SHOTS_STORE.extend(kimi_shots)
+            _persist_shots(script_path, kimi_shots)
+            return {
+                "status": "parsed_by_kimi",
+                "count": len(_SHOTS_STORE),
+                "parser": "kimi",
+                "source": str(script_path.name),
+                "shots": kimi_shots
+            }
+
+    # Fallback: regex-based parsing
+    shots_found = []
+    for i, line in enumerate(text.splitlines()):
+        if line.strip().startswith("## SHOT") or line.strip().startswith("### SHOT"):
+            parts = line.strip().lstrip("#").strip().split("—", 1)
+            shot_id = parts[0].strip().replace(" ", "_")
+            prompt = parts[1].strip() if len(parts) > 1 else "TBD"
+            shots_found.append({
+                "id": shot_id, "n": len(shots_found) + 1, "chars": [],
+                "status": "ready", "prompt": prompt,
+                "seed": random.randint(100000, 999999)
+            })
+
+    if shots_found:
+        _SHOTS_STORE.clear()
+        _SHOTS_STORE.extend(shots_found)
+
+    return {
+        "status": "parsed_by_regex" if shots_found else "no_shots_found",
+        "count": len(_SHOTS_STORE),
+        "parser": "regex",
+        "source": str(script_path.name),
+        "shots": shots_found if shots_found else _SHOTS_STORE
+    }
+
+
+@app.post("/api/script/load-shots")
+async def api_load_shots(req: ReparseRequest = None):
+    """Load persisted shots from disk (shots.json alongside the bible)."""
+    repo_root = Path(__file__).parent.parent
+
+    if req and req.path:
+        candidate = (repo_root / req.path).resolve()
+        if not str(candidate).startswith(str(repo_root)):
+            raise HTTPException(status_code=400, detail="Invalid path")
+        script_path = candidate
+    else:
+        script_path = repo_root / "data" / "lore_bible" / "world_bible.md"
+
+    # Look for shots.json next to the bible or in parent dir
+    for shots_path in [
+        script_path.parent / "shots.json",
+        script_path.parent.parent / "shots.json"
+    ]:
+        if shots_path.exists():
+            with open(shots_path) as f:
+                shots = json.load(f)
+            _SHOTS_STORE.clear()
+            _SHOTS_STORE.extend(shots)
+            return {"status": "loaded", "count": len(_SHOTS_STORE), "source": str(shots_path.name)}
+
+    return {"status": "no_persisted_shots", "count": len(_SHOTS_STORE)}
 
 
 @app.post("/api/script/add-shot")
@@ -747,6 +1028,483 @@ async def api_submit_recipe(req: SubmitRecipeRequest):
         return {"status": "queued", "prompt_id": prompt_id, "recipe": req.recipe}
     else:
         raise HTTPException(status_code=502, detail="ComfyUI submission failed")
+
+
+class InjectPromptRequest(BaseModel):
+    """Request to inject a Hermes-generated prompt into a ComfyUI workflow node."""
+    prompt: str = ""
+    node_id: str = "6"  # Default to node "6" (CLIPTextEncode)
+    workflow_name: str = "default.json"
+    comfy_url: str = "http://localhost:8188"
+    filename: str = "FORGE"
+    seed: int = 42
+
+
+@app.post("/api/inject-prompt")
+async def api_inject_prompt(req: InjectPromptRequest):
+    """
+    Wire Hermes prompt -> ComfyUI workflow node injection before dispatch.
+    Loads the named workflow, injects the prompt into the specified node,
+    injects seed into sampler nodes, then submits to ComfyUI.
+    """
+    from core.dispatch.comfy_client import ComfyUIClient
+    import json as _json
+
+    workflow_path = Path(__file__).parent.parent / "workflows" / req.workflow_name
+    if not workflow_path.exists():
+        workflow_path = Path(__file__).parent.parent / "workflows" / (req.workflow_name + ".json")
+    if not workflow_path.exists():
+        raise HTTPException(status_code=404, detail=f"Workflow not found: {req.workflow_name}")
+
+    with open(workflow_path, "r", encoding="utf-8") as f:
+        workflow = _json.load(f)
+
+    prompt_block = workflow.get("prompt", workflow)
+
+    # Inject prompt into the target node (default "6")
+    target = str(req.node_id)
+    if target in prompt_block:
+        node = prompt_block[target]
+        if isinstance(node, dict):
+            node["inputs"]["text"] = req.prompt
+            print(f"[FORGE] Injected prompt into node {target}: {req.prompt[:80]}...")
+    else:
+        # Fallback: inject into first CLIPTextEncode that isn't negative
+        for nid, node in prompt_block.items():
+            if isinstance(node, dict) and node.get("class_type") == "CLIPTextEncode":
+                text = node.get("inputs", {}).get("text", "")
+                neg_markers = ["blurry,", "low quality,", "worst quality", "deformed"]
+                if sum(1 for m in neg_markers if m in text.lower()) < 2:
+                    node["inputs"]["text"] = req.prompt
+                    print(f"[FORGE] Injected prompt into fallback node {nid}")
+                    break
+
+    # Inject seed into sampler nodes
+    for nid, node in prompt_block.items():
+        if isinstance(node, dict):
+            ct = node.get("class_type", "")
+            if ct in ("KSampler", "SamplerCustom", "SamplerCustomAdvanced"):
+                if "seed" in node.get("inputs", {}):
+                    prompt_block[nid]["inputs"]["seed"] = req.seed
+            if ct in ("RandomNoise", "FluxNoise"):
+                if "noise_seed" in node.get("inputs", {}):
+                    prompt_block[nid]["inputs"]["noise_seed"] = req.seed
+            if ct == "SaveImage":
+                prompt_block[nid]["inputs"]["filename_prefix"] = req.filename
+
+    # Submit to ComfyUI
+    client = ComfyUIClient(req.comfy_url)
+    prompt_id = await client.submit_prompt(workflow)
+
+    if prompt_id:
+        spark_monitor.add_job({"prompt": req.prompt, "seed": req.seed}, prompt_id, req.filename)
+        await emit_hermes_event("prompt_injected", {
+            "node_id": req.node_id,
+            "prompt_id": prompt_id,
+            "filename": req.filename,
+            "prompt_preview": req.prompt[:100],
+        })
+        return {"status": "queued", "prompt_id": prompt_id, "node_id": req.node_id}
+    else:
+        raise HTTPException(status_code=502, detail="ComfyUI submission failed")
+
+
+class RenderRequest(BaseModel):
+    """Full render pipeline: inject prompt, submit, poll, download, save."""
+    prompt: str = ""
+    node_id: str = "6"
+    workflow_name: str = "default.json"
+    comfy_url: str = "http://localhost:8188"
+    campaign: str = "default"
+    filename: str = "FORGE"
+    seed: int = 42
+    poll_timeout: int = 300
+    audit: bool = True  # Run Kimi-VL audit after render
+
+
+class AuditRenderRequest(BaseModel):
+    """Audit a specific render with Kimi-VL."""
+    image_path: str = ""
+    prompt: str = ""
+    campaign: str = "default"
+
+
+async def audit_render_with_kimi_vl(image_path: str, prompt: str = "", campaign: str = "default"):
+    """
+    Run Kimi-VL audit on a rendered image.
+    Returns audit result dict with score, passed, feedback.
+    """
+    from pydantic import BaseModel, Field
+    from core.bridge.kimi_vl_client import KimiVLClient
+
+    class AuditResult(BaseModel):
+        score: int = Field(0, description="Quality score 0-100")
+        passed: bool = Field(True, description="Whether the render passed quality checks")
+        feedback: str = Field("", description="Human-readable feedback")
+        issues: list = Field(default_factory=list, description="List of detected issues")
+
+    system_prompt = (
+        "You are a visual quality auditor for AI-generated images. "
+        "Evaluate the image for: composition, lighting, character consistency, "
+        "artifact detection, prompt adherence, and overall cinematic quality. "
+        "Be strict but fair. Score 0-100."
+    )
+
+    user_prompt = (
+        f"Audit this rendered image. "
+        f"Original prompt: {prompt[:200] if prompt else 'N/A'} "
+        f"Campaign: {campaign}. "
+        "Return a JSON object with score (0-100), passed (boolean), "
+        "feedback (string), and issues (array of strings)."
+    )
+
+    try:
+        client = KimiVLClient()
+        result = await client.analyze_visuals(
+            image_path=image_path,
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            schema=AuditResult,
+            task_description=f"Audit render for campaign {campaign}"
+        )
+        print(f"[FORGE] [KIMI-VL] Audit result: score={result.get('score', 'N/A')}, passed={result.get('passed', 'N/A')}")
+        return result
+    except Exception as e:
+        print(f"[FORGE] [KIMI-VL] Audit failed: {e}")
+        return {
+            "score": 0,
+            "passed": False,
+            "feedback": f"Audit failed: {str(e)}",
+            "issues": [str(e)],
+            "error": True,
+        }
+
+
+async def write_audit_to_memory(audit_result: dict, image_path: str, prompt: str = "", campaign: str = "default"):
+    """
+    Write audit result to episodic memory (events.jsonl) and emit [MEM] event.
+    """
+    import uuid
+    from datetime import datetime
+
+    repo_root = Path(__file__).parent.parent
+    episodic_dir = repo_root / "data" / "hermes_memory" / "episodic"
+    episodic_dir.mkdir(parents=True, exist_ok=True)
+    events_path = episodic_dir / "events.jsonl"
+
+    event = {
+        "event_id": f"audit_{uuid.uuid4().hex[:8]}",
+        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "event_type": "audit_outcome",
+        "session_id": campaign,
+        "shot_id": Path(image_path).stem if image_path else "",
+        "concept": prompt[:80] if prompt else "render_audit",
+        "success": audit_result.get("passed", False),
+        "audit_score": audit_result.get("score", 0),
+        "error_category": "quality_fail" if not audit_result.get("passed") else "none",
+        "fix_applied": "",
+        "iterations_required": 1,
+        "feedback": audit_result.get("feedback", ""),
+        "issues": audit_result.get("issues", []),
+        "image_path": image_path,
+    }
+
+    # Append to events.jsonl
+    with open(events_path, "a", encoding="utf-8") as f:
+        f.write(json.dumps(event) + "\n")
+
+    print(f"[FORGE] [MEM] Written audit to memory: {event['event_id']} (score={event['audit_score']})")
+
+    # Emit [MEM] event
+    await emit_hermes_event("memory_written", {
+        "concept": f"Audit: {prompt[:50] if prompt else 'render'}",
+        "event_id": event["event_id"],
+        "score": event["audit_score"],
+        "passed": event["success"],
+        "feedback": event["feedback"][:100],
+    })
+
+    return event
+
+
+@app.post("/api/render/audit")
+async def api_render_audit(req: AuditRenderRequest):
+    """Audit a specific render with Kimi-VL and stream result."""
+    result = await audit_render_with_kimi_vl(req.image_path, req.prompt, req.campaign)
+    # Stream [KIMI-VL] result via WebSocket
+    await emit_hermes_event("kimi_vl_audit", {
+        "image_path": req.image_path,
+        "campaign": req.campaign,
+        "score": result.get("score", 0),
+        "passed": result.get("passed", False),
+        "feedback": result.get("feedback", ""),
+        "issues": result.get("issues", []),
+    })
+    # Write to memory
+    mem = await write_audit_to_memory(result, req.image_path, req.prompt, req.campaign)
+    return {"audit": result, "memory": mem}
+
+
+@app.post("/api/render")
+async def api_render(req: RenderRequest):
+    """
+    Full render pipeline:
+    1. Load workflow, inject prompt into node (default "6")
+    2. Submit to ComfyUI
+    3. Poll for completion
+    4. Download PNG
+    5. Save to data/campaigns/{campaign}/
+    6. Emit render_complete event with image path
+    """
+    from core.dispatch.comfy_client import ComfyUIClient
+    import json as _json
+
+    # --- Step 1: Load workflow & inject prompt ---
+    workflow_path = Path(__file__).parent.parent / "workflows" / req.workflow_name
+    if not workflow_path.exists():
+        workflow_path = Path(__file__).parent.parent / "workflows" / (req.workflow_name + ".json")
+    if not workflow_path.exists():
+        raise HTTPException(status_code=404, detail=f"Workflow not found: {req.workflow_name}")
+
+    with open(workflow_path, "r", encoding="utf-8") as f:
+        workflow = _json.load(f)
+
+    prompt_block = workflow.get("prompt", workflow)
+
+    # Inject prompt into target node
+    target = str(req.node_id)
+    if target in prompt_block:
+        node = prompt_block[target]
+        if isinstance(node, dict):
+            node["inputs"]["text"] = req.prompt
+    else:
+        # Fallback: first non-negative CLIPTextEncode
+        for nid, node in prompt_block.items():
+            if isinstance(node, dict) and node.get("class_type") == "CLIPTextEncode":
+                text = node.get("inputs", {}).get("text", "")
+                neg_markers = ["blurry,", "low quality,", "worst quality", "deformed"]
+                if sum(1 for m in neg_markers if m in text.lower()) < 2:
+                    node["inputs"]["text"] = req.prompt
+                    break
+
+    # Inject seed + filename
+    import random
+    actual_seed = req.seed if req.seed else random.randint(100000, 999999)
+    for nid, node in prompt_block.items():
+        if isinstance(node, dict):
+            ct = node.get("class_type", "")
+            if ct in ("KSampler", "SamplerCustom", "SamplerCustomAdvanced"):
+                if "seed" in node.get("inputs", {}):
+                    prompt_block[nid]["inputs"]["seed"] = actual_seed
+            if ct in ("RandomNoise", "FluxNoise"):
+                if "noise_seed" in node.get("inputs", {}):
+                    prompt_block[nid]["inputs"]["noise_seed"] = actual_seed
+            if ct == "SaveImage":
+                prompt_block[nid]["inputs"]["filename_prefix"] = req.filename
+
+    # --- Step 2: Submit to ComfyUI ---
+    client = ComfyUIClient(req.comfy_url)
+    prompt_id = await client.submit_prompt(workflow)
+    if not prompt_id:
+        raise HTTPException(status_code=502, detail="ComfyUI submission failed")
+
+    print(f"[FORGE] Submitted render {prompt_id} for campaign '{req.campaign}'")
+    spark_monitor.add_job({"prompt": req.prompt, "seed": actual_seed}, prompt_id, req.filename)
+
+    # --- Step 3: Poll for completion ---
+    filename_on_server = await client.poll_job(prompt_id, timeout_sec=req.poll_timeout)
+    if not filename_on_server:
+        await emit_hermes_event("render_failed", {"prompt_id": prompt_id, "reason": "poll_timeout"})
+        raise HTTPException(status_code=504, detail="Render timed out")
+
+    # --- Step 4: Download outputs ---
+    repo_root = Path(__file__).parent.parent
+    campaigns_dir = repo_root / "data" / "campaigns" / req.campaign
+    campaigns_dir.mkdir(parents=True, exist_ok=True)
+
+    saved = await client.download_outputs(prompt_id, str(campaigns_dir))
+
+    # --- Step 5: Emit render_complete event ---
+    if saved:
+        # Use relative path from repo root for the frontend
+        rel_paths = [str(Path(p).relative_to(repo_root)) for p in saved]
+        await emit_hermes_event("render_complete", {
+            "prompt_id": prompt_id,
+            "campaign": req.campaign,
+            "files": saved,
+            "relative_files": rel_paths,
+            "filename": filename_on_server,
+            "prompt_preview": req.prompt[:100],
+        })
+        print(f"[FORGE] Render complete: {saved}")
+
+        # --- Step 6: Kimi-VL audit (if enabled) ---
+        audit_result = None
+        memory_event = None
+        if req.audit and saved:
+            print(f"[FORGE] Running Kimi-VL audit on {saved[0]}")
+            audit_result = await audit_render_with_kimi_vl(
+                saved[0], req.prompt, req.campaign
+            )
+            await emit_hermes_event("kimi_vl_audit", {
+                "image_path": saved[0],
+                "campaign": req.campaign,
+                "score": audit_result.get("score", 0),
+                "passed": audit_result.get("passed", False),
+                "feedback": audit_result.get("feedback", ""),
+                "issues": audit_result.get("issues", []),
+            })
+            # --- Step 7: Write to memory ---
+            memory_event = await write_audit_to_memory(
+                audit_result, saved[0], req.prompt, req.campaign
+            )
+
+            # --- Step 8: Remediation loop (if audit failed) ---
+            max_retries = getattr(req, 'max_retries', 2)
+            retry_count = 0
+            current_prompt = req.prompt
+            current_saved = saved
+
+            while (not audit_result.get("passed", False) or
+                   audit_result.get("score", 0) < getattr(req, 'audit_threshold', 0.6)) and \
+                  retry_count < max_retries:
+                retry_count += 1
+                print(f"[FORGE] Audit failed (score={audit_result.get('score', 0)}), "
+                      f"remediating (attempt {retry_count}/{max_retries})")
+
+                # Get rewrite reason from audit feedback
+                rewrite_reason = audit_result.get("feedback", "Audit failed")
+                issues = audit_result.get("issues", [])
+                if issues:
+                    rewrite_reason += " | Issues: " + "; ".join(issues[:3])
+
+                # Emit [RETRY] event
+                await emit_hermes_event("remediation_retry", {
+                    "retry_number": retry_count,
+                    "max_retries": max_retries,
+                    "original_score": audit_result.get("score", 0),
+                    "rewrite_reason": rewrite_reason,
+                    "original_prompt": current_prompt[:100],
+                    "campaign": req.campaign,
+                })
+
+                # Call Hermes to analyze failure and generate corrected prompt
+                corrected_prompt = None
+                try:
+                    from core.bridge.nous_hermes_bridge import NousHermesBridge
+                    hermes_brain = NousHermesBridge()
+                    if hermes_brain.is_available:
+                        diagnosis = await hermes_brain.analyze_failure(
+                            visual_audit_result=audit_result,
+                            original_prompt=current_prompt,
+                        )
+                        if diagnosis and isinstance(diagnosis, dict):
+                            corrected_prompt = diagnosis.get("fix_prompt", "")
+                            root_cause = diagnosis.get("root_cause", "Unknown")
+                            print(f"[FORGE] Hermes diagnosis: {root_cause}")
+                            print(f"[FORGE] Corrected prompt: {corrected_prompt[:100]}...")
+                except Exception as e:
+                    print(f"[FORGE] Hermes analysis failed: {e}")
+
+                # Fallback: if Hermes couldn't generate a fix, use audit feedback
+                if not corrected_prompt:
+                    corrected_prompt = current_prompt + " | FIX: " + rewrite_reason
+                    print(f"[FORGE] Using fallback prompt with audit feedback")
+
+                # Re-render with corrected prompt
+                try:
+                    # Re-submit with corrected prompt
+                    re_client = ComfyUIClient(req.comfy_url)
+                    re_workflow = await client.load_workflow(req.workflow)
+                    re_workflow = await client.inject_prompt(re_workflow, corrected_prompt, req.target_node)
+                    re_prompt_id = await re_client.submit_prompt(re_workflow)
+                    if not re_prompt_id:
+                        raise HTTPException(status_code=502, detail="ComfyUI re-submission failed")
+
+                    print(f"[FORGE] Submitted retry render {re_prompt_id}")
+                    spark_monitor.add_job(
+                        {"prompt": corrected_prompt, "seed": actual_seed, "retry": retry_count},
+                        re_prompt_id, req.filename + f"_retry{retry_count}"
+                    )
+
+                    # Poll for completion
+                    re_filename = await re_client.poll_job(re_prompt_id, timeout_sec=req.poll_timeout)
+                    if not re_filename:
+                        await emit_hermes_event("render_failed", {
+                            "prompt_id": re_prompt_id, "reason": "poll_timeout_retry"
+                        })
+                        raise HTTPException(status_code=504, detail="Retry render timed out")
+
+                    # Download retry outputs
+                    retry_dir = campaigns_dir / f"retry_{retry_count}"
+                    retry_dir.mkdir(parents=True, exist_ok=True)
+                    retry_saved = await re_client.download_outputs(re_prompt_id, str(retry_dir))
+
+                    if retry_saved:
+                        current_saved = retry_saved
+                        current_prompt = corrected_prompt
+                        rel_retry_paths = [str(Path(p).relative_to(repo_root)) for p in retry_saved]
+                        await emit_hermes_event("render_complete", {
+                            "prompt_id": re_prompt_id,
+                            "campaign": req.campaign,
+                            "files": retry_saved,
+                            "relative_files": rel_retry_paths,
+                            "filename": re_filename,
+                            "prompt_preview": corrected_prompt[:100],
+                            "retry": retry_count,
+                        })
+                        print(f"[FORGE] Retry render complete: {retry_saved}")
+
+                        # Re-audit the retry render
+                        audit_result = await audit_render_with_kimi_vl(
+                            retry_saved[0], corrected_prompt, req.campaign
+                        )
+                        await emit_hermes_event("kimi_vl_audit", {
+                            "image_path": retry_saved[0],
+                            "campaign": req.campaign,
+                            "score": audit_result.get("score", 0),
+                            "passed": audit_result.get("passed", False),
+                            "feedback": audit_result.get("feedback", ""),
+                            "issues": audit_result.get("issues", []),
+                            "retry": retry_count,
+                        })
+
+                        # Write retry audit to memory
+                        memory_event = await write_audit_to_memory(
+                            audit_result, retry_saved[0], corrected_prompt, req.campaign
+                        )
+                    else:
+                        break
+                except HTTPException:
+                    raise
+                except Exception as e:
+                    print(f"[FORGE] Retry render failed: {e}")
+                    break
+
+            # Emit final remediation status
+            final_passed = audit_result.get("passed", False) if audit_result else False
+            final_score = audit_result.get("score", 0) if audit_result else 0
+            await emit_hermes_event("remediation_complete", {
+                "campaign": req.campaign,
+                "final_score": final_score,
+                "final_passed": final_passed,
+                "retries_used": retry_count,
+                "max_retries": max_retries,
+                "resolved": final_passed and final_score >= getattr(req, 'audit_threshold', 0.6),
+            })
+
+        return {
+            "status": "complete",
+            "prompt_id": prompt_id,
+            "campaign": req.campaign,
+            "files": saved,
+            "relative_files": rel_paths,
+            "audit": audit_result,
+            "memory": memory_event,
+        }
+    else:
+        await emit_hermes_event("render_failed", {"prompt_id": prompt_id, "reason": "no_outputs"})
+        raise HTTPException(status_code=502, detail="No outputs found after render")
 
 
 # --- Spark Monitor Endpoints ---
@@ -1008,6 +1766,30 @@ async def on_startup():
     # Apply data/config.json overrides to environment on boot
     from core.bridge.runtime_config import apply_to_environment
     apply_to_environment()
+    # Auto-detect LM Studio model at startup
+    from core.bridge.lmstudio_client import LMStudioClient
+    local = LMStudioClient()
+    if local.is_available:
+        success, models, selected = await local.auto_detect_model()
+        if success:
+            print(f"[FORGE] LM Studio auto-detected model: {selected} (available: {models})")
+            # Persist auto-detected model to config
+            from core.bridge.runtime_config import set_config
+            set_config({
+                "LMSTUDIO_CHAT_MODEL": local.chat_model,
+                "LMSTUDIO_EMBED_MODEL": local.embed_model,
+            })
+            await emit_hermes_event("lmstudio_detected", {
+                "model": selected,
+                "models": models,
+                "host": local.base_url,
+            })
+        else:
+            print("[FORGE] LM Studio reachable but no models loaded")
+            await emit_hermes_event("lmstudio_empty", {"host": local.base_url})
+    else:
+        print("[FORGE] LM Studio not reachable at startup")
+        await emit_hermes_event("lmstudio_offline", {"host": local.base_url})
 
 
 @app.on_event("shutdown")
@@ -1035,6 +1817,27 @@ async def api_config_update(req: ConfigUpdateRequest):
     updated = set_config(req.updates)
     apply_to_environment()
     return {"status": "saved", "config": updated}
+
+
+class FlatConfigUpdateRequest(BaseModel):
+    """Flat key-value config update (no nested 'updates' key)."""
+    model_config = {"extra": "allow"}
+    data: Dict[str, Any] = {}
+
+    def __getitem__(self, key: str) -> Any:
+        return self.data.get(key)
+
+
+@app.post("/api/config/save")
+async def api_config_save(req: FlatConfigUpdateRequest):
+    """Save individual config fields directly to data/config.json."""
+    from core.bridge.runtime_config import set_config, apply_to_environment
+    updated = set_config(dict(req.data))
+    apply_to_environment()
+    return {"status": "saved", "config": updated}
+
+
+@app.post("/api/restart")
 
 
 @app.post("/api/restart")
@@ -1096,7 +1899,165 @@ def _get_hermes_bridge():
     return _hermes_bridge
 
 
+# --- Character Store & /api/characters ---
+
+CHARACTER_BANKS_DIR = Path(__file__).parent.parent / "data" / "character_banks"
+CHARACTERS_ANCHORS_DIR = CHARACTER_BANKS_DIR / "anchors"
+CHARACTERS_ANCHORS_DIR.mkdir(parents=True, exist_ok=True)
+
+# In-memory character store — persisted to character_banks/*.json
+# Keyed by character id (lowercase slug)
+_CHARACTERS_STORE: Dict[str, Dict[str, Any]] = {}
+
+# Seed with Elara Vance (the only character with a real anchor image)
+_CHARACTERS_STORE["elara"] = {
+    "id": "elara",
+    "name": "ELARA",
+    "role": "Pilot · Protagonist",
+    "accent": "cyan",
+    "score": 94,
+    "anchor_url": "/api/characters/anchor/elara_vance",
+    "anchor_prompt": "Portrait of ELARA, female pilot protagonist, platinum crop hair with undercut left side and singed tips, pale amber reflective eyes, lean athletic build, charcoal flight jacket over graphite undersuit with copper piping along seams, ember-glow tattoo on left forearm, softbox studio lighting, neutral dark background, highly detailed, cinematic, 8k",
+    "dna": {
+        "hair": "Platinum crop, undercut left side, singed tips from the Hollow",
+        "eyes": "Pale amber, reflective — pupils dilate in low-light",
+        "build": "Lean, 5'8\", defined shoulders from high-g maneuvers",
+        "clothing": "Charcoal flight jacket over graphite undersuit, copper piping along seams",
+        "signature": "Left forearm: ember-glow tattoo — a spiralling sigil, always visible",
+        "palette": ["#C4A57A", "#2A2E35", "#E9A74B"]
+    }
+}
+
+
+def _scan_character_files() -> None:
+    """Scan character_banks for JSON character files and anchor images, merge into store."""
+    # Load character JSON files (skip demo_* files)
+    for json_file in CHARACTER_BANKS_DIR.glob("*.json"):
+        if json_file.name.startswith("demo_"):
+            continue
+        try:
+            with open(json_file, "r") as f:
+                data = json.load(f)
+            chars = data if isinstance(data, list) else [data]
+            for c in chars:
+                cid = c.get("id", c.get("name", "")).lower().replace(" ", "_")
+                if cid and cid not in _CHARACTERS_STORE:
+                    _CHARACTERS_STORE[cid] = c
+        except Exception:
+            pass
+
+    # Scan anchors dir for images, link them to existing characters or create stubs
+    for img in CHARACTERS_ANCHORS_DIR.glob("*"):
+        if img.suffix.lower() not in (".jpg", ".jpeg", ".png", ".webp"):
+            continue
+        # Derive character id from filename: e.g. "elara_vance.jpg" -> "elara"
+        stem = img.stem.lower()
+        parts = re.split(r'[_\s-]+', stem)
+        cid = parts[0] if parts else stem
+        anchor_url = f"/api/characters/anchor/{stem}"
+        if cid in _CHARACTERS_STORE:
+            _CHARACTERS_STORE[cid]["anchor_url"] = anchor_url
+        elif cid:
+            _CHARACTERS_STORE[cid] = {
+                "id": cid,
+                "name": stem.replace("_", " ").title(),
+                "role": "Character",
+                "accent": "cyan",
+                "score": 0,
+                "anchor_url": anchor_url,
+                "anchor_prompt": "",
+                "dna": {}
+            }
+
+
+def _persist_character(char_id: str, char_data: Dict[str, Any]) -> None:
+    """Persist a character to a JSON file in character_banks."""
+    out_path = CHARACTER_BANKS_DIR / f"char_{char_id}.json"
+    with open(out_path, "w") as f:
+        json.dump(char_data, f, indent=2)
+
+
+_scan_character_files()
+
+
+@app.get("/api/characters")
+async def api_get_characters():
+    """Return the full character list from the store."""
+    return list(_CHARACTERS_STORE.values())
+
+
+@app.get("/api/characters/{char_id}/variations")
+async def api_get_character_variations(char_id: str):
+    """Return variations for a character. Scans renders dir for matching character tags."""
+    repo_root = Path(__file__).parent.parent
+    renders_dir = repo_root / "data" / "renders"
+    variations = []
+    if renders_dir.exists():
+        char_slug = char_id.lower()
+        for f in sorted(renders_dir.iterdir()):
+            if f.suffix.lower() not in (".png", ".jpg", ".jpeg", ".webp"):
+                continue
+            # Check if this render is associated with the character
+            meta_path = f.with_suffix(f.suffix + ".json")
+            if meta_path.exists():
+                try:
+                    with open(meta_path) as mf:
+                        meta = json.load(mf)
+                    if char_slug in str(meta.get("chars", [])).lower() or char_slug in meta.get("prompt", "").lower():
+                        variations.append({
+                            "id": f.stem,
+                            "src": "/renders/" + f.name,
+                            "type": meta.get("type", "pose"),
+                            "score": meta.get("score", 0),
+                            "seed": meta.get("seed", 0),
+                            "prompt": meta.get("prompt", "")
+                        })
+                except Exception:
+                    pass
+    return variations
+
+
+@app.get("/api/characters/{char_id}/export")
+async def api_export_character(char_id: str):
+    """Export a character's full DNA as JSON."""
+    char = _CHARACTERS_STORE.get(char_id)
+    if not char:
+        raise HTTPException(status_code=404, detail=f"Character '{char_id}' not found")
+    return char
+
+
+class SaveDNARequest(BaseModel):
+    id: str
+    dna: Dict[str, Any]
+
+
+@app.post("/api/characters/save-dna")
+async def api_save_character_dna(req: SaveDNARequest):
+    """Persist updated character DNA to disk."""
+    cid = req.id.lower().replace(" ", "_")
+    if cid in _CHARACTERS_STORE:
+        _CHARACTERS_STORE[cid]["dna"] = req.dna
+        _persist_character(cid, _CHARACTERS_STORE[cid])
+        return {"status": "saved", "message": f"DNA saved for {cid}"}
+    else:
+        # Create new character entry
+        new_char = {
+            "id": cid,
+            "name": cid.upper(),
+            "role": "Character",
+            "accent": "cyan",
+            "score": 0,
+            "anchor_url": "",
+            "anchor_prompt": "",
+            "dna": req.dna
+        }
+        _CHARACTERS_STORE[cid] = new_char
+        _persist_character(cid, new_char)
+        return {"status": "created", "message": f"Character {cid} created with DNA"}
+
+
 class GenerateCharacterRequest(BaseModel):
+    name: Optional[str] = None
     description: str
 
 
@@ -1108,6 +2069,20 @@ async def api_generate_character(req: GenerateCharacterRequest):
     result = await bridge.generate_character(req.description)
     if not result:
         raise HTTPException(status_code=500, detail="Hermes failed to generate character")
+    # Persist generated character to store
+    cid = (req.name or result.get("name", "unknown")).lower().replace(" ", "_")
+    char_entry = {
+        "id": cid,
+        "name": (req.name or result.get("name", "Unknown")).upper(),
+        "role": result.get("role", "Character"),
+        "accent": result.get("accent", "cyan"),
+        "score": result.get("score", 0),
+        "anchor_url": "",
+        "anchor_prompt": result.get("anchor_prompt", req.description),
+        "dna": result.get("dna", result.get("visual_traits", {}))
+    }
+    _CHARACTERS_STORE[cid] = char_entry
+    _persist_character(cid, char_entry)
     return result
 
 
@@ -1182,6 +2157,103 @@ async def api_character_anchor(name: str):
     raise HTTPException(status_code=404, detail=f"No anchor image for '{name}'")
 
 
+class NewCharacterRequest(BaseModel):
+    name: str
+    description: Optional[str] = ""
+
+
+@app.post("/api/characters")
+async def api_create_character(
+    name: str = Form(...),
+    description: str = Form(""),
+    anchor_image: UploadFile | None = Form(None),
+):
+    """Create a new character with an optional drag-drop anchor image."""
+    import uuid as _uuid
+
+    safe_name = re.sub(r'[^a-z0-9]+', '_', name.lower().strip()).strip('_')
+    if not safe_name:
+        raise HTTPException(status_code=400, detail="Invalid character name")
+
+    if safe_name in _CHARACTERS_STORE:
+        raise HTTPException(status_code=409, detail=f"Character '{safe_name}' already exists")
+
+    # Assign accent color from palette
+    accents = ["cyan", "magenta", "amber", "green"]
+    existing_accents = {c.get("accent") for c in _CHARACTERS_STORE.values()}
+    accent = next((a for a in accents if a not in existing_accents), "cyan")
+
+    # Save anchor image if provided
+    anchor_url = ""
+    if anchor_image and anchor_image.filename:
+        raw_name = re.sub(r'[^a-z0-9]+', '_', Path(anchor_image.filename).stem.lower()).strip('_')
+        img_ext = Path(anchor_image.filename).suffix.lower() or '.jpg'
+        if img_ext not in ('.jpg', '.jpeg', '.png', '.webp'):
+            img_ext = '.jpg'
+        # Use raw filename but deduplicate
+        final_name = f"{safe_name}_{raw_name}{img_ext}" if raw_name != safe_name else f"{safe_name}{img_ext}"
+        idx = 1
+        dest_path = CHARACTERS_ANCHORS_DIR / final_name
+        while dest_path.exists():
+            final_name = f"{safe_name}_{raw_name}_{idx}{img_ext}"
+            dest_path = CHARACTERS_ANCHORS_DIR / final_name
+            idx += 1
+
+        content = await anchor_image.read()
+        with open(dest_path, "wb") as fout:
+            fout.write(content)
+        anchor_url = f"/api/characters/anchor/{Path(final_name).stem}"
+
+    # Build character record
+    char_data = {
+        "id": safe_name,
+        "name": name.strip().upper(),
+        "role": description[:60] if description else "Character",
+        "description": description,
+        "accent": accent,
+        "score": 0,
+        "anchor_url": anchor_url,
+        "anchor_prompt": f"Portrait of {name.strip()}, {description or ''}",
+        "dna": {},
+    }
+
+    # Persist to character_banks/char_{id}.json
+    _CHARACTERS_STORE[safe_name] = char_data
+    _persist_character(safe_name, char_data)
+
+    # Append to world bible
+    world_bible_path = Path(__file__).parent.parent / "data" / "lore_bible" / "world_bible.md"
+    try:
+        if world_bible_path.exists():
+            wb_text = world_bible_path.read_text(encoding="utf-8")
+        else:
+            wb_text = ""
+
+        char_section = (
+            f"\n## KEY CHARACTER: {name.strip().upper()}\n"
+            f"- **Role:** {description or 'Character'}\n"
+            f"- **Anchor Image:** `{Path(final_name).stem}`\n\n"
+        )
+        if not world_bible_path.exists():
+            world_bible_path.parent.mkdir(parents=True, exist_ok=True)
+            wb_text = "# WORLD BIBLE: CHARACTER ROSTER\n\n" + char_section
+        elif "## KEY CHARACTER:" not in wb_text:
+            wb_text += "\n" + char_section
+        else:
+            # Insert before ## CORE CONFLICT or append at end
+            conflict_marker = "## CORE CONFLICT"
+            if conflict_marker in wb_text:
+                wb_text = wb_text.replace(conflict_marker, char_section + conflict_marker)
+            else:
+                wb_text += "\n" + char_section
+
+        world_bible_path.write_text(wb_text, encoding="utf-8")
+    except Exception:
+        pass  # Non-fatal — character is still created
+
+    return {"status": "created", "character": char_data}
+
+
 # --- Hermes Agent Profile Chat ---
 
 HERMES_PROFILES = {
@@ -1243,6 +2315,99 @@ async def api_hermes_profile_chat(req: HermesProfileChatRequest):
 @app.get("/api/hermes/profiles")
 async def api_hermes_profiles():
     return [{"id": k, "role": v} for k, v in HERMES_PROFILES.items()]
+
+
+# --- Hermes Live Chat (Streaming) ---
+
+class HermesChatRequest(BaseModel):
+    message: str = "Hello"
+    profile: str = "live"
+
+
+@app.post("/api/hermes/chat")
+async def api_hermes_chat_stream(req: HermesChatRequest):
+    """Stream Hermes chat response using Server-Sent Events (SSE)."""
+    from fastapi.responses import StreamingResponse
+    import json as _json
+
+    profile = req.profile if req.profile in HERMES_PROFILES else "live"
+
+    async def event_generator():
+        try:
+            # Emit initial event
+            yield f"data: {_json.dumps({'type': 'chat_start', 'profile': profile})}\n\n"
+
+            # Try NousHermesBridge first (faster, local model)
+            try:
+                from core.bridge.nous_hermes_bridge import NousHermesBridge
+                hermes_brain = NousHermesBridge()
+                if hermes_brain.is_available:
+                    response = await hermes_brain.chat([
+                        {"role": "user", "content": req.message}
+                    ])
+                    # Stream in chunks for visual effect
+                    chunk_size = 20
+                    for i in range(0, len(response), chunk_size):
+                        chunk = response[i:i + chunk_size]
+                        yield f"data: {_json.dumps({'type': 'chat_chunk', 'content': chunk})}\n\n"
+                        await asyncio.sleep(0.02)  # Small delay for visual streaming
+                    yield f"data: {_json.dumps({'type': 'chat_complete', 'full_response': response})}\n\n"
+                    return
+            except Exception as e:
+                print(f"[FORGE] NousHermesBridge chat failed, falling back to CLI: {e}")
+
+            # Fallback: use Hermes CLI launcher
+            if not os.path.exists(FORGE_HERMES_LAUNCHER):
+                yield f"data: {_json.dumps({'type': 'chat_error', 'error': 'Hermes engine not found'})}\n\n"
+                return
+
+            skills_list = []
+            if profile == 'live': skills_list = ['forge-nps-evolution-plan', 'cinematic_consistency_protocol']
+            elif profile == 'character': skills_list = ['character-dna-standardization']
+            elif profile == 'script': skills_list = ['narrative-beat-synthesis']
+            elif profile == 'product': skills_list = ['material-physics-engine']
+
+            cmd_args = [HERMES_BIN, FORGE_HERMES_LAUNCHER, "-p", profile]
+            if skills_list:
+                cmd_args.extend(["--skills", ",".join(skills_list)])
+            cmd_args.extend(["chat", "-Q", "-q", req.message])
+
+            proc = await asyncio.create_subprocess_exec(
+                *cmd_args,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                env={**os.environ, "HERMES_HOME": FORGE_HERMES_HOME, "HERMES_QUIET": "1", "NO_COLOR": "1"},
+            )
+            try:
+                stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=120.0)
+                output = stdout.decode("utf-8", errors="replace").strip()
+                if not output and stderr:
+                    err = stderr.decode("utf-8", errors="replace").strip()
+                    yield f"data: {_json.dumps({'type': 'chat_error', 'error': err[:300]})}\n\n"
+                    return
+                # Stream the output in chunks
+                chunk_size = 20
+                for i in range(0, len(output), chunk_size):
+                    chunk = output[i:i + chunk_size]
+                    yield f"data: {_json.dumps({'type': 'chat_chunk', 'content': chunk})}\n\n"
+                    await asyncio.sleep(0.02)
+                yield f"data: {_json.dumps({'type': 'chat_complete', 'full_response': output})}\n\n"
+            except asyncio.TimeoutError:
+                proc.kill()
+                yield f"data: {_json.dumps({'type': 'chat_error', 'error': 'Hermes response timed out'})}\n\n"
+
+        except Exception as e:
+            yield f"data: {_json.dumps({'type': 'chat_error', 'error': str(e)})}\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        }
+    )
 
 
 if __name__ == "__main__":
