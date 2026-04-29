@@ -1,0 +1,2438 @@
+{
+  "summary": {
+    "total": 110,
+    "passed": 1,
+    "failed": 109
+  },
+  "fail_categories": {
+    "style": 7,
+    "character": 101,
+    "none": 1
+  },
+  "results": [
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/FLUX2_TURBO_TEST_00065.png",
+      "status": "fail",
+      "confidence": 1.0,
+      "error_category": "style",
+      "issues": [
+        "The main image is a futuristic cyberpunk cityscape with neon lights and wireframe buildings.",
+        "The reference image is a portrait of a woman with red hair in an outdoor setting."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 1.0,
+        "issues": [
+          "The main image is a futuristic cyberpunk cityscape with neon lights and wireframe buildings.",
+          "The reference image is a portrait of a woman with red hair in an outdoor setting."
+        ],
+        "error_category": "style"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00001_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The character in the main image is a woman with short blonde hair wearing an elaborate floral gown and pearls.",
+        "The reference image shows a completely different person: a woman with long red hair wearing a casual white lace top.",
+        "There are no matching features between the two subjects (hair color/length, clothing style, facial structure).",
+        "The setting in the main image is architectural/concrete structures with pastel colors, while the reference is an outdoor nature scene at sunset."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The character in the main image is a woman with short blonde hair wearing an elaborate floral gown and pearls.",
+          "The reference image shows a completely different person: a woman with long red hair wearing a casual white lace top.",
+          "There are no matching features between the two subjects (hair color/length, clothing style, facial structure).",
+          "The setting in the main image is architectural/concrete structures with pastel colors, while the reference is an outdoor nature scene at sunset."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00002_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The character in the main image is a woman with dark hair styled in an updo, wearing a formal beige gown and gold earrings. The reference image shows a different woman with long red hair, freckles, and casual clothing.",
+        "The setting in the main image is an urban concrete structure with pastel colors. The reference image is set outdoors in nature with golden hour lighting.",
+        "There are no matching product identities or stylistic elements between the two images."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The character in the main image is a woman with dark hair styled in an updo, wearing a formal beige gown and gold earrings. The reference image shows a different woman with long red hair, freckles, and casual clothing.",
+          "The setting in the main image is an urban concrete structure with pastel colors. The reference image is set outdoors in nature with golden hour lighting.",
+          "There are no matching product identities or stylistic elements between the two images."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00003_.png",
+      "status": "fail",
+      "confidence": 1.0,
+      "error_category": "none",
+      "issues": [
+        "The main image is an abstract digital visualization of data streams with pink and cyan colors.",
+        "The reference image is a portrait photograph of a woman outdoors in natural lighting.",
+        "There are no characters, products, or stylistic elements shared between the two images."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 1.0,
+        "issues": [
+          "The main image is an abstract digital visualization of data streams with pink and cyan colors.",
+          "The reference image is a portrait photograph of a woman outdoors in natural lighting.",
+          "There are no characters, products, or stylistic elements shared between the two images."
+        ],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00004_.png",
+      "status": "fail",
+      "confidence": 1.0,
+      "error_category": "character",
+      "issues": [
+        "The main image is a digital abstract visualization of data streams with neon text and glowing lines.",
+        "The reference image is a realistic portrait photograph of a woman outdoors in natural lighting.",
+        "There are no shared character features as the subjects are completely different (abstract data vs. human).",
+        "There is no product identity overlap; one is a digital graphic, the other is a person.",
+        "Lighting and style are entirely mismatched: cyberpunk/digital aesthetic versus warm, natural outdoor photography."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 1.0,
+        "issues": [
+          "The main image is a digital abstract visualization of data streams with neon text and glowing lines.",
+          "The reference image is a realistic portrait photograph of a woman outdoors in natural lighting.",
+          "There are no shared character features as the subjects are completely different (abstract data vs. human).",
+          "There is no product identity overlap; one is a digital graphic, the other is a person.",
+          "Lighting and style are entirely mismatched: cyberpunk/digital aesthetic versus warm, natural outdoor photography."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00005_.png",
+      "status": "fail",
+      "confidence": 1.0,
+      "error_category": "character",
+      "issues": [
+        "The main image is an abstract geometric star shape in space with digital elements, while the reference image is a portrait of a woman outdoors.",
+        "There are no characters present in the main image to compare features like eye color or hair style against the reference character.",
+        "The product/subject matter is completely different: a cosmic/geometric graphic versus a human portrait.",
+        "The lighting and style are entirely mismatched: sci-fi/digital art vs. natural outdoor photography."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 1.0,
+        "issues": [
+          "The main image is an abstract geometric star shape in space with digital elements, while the reference image is a portrait of a woman outdoors.",
+          "There are no characters present in the main image to compare features like eye color or hair style against the reference character.",
+          "The product/subject matter is completely different: a cosmic/geometric graphic versus a human portrait.",
+          "The lighting and style are entirely mismatched: sci-fi/digital art vs. natural outdoor photography."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00006_.png",
+      "status": "fail",
+      "confidence": 1.0,
+      "error_category": "style",
+      "issues": [
+        "The main image is a futuristic cyberpunk cityscape with neon lights and wireframe buildings, while the reference image is a portrait of a woman outdoors in natural lighting.",
+        "There are no characters present in the main image to compare features like eye color or hair style against the reference subject.",
+        "The product identity (if any) is completely different; one is an architectural/landscape scene, the other focuses on a person and their clothing.",
+        "The lighting styles are entirely mismatched: high-contrast neon/cyberpunk vs. soft natural golden hour sunlight."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 1.0,
+        "issues": [
+          "The main image is a futuristic cyberpunk cityscape with neon lights and wireframe buildings, while the reference image is a portrait of a woman outdoors in natural lighting.",
+          "There are no characters present in the main image to compare features like eye color or hair style against the reference subject.",
+          "The product identity (if any) is completely different; one is an architectural/landscape scene, the other focuses on a person and their clothing.",
+          "The lighting styles are entirely mismatched: high-contrast neon/cyberpunk vs. soft natural golden hour sunlight."
+        ],
+        "error_category": "style"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00007_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image features a vintage Volkswagen camper van in a mountainous landscape with mist and mountains.",
+        "The reference image is a portrait of a woman with long red hair wearing a white lace top.",
+        "There are no characters present in the main image to compare against the reference character.",
+        "The product (camper van) in the main image has no equivalent in the reference image.",
+        "The lighting style differs: the main image uses soft, diffuse mountain light at dawn/dusk, while the reference image uses warm, direct backlighting typical of golden hour portraits."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image features a vintage Volkswagen camper van in a mountainous landscape with mist and mountains.",
+          "The reference image is a portrait of a woman with long red hair wearing a white lace top.",
+          "There are no characters present in the main image to compare against the reference character.",
+          "The product (camper van) in the main image has no equivalent in the reference image.",
+          "The lighting style differs: the main image uses soft, diffuse mountain light at dawn/dusk, while the reference image uses warm, direct backlighting typical of golden hour portraits."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00008_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image features a vintage camper van in a mountain landscape at sunset/sunrise.",
+        "The reference image is a portrait of a woman with long red hair wearing a white lace top.",
+        "There are no characters present in the main image to compare against the reference character.",
+        "The product (camper van) in the main image does not match any object or person in the reference image."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image features a vintage camper van in a mountain landscape at sunset/sunrise.",
+          "The reference image is a portrait of a woman with long red hair wearing a white lace top.",
+          "There are no characters present in the main image to compare against the reference character.",
+          "The product (camper van) in the main image does not match any object or person in the reference image."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00009_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image features a vintage Volkswagen camper van in a mountainous landscape with fog and water.",
+        "The reference image is a portrait of a woman with long red hair wearing a white lace top.",
+        "There are no characters present in the main image to compare against the reference character.",
+        "The product (camper van) in the main image has no equivalent in the reference image, which focuses on a person.",
+        "The lighting and style differ significantly: the main image is a landscape shot with atmospheric fog and sunset/sunrise lighting, while the reference is a close-up portrait with warm backlighting."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image features a vintage Volkswagen camper van in a mountainous landscape with fog and water.",
+          "The reference image is a portrait of a woman with long red hair wearing a white lace top.",
+          "There are no characters present in the main image to compare against the reference character.",
+          "The product (camper van) in the main image has no equivalent in the reference image, which focuses on a person.",
+          "The lighting and style differ significantly: the main image is a landscape shot with atmospheric fog and sunset/sunrise lighting, while the reference is a close-up portrait with warm backlighting."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00010_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image is a text prompt display ('> Input: ...'), not an actual generated scene.",
+        "The reference image shows a woman with long red hair in a natural outdoor setting during sunset/golden hour.",
+        "There are no characters, cyberpunk elements, or cityscapes visible in the main image to compare against the reference character's features (eye color, hair style) or clothing details.",
+        "Lighting and style are completely mismatched; one is a digital text overlay on black space, the other is a photographic portrait."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image is a text prompt display ('> Input: ...'), not an actual generated scene.",
+          "The reference image shows a woman with long red hair in a natural outdoor setting during sunset/golden hour.",
+          "There are no characters, cyberpunk elements, or cityscapes visible in the main image to compare against the reference character's features (eye color, hair style) or clothing details.",
+          "Lighting and style are completely mismatched; one is a digital text overlay on black space, the other is a photographic portrait."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00011_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image is an abstract digital tunnel with pink and blue code streams, while the reference image is a portrait of a woman outdoors.",
+        "There are no characters in the main image to compare features like eye color or hair style against the woman in the reference image.",
+        "The product identity (if any) is completely different; one is a data visualization/abstract art piece, and the other is a person.",
+        "The lighting and style are entirely mismatched: high-contrast neon digital vs. natural outdoor portrait photography."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image is an abstract digital tunnel with pink and blue code streams, while the reference image is a portrait of a woman outdoors.",
+          "There are no characters in the main image to compare features like eye color or hair style against the woman in the reference image.",
+          "The product identity (if any) is completely different; one is a data visualization/abstract art piece, and the other is a person.",
+          "The lighting and style are entirely mismatched: high-contrast neon digital vs. natural outdoor portrait photography."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00012_.png",
+      "status": "fail",
+      "confidence": 1.0,
+      "error_category": "character",
+      "issues": [
+        "The main image displays an abstract geometric wireframe structure in space with a purple nebula background.",
+        "The reference image shows a portrait of a woman with long red hair wearing a white lace top outdoors at sunset.",
+        "There is no character consistency as the subjects are completely different (abstract art vs. human portrait).",
+        "There is no product identity to compare, but the contexts are entirely unrelated."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 1.0,
+        "issues": [
+          "The main image displays an abstract geometric wireframe structure in space with a purple nebula background.",
+          "The reference image shows a portrait of a woman with long red hair wearing a white lace top outdoors at sunset.",
+          "There is no character consistency as the subjects are completely different (abstract art vs. human portrait).",
+          "There is no product identity to compare, but the contexts are entirely unrelated."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00013_.png",
+      "status": "fail",
+      "confidence": 1.0,
+      "error_category": "character",
+      "issues": [
+        "The main image depicts a futuristic cyberpunk cityscape with wireframe buildings and light streaks, while the reference image is a portrait of a woman outdoors.",
+        "There are no characters in the main image to compare features like eye color or hair style against the woman in the reference image.",
+        "The product/subject matter is completely different: a digital art scene versus a human subject.",
+        "The lighting and style are entirely mismatched: neon/cyberpunk aesthetic vs. natural outdoor portrait photography."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 1.0,
+        "issues": [
+          "The main image depicts a futuristic cyberpunk cityscape with wireframe buildings and light streaks, while the reference image is a portrait of a woman outdoors.",
+          "There are no characters in the main image to compare features like eye color or hair style against the woman in the reference image.",
+          "The product/subject matter is completely different: a digital art scene versus a human subject.",
+          "The lighting and style are entirely mismatched: neon/cyberpunk aesthetic vs. natural outdoor portrait photography."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00014_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The character in the main image is a woman with dark hair and cyberpunk attire, while the reference image shows a different woman with long red hair wearing casual clothing.",
+        "The setting in the main image is a rainy, neon-lit alleyway (cyberpunk style), whereas the reference image is an outdoor portrait in natural daylight.",
+        "There are no matching character features such as eye color, hairstyle, or facial structure between the two images."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The character in the main image is a woman with dark hair and cyberpunk attire, while the reference image shows a different woman with long red hair wearing casual clothing.",
+          "The setting in the main image is a rainy, neon-lit alleyway (cyberpunk style), whereas the reference image is an outdoor portrait in natural daylight.",
+          "There are no matching character features such as eye color, hairstyle, or facial structure between the two images."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00015_.png",
+      "status": "fail",
+      "confidence": 0.98,
+      "error_category": "character",
+      "issues": [
+        "The main image depicts a close-up of a person's shoulder and neck area wearing dark tactical gear with neon cyan accents and digital glitch effects.",
+        "The reference image shows a full-face portrait of a smiling woman with long red hair in an outdoor setting during golden hour.",
+        "There is no character overlap; the subjects are completely different individuals (or one is not even fully visible).",
+        "The lighting styles are entirely different: the main image has dark, moody, cyberpunk-style lighting with rain and neon glows, while the reference image features warm, natural sunlight.",
+        "The clothing and product identity do not match at all; one is futuristic tactical gear, the other is a casual white lace top."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.98,
+        "issues": [
+          "The main image depicts a close-up of a person's shoulder and neck area wearing dark tactical gear with neon cyan accents and digital glitch effects.",
+          "The reference image shows a full-face portrait of a smiling woman with long red hair in an outdoor setting during golden hour.",
+          "There is no character overlap; the subjects are completely different individuals (or one is not even fully visible).",
+          "The lighting styles are entirely different: the main image has dark, moody, cyberpunk-style lighting with rain and neon glows, while the reference image features warm, natural sunlight.",
+          "The clothing and product identity do not match at all; one is futuristic tactical gear, the other is a casual white lace top."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00016_.png",
+      "status": "fail",
+      "confidence": 0.98,
+      "error_category": "character",
+      "issues": [
+        "The main image depicts an abstract digital neuron/circuit board visualization with neon pink and cyan colors.",
+        "The reference image is a realistic portrait photograph of a woman with red hair in natural lighting.",
+        "There are no matching character features as the subjects are entirely different (abstract art vs. human portrait).",
+        "Product identity does not apply to these images, but there is zero thematic or visual overlap."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.98,
+        "issues": [
+          "The main image depicts an abstract digital neuron/circuit board visualization with neon pink and cyan colors.",
+          "The reference image is a realistic portrait photograph of a woman with red hair in natural lighting.",
+          "There are no matching character features as the subjects are entirely different (abstract art vs. human portrait).",
+          "Product identity does not apply to these images, but there is zero thematic or visual overlap."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00017_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The character in the main image is a woman with dark hair and futuristic armor, while the reference image shows a different woman with long red hair wearing casual clothing.",
+        "The lighting style is completely different: the main image has a cool, cyberpunk aesthetic with rain effects, whereas the reference image features warm, natural sunlight outdoors.",
+        "There are no matching product identities or character features between the two images."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The character in the main image is a woman with dark hair and futuristic armor, while the reference image shows a different woman with long red hair wearing casual clothing.",
+          "The lighting style is completely different: the main image has a cool, cyberpunk aesthetic with rain effects, whereas the reference image features warm, natural sunlight outdoors.",
+          "There are no matching product identities or character features between the two images."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00018_.png",
+      "status": "fail",
+      "confidence": 0.98,
+      "error_category": "character",
+      "issues": [
+        "The main image features a stylized, cyberpunk-themed close-up of eyes with neon lighting (cyan and magenta) superimposed over a futuristic cityscape.",
+        "The reference image shows a realistic portrait of a woman with long red hair, freckles, and natural outdoor lighting in a field.",
+        "There is no character consistency; the subjects are completely different individuals with distinct features (hair color, eye color, facial structure).",
+        "The style is entirely mismatched: one is high-contrast digital art/cyberpunk, while the other is a warm, naturalistic photograph."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.98,
+        "issues": [
+          "The main image features a stylized, cyberpunk-themed close-up of eyes with neon lighting (cyan and magenta) superimposed over a futuristic cityscape.",
+          "The reference image shows a realistic portrait of a woman with long red hair, freckles, and natural outdoor lighting in a field.",
+          "There is no character consistency; the subjects are completely different individuals with distinct features (hair color, eye color, facial structure).",
+          "The style is entirely mismatched: one is high-contrast digital art/cyberpunk, while the other is a warm, naturalistic photograph."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00019_.png",
+      "status": "fail",
+      "confidence": 0.98,
+      "error_category": "style",
+      "issues": [
+        "The main image is a digital graphic with text ('FORGE NPS') on a black background.",
+        "The reference image is a photograph of a woman with long red hair in an outdoor setting.",
+        "There are no shared visual elements between the two images; they appear to be completely unrelated subjects and styles."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.98,
+        "issues": [
+          "The main image is a digital graphic with text ('FORGE NPS') on a black background.",
+          "The reference image is a photograph of a woman with long red hair in an outdoor setting.",
+          "There are no shared visual elements between the two images; they appear to be completely unrelated subjects and styles."
+        ],
+        "error_category": "style"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00020_.png",
+      "status": "fail",
+      "confidence": 0.85,
+      "error_category": "character",
+      "issues": [
+        "The main image features two women with different hair colors and styles (one blonde/light brown, one red-haired), whereas the reference image shows a single woman with long red hair.",
+        "The clothing in the main image consists of grey tank tops and dark leggings, while the reference image shows a white lace top.",
+        "The setting is completely different: an interior van scene vs. an outdoor portrait."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.85,
+        "issues": [
+          "The main image features two women with different hair colors and styles (one blonde/light brown, one red-haired), whereas the reference image shows a single woman with long red hair.",
+          "The clothing in the main image consists of grey tank tops and dark leggings, while the reference image shows a white lace top.",
+          "The setting is completely different: an interior van scene vs. an outdoor portrait."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00021_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image features a woman with short dark hair and a somber expression in a cold, blue-toned canyon setting.",
+        "The reference image shows a different woman with long red hair, freckles, and a smiling expression in a warm, sunlit outdoor setting.",
+        "There is no character consistency; the subjects are completely different individuals.",
+        "Lighting and style are inconsistent: the main image has cool, cinematic blue tones (dawn/dusk), while the reference has warm, golden hour lighting."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image features a woman with short dark hair and a somber expression in a cold, blue-toned canyon setting.",
+          "The reference image shows a different woman with long red hair, freckles, and a smiling expression in a warm, sunlit outdoor setting.",
+          "There is no character consistency; the subjects are completely different individuals.",
+          "Lighting and style are inconsistent: the main image has cool, cinematic blue tones (dawn/dusk), while the reference has warm, golden hour lighting."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00022_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image features a woman with blonde/light brown hair standing in profile next to two dogs at dusk/dawn.",
+        "The reference image shows a different woman with long red/auburn hair facing forward and smiling.",
+        "The clothing is completely different: the main image has dark clothing (black jacket/pants), while the reference has a white lace top.",
+        "The setting is entirely different: the main image is a canyon landscape at twilight, while the reference is an outdoor field/garden in bright daylight.",
+        "There are no dogs visible in the reference image."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image features a woman with blonde/light brown hair standing in profile next to two dogs at dusk/dawn.",
+          "The reference image shows a different woman with long red/auburn hair facing forward and smiling.",
+          "The clothing is completely different: the main image has dark clothing (black jacket/pants), while the reference has a white lace top.",
+          "The setting is entirely different: the main image is a canyon landscape at twilight, while the reference is an outdoor field/garden in bright daylight.",
+          "There are no dogs visible in the reference image."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00023_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The character's hair color is inconsistent; the main image shows blonde/light brown wavy hair while the reference image shows distinct red/auburn hair.",
+        "The clothing is completely different; the main image shows a dark sleeveless top or harness, whereas the reference image features a white lace blouse.",
+        "The setting and context are entirely different; the main image depicts an outdoor desert scene with crystals and a dog, while the reference is a portrait in a field of flowers.",
+        "Facial features differ significantly between the two images."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The character's hair color is inconsistent; the main image shows blonde/light brown wavy hair while the reference image shows distinct red/auburn hair.",
+          "The clothing is completely different; the main image shows a dark sleeveless top or harness, whereas the reference image features a white lace blouse.",
+          "The setting and context are entirely different; the main image depicts an outdoor desert scene with crystals and a dog, while the reference is a portrait in a field of flowers.",
+          "Facial features differ significantly between the two images."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00024_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image features a woman with blonde/light brown hair and freckles in profile view next to a dog, while the reference image shows a different woman with long red hair facing forward.",
+        "The lighting is similar (golden hour), but the subjects are completely different people."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image features a woman with blonde/light brown hair and freckles in profile view next to a dog, while the reference image shows a different woman with long red hair facing forward.",
+          "The lighting is similar (golden hour), but the subjects are completely different people."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00025_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The character's hair color is inconsistent. The main image shows a woman with blonde/light brown wavy hair, while the reference image features a woman with distinct red/auburn hair.",
+        "The clothing is completely different. The main image depicts a woman in a dark sleeveless top and shorts, whereas the reference image shows a woman wearing a white/cream lace blouse.",
+        "Facial features differ significantly between the two images; they appear to be different individuals."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The character's hair color is inconsistent. The main image shows a woman with blonde/light brown wavy hair, while the reference image features a woman with distinct red/auburn hair.",
+          "The clothing is completely different. The main image depicts a woman in a dark sleeveless top and shorts, whereas the reference image shows a woman wearing a white/cream lace blouse.",
+          "Facial features differ significantly between the two images; they appear to be different individuals."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00026_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image features a woman with blonde/light brown hair and freckles looking to the right, while the reference image shows a different woman with long red hair smiling directly at the camera.",
+        "The clothing is completely different: the main image shows a grey collared shirt/jacket, whereas the reference image shows a white lace top.",
+        "The setting in the main image appears to be a desert canyon landscape with a dog, while the reference image is set outdoors near water/coastline with greenery.",
+        "Lighting differs significantly; the main image has harsher, directional sunset lighting creating strong shadows and highlights on the face, while the reference image has softer, more diffused golden hour lighting."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image features a woman with blonde/light brown hair and freckles looking to the right, while the reference image shows a different woman with long red hair smiling directly at the camera.",
+          "The clothing is completely different: the main image shows a grey collared shirt/jacket, whereas the reference image shows a white lace top.",
+          "The setting in the main image appears to be a desert canyon landscape with a dog, while the reference image is set outdoors near water/coastline with greenery.",
+          "Lighting differs significantly; the main image has harsher, directional sunset lighting creating strong shadows and highlights on the face, while the reference image has softer, more diffused golden hour lighting."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00027_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image features a woman with blonde hair and blue eyes wearing a sleeveless top in a canyon setting.",
+        "The reference image shows a different woman with long red hair, freckles, and green/hazel eyes wearing a white lace blouse outdoors near the coast."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image features a woman with blonde hair and blue eyes wearing a sleeveless top in a canyon setting.",
+          "The reference image shows a different woman with long red hair, freckles, and green/hazel eyes wearing a white lace blouse outdoors near the coast."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00028_.png",
+      "status": "fail",
+      "confidence": 0.85,
+      "error_category": "style",
+      "issues": [
+        "The woman's clothing is completely different between the images; she wears a grey jacket and dark pants in the main image versus a white lace top in the reference.",
+        "The lighting conditions are vastly different; the main image has a cool, twilight/blue hour tone with magical particle effects, while the reference is bright, warm sunlight.",
+        "The setting is entirely different; the main image features red rock canyons and mist, whereas the reference shows green foliage and a coastal background."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.85,
+        "issues": [
+          "The woman's clothing is completely different between the images; she wears a grey jacket and dark pants in the main image versus a white lace top in the reference.",
+          "The lighting conditions are vastly different; the main image has a cool, twilight/blue hour tone with magical particle effects, while the reference is bright, warm sunlight.",
+          "The setting is entirely different; the main image features red rock canyons and mist, whereas the reference shows green foliage and a coastal background."
+        ],
+        "error_category": "style"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00029_.png",
+      "status": "fail",
+      "confidence": 0.85,
+      "error_category": "character",
+      "issues": [
+        "The character's facial features are different; the main image shows a woman with a more serious expression and slightly different nose/eye shape compared to the smiling reference.",
+        "The clothing is completely different: the main image shows a dark jacket over a grey top, while the reference shows a white lace blouse.",
+        "The setting and lighting are vastly different: the main image is a dramatic canyon scene at dusk/dawn with snow/fog effects, whereas the reference is a bright, sunny outdoor portrait."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.85,
+        "issues": [
+          "The character's facial features are different; the main image shows a woman with a more serious expression and slightly different nose/eye shape compared to the smiling reference.",
+          "The clothing is completely different: the main image shows a dark jacket over a grey top, while the reference shows a white lace blouse.",
+          "The setting and lighting are vastly different: the main image is a dramatic canyon scene at dusk/dawn with snow/fog effects, whereas the reference is a bright, sunny outdoor portrait."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00030_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image depicts a surreal scene with anthropomorphic dogs (one with human hands and blonde hair), whereas the reference image shows a realistic human woman.",
+        "There is no character consistency; the subjects are entirely different species/types of beings.",
+        "The setting in the main image is a rocky canyon, while the reference image is an outdoor field near the coast."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image depicts a surreal scene with anthropomorphic dogs (one with human hands and blonde hair), whereas the reference image shows a realistic human woman.",
+          "There is no character consistency; the subjects are entirely different species/types of beings.",
+          "The setting in the main image is a rocky canyon, while the reference image is an outdoor field near the coast."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00031_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image features anthropomorphic dogs with human hands climbing a rock face in a canyon setting.",
+        "The reference image shows a human woman with long red hair wearing a white lace top outdoors near the ocean.",
+        "There is no character overlap; the subjects are completely different (dogs vs. human).",
+        "The settings are entirely different (canyon/rock climbing vs. coastal field).",
+        "The lighting and style, while both somewhat naturalistic, depict fundamentally different scenes with no shared elements."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image features anthropomorphic dogs with human hands climbing a rock face in a canyon setting.",
+          "The reference image shows a human woman with long red hair wearing a white lace top outdoors near the ocean.",
+          "There is no character overlap; the subjects are completely different (dogs vs. human).",
+          "The settings are entirely different (canyon/rock climbing vs. coastal field).",
+          "The lighting and style, while both somewhat naturalistic, depict fundamentally different scenes with no shared elements."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00032_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The woman in the main image has blonde/light brown hair with highlights and is wearing a grey top, whereas the reference image shows a woman with distinct red/auburn hair and freckles wearing a white lace top.",
+        "The facial features do not match; the woman in the reference has prominent freckles and a different nose shape compared to the smoother-skinned woman in the main image."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The woman in the main image has blonde/light brown hair with highlights and is wearing a grey top, whereas the reference image shows a woman with distinct red/auburn hair and freckles wearing a white lace top.",
+          "The facial features do not match; the woman in the reference has prominent freckles and a different nose shape compared to the smoother-skinned woman in the main image."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00033_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The woman in the main image has blonde/light brown hair with highlights and is wearing a grey long-sleeved top, whereas the reference image shows a woman with distinct red/auburn hair and a white lace blouse.",
+        "The facial features differ significantly; the woman in the main image appears to be looking down at the dog with a neutral expression, while the reference subject is smiling directly at the camera.",
+        "The lighting conditions are completely different: the main image has cool, purple/blue twilight tones inside a van, while the reference image features warm, golden hour sunlight outdoors."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The woman in the main image has blonde/light brown hair with highlights and is wearing a grey long-sleeved top, whereas the reference image shows a woman with distinct red/auburn hair and a white lace blouse.",
+          "The facial features differ significantly; the woman in the main image appears to be looking down at the dog with a neutral expression, while the reference subject is smiling directly at the camera.",
+          "The lighting conditions are completely different: the main image has cool, purple/blue twilight tones inside a van, while the reference image features warm, golden hour sunlight outdoors."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00034_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The character in the main image has dark hair pulled back and is wearing a rust-colored top under a light green cardigan, whereas the reference image shows a woman with long red hair wearing a white lace top.",
+        "The facial features are completely different; the main subject has darker skin tones and distinct freckles compared to the lighter complexion in the reference.",
+        "The setting and lighting differ significantly: the main image is set indoors at dusk/night with cool blue tones, while the reference is outdoors during golden hour."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The character in the main image has dark hair pulled back and is wearing a rust-colored top under a light green cardigan, whereas the reference image shows a woman with long red hair wearing a white lace top.",
+          "The facial features are completely different; the main subject has darker skin tones and distinct freckles compared to the lighter complexion in the reference.",
+          "The setting and lighting differ significantly: the main image is set indoors at dusk/night with cool blue tones, while the reference is outdoors during golden hour."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00035_.png",
+      "status": "fail",
+      "confidence": 0.85,
+      "error_category": "character",
+      "issues": [
+        "The main image features two women with different hair colors and styles (one blonde/light brown, one red-haired), whereas the reference image shows a single woman with long red hair.",
+        "The clothing in the main image consists of grey tank tops and dark leggings, while the reference image shows a white lace top.",
+        "The setting is completely different: an interior van scene vs. an outdoor portrait."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.85,
+        "issues": [
+          "The main image features two women with different hair colors and styles (one blonde/light brown, one red-haired), whereas the reference image shows a single woman with long red hair.",
+          "The clothing in the main image consists of grey tank tops and dark leggings, while the reference image shows a white lace top.",
+          "The setting is completely different: an interior van scene vs. an outdoor portrait."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00036_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image features a woman with short dark hair and a somber expression, while the reference image shows a woman with long red hair smiling.",
+        "The clothing in the main image is a heavy knit cardigan over a dress, whereas the reference image shows a white lace blouse.",
+        "The lighting in the main image is cool, blue-toned twilight/dawn light, contrasting with the warm golden hour sunlight in the reference image.",
+        "The setting in the main image is a dramatic canyon landscape, while the reference background appears to be a softer, vegetated hillside or field."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image features a woman with short dark hair and a somber expression, while the reference image shows a woman with long red hair smiling.",
+          "The clothing in the main image is a heavy knit cardigan over a dress, whereas the reference image shows a white lace blouse.",
+          "The lighting in the main image is cool, blue-toned twilight/dawn light, contrasting with the warm golden hour sunlight in the reference image.",
+          "The setting in the main image is a dramatic canyon landscape, while the reference background appears to be a softer, vegetated hillside or field."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00037_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image features a woman with blonde/light brown hair standing in profile next to two dogs at dusk/dawn.",
+        "The reference image shows a different woman (or the same person styled very differently) with long red/auburn hair facing forward and smiling.",
+        "The clothing is completely different: black outfit in the main image vs. white lace top in the reference.",
+        "The setting is drastically different: a canyon landscape at twilight vs. an outdoor field during golden hour.",
+        "There are no dogs present in the reference image."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image features a woman with blonde/light brown hair standing in profile next to two dogs at dusk/dawn.",
+          "The reference image shows a different woman (or the same person styled very differently) with long red/auburn hair facing forward and smiling.",
+          "The clothing is completely different: black outfit in the main image vs. white lace top in the reference.",
+          "The setting is drastically different: a canyon landscape at twilight vs. an outdoor field during golden hour.",
+          "There are no dogs present in the reference image."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00038_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image shows a woman with blonde/light brown hair interacting with a dog on red rocks, while the reference image features a different woman with distinctively reddish/auburn hair and freckles.",
+        "The clothing is completely different; the main image shows dark outdoor gear, whereas the reference image shows a white lace top.",
+        "The setting in the main image is a rocky desert environment with crystals, while the reference image is an outdoor field scene at sunset."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image shows a woman with blonde/light brown hair interacting with a dog on red rocks, while the reference image features a different woman with distinctively reddish/auburn hair and freckles.",
+          "The clothing is completely different; the main image shows dark outdoor gear, whereas the reference image shows a white lace top.",
+          "The setting in the main image is a rocky desert environment with crystals, while the reference image is an outdoor field scene at sunset."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00039_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image features a woman with blonde/light brown hair and freckles in profile view facing right, while the reference image shows a woman with long red/auburn hair facing forward.",
+        "The facial structure is different; the main subject has a more pronounced nose and distinct jawline compared to the softer features of the reference subject.",
+        "The lighting differs significantly. The main image uses strong, warm backlighting (golden hour) creating rim light on the subjects' profiles, whereas the reference image has softer, frontal lighting with a blurred background.",
+        "The context is completely different: the main image shows an intimate moment between a woman and a dog in a desert-like setting, while the reference is a standard portrait of a woman outdoors."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image features a woman with blonde/light brown hair and freckles in profile view facing right, while the reference image shows a woman with long red/auburn hair facing forward.",
+          "The facial structure is different; the main subject has a more pronounced nose and distinct jawline compared to the softer features of the reference subject.",
+          "The lighting differs significantly. The main image uses strong, warm backlighting (golden hour) creating rim light on the subjects' profiles, whereas the reference image has softer, frontal lighting with a blurred background.",
+          "The context is completely different: the main image shows an intimate moment between a woman and a dog in a desert-like setting, while the reference is a standard portrait of a woman outdoors."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00040_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The character's hair color is inconsistent. The main image shows a woman with blonde/light brown wavy hair, while the reference image features a woman with distinct red/ginger hair.",
+        "The clothing is completely different. The main image shows the woman wearing a dark sleeveless top and shorts, whereas the reference image shows her in a white lace blouse.",
+        "Facial features differ significantly between the two images, indicating they are likely different people or heavily altered versions."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The character's hair color is inconsistent. The main image shows a woman with blonde/light brown wavy hair, while the reference image features a woman with distinct red/ginger hair.",
+          "The clothing is completely different. The main image shows the woman wearing a dark sleeveless top and shorts, whereas the reference image shows her in a white lace blouse.",
+          "Facial features differ significantly between the two images, indicating they are likely different people or heavily altered versions."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00041_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The character in the main image is a woman with blonde/light brown hair and freckles, while the reference image shows a different woman with long red/auburn hair.",
+        "The clothing is completely different: the main image features a grey jacket/shirt, whereas the reference shows a white lace top.",
+        "The setting differs significantly; the main image has a desert/canyon background with a dog, while the reference is in a field of yellow flowers near water.",
+        "The mood and expression are different; the main subject looks serious/contemplative, while the reference subject is smiling."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The character in the main image is a woman with blonde/light brown hair and freckles, while the reference image shows a different woman with long red/auburn hair.",
+          "The clothing is completely different: the main image features a grey jacket/shirt, whereas the reference shows a white lace top.",
+          "The setting differs significantly; the main image has a desert/canyon background with a dog, while the reference is in a field of yellow flowers near water.",
+          "The mood and expression are different; the main subject looks serious/contemplative, while the reference subject is smiling."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00042_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The character in the main image is a blonde woman with fair skin and blue/grey eyes, whereas the reference image shows a redhead woman with freckles and green/hazel eyes.",
+        "The clothing is completely different: the main image features a sleeveless olive-green top, while the reference shows a white lace blouse.",
+        "The setting in the main image is a desert canyon with floating particles/dust, while the reference is an outdoor field with yellow flowers near the coast."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The character in the main image is a blonde woman with fair skin and blue/grey eyes, whereas the reference image shows a redhead woman with freckles and green/hazel eyes.",
+          "The clothing is completely different: the main image features a sleeveless olive-green top, while the reference shows a white lace blouse.",
+          "The setting in the main image is a desert canyon with floating particles/dust, while the reference is an outdoor field with yellow flowers near the coast."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00043_.png",
+      "status": "fail",
+      "confidence": 0.85,
+      "error_category": "style",
+      "issues": [
+        "The woman's clothing is completely different between the images; she wears a grey jacket and dark pants in the main image versus a white lace top in the reference.",
+        "The lighting conditions are vastly different; the main image has a cool, twilight/blue hour aesthetic with magical particles, while the reference is bright, warm sunlight.",
+        "The setting is entirely different; the main image features red rock canyons and mist, whereas the reference shows a green field with yellow flowers near water."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.85,
+        "issues": [
+          "The woman's clothing is completely different between the images; she wears a grey jacket and dark pants in the main image versus a white lace top in the reference.",
+          "The lighting conditions are vastly different; the main image has a cool, twilight/blue hour aesthetic with magical particles, while the reference is bright, warm sunlight.",
+          "The setting is entirely different; the main image features red rock canyons and mist, whereas the reference shows a green field with yellow flowers near water."
+        ],
+        "error_category": "style"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00044_.png",
+      "status": "fail",
+      "confidence": 0.85,
+      "error_category": "character",
+      "issues": [
+        "The woman in the main image has a different facial structure and expression compared to the reference image; she appears more serious and less smiling.",
+        "The clothing is completely different: the main image shows a dark jacket over a grey top, while the reference shows a white lace blouse.",
+        "The setting is entirely different: the main image is a canyon landscape with dogs, whereas the reference is a close-up portrait in a field."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.85,
+        "issues": [
+          "The woman in the main image has a different facial structure and expression compared to the reference image; she appears more serious and less smiling.",
+          "The clothing is completely different: the main image shows a dark jacket over a grey top, while the reference shows a white lace blouse.",
+          "The setting is entirely different: the main image is a canyon landscape with dogs, whereas the reference is a close-up portrait in a field."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00045_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image features anthropomorphic dogs with human hands and hair, whereas the reference image shows a human woman.",
+        "The character in the main image is a dog-human hybrid, while the reference is clearly a human female.",
+        "The setting in the main image is a rocky canyon, while the reference is an outdoor field with vegetation."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image features anthropomorphic dogs with human hands and hair, whereas the reference image shows a human woman.",
+          "The character in the main image is a dog-human hybrid, while the reference is clearly a human female.",
+          "The setting in the main image is a rocky canyon, while the reference is an outdoor field with vegetation."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00046_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image features anthropomorphic dogs climbing a rock face in a canyon setting.",
+        "The reference image shows a human woman with long red hair smiling outdoors near the ocean.",
+        "There is no character overlap; one depicts animals/hybrids and the other a human.",
+        "The settings are completely different (canyon vs. coastal field).",
+        "The lighting styles differ significantly (dramatic canyon light vs. soft golden hour portrait light)."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image features anthropomorphic dogs climbing a rock face in a canyon setting.",
+          "The reference image shows a human woman with long red hair smiling outdoors near the ocean.",
+          "There is no character overlap; one depicts animals/hybrids and the other a human.",
+          "The settings are completely different (canyon vs. coastal field).",
+          "The lighting styles differ significantly (dramatic canyon light vs. soft golden hour portrait light)."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00047_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The woman in the main image has blonde/light brown hair with highlights and is wearing a grey top, whereas the reference image shows a woman with distinct red/auburn hair and freckles wearing a white lace top.",
+        "The facial features do not match; the woman in the main image appears to be a different person or significantly altered compared to the clear portrait in the reference.",
+        "The lighting is completely different: the main image has cool, indoor van lighting with purple/blue tones, while the reference image has warm, golden hour outdoor sunlight."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The woman in the main image has blonde/light brown hair with highlights and is wearing a grey top, whereas the reference image shows a woman with distinct red/auburn hair and freckles wearing a white lace top.",
+          "The facial features do not match; the woman in the main image appears to be a different person or significantly altered compared to the clear portrait in the reference.",
+          "The lighting is completely different: the main image has cool, indoor van lighting with purple/blue tones, while the reference image has warm, golden hour outdoor sunlight."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00048_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The woman in the main image has blonde/light brown hair with highlights and is wearing a grey long-sleeved top, whereas the reference image shows a woman with distinct red/auburn hair and freckles wearing a white lace blouse.",
+        "The facial features are completely different; the woman in the main image appears to be a different person than the one in the reference photo."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The woman in the main image has blonde/light brown hair with highlights and is wearing a grey long-sleeved top, whereas the reference image shows a woman with distinct red/auburn hair and freckles wearing a white lace blouse.",
+          "The facial features are completely different; the woman in the main image appears to be a different person than the one in the reference photo."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00049_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The character in the main image has dark hair pulled back and is wearing a rust-colored top under a light green cardigan, whereas the reference image shows a woman with long red hair and a white lace top.",
+        "The facial features are completely different; the main subject has darker skin tones and distinct freckles compared to the lighter complexion in the reference.",
+        "The setting and lighting differ significantly: the main image is set indoors at dusk/night with cool blue tones, while the reference is outdoors during golden hour with warm sunlight."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The character in the main image has dark hair pulled back and is wearing a rust-colored top under a light green cardigan, whereas the reference image shows a woman with long red hair and a white lace top.",
+          "The facial features are completely different; the main subject has darker skin tones and distinct freckles compared to the lighter complexion in the reference.",
+          "The setting and lighting differ significantly: the main image is set indoors at dusk/night with cool blue tones, while the reference is outdoors during golden hour with warm sunlight."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00050_.png",
+      "status": "fail",
+      "confidence": 0.85,
+      "error_category": "character",
+      "issues": [
+        "The main image features two women with different hair colors and styles (one blonde/light brown, one red-haired), whereas the reference image shows a single woman with long red hair.",
+        "The clothing in the main image consists of grey tank tops and leggings, while the reference image shows a white lace blouse.",
+        "The setting is completely different: an interior van scene vs. an outdoor portrait."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.85,
+        "issues": [
+          "The main image features two women with different hair colors and styles (one blonde/light brown, one red-haired), whereas the reference image shows a single woman with long red hair.",
+          "The clothing in the main image consists of grey tank tops and leggings, while the reference image shows a white lace blouse.",
+          "The setting is completely different: an interior van scene vs. an outdoor portrait."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00051_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image features a woman with short dark hair and a somber expression wearing a heavy knit cardigan in a cold, misty canyon setting.",
+        "The reference image shows a different woman with long red hair, freckles, and a smiling expression wearing a light lace top in a warm, sunny outdoor setting.",
+        "There is no character consistency; the subjects are completely different individuals.",
+        "The lighting styles are opposite: cool/blue tones vs. warm/golden hour tones."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image features a woman with short dark hair and a somber expression wearing a heavy knit cardigan in a cold, misty canyon setting.",
+          "The reference image shows a different woman with long red hair, freckles, and a smiling expression wearing a light lace top in a warm, sunny outdoor setting.",
+          "There is no character consistency; the subjects are completely different individuals.",
+          "The lighting styles are opposite: cool/blue tones vs. warm/golden hour tones."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00052_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The character in the main image is a woman with blonde/light brown hair wearing dark clothing, while the reference image shows a different woman with long red hair and freckles wearing a white lace top.",
+        "The lighting style is completely different; the main image has a cool, twilight/dusk aesthetic with blue and purple tones, whereas the reference image features warm, golden hour sunlight.",
+        "The setting in the main image is a rocky canyon overlook at dusk, while the reference image appears to be an outdoor field or garden during the day."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The character in the main image is a woman with blonde/light brown hair wearing dark clothing, while the reference image shows a different woman with long red hair and freckles wearing a white lace top.",
+          "The lighting style is completely different; the main image has a cool, twilight/dusk aesthetic with blue and purple tones, whereas the reference image features warm, golden hour sunlight.",
+          "The setting in the main image is a rocky canyon overlook at dusk, while the reference image appears to be an outdoor field or garden during the day."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00053_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The woman in the main image has blonde/light brown hair and is wearing dark clothing, while the reference image shows a woman with long red/auburn hair wearing a white lace top.",
+        "The setting in the main image is a rocky desert environment with crystals, whereas the reference image is an outdoor portrait with greenery and a sunset background.",
+        "The lighting differs significantly; the main image has cooler, more dramatic tones on the rocks, while the reference image features warm, golden hour backlighting."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The woman in the main image has blonde/light brown hair and is wearing dark clothing, while the reference image shows a woman with long red/auburn hair wearing a white lace top.",
+          "The setting in the main image is a rocky desert environment with crystals, whereas the reference image is an outdoor portrait with greenery and a sunset background.",
+          "The lighting differs significantly; the main image has cooler, more dramatic tones on the rocks, while the reference image features warm, golden hour backlighting."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00054_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image features a woman with blonde/light brown hair and freckles in profile view facing right, while the reference image shows a woman with long red/auburn hair smiling directly at the camera.",
+        "The facial structure is different; the main subject has a more pronounced nose and distinct jawline compared to the softer features of the reference subject.",
+        "The lighting differs significantly: the main image uses dramatic side-lighting (golden hour) creating strong shadows on the face, whereas the reference image has soft, diffused frontal lighting."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image features a woman with blonde/light brown hair and freckles in profile view facing right, while the reference image shows a woman with long red/auburn hair smiling directly at the camera.",
+          "The facial structure is different; the main subject has a more pronounced nose and distinct jawline compared to the softer features of the reference subject.",
+          "The lighting differs significantly: the main image uses dramatic side-lighting (golden hour) creating strong shadows on the face, whereas the reference image has soft, diffused frontal lighting."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00055_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image features a woman with blonde hair wearing a dark sleeveless top and shorts, while the reference image shows a woman with long red/auburn hair wearing a white lace blouse.",
+        "The facial features of the woman in the main image (blonde, different face shape) do not match the woman in the reference image (redhead).",
+        "The setting is completely different: a canyon landscape vs. an outdoor field/coastal background."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image features a woman with blonde hair wearing a dark sleeveless top and shorts, while the reference image shows a woman with long red/auburn hair wearing a white lace blouse.",
+          "The facial features of the woman in the main image (blonde, different face shape) do not match the woman in the reference image (redhead).",
+          "The setting is completely different: a canyon landscape vs. an outdoor field/coastal background."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00056_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image features a woman with blonde/light brown hair and freckles looking to the right, while the reference image shows a different woman with long red/auburn hair smiling at the camera.",
+        "The clothing is completely different: the main subject wears a grey collared shirt/jacket, whereas the reference subject wears a white lace top.",
+        "The setting differs significantly; the main image has a desert canyon background with floating particles/dust, while the reference shows a coastal or garden setting with greenery and yellow flowers.",
+        "There is no dog in the reference image."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image features a woman with blonde/light brown hair and freckles looking to the right, while the reference image shows a different woman with long red/auburn hair smiling at the camera.",
+          "The clothing is completely different: the main subject wears a grey collared shirt/jacket, whereas the reference subject wears a white lace top.",
+          "The setting differs significantly; the main image has a desert canyon background with floating particles/dust, while the reference shows a coastal or garden setting with greenery and yellow flowers.",
+          "There is no dog in the reference image."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00057_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image features a woman with blonde hair and blue eyes wearing a sleeveless top in a desert canyon setting.",
+        "The reference image shows a different woman with long red/auburn hair, freckles, and green/hazel eyes, smiling at the camera while wearing a white lace blouse outdoors near water."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image features a woman with blonde hair and blue eyes wearing a sleeveless top in a desert canyon setting.",
+          "The reference image shows a different woman with long red/auburn hair, freckles, and green/hazel eyes, smiling at the camera while wearing a white lace blouse outdoors near water."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00058_.png",
+      "status": "fail",
+      "confidence": 0.85,
+      "error_category": "character",
+      "issues": [
+        "The woman's clothing is completely different between the two images. In the main image, she wears a dark grey jacket over a darker top and black pants. In the reference image, she wears a white/cream lace blouse.",
+        "The lighting conditions are vastly different. The main image has a cool, twilight/blue hour aesthetic with misty canyon backgrounds and floating light particles. The reference image is bright, warm sunlight (golden hour) with a blurred natural background.",
+        "The facial expression differs; the woman in the main image looks serious/neutral while looking at the dogs, whereas she is smiling broadly in the reference portrait."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.85,
+        "issues": [
+          "The woman's clothing is completely different between the two images. In the main image, she wears a dark grey jacket over a darker top and black pants. In the reference image, she wears a white/cream lace blouse.",
+          "The lighting conditions are vastly different. The main image has a cool, twilight/blue hour aesthetic with misty canyon backgrounds and floating light particles. The reference image is bright, warm sunlight (golden hour) with a blurred natural background.",
+          "The facial expression differs; the woman in the main image looks serious/neutral while looking at the dogs, whereas she is smiling broadly in the reference portrait."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00059_.png",
+      "status": "fail",
+      "confidence": 0.85,
+      "error_category": "character",
+      "issues": [
+        "The woman in the main image has blonde/light brown hair with a different texture and style compared to the reference image which shows distinct red/auburn wavy hair.",
+        "The clothing is completely different; the main image features a dark jacket over a grey top, while the reference shows a white lace blouse.",
+        "The facial features appear slightly different, particularly the smile and jawline structure.",
+        "The lighting in the main image is cool/blue-toned (twilight/dusk), whereas the reference has warm golden hour lighting."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.85,
+        "issues": [
+          "The woman in the main image has blonde/light brown hair with a different texture and style compared to the reference image which shows distinct red/auburn wavy hair.",
+          "The clothing is completely different; the main image features a dark jacket over a grey top, while the reference shows a white lace blouse.",
+          "The facial features appear slightly different, particularly the smile and jawline structure.",
+          "The lighting in the main image is cool/blue-toned (twilight/dusk), whereas the reference has warm golden hour lighting."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00060_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image features anthropomorphic dogs with human hands and hair, whereas the reference image shows a human woman.",
+        "The subject in the main image is clearly canine (dogs) while the reference is a human female.",
+        "There are no matching character features as they are entirely different species/types."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image features anthropomorphic dogs with human hands and hair, whereas the reference image shows a human woman.",
+          "The subject in the main image is clearly canine (dogs) while the reference is a human female.",
+          "There are no matching character features as they are entirely different species/types."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00061_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image features anthropomorphic dogs with human hands climbing a rock face in a canyon setting.",
+        "The reference image shows a human woman with long red hair wearing a white lace top outdoors near the coast.",
+        "There is no character overlap; the subjects are completely different species and individuals.",
+        "The settings are entirely different (canyon vs. coastal field).",
+        "The lighting styles differ significantly, though both use natural light."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image features anthropomorphic dogs with human hands climbing a rock face in a canyon setting.",
+          "The reference image shows a human woman with long red hair wearing a white lace top outdoors near the coast.",
+          "There is no character overlap; the subjects are completely different species and individuals.",
+          "The settings are entirely different (canyon vs. coastal field).",
+          "The lighting styles differ significantly, though both use natural light."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00062_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The woman in the main image has blonde/light brown hair with highlights and is wearing a grey top, whereas the reference image shows a woman with distinct red/auburn hair and freckles wearing a white lace top.",
+        "The facial features do not match; the woman in the main image appears to be a different person or significantly altered compared to the clear portrait in the reference.",
+        "Lighting conditions are completely different: the main image is indoors with cool, artificial lighting (purple/blue tones), while the reference is outdoors in warm, golden hour sunlight."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The woman in the main image has blonde/light brown hair with highlights and is wearing a grey top, whereas the reference image shows a woman with distinct red/auburn hair and freckles wearing a white lace top.",
+          "The facial features do not match; the woman in the main image appears to be a different person or significantly altered compared to the clear portrait in the reference.",
+          "Lighting conditions are completely different: the main image is indoors with cool, artificial lighting (purple/blue tones), while the reference is outdoors in warm, golden hour sunlight."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00063_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The woman in the main image has blonde/light brown hair with highlights and is wearing a grey long-sleeved top, whereas the reference image shows a woman with distinct red/auburn hair and freckles wearing a white lace blouse.",
+        "The facial features do not match; the woman in the main image appears to be a different person or significantly altered compared to the clear portrait in the reference.",
+        "The lighting is completely different: the main image has cool, purple/blue tones suggesting dusk or dawn inside a vehicle, while the reference image has warm, golden hour sunlight outdoors."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The woman in the main image has blonde/light brown hair with highlights and is wearing a grey long-sleeved top, whereas the reference image shows a woman with distinct red/auburn hair and freckles wearing a white lace blouse.",
+          "The facial features do not match; the woman in the main image appears to be a different person or significantly altered compared to the clear portrait in the reference.",
+          "The lighting is completely different: the main image has cool, purple/blue tones suggesting dusk or dawn inside a vehicle, while the reference image has warm, golden hour sunlight outdoors."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00064_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The character in the main image has dark hair pulled back and is wearing a light green cardigan over an orange top, whereas the reference image shows a woman with long red hair wearing a white lace top.",
+        "The facial features are completely different; the main subject has darker skin tones and distinct freckles compared to the lighter complexion of the reference character.",
+        "The setting in the main image is a rustic kitchen at dusk/night, while the reference image is outdoors during golden hour."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The character in the main image has dark hair pulled back and is wearing a light green cardigan over an orange top, whereas the reference image shows a woman with long red hair wearing a white lace top.",
+          "The facial features are completely different; the main subject has darker skin tones and distinct freckles compared to the lighter complexion of the reference character.",
+          "The setting in the main image is a rustic kitchen at dusk/night, while the reference image is outdoors during golden hour."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00065_.png",
+      "status": "fail",
+      "confidence": 1.0,
+      "error_category": "style",
+      "issues": [
+        "The main image is a futuristic cyberpunk cityscape with neon lights and wireframe buildings.",
+        "The reference image is a portrait of a woman with red hair in an outdoor setting."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 1.0,
+        "issues": [
+          "The main image is a futuristic cyberpunk cityscape with neon lights and wireframe buildings.",
+          "The reference image is a portrait of a woman with red hair in an outdoor setting."
+        ],
+        "error_category": "style"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_01_Video_01_ANCHOR_00001_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image is a landscape shot of the Grand Canyon with no human subjects.",
+        "The reference image features a woman with long red hair and freckles in an outdoor setting.",
+        "There are completely different subjects (landscape vs. portrait) and environments depicted."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image is a landscape shot of the Grand Canyon with no human subjects.",
+          "The reference image features a woman with long red hair and freckles in an outdoor setting.",
+          "There are completely different subjects (landscape vs. portrait) and environments depicted."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_01_Video_01_ANCHOR_00002_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image is a landscape shot of red rock formations and canyons with no human subjects.",
+        "The reference image features a woman with long reddish-brown hair wearing a white lace top.",
+        "There are completely different subjects (landscape vs. portrait) and settings (canyon vs. coastal field).",
+        "Lighting differs significantly: the main image has cool, twilight/dusk lighting on rocks, while the reference has warm, golden hour backlighting on a person."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image is a landscape shot of red rock formations and canyons with no human subjects.",
+          "The reference image features a woman with long reddish-brown hair wearing a white lace top.",
+          "There are completely different subjects (landscape vs. portrait) and settings (canyon vs. coastal field).",
+          "Lighting differs significantly: the main image has cool, twilight/dusk lighting on rocks, while the reference has warm, golden hour backlighting on a person."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_01_Video_02_ANCHOR_00001_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image is a close-up of a hand touching a textured wall, whereas the reference image shows a full portrait of a woman with long red hair.",
+        "There are no visible character features (face, eyes, hair) in the main image to compare against the reference subject.",
+        "The lighting and style differ significantly; the main image has cooler, muted tones focused on texture, while the reference is warm, backlit golden hour photography."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image is a close-up of a hand touching a textured wall, whereas the reference image shows a full portrait of a woman with long red hair.",
+          "There are no visible character features (face, eyes, hair) in the main image to compare against the reference subject.",
+          "The lighting and style differ significantly; the main image has cooler, muted tones focused on texture, while the reference is warm, backlit golden hour photography."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_01_Video_03_ANCHOR_00001_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image is an interior view of a van driving down a road at dusk/dawn with no people visible.",
+        "The reference image shows a portrait of a woman with long red hair and freckles outdoors in bright sunlight.",
+        "There are no characters present in the main image to compare against the character in the reference image.",
+        "The lighting conditions are completely different (dim interior/twilight vs. bright outdoor golden hour).",
+        "The setting is entirely different (van interior/road vs. natural landscape with flowers)."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image is an interior view of a van driving down a road at dusk/dawn with no people visible.",
+          "The reference image shows a portrait of a woman with long red hair and freckles outdoors in bright sunlight.",
+          "There are no characters present in the main image to compare against the character in the reference image.",
+          "The lighting conditions are completely different (dim interior/twilight vs. bright outdoor golden hour).",
+          "The setting is entirely different (van interior/road vs. natural landscape with flowers)."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_02_Video_01_ANCHOR_00001_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image depicts a close-up of hot liquid being poured into a bowl with seaweed and spices.",
+        "The reference image shows a portrait of a woman with long red hair outdoors at sunset.",
+        "There is no character in the main image to compare features like eye color or hairstyle against the woman in the reference.",
+        "The product (bowl/liquid) in the main image has no relation to the subject matter of the reference image.",
+        "The lighting and style are completely different: macro food photography vs. outdoor portrait."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image depicts a close-up of hot liquid being poured into a bowl with seaweed and spices.",
+          "The reference image shows a portrait of a woman with long red hair outdoors at sunset.",
+          "There is no character in the main image to compare features like eye color or hairstyle against the woman in the reference.",
+          "The product (bowl/liquid) in the main image has no relation to the subject matter of the reference image.",
+          "The lighting and style are completely different: macro food photography vs. outdoor portrait."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_02_Video_02_ANCHOR_00001_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image shows a close-up of hands chopping vegetables on a wooden board, while the reference image is a portrait of a woman with long red hair.",
+        "There are no visible character features (face, eyes) in the main image to compare against the reference image's face and eye color.",
+        "The clothing in the main image appears to be blue denim jeans, whereas the reference image shows a white lace top. While this could be consistent if she is wearing both, the lack of facial confirmation makes it impossible to verify character identity.",
+        "Lighting differs significantly: the main image has harsh, direct sunlight creating strong shadows on the cutting board and hands, while the reference image features soft, golden hour backlighting."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image shows a close-up of hands chopping vegetables on a wooden board, while the reference image is a portrait of a woman with long red hair.",
+          "There are no visible character features (face, eyes) in the main image to compare against the reference image's face and eye color.",
+          "The clothing in the main image appears to be blue denim jeans, whereas the reference image shows a white lace top. While this could be consistent if she is wearing both, the lack of facial confirmation makes it impossible to verify character identity.",
+          "Lighting differs significantly: the main image has harsh, direct sunlight creating strong shadows on the cutting board and hands, while the reference image features soft, golden hour backlighting."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_02_Video_03_ANCHOR_00001_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The character in the main image has blonde/light brown wavy hair with freckles and is wearing a simple beige tank top inside a car.",
+        "The reference image shows a different woman with long red/auburn hair, no visible freckles (or significantly fewer), and she is wearing a white lace blouse outdoors."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The character in the main image has blonde/light brown wavy hair with freckles and is wearing a simple beige tank top inside a car.",
+          "The reference image shows a different woman with long red/auburn hair, no visible freckles (or significantly fewer), and she is wearing a white lace blouse outdoors."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_03_Video_01_ANCHOR_00001_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image is a wide landscape shot of a canyon with tiny figures in the distance and a camera on a tripod in the foreground.",
+        "The reference image is a close-up portrait of a woman with long red hair wearing a white lace top.",
+        "There are no matching characters between the two images; the subjects are completely different.",
+        "The settings, lighting, and overall style are entirely unrelated (canyon landscape vs. outdoor portrait)."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image is a wide landscape shot of a canyon with tiny figures in the distance and a camera on a tripod in the foreground.",
+          "The reference image is a close-up portrait of a woman with long red hair wearing a white lace top.",
+          "There are no matching characters between the two images; the subjects are completely different.",
+          "The settings, lighting, and overall style are entirely unrelated (canyon landscape vs. outdoor portrait)."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_03_Video_02_ANCHOR_00001_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image is a wide landscape shot of a desert with tire tracks and rock formations, featuring tiny figures in the distance.",
+        "The reference image is a close-up portrait of a woman with long red hair wearing a white lace top.",
+        "There are no matching character features as the subjects are completely different (tiny distant figures vs. a specific person).",
+        "The environments are entirely different: vast desert dunes versus an outdoor setting with greenery and hills."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image is a wide landscape shot of a desert with tire tracks and rock formations, featuring tiny figures in the distance.",
+          "The reference image is a close-up portrait of a woman with long red hair wearing a white lace top.",
+          "There are no matching character features as the subjects are completely different (tiny distant figures vs. a specific person).",
+          "The environments are entirely different: vast desert dunes versus an outdoor setting with greenery and hills."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_03_Video_03_ANCHOR_00001_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "error_category": "none",
+      "issues": [],
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_04_Video_01_ANCHOR_00001_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image shows a close-up of an Asian woman with brown eyes and dark hair.",
+        "The reference image features a Caucasian woman with long red hair, freckles, and green/hazel eyes.",
+        "There is a complete mismatch in character identity (race, facial structure, eye color, hair color/style).",
+        "Lighting differs significantly: the main image has harsh, directional sunlight creating strong shadows on one side of the face, while the reference image features soft, golden hour backlighting."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image shows a close-up of an Asian woman with brown eyes and dark hair.",
+          "The reference image features a Caucasian woman with long red hair, freckles, and green/hazel eyes.",
+          "There is a complete mismatch in character identity (race, facial structure, eye color, hair color/style).",
+          "Lighting differs significantly: the main image has harsh, directional sunlight creating strong shadows on one side of the face, while the reference image features soft, golden hour backlighting."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_04_Video_02_ANCHOR_00001_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image shows a lone figure sitting in a vast desert landscape with cracked earth, while the reference image is a close-up portrait of a woman with long red hair.",
+        "There are no matching character features; the figures are completely different subjects (silhouette vs. detailed face).",
+        "The environments are entirely unrelated: a barren desert versus an outdoor setting with greenery and flowers."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image shows a lone figure sitting in a vast desert landscape with cracked earth, while the reference image is a close-up portrait of a woman with long red hair.",
+          "There are no matching character features; the figures are completely different subjects (silhouette vs. detailed face).",
+          "The environments are entirely unrelated: a barren desert versus an outdoor setting with greenery and flowers."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_04_Video_03_ANCHOR_00001_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The character in the main image has dark brown hair and is shown in profile meditating in a desert setting.",
+        "The reference image features a different character with long red hair and freckles, smiling directly at the camera in an outdoor field setting.",
+        "There are significant mismatches in facial features (hair color, eye shape), clothing style (beige athletic set vs. white lace blouse), and background environment."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The character in the main image has dark brown hair and is shown in profile meditating in a desert setting.",
+          "The reference image features a different character with long red hair and freckles, smiling directly at the camera in an outdoor field setting.",
+          "There are significant mismatches in facial features (hair color, eye shape), clothing style (beige athletic set vs. white lace blouse), and background environment."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_05_Video_01_ANCHOR_00001_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image shows a person's torso and hands sorting through a bin of food scraps inside a vehicle, while the reference image is a portrait of a woman with long red hair outdoors.",
+        "There are no matching character features visible in the main image to compare against the face shown in the reference image.",
+        "The clothing in the main image (grey sweatshirt, blue jeans) does not match the white lace top worn by the subject in the reference image.",
+        "The setting is completely different: inside a car versus an outdoor landscape."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image shows a person's torso and hands sorting through a bin of food scraps inside a vehicle, while the reference image is a portrait of a woman with long red hair outdoors.",
+          "There are no matching character features visible in the main image to compare against the face shown in the reference image.",
+          "The clothing in the main image (grey sweatshirt, blue jeans) does not match the white lace top worn by the subject in the reference image.",
+          "The setting is completely different: inside a car versus an outdoor landscape."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_05_Video_02_ANCHOR_00001_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image is a top-down view of a wooden cutting board filled with various snacks (jerky, dried fruit, pretzels) inside what appears to be the trunk of a car.",
+        "The reference image is a portrait of a woman with long red hair wearing a white lace top outdoors during golden hour.",
+        "There are no characters in the main image to compare against the woman in the reference image.",
+        "The product identity (snacks vs. person) and setting (car trunk vs. outdoor nature scene) are completely different."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image is a top-down view of a wooden cutting board filled with various snacks (jerky, dried fruit, pretzels) inside what appears to be the trunk of a car.",
+          "The reference image is a portrait of a woman with long red hair wearing a white lace top outdoors during golden hour.",
+          "There are no characters in the main image to compare against the woman in the reference image.",
+          "The product identity (snacks vs. person) and setting (car trunk vs. outdoor nature scene) are completely different."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_05_Video_03_ANCHOR_00001_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image features a dog in a desert setting, while the reference image shows a human woman outdoors.",
+        "There is no character consistency as one subject is an animal and the other is a person.",
+        "The product/subject identity is completely different (dog vs. human).",
+        "The lighting styles are somewhat similar (natural outdoor light), but the subjects themselves make them inconsistent."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image features a dog in a desert setting, while the reference image shows a human woman outdoors.",
+          "There is no character consistency as one subject is an animal and the other is a person.",
+          "The product/subject identity is completely different (dog vs. human).",
+          "The lighting styles are somewhat similar (natural outdoor light), but the subjects themselves make them inconsistent."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_06_Video_01_ANCHOR_00001_.png",
+      "status": "fail",
+      "confidence": 1.0,
+      "error_category": "character",
+      "issues": [
+        "The main image is a landscape of the Grand Canyon at dusk/dawn with no people present.",
+        "The reference image features a woman with long red hair and freckles in an outdoor setting.",
+        "There are completely different subjects: a geological formation versus a human portrait."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 1.0,
+        "issues": [
+          "The main image is a landscape of the Grand Canyon at dusk/dawn with no people present.",
+          "The reference image features a woman with long red hair and freckles in an outdoor setting.",
+          "There are completely different subjects: a geological formation versus a human portrait."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_06_Video_02_ANCHOR_00001_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The character in the main image is a blonde woman with blue eyes and freckles, while the reference image shows a redhead woman with green/hazel eyes.",
+        "The clothing is completely different: the main image features an unclothed subject (topless), whereas the reference image shows a woman wearing a white lace top.",
+        "The lighting differs significantly; the main image has cool, blue-toned twilight lighting, while the reference image has warm, golden hour sunlight.",
+        "The background environments are distinct: a rocky canyon vs. a field with yellow flowers."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The character in the main image is a blonde woman with blue eyes and freckles, while the reference image shows a redhead woman with green/hazel eyes.",
+          "The clothing is completely different: the main image features an unclothed subject (topless), whereas the reference image shows a woman wearing a white lace top.",
+          "The lighting differs significantly; the main image has cool, blue-toned twilight lighting, while the reference image has warm, golden hour sunlight.",
+          "The background environments are distinct: a rocky canyon vs. a field with yellow flowers."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_06_Video_03_ANCHOR_00001_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image is a landscape of the Grand Canyon at dusk/dawn with no people present.",
+        "The reference image features a woman with long red hair and freckles in an outdoor setting.",
+        "There are completely different subjects (landscape vs. portrait) and environments."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image is a landscape of the Grand Canyon at dusk/dawn with no people present.",
+          "The reference image features a woman with long red hair and freckles in an outdoor setting.",
+          "There are completely different subjects (landscape vs. portrait) and environments."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_07_Video_01_ANCHOR_00001_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image shows a person with short dark hair viewed from behind in silhouette.",
+        "The reference image shows a woman with long red hair facing forward.",
+        "The clothing is completely different: loose grey pajamas/linen set vs. a white lace blouse.",
+        "The lighting and setting are entirely different: twilight canyon vs. sunny outdoor portrait."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image shows a person with short dark hair viewed from behind in silhouette.",
+          "The reference image shows a woman with long red hair facing forward.",
+          "The clothing is completely different: loose grey pajamas/linen set vs. a white lace blouse.",
+          "The lighting and setting are entirely different: twilight canyon vs. sunny outdoor portrait."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_07_Video_02_ANCHOR_00001_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image is a landscape shot of rocky cliffs with sunlight streaming through a gap.",
+        "The reference image is a portrait of a woman with long red hair wearing a white lace top.",
+        "There are no matching characters between the two images.",
+        "The settings and environments are completely different (canyon vs. outdoor field).",
+        "The lighting styles differ significantly, though both utilize warm tones."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image is a landscape shot of rocky cliffs with sunlight streaming through a gap.",
+          "The reference image is a portrait of a woman with long red hair wearing a white lace top.",
+          "There are no matching characters between the two images.",
+          "The settings and environments are completely different (canyon vs. outdoor field).",
+          "The lighting styles differ significantly, though both utilize warm tones."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_07_Video_03_ANCHOR_00001_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image is a landscape of desert canyons with no human subjects.",
+        "The reference image features a woman with long red hair and freckles in an outdoor setting.",
+        "There are no matching character features as the images depict completely different subjects (landscape vs. portrait).",
+        "The lighting styles differ significantly; one is dramatic canyon sunset/sunrise, the other is soft golden hour portrait lighting."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image is a landscape of desert canyons with no human subjects.",
+          "The reference image features a woman with long red hair and freckles in an outdoor setting.",
+          "There are no matching character features as the images depict completely different subjects (landscape vs. portrait).",
+          "The lighting styles differ significantly; one is dramatic canyon sunset/sunrise, the other is soft golden hour portrait lighting."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_08_Video_01_ANCHOR_00001_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image is a close-up of food cooking in a pan over an open fire on sand.",
+        "The reference image is a portrait of a woman with long red hair outdoors.",
+        "There are no characters present in the main image to compare against the character in the reference image.",
+        "The subject matter (cooking vs. portrait) and setting (sand/fire pit vs. field/coastline) are completely different."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image is a close-up of food cooking in a pan over an open fire on sand.",
+          "The reference image is a portrait of a woman with long red hair outdoors.",
+          "There are no characters present in the main image to compare against the character in the reference image.",
+          "The subject matter (cooking vs. portrait) and setting (sand/fire pit vs. field/coastline) are completely different."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_08_Video_02_ANCHOR_00001_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image features a steak cooking in a pan with a desert background, while the reference image shows a woman outdoors.",
+        "There is no character present in the main image to compare against the woman in the reference image.",
+        "The product (steak/pan) in the main image has no equivalent in the reference image which focuses on a person.",
+        "Lighting and style are different: the main image is a close-up food shot with dramatic backlighting, while the reference is a portrait with soft natural lighting."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image features a steak cooking in a pan with a desert background, while the reference image shows a woman outdoors.",
+          "There is no character present in the main image to compare against the woman in the reference image.",
+          "The product (steak/pan) in the main image has no equivalent in the reference image which focuses on a person.",
+          "Lighting and style are different: the main image is a close-up food shot with dramatic backlighting, while the reference is a portrait with soft natural lighting."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_08_Video_03_ANCHOR_00001_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image is a close-up of falling red chili flakes and spices into a bowl.",
+        "The reference image is a portrait of a woman with long reddish-brown hair outdoors.",
+        "There are no characters in the main image to compare features like eye color or hairstyle.",
+        "The product (spices) in the main image does not appear in the reference image, which focuses on a person.",
+        "The lighting and style are completely different: macro food photography vs. outdoor portrait."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image is a close-up of falling red chili flakes and spices into a bowl.",
+          "The reference image is a portrait of a woman with long reddish-brown hair outdoors.",
+          "There are no characters in the main image to compare features like eye color or hairstyle.",
+          "The product (spices) in the main image does not appear in the reference image, which focuses on a person.",
+          "The lighting and style are completely different: macro food photography vs. outdoor portrait."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_09_Video_01_ANCHOR_00001_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image is a landscape shot of layered rock formations at dusk/night with no human subjects.",
+        "The reference image is a portrait of a woman with long red hair and freckles in daylight.",
+        "There are completely different subjects (landscape vs. person).",
+        "The lighting conditions are entirely different (dark, cool tones vs. warm, golden hour sunlight)."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image is a landscape shot of layered rock formations at dusk/night with no human subjects.",
+          "The reference image is a portrait of a woman with long red hair and freckles in daylight.",
+          "There are completely different subjects (landscape vs. person).",
+          "The lighting conditions are entirely different (dark, cool tones vs. warm, golden hour sunlight)."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_09_Video_02_ANCHOR_00001_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "style",
+      "issues": [
+        "The main image is a landscape shot of dark volcanic rocks and sand at twilight/dusk.",
+        "The reference image is a portrait of a woman with long red hair in a sunny outdoor setting.",
+        "There are no characters present in the main image to compare features like eye color or clothing.",
+        "The lighting styles are completely different (cool, low-light blue tones vs. warm, golden hour sunlight).",
+        "The environments and subjects are entirely unrelated."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image is a landscape shot of dark volcanic rocks and sand at twilight/dusk.",
+          "The reference image is a portrait of a woman with long red hair in a sunny outdoor setting.",
+          "There are no characters present in the main image to compare features like eye color or clothing.",
+          "The lighting styles are completely different (cool, low-light blue tones vs. warm, golden hour sunlight).",
+          "The environments and subjects are entirely unrelated."
+        ],
+        "error_category": "style"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_09_Video_03_ANCHOR_00001_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image is a landscape silhouette of rocks against a twilight sky with no human subjects.",
+        "The reference image features a woman with long red hair and freckles in an outdoor setting during golden hour.",
+        "There are completely different subjects (landscape vs. portrait) and lighting conditions (twilight/dark vs. bright/golden hour).",
+        "No character, product, or stylistic elements overlap between the two images."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image is a landscape silhouette of rocks against a twilight sky with no human subjects.",
+          "The reference image features a woman with long red hair and freckles in an outdoor setting during golden hour.",
+          "There are completely different subjects (landscape vs. portrait) and lighting conditions (twilight/dark vs. bright/golden hour).",
+          "No character, product, or stylistic elements overlap between the two images."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_10_Video_01_ANCHOR_00001_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image is a landscape scene featuring rocks and water on a beach at dusk/dawn.",
+        "The reference image is a portrait of a woman with long red hair wearing a white lace top.",
+        "There are no characters in the main image to compare against the character in the reference image.",
+        "The lighting, style, and subject matter are completely different between the two images."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image is a landscape scene featuring rocks and water on a beach at dusk/dawn.",
+          "The reference image is a portrait of a woman with long red hair wearing a white lace top.",
+          "There are no characters in the main image to compare against the character in the reference image.",
+          "The lighting, style, and subject matter are completely different between the two images."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_10_Video_02_ANCHOR_00001_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image features a close-up profile of an East Asian woman with dark hair and brown eyes.",
+        "The reference image shows a full-face portrait of a Caucasian woman with long red hair and green/hazel eyes.",
+        "There is a complete mismatch in character identity (ethnicity, facial structure), hair color/style, and eye color between the two images."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image features a close-up profile of an East Asian woman with dark hair and brown eyes.",
+          "The reference image shows a full-face portrait of a Caucasian woman with long red hair and green/hazel eyes.",
+          "There is a complete mismatch in character identity (ethnicity, facial structure), hair color/style, and eye color between the two images."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_10_Video_03_ANCHOR_00001_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image is a landscape of the Grand Canyon at sunset with no people present.",
+        "The reference image features a woman with long red hair and freckles wearing a white lace top.",
+        "There are no character features to compare as one image contains only scenery while the other focuses on a person."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image is a landscape of the Grand Canyon at sunset with no people present.",
+          "The reference image features a woman with long red hair and freckles wearing a white lace top.",
+          "There are no character features to compare as one image contains only scenery while the other focuses on a person."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_11_Video_01_ANCHOR_00001_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image features a woman with brown hair and a young girl, while the reference image shows a different woman with long red/auburn hair.",
+        "The clothing in the main image is a simple beige tank top and striped skirt, whereas the reference image shows a detailed white lace blouse.",
+        "The setting in the main image is a desert cooking scene, while the reference image is an outdoor portrait with greenery and hills."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image features a woman with brown hair and a young girl, while the reference image shows a different woman with long red/auburn hair.",
+          "The clothing in the main image is a simple beige tank top and striped skirt, whereas the reference image shows a detailed white lace blouse.",
+          "The setting in the main image is a desert cooking scene, while the reference image is an outdoor portrait with greenery and hills."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_11_Video_02_ANCHOR_00001_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The character in the main image is a woman with short dark hair wearing a green t-shirt and dark pants.",
+        "The reference image shows a different woman with long red hair, freckles, and a white lace top.",
+        "There are no matching character features (hair color/length, facial structure) between the two images."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The character in the main image is a woman with short dark hair wearing a green t-shirt and dark pants.",
+          "The reference image shows a different woman with long red hair, freckles, and a white lace top.",
+          "There are no matching character features (hair color/length, facial structure) between the two images."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_11_Video_03_ANCHOR_00001_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image features two women with dark hair in a desert setting having a picnic.",
+        "The reference image shows a single woman with long red hair and freckles in an outdoor field setting.",
+        "There is no character overlap between the images; they depict completely different people.",
+        "The settings are entirely different (desert vs. coastal/field).",
+        "The lighting styles differ, though both use warm tones."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image features two women with dark hair in a desert setting having a picnic.",
+          "The reference image shows a single woman with long red hair and freckles in an outdoor field setting.",
+          "There is no character overlap between the images; they depict completely different people.",
+          "The settings are entirely different (desert vs. coastal/field).",
+          "The lighting styles differ, though both use warm tones."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_12_Video_01_ANCHOR_00001_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image features a male figure from behind in a wide landscape shot, while the reference image is a close-up portrait of a smiling woman with long red hair.",
+        "There are no matching character features; the subjects appear to be completely different individuals (gender, age, and facial structure do not match).",
+        "The clothing styles are entirely different: dark casual wear vs. a white lace blouse."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image features a male figure from behind in a wide landscape shot, while the reference image is a close-up portrait of a smiling woman with long red hair.",
+          "There are no matching character features; the subjects appear to be completely different individuals (gender, age, and facial structure do not match).",
+          "The clothing styles are entirely different: dark casual wear vs. a white lace blouse."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_12_Video_02_ANCHOR_00001_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image features a young man with dark curly hair wearing a dark jacket and pants.",
+        "The reference image features a woman with long red hair wearing a white lace top.",
+        "There is no character consistency between the two images; they depict completely different individuals."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image features a young man with dark curly hair wearing a dark jacket and pants.",
+          "The reference image features a woman with long red hair wearing a white lace top.",
+          "There is no character consistency between the two images; they depict completely different individuals."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_12_Video_03_ANCHOR_00001_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The character in the main image is a young woman with short dark hair wearing a plain white t-shirt and blue jeans.",
+        "The reference image shows a different person (or significantly different styling) with long red hair, freckles, and wearing an intricate lace top.",
+        "There are no matching product identities or consistent clothing details between the two images."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The character in the main image is a young woman with short dark hair wearing a plain white t-shirt and blue jeans.",
+          "The reference image shows a different person (or significantly different styling) with long red hair, freckles, and wearing an intricate lace top.",
+          "There are no matching product identities or consistent clothing details between the two images."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_13_Video_01_ANCHOR_00001_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image features a male character with short brown hair wearing a dark t-shirt and jeans, standing in a field.",
+        "The reference image shows a female character with long red hair wearing a white lace top.",
+        "There is no overlap in character identity between the two images."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image features a male character with short brown hair wearing a dark t-shirt and jeans, standing in a field.",
+          "The reference image shows a female character with long red hair wearing a white lace top.",
+          "There is no overlap in character identity between the two images."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_13_Video_02_ANCHOR_00001_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image features a male character with short brown hair wearing a dark jacket and blue jeans.",
+        "The reference image features a female character with long red hair wearing a white lace top.",
+        "There is a complete mismatch in gender, hairstyle, clothing, and facial features between the two images."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image features a male character with short brown hair wearing a dark jacket and blue jeans.",
+          "The reference image features a female character with long red hair wearing a white lace top.",
+          "There is a complete mismatch in gender, hairstyle, clothing, and facial features between the two images."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_13_Video_03_ANCHOR_00001_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image features a male character with dark curly hair and casual clothing (brown jacket, jeans), while the reference image shows a female character with long red hair wearing a white lace top.",
+        "There is no product identity to compare as neither image focuses on a specific commercial product.",
+        "The lighting in both images appears warm and natural, but the subjects are completely different individuals."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image features a male character with dark curly hair and casual clothing (brown jacket, jeans), while the reference image shows a female character with long red hair wearing a white lace top.",
+          "There is no product identity to compare as neither image focuses on a specific commercial product.",
+          "The lighting in both images appears warm and natural, but the subjects are completely different individuals."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_14_Video_01_ANCHOR_00001_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image features a young man standing in a field of tall grass.",
+        "The reference image features a woman with long red hair and freckles.",
+        "There is a complete mismatch in character identity (gender, age, facial features).",
+        "The clothing styles are completely different (casual button-down shirt vs. bohemian lace top).",
+        "The lighting differs significantly; the main image has flat daylight while the reference has warm golden hour backlighting."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image features a young man standing in a field of tall grass.",
+          "The reference image features a woman with long red hair and freckles.",
+          "There is a complete mismatch in character identity (gender, age, facial features).",
+          "The clothing styles are completely different (casual button-down shirt vs. bohemian lace top).",
+          "The lighting differs significantly; the main image has flat daylight while the reference has warm golden hour backlighting."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_14_Video_02_ANCHOR_00001_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image shows a person from the back wearing dark clothing in a wide field, while the reference image is a close-up portrait of a woman with long red hair and freckles facing forward.",
+        "The character's appearance (hair color, facial features) is completely different between the two images; the main image does not show enough detail to confirm identity but the figure appears to have short blonde or light-colored hair from behind, whereas the reference has long red hair.",
+        "The clothing in the main image is a dark t-shirt and shorts/skirt, while the reference shows a white lace top.",
+        "The setting and lighting are different; the main image is a wide landscape shot with overcast/diffused lighting, while the reference is a close-up portrait with warm sunset backlighting."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image shows a person from the back wearing dark clothing in a wide field, while the reference image is a close-up portrait of a woman with long red hair and freckles facing forward.",
+          "The character's appearance (hair color, facial features) is completely different between the two images; the main image does not show enough detail to confirm identity but the figure appears to have short blonde or light-colored hair from behind, whereas the reference has long red hair.",
+          "The clothing in the main image is a dark t-shirt and shorts/skirt, while the reference shows a white lace top.",
+          "The setting and lighting are different; the main image is a wide landscape shot with overcast/diffused lighting, while the reference is a close-up portrait with warm sunset backlighting."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_14_Video_03_ANCHOR_00001_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image shows a person from behind wearing dark clothing in a desert landscape.",
+        "The reference image is a close-up portrait of a woman with long red hair and freckles, facing the camera.",
+        "There is no character consistency; they appear to be completely different individuals.",
+        "The setting and lighting are also vastly different (desert vs. coastal/garden sunset)."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image shows a person from behind wearing dark clothing in a desert landscape.",
+          "The reference image is a close-up portrait of a woman with long red hair and freckles, facing the camera.",
+          "There is no character consistency; they appear to be completely different individuals.",
+          "The setting and lighting are also vastly different (desert vs. coastal/garden sunset)."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_15_Video_01_ANCHOR_00001_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "error_category": "character",
+      "issues": [
+        "The main image features a male character with short dark hair wearing a grey t-shirt and blue jeans.",
+        "The reference image features a female character with long red hair wearing a white lace top.",
+        "There is no overlap in character identity (gender, age, appearance) between the two images."
+      ],
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image features a male character with short dark hair wearing a grey t-shirt and blue jeans.",
+          "The reference image features a female character with long red hair wearing a white lace top.",
+          "There is no overlap in character identity (gender, age, appearance) between the two images."
+        ],
+        "error_category": "character"
+      }
+    }
+  ]
+}

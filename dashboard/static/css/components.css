@@ -1229,3 +1229,25 @@
   border-color: var(--cyan, #00D4FF);
   color: var(--cyan, #00D4FF);
 }
+
+/* ---------- Settings Row (new layout) ---------- */
+.settings-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+@media (max-width: 1000px) { .settings-row { grid-template-columns: 1fr; } }
+
+.setting-group .setting-row {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 6px;
+}
+.setting-group .setting-row:last-child { margin-bottom: 0; }
+.setting-group .lbl { font-size: 11px; color: var(--text-secondary); white-space: nowrap; min-width: 90px; }
+.setting-group .input { flex: 1; background: var(--bg, #0A0E14); border: 1px solid var(--border, #2A3A4F); color: var(--text, #E6EDF3); padding: 6px 10px; border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+.setting-group .input::placeholder { color: var(--text-dim, #555); }
+
+.mode-toggle { display: flex; gap: 0; border-radius: 6px; overflow: hidden; border: 1px solid var(--border); }
+.mode-btn { padding: 8px 20px; background: var(--bg, #0A0E14); color: var(--text-secondary); font-family: 'JetBrains Mono', monospace; font-size: 12px; border: none; cursor: pointer; transition: all 150ms ease; display: flex; align-items: center; gap: 6px; }
+.mode-btn:hover { background: var(--bg-secondary, #0D1420); color: var(--text, #E6EDF3); }
+.mode-btn.active { background: rgba(0, 212, 255, 0.15); border-color: var(--cyan, #00D4FF); color: var(--cyan, #00D4FF); }
+.mode-desc { font-size: 9px; opacity: 0.7; letter-spacing: 0.06em; }

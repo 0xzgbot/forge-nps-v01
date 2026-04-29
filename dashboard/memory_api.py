@@ -53,13 +53,33 @@ def get_memory_stats() -> Dict[str, Any]:
     events = load_events()
     insights = load_insights()
 
-    outcomes = [e for e in events if e.get("event_type") == "outcome"]
+    outcome_types = {"outcome", "final_outcome", "audit_outcome", "audit_result", "render_result", "remediation_result"}
+    attempt_types = {"generation_attempt", "render_attempt", "shot_planned"}
+    outcomes = [e for e in events if e.get("event_type") in outcome_types]
     successes = [e for e in outcomes if e.get("success")]
-    attempts = [e for e in events if e.get("event_type") == "generation_attempt"]
+    attempts = [e for e in events if e.get("event_type") in attempt_types]
 
     error_counts = Counter(e.get("error_category", "Unknown") for e in outcomes)
     kernel_counts = Counter(e.get("kernel_id", "unknown") for e in events)
     session_counts = Counter(e.get("session_id", "unknown") for e in events)
+
+    # Source breakdown
+    live_count = sum(1 for e in events if e.get("source") == "live")
+    demo_count = sum(1 for e in events if e.get("source") == "demo")
+    seed_count = sum(1 for e in events if e.get("source") == "seed")
+    campaign_count = sum(1 for e in events if e.get("source") == "campaign")
+    import_count = sum(1 for e in events if e.get("source") == "import")
+    fallback_count = sum(1 for e in events if e.get("source") == "fallback")
+
+    # Promotable: live remediation events with success=true, grouped by error_category
+    remediation_by_cat: Dict[str, int] = Counter()
+    for e in events:
+        if (e.get("source") == "live"
+                and e.get("event_type") in {"remediation", "remediation_result"}
+                and e.get("success")
+                and e.get("error_category")):
+            remediation_by_cat[e["error_category"]] += 1
+    promotable_count = sum(1 for c in remediation_by_cat.values() if c >= 2)
 
     # Time range
     timestamps = [e.get("timestamp", "") for e in events if e.get("timestamp")]
@@ -73,7 +93,7 @@ def get_memory_stats() -> Dict[str, Any]:
     kernel_counts = {k: int(v) for k, v in kernel_counts.most_common()}
     session_counts = {k: int(v) for k, v in session_counts.most_common()}
 
-    return {
+    stats = {
         "total_events": len(events),
         "total_insights": len(insights),
         "generation_attempts": len(attempts),
@@ -87,7 +107,21 @@ def get_memory_stats() -> Dict[str, Any]:
             sum(i["confidence"] for i in insights) / len(insights), 3
         ) if insights else 0.0,
         "total_confirmations": sum(i.get("confirmations", 0) for i in insights),
+        # Source breakdown
+        "live_count": live_count,
+        "demo_count": demo_count,
+        "seed_count": seed_count,
+        "campaign_count": campaign_count,
+        "import_count": import_count,
+        "fallback_count": fallback_count,
+        "promotable_count": promotable_count,
     }
+    # Frontend compatibility aliases
+    stats["events"] = stats["total_events"]
+    stats["insights"] = stats["total_insights"]
+    stats["sessions"] = stats["active_sessions"]
+    stats["rules"] = stats["promotable_count"]
+    return stats
 
 
 def get_event_timeline(limit: int = 50) -> List[Dict[str, Any]]:
@@ -101,8 +135,10 @@ def get_event_timeline(limit: int = 50) -> List[Dict[str, Any]]:
         result.append({
             "event_id": e.get("event_id", "unknown"),
             "timestamp": e.get("timestamp", ""),
+            "ts": e.get("timestamp", ""),
             "session_id": e.get("session_id", "unknown"),
             "shot_id": e.get("shot_id", ""),
+            "shot": e.get("shot_id", ""),
             "type": e.get("event_type", "unknown"),
             "concept": (e.get("concept", "")[:80]),
             "kernel_id": e.get("kernel_id", ""),
@@ -111,8 +147,50 @@ def get_event_timeline(limit: int = 50) -> List[Dict[str, Any]]:
             "fix_applied": e.get("fix_applied", ""),
             "audit_score": e.get("audit_score"),
             "iterations_required": e.get("iterations_required", 1),
+            "source": e.get("source", "live"),
         })
     return result
+
+
+def get_memory_health() -> Dict[str, Any]:
+    events = load_events()
+    valid_types = {
+        "shot_planned",
+        "render_attempt",
+        "render_result",
+        "audit_started",
+        "audit_result",
+        "remediation_started",
+        "remediation_result",
+        "retry_linked",
+        "final_outcome",
+        "import_completed",
+    }
+    unknown = [e for e in events if e.get("event_type") not in valid_types]
+    remediation_events = [e for e in events if e.get("event_type") in {"remediation_started", "remediation_result", "retry_linked"}]
+    orphan_remediation = [e for e in remediation_events if not e.get("shot_id")]
+    fallback_events = [e for e in events if e.get("source") == "fallback"]
+
+    rendered = {}
+    audited = {}
+    for e in events:
+        sid = e.get("shot_id", "")
+        if not sid:
+            continue
+        if e.get("event_type") == "render_result" and e.get("success") is True:
+            rendered[sid] = True
+        if e.get("event_type") == "audit_result":
+            audited[sid] = True
+    missing_audit = [sid for sid in rendered if sid not in audited]
+
+    return {
+        "total_events": len(events),
+        "unknown_event_types": len(unknown),
+        "unknown_event_samples": [e.get("event_type", "unknown") for e in unknown[:10]],
+        "orphan_remediation_events": len(orphan_remediation),
+        "fallback_events": len(fallback_events),
+        "shots_missing_audit_after_render": len(missing_audit),
+    }
 
 
 def get_graph_data() -> Dict[str, List[Dict[str, Any]]]:
@@ -167,9 +245,9 @@ def get_graph_data() -> Dict[str, List[Dict[str, Any]]]:
         shot_id = e.get("shot_id", "")
         concept = e.get("concept", "")[:30]
 
-        if etype == "generation_attempt":
+        if etype in {"generation_attempt", "render_attempt", "shot_planned"}:
             node_type = "attempt"
-        elif etype == "outcome":
+        elif etype in {"outcome", "final_outcome", "audit_outcome", "audit_result", "render_result", "remediation_result"}:
             node_type = "outcome_success" if e.get("success") else "outcome_fail"
         else:
             node_type = "event"
@@ -183,6 +261,7 @@ def get_graph_data() -> Dict[str, List[Dict[str, Any]]]:
             "success": e.get("success"),
             "error_category": e.get("error_category", ""),
             "audit_score": e.get("audit_score"),
+            "source": e.get("source", "live"),
         })
 
         session_node_id = f"session_{session_id}"
@@ -212,12 +291,12 @@ def get_graph_data() -> Dict[str, List[Dict[str, Any]]]:
 
     session_shot_attempts = {}
     for e in events:
-        if e.get("event_type") == "generation_attempt":
+        if e.get("event_type") in {"generation_attempt", "render_attempt", "shot_planned"}:
             key = (e.get("session_id", ""), e.get("shot_id", ""))
             session_shot_attempts.setdefault(key, []).append(e.get("event_id"))
 
     for e in events:
-        if e.get("event_type") == "outcome":
+        if e.get("event_type") in {"outcome", "final_outcome", "audit_outcome", "audit_result", "render_result", "remediation_result"}:
             key = (e.get("session_id", ""), e.get("shot_id", ""))
             attempts = session_shot_attempts.get(key, [])
             if attempts:

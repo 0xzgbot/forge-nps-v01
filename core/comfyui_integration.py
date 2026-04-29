@@ -74,7 +74,10 @@ class ComfyUIBatchSubmitter:
 
         # 3. Download/Save (simulated)
         output_filename = f"{payload['id']}.png"
-        output_path = f"/Users/zgbot/Desktop/forge_nps_v01/outputs/{output_filename}"
+        project_root = Path(__file__).resolve().parents[1]
+        output_dir = project_root / "outputs"
+        output_dir.mkdir(parents=True, exist_ok=True)
+        output_path = str(output_dir / output_filename)
         
         return {
             "prompt_id": prompt_id,

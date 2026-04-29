@@ -1,0 +1,48 @@
+{
+  "input": {
+    "raw_concept": "A lone rover and a child crossing a suspended bridge in a floating city at dusk.",
+    "kimi_plan": {
+      "shot_id": "SHOT_003",
+      "visual_brief": "Wide emotional bridge crossing with city depth and weathered architecture.",
+      "environment": "Floating city with layered walkways, misty void below, lanterns and skyline beacons.",
+      "camera_direction": "slightly low-angle wide lens, forward movement feel",
+      "lighting_direction": "cool dusk ambient with warm practical lantern accents",
+      "rationale": "Conveys vulnerability and trust while expanding world scale.",
+      "constraints": "no broken anatomy, coherent bridge geometry, no text artifacts",
+      "characters": [
+        "Child",
+        "Service Rover"
+      ]
+    },
+    "character_names": [
+      "Child",
+      "Service Rover"
+    ],
+    "shot_meta": {
+      "campaign_id": "demo_001"
+    }
+  },
+  "z_image_output_shape": {
+    "raw_concept": "string",
+    "workflow_id": "spark_image_z_image",
+    "profile_name": "string",
+    "skills_used": [
+      "string"
+    ],
+    "model_standard_name": "string",
+    "model_standard_version": "string",
+    "compiled_prompt": "string",
+    "negative_prompt": "string",
+    "compiler_version": "v1.0.0",
+    "sections": {
+      "Subject/Action": "string",
+      "Environment": "string",
+      "Camera/Lens": "string",
+      "Lighting": "string",
+      "Character Continuity": "string",
+      "Style/Quality": "string",
+      "Skill Modifiers": "string",
+      "Model Profile Suffix": "string"
+    }
+  }
+}

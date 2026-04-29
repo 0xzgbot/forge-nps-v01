@@ -1,0 +1,34 @@
+{
+  "request": {
+    "shot_ids": [
+      "b015fdca1bf7__SHOT_001__spark_image_flux2_text_to_image",
+      "b015fdca1bf7__SHOT_004__spark_image_z_image",
+      "b5f36c0b774e__SHOT_002__spark_image_z_image"
+    ],
+    "max_retries": 2
+  },
+  "response": {
+    "status": "ok",
+    "results": [
+      {
+        "shot_id": "b015fdca1bf7__SHOT_001__spark_image_flux2_text_to_image",
+        "status": "ok",
+        "retry_shot_id": "b015fdca1bf7__SHOT_001__spark_image_flux2_text_to_image__retry_6f0a31",
+        "retry_audit_status": "pass",
+        "image_url": "/renders/remediation/b015fdca1bf7__SHOT_001__spark_image_flux2_text_to_image__retry_6f0a31/frame_00001.png"
+      },
+      {
+        "shot_id": "b015fdca1bf7__SHOT_004__spark_image_z_image",
+        "status": "ok",
+        "retry_shot_id": "b015fdca1bf7__SHOT_004__spark_image_z_image__retry_3ab98e",
+        "retry_audit_status": "fail",
+        "image_url": "/renders/remediation/b015fdca1bf7__SHOT_004__spark_image_z_image__retry_3ab98e/frame_00001.png"
+      },
+      {
+        "shot_id": "b5f36c0b774e__SHOT_002__spark_image_z_image",
+        "status": "skipped",
+        "reason": "Shot is not failed"
+      }
+    ]
+  }
+}

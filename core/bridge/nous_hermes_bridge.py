@@ -6,15 +6,23 @@ generates scripts and character DNA.
 import os
 import json
 import logging
+import sys
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-# We must use absolute imports or ensure project root is in PYTHONPATH
+# Ensure project root is available on PYTHONPATH for direct script execution
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.append(str(PROJECT_ROOT))
+
 try:
     from core.bridge.lmstudio_client import LMStudioClient
+    from core.skills.skill_loader import SkillLoader
+    from core.prompts.prompt_compiler import compile_prompt_artifact
 except ImportError:
-    import sys
-    sys.path.append("/Users/zgbot/Desktop/forge_nps_v01")
     from core.bridge.lmstudio_client import LMStudioClient
+    from core.skills.skill_loader import SkillLoader
+    from core.prompts.prompt_compiler import compile_prompt_artifact
 
 logger = logging.getLogger("NousHermesBridge")
 
@@ -29,6 +37,13 @@ class NousHermesBridge:
     def __init__(self):
         self.model = os.getenv("NOUS_HERMES_MODEL", "Hermes-3-Llama-3.2-3B")
         self.client = LMStudioClient()
+        self.last_error: Optional[str] = None
+        try:
+            self.skills = SkillLoader()
+            logger.info(f"[HERMES] Skills loaded: {self.skills.skill_names}")
+        except Exception as e:
+            logger.warning(f"[HERMES] SkillLoader unavailable: {e}")
+            self.skills = None
 
     @property
     def is_available(self) -> bool:
@@ -43,26 +58,53 @@ class NousHermesBridge:
         concept: str,
         director_schema: Dict[str, Any] = None,
         memory_context: str = "",
+        skills_context: str = "",
     ) -> Optional[str]:
-        """Write a cinematic Stable Diffusion prompt for a shot brief."""
+        """Write a cinematic Stable Diffusion prompt for a shot brief.
+
+        Args:
+            concept: Shot description/brief.
+            director_schema: Optional director guidance schema.
+            memory_context: Optional episodic memory context.
+            skills_context: Pre-computed skill injection block. If empty, auto-matched from skills.
+        """
+        # Auto-match skills if no pre-computed context provided
+        if not skills_context and self.skills:
+            try:
+                skills_context = self.skills.get_skills_context(concept)
+            except Exception as e:
+                logger.debug(f"[HERMES] Skill matching failed: {e}")
+
+        # Build system prompt with skill context prepended
+        system = HERMES_SYSTEM
+        if skills_context:
+            system = f"{HERMES_SYSTEM}\n\nRelevant domain skills:\n{skills_context}"
+
         user = (
             f"Shot brief: {concept}\n"
             f"{f'Memory context: {memory_context}' if memory_context else ''}\n"
+            f"{f'Director schema: {json.dumps(director_schema)}' if director_schema else ''}\n"
             "Write a vivid, specific Stable Diffusion prompt (2-4 sentences). "
             "Include: subject, action, lighting, mood, camera angle, style."
         )
         try:
+            self.last_error = None
             resp = await self.client.chat_async(
                 messages=[
-                    {"role": "system", "content": HERMES_SYSTEM},
+                    {"role": "system", "content": system},
                     {"role": "user", "content": user},
                 ],
                 model=self.model,
                 temperature=0.8,
                 max_tokens=300,
             )
-            return resp["choices"][0]["message"]["content"].strip()
+            content = (resp.get("choices", [{}])[0].get("message", {}).get("content") or "").strip()
+            if not content:
+                self.last_error = "Empty response content from Hermes model"
+                return None
+            return content
         except Exception as e:
+            self.last_error = str(e)
             logger.warning(f"[HERMES] generate_shot_prompt failed: {e}")
             return None
 
@@ -176,3 +218,23 @@ class NousHermesBridge:
         except Exception as e:
             logger.warning(f"[HERMES] chat failed: {e}")
             return f"[Hermes offline] {e}"
+
+    def compile_prompt(
+        self,
+        raw_concept: str,
+        workflow_id: str,
+        kimi_plan: Optional[Dict[str, Any]] = None,
+        character_names: Optional[List[str]] = None,
+        shot_meta: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """
+        Deterministic prompt compiler entrypoint (no network call).
+        """
+        artifact = compile_prompt_artifact(
+            raw_concept=raw_concept,
+            workflow_id=workflow_id,
+            kimi_plan=kimi_plan or {},
+            character_names=character_names or [],
+            shot_meta=shot_meta or {},
+        )
+        return artifact

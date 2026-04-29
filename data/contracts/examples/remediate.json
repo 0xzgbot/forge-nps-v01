@@ -1,0 +1,28 @@
+{
+  "request": {
+    "shot_ids": [
+      "b015fdca1bf7__SHOT_001__spark_image_flux2_text_to_image"
+    ],
+    "max_retries": 1
+  },
+  "response": {
+    "status": "ok",
+    "results": [
+      {
+        "shot_id": "b015fdca1bf7__SHOT_001__spark_image_flux2_text_to_image",
+        "status": "ok",
+        "retry_shot_id": "b015fdca1bf7__SHOT_001__spark_image_flux2_text_to_image__retry_6f0a31",
+        "retry_audit_status": "pass",
+        "image_url": "/external-renders/frame_00001.png"
+      }
+    ]
+  },
+  "retry_fields_on_retry_shot": {
+    "retry_of": "original_shot_id",
+    "retry_shot_id": "new_retry_id",
+    "original_compiled_prompt": "string",
+    "remediation_reason": "string",
+    "remediated_prompt": "string",
+    "remediation_model": "string"
+  }
+}

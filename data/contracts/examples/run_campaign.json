@@ -1,0 +1,97 @@
+{
+  "request": {
+    "brief": "Moab Utah Jeep commercial, cinematic dust trails, golden hour.",
+    "bible_path": "/Users/zgbot/Desktop/forge_nps_v01/data/lore_bible/world_bible.md",
+    "length": "30s",
+    "workflow_ids": [
+      "spark_image_z_image",
+      "spark_image_flux2_text_to_image_turbo"
+    ]
+  },
+  "response_stream_ndjson": [
+    {
+      "type": "kimi",
+      "text": "Generating shot list..."
+    },
+    {
+      "type": "kimi_raw",
+      "campaign_id": "b015fdca1bf7",
+      "text": "{\"campaign_id\":\"b015fdca1bf7\",\"shots\":[...]}"
+    },
+    {
+      "type": "kimi_plan",
+      "campaign_id": "b015fdca1bf7",
+      "count": 5,
+      "shots": [
+        {
+          "campaign_id": "b015fdca1bf7",
+          "shot_id": "SHOT_001",
+          "sequence": 1,
+          "narrative_intent": "Establish environment and vehicle tone",
+          "visual_brief": "Dawn wide shot of Jeep entering red sandstone valley",
+          "characters": [],
+          "environment": "Moab canyon",
+          "camera_direction": "low-angle tracking wide",
+          "lighting_direction": "golden-hour directional light",
+          "rationale": "Set premium tone quickly",
+          "constraints": "vehicle geometry must remain accurate"
+        }
+      ]
+    },
+    {
+      "type": "kimi_review",
+      "campaign_id": "b015fdca1bf7",
+      "score": 82,
+      "status": "pass",
+      "director_notes": "Coverage and pacing are acceptable for a 30s cut.",
+      "coverage_gaps": []
+    },
+    {
+      "type": "hermes",
+      "shot_id": "SHOT_001",
+      "text": "Writing prompt for SHOT_001..."
+    },
+    {
+      "type": "compiler",
+      "shot_id": "SHOT_001",
+      "workflow_id": "spark_image_z_image",
+      "profile_name": "Z-Image Photoreal Hero",
+      "model_standard_name": "flux-ltx-prompt-engineering-standard",
+      "model_standard_version": "1.0.0",
+      "skills_used": [
+        "automotive"
+      ],
+      "text": "profile=Z-Image Photoreal Hero skills=automotive"
+    },
+    {
+      "type": "spark",
+      "shot_id": "SHOT_001",
+      "status": "queued",
+      "prompt_id": "6a90f31f-dbe2-40ce-86f5-728aafe6cd23",
+      "text": "Queued SHOT_001 (spark_image_z_image)"
+    },
+    {
+      "type": "memory",
+      "shot_id": "SHOT_001",
+      "text": "Audit pass (86.0)"
+    },
+    {
+      "type": "done",
+      "text": "Campaign complete. 10 shots processed."
+    }
+  ],
+  "failure_path_invalid_kimi_key": [
+    {
+      "type": "kimi",
+      "text": "Generating shot list..."
+    },
+    {
+      "type": "error",
+      "text": "Kimi shot generation failed: http_error status=401 error={...}"
+    },
+    {
+      "type": "done",
+      "text": "Campaign stopped: Kimi failure before Spark dispatch."
+    }
+  ]
+}

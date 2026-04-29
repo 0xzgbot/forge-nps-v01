@@ -1,0 +1,14 @@
+{
+  "profile_name": "Default Cinematic",
+  "model_family": "generic",
+  "prompt_style": "cinematic still frame, physically coherent scene construction",
+  "camera_defaults": "35mm lens, medium-wide framing, clear subject separation",
+  "lighting_defaults": "natural key and motivated fill, controlled highlights, clean shadow detail",
+  "quality_terms": "high detail, coherent anatomy, realistic materials, balanced composition",
+  "negative_prompt": "blurry, low quality, worst quality, deformed anatomy, extra fingers, mutated limbs, watermark, text, signature, logo",
+  "forbidden_terms": [
+    "nsfw",
+    "gore"
+  ],
+  "max_prompt_chars": 1200
+}

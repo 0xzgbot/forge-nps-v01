@@ -1,0 +1,31 @@
+{
+  "campaign_id": "b015fdca1bf7",
+  "shots": [
+    {
+      "shot_id": "SHOT_001",
+      "sequence": 1,
+      "narrative_intent": "Establish adventure tone and geography",
+      "visual_brief": "Pre-dawn aerial reveal of Jeep entering a red sandstone valley with dust wake.",
+      "characters": [],
+      "environment": "Moab canyon basin with towering monoliths and suspended dust",
+      "camera_direction": "drone rise to low-forward chase angle, wide lens",
+      "lighting_direction": "soft pre-dawn ambient shifting into warm first sunlight",
+      "rationale": "Immediate scale and premium production value in first frame.",
+      "constraints": "vehicle orientation and wheel geometry must remain physically coherent"
+    },
+    {
+      "shot_id": "SHOT_002",
+      "sequence": 2,
+      "narrative_intent": "Introduce driver confidence and emotional hook",
+      "visual_brief": "Interior-over-shoulder framing of driver steering through curved canyon road.",
+      "characters": [
+        "Driver"
+      ],
+      "environment": "Jeep cabin with canyon motion in side window reflections",
+      "camera_direction": "35mm shoulder-level interior framing, shallow depth of field",
+      "lighting_direction": "warm edge light from passenger side, controlled bounce fill",
+      "rationale": "Connect audience to human intent while preserving vehicle context.",
+      "constraints": "hands and face anatomy must be accurate, no extra fingers"
+    }
+  ]
+}

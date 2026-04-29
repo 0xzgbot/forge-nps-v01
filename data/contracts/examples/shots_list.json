@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/shots"
+  },
+  "response": {
+    "shots": [
+      {
+        "id": "b015fdca1bf7__SHOT_001__spark_image_flux2_text_to_image",
+        "campaign_id": "b015fdca1bf7",
+        "state": "audited_fail",
+        "status": "rendered",
+        "prompt": "Dawn wide shot of a Jeep crossing red sandstone terrain.",
+        "compiled_prompt": "Dawn wide shot ...",
+        "negative_prompt": "blurry, low quality, ...",
+        "workflow_profile": "Flux2 Dev Expressive Cinematic",
+        "skills_used": [
+          "automotive"
+        ],
+        "seed": 392184,
+        "image_url": "/external-renders/SHOT_001.png",
+        "audit_status": "fail",
+        "audit_score": 31.0
+      }
+    ],
+    "count": 1,
+    "active_campaign_id": "b015fdca1bf7"
+  }
+}

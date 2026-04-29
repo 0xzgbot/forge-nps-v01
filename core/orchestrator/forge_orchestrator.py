@@ -33,7 +33,20 @@ class ForgeOrchestrator:
         self.session_id = session_id or f"session_{os.getpid()}"
         # FIX: Ensure we use the provided session manager if it's already initialized with a lock
         self.sm = session_manager or SessionManager(self.session_id)
-        self.kimi = kimi_bridge or KimiBridge()
+        if kimi_bridge:
+            self.kimi = kimi_bridge
+        else:
+            endpoint = (
+                self.config.get("KIMI_ENDPOINT", "")
+                or self.config.get("NIM_ENDPOINT", "")
+                or os.getenv("NIM_ENDPOINT", "")
+                or "https://integrate.api.nvidia.com/v1/chat/completions"
+            )
+            api_key = (
+                self.config.get("KIMI_API_KEY", "")
+                or os.getenv("KIMI_API_KEY", "")
+            )
+            self.kimi = KimiBridge(endpoint_url=endpoint, api_key=api_key, config_manager=self.config)
         
         # NEW: Explicitly inject the brain into Hermes via Orchestrator if provided
         if lmstudio_client and hermes_agent:

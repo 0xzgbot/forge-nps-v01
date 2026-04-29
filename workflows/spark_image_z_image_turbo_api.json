@@ -1,0 +1,10 @@
+{
+  "prompt": {
+    "9": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": "z-image-turbo"
+      }
+    }
+  }
+}

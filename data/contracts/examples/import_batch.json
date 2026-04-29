@@ -1,0 +1,18 @@
+{
+  "request": {
+    "report_path": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/report.json"
+  },
+  "response_first_import": {
+    "status": "ok",
+    "imported": 110,
+    "updated_existing": 0,
+    "report": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/report.json"
+  },
+  "response_reimport_same_report": {
+    "status": "ok",
+    "imported": 110,
+    "updated_existing": 110,
+    "report": "/Users/zgbot/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/report.json"
+  },
+  "idempotency_rule": "Shot IDs are deterministic: sienna_{file_stem}."
+}

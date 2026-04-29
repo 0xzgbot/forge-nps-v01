@@ -8,11 +8,13 @@ to all connected WebSocket clients.
 import asyncio
 import json
 import time
+import os
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 from dataclasses import dataclass, field, asdict
 
 import requests
+from core.bridge.runtime_config import get_raw_config
 
 REPO_ROOT = Path(__file__).parent.parent.parent.resolve()
 SPARK_HOST = "http://100.112.87.8:8188"
@@ -36,7 +38,7 @@ class SparkMonitor:
     """Singleton monitor that polls Spark and broadcasts state."""
 
     def __init__(self, host: str = SPARK_HOST):
-        self.host = host.rstrip("/")
+        self.host = self._resolve_host(host).rstrip("/")
         self.jobs: Dict[str, SparkJob] = {}
         self.running = False
         self._task: Optional[asyncio.Task] = None
@@ -44,6 +46,15 @@ class SparkMonitor:
         self._last_queue: Dict = {}
         self.spark_alive = False
         self.last_poll_time = 0.0
+
+    @staticmethod
+    def _resolve_host(default_host: str) -> str:
+        cfg = get_raw_config()
+        return (
+            os.getenv("COMFYUI_PRIMARY", "").strip()
+            or str(cfg.get("COMFYUI_PRIMARY", "")).strip()
+            or default_host
+        )
 
     def register_callback(self, callback):
         """Register a coroutine callback(job_id, job) for updates."""
@@ -86,6 +97,8 @@ class SparkMonitor:
     async def _poll_once(self):
         """Single poll cycle: queue + history."""
         try:
+            # Refresh host each poll in case settings changed at runtime.
+            self.host = self._resolve_host(self.host).rstrip("/")
             # 1. Queue state
             resp = requests.get(f"{self.host}/queue", timeout=5)
             resp.raise_for_status()

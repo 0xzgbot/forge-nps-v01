@@ -66,7 +66,8 @@ class LibraryLoader:
 
 if __name__ == "__main__":
     # Test the loader with the newly created files
-    loader = LibraryLoader("/Users/zgbot/Desktop/forge_nps_v01/data/prompt_libraries/")
+    default_library_dir = Path(__file__).resolve().parents[2] / "data" / "prompt_libraries"
+    loader = LibraryLoader(str(default_library_dir))
     libs = loader.load_all()
     print(f"Loaded {len(libs)} libraries.")
     for lib in libs:

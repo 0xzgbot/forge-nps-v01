@@ -1,0 +1,14 @@
+{
+  "profile_name": "Flux2 Dev Expressive Cinematic",
+  "model_family": "flux2-dev",
+  "prompt_style": "expressive cinematic concept art with disciplined composition and emotional lighting",
+  "camera_defaults": "24-50mm mixed lens grammar, intentional depth layering, strong foreground-midground-background read",
+  "lighting_defaults": "stylized but coherent practical lighting with motivated color contrast and volumetric depth",
+  "quality_terms": "rich color separation, deliberate storytelling detail, stable anatomy and perspective continuity",
+  "negative_prompt": "muddy composition, over-smoothed faces, extra fingers, broken limbs, random typography, watermark, logo",
+  "forbidden_terms": [
+    "childish doodle",
+    "unfinished draft"
+  ],
+  "max_prompt_chars": 1500
+}

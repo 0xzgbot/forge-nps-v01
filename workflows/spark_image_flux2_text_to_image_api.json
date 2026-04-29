@@ -1,0 +1,10 @@
+{
+  "prompt": {
+    "9": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": "Flux2_dev_nvfp4"
+      }
+    }
+  }
+}

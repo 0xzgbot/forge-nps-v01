@@ -277,13 +277,16 @@ class ComfyRemediationHarness:
                     # Record to episodic memory
                     if self.memory:
                         self.memory.record({
-                            "description": f"ComfyUI render failed for {path.name}: {e}",
+                            "session_id": getattr(self.memory, "session_id", "unknown"),
+                            "shot_id": Path(path).stem,
+                            "event_type": "render_failure",
+                            "concept": f"ComfyUI render failed for {path.name}: {e}",
                             "error_category": "comfyui_submission",
                             "fix_applied": "",
                             "success": False,
                             "kernel_id": "z_image_turbo",
                             "asset_path": str(path),
-                        })
+                        }, source="live")
 
         await asyncio.gather(*[
             worker(host, queue) for host, queue in host_queues.items() if queue

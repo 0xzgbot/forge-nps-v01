@@ -4,7 +4,7 @@ import os
 import requests
 from datetime import datetime
 from pathlib import Path
-from flask import Flask, render_template, request, jsonify, send_from_directory, Response
+from flask import Flask, Response
 
 # --- EXISTING IMPORTS (Simulated for the purpose of this draft) ---
 # In production, these would be actual imports from the project.
@@ -19,9 +19,10 @@ from flask import Flask, render_template, request, jsonify, send_from_directory,
 app = Flask(__name__, static_folder='static', template_folder='templates')
 
 # --- CONFIGURATION (Simulated) ---
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 LM_STUDIO_URL = "http://100.74.164.1:1234/v1/chat/completions"
-RENDER_DIR = Path("/Users/zgbot/Desktop/forge_nps_v01/dashboard/static/renders/sienna")
-ANCHOR_PATH = Path("/Users/zgbot/Desktop/forge_nps_v01/data/character_banks/anchors/elara_vance.jpg")
+RENDER_DIR = PROJECT_ROOT / "dashboard" / "static" / "renders" / "sienna"
+ANCHOR_PATH = PROJECT_ROOT / "data" / "character_banks" / "anchors" / "elara_vance.jpg"
 
 # Elara Vance Visual Profile for Prompting
 ELARA_PROFILE = (

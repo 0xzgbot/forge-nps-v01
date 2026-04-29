@@ -1,0 +1,14 @@
+{
+  "profile_name": "Z-Image Turbo Fast Photoreal",
+  "model_family": "z-image-turbo",
+  "prompt_style": "fast photoreal cinematic render optimized for throughput while preserving narrative clarity",
+  "camera_defaults": "clean 28-35mm lens language, readable hero framing, aggressive visual hierarchy",
+  "lighting_defaults": "high-contrast cinematic key, controlled highlight rolloff, robust midtone separation",
+  "quality_terms": "clear subject silhouette, artifact-resistant detail, stable anatomy, production-ready composition",
+  "negative_prompt": "blurry, smearing, motion artifacts, extra fingers, duplicate heads, malformed hands, watermark, text overlay",
+  "forbidden_terms": [
+    "sketch",
+    "line art"
+  ],
+  "max_prompt_chars": 1200
+}
