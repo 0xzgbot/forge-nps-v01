@@ -1,0 +1,201 @@
+{
+  "contract_name": "forge_nps_pipeline",
+  "version": "1.3.0",
+  "updated_at": "2026-04-29T19:30:00Z",
+  "changelog": [
+    {
+      "version": "1.3.0",
+      "date": "2026-04-29",
+      "changes": [
+        "Added explicit stream event types kimi_review and warning.",
+        "Added legacy endpoint policy section with 410-disabled routes.",
+        "Added Kimi self-check gate notes and fallback policy metadata.",
+        "Expanded required shot fields with model standard provenance."
+      ]
+    },
+    {
+      "version": "1.2.0",
+      "date": "2026-04-29",
+      "changes": [
+        "Kimi Director contract is now strict shot-plan JSON with explicit fields.",
+        "Run campaign stops before Spark on Kimi failure unless FORGE_DEV_FALLBACK=true.",
+        "Added stream event types kimi_raw and kimi_plan.",
+        "Added canonical shot states and canonical memory event names.",
+        "Added /api/memory/health for pipeline integrity checks."
+      ]
+    },
+    {
+      "version": "1.1.0",
+      "date": "2026-04-28",
+      "changes": [
+        "Initial audit/remediation contract."
+      ]
+    }
+  ],
+  "status_enums": {
+    "shot_state": [
+      "planned",
+      "queued",
+      "rendered",
+      "audit_started",
+      "audited_pass",
+      "audited_fail",
+      "remediation_started",
+      "retry_queued",
+      "retry_rendered",
+      "final_pass",
+      "final_fail"
+    ],
+    "memory_event_types": [
+      "shot_planned",
+      "render_attempt",
+      "render_result",
+      "audit_started",
+      "audit_result",
+      "remediation_started",
+      "remediation_result",
+      "retry_linked",
+      "final_outcome",
+      "import_completed"
+    ],
+    "stream_event_types": [
+      "kimi",
+      "kimi_raw",
+      "kimi_plan",
+      "kimi_review",
+      "hermes",
+      "compiler",
+      "spark",
+      "memory",
+      "warning",
+      "error",
+      "done"
+    ]
+  },
+  "endpoints": [
+    {
+      "name": "run_campaign",
+      "method": "POST",
+      "path": "/api/hermes/run-campaign",
+      "streaming": "ndjson",
+      "request_required": [
+        "brief"
+      ],
+      "request_optional": [
+        "bible_path",
+        "length",
+        "workflow_ids"
+      ]
+    },
+    {
+      "name": "audit_result",
+      "method": "POST",
+      "path": "/api/audit/reprocess"
+    },
+    {
+      "name": "remediate",
+      "method": "POST",
+      "path": "/api/audit/remediate"
+    },
+    {
+      "name": "import_batch",
+      "method": "POST",
+      "path": "/api/import/sienna-batch"
+    },
+    {
+      "name": "shots_list",
+      "method": "GET",
+      "path": "/api/shots",
+      "response_shape": "object_with_shots_array"
+    },
+    {
+      "name": "memory_health",
+      "method": "GET",
+      "path": "/api/memory/health"
+    }
+  ],
+  "legacy_policy": {
+    "disabled_routes_410": [
+      "/api/shots/dispatch-all",
+      "/api/shots/dispatch",
+      "/api/submit-recipe",
+      "/api/inject-prompt",
+      "/api/render",
+      "/api/render/audit"
+    ],
+    "compatibility_routes": [
+      {
+        "path": "/api/renders/audit-batch",
+        "behavior": "forwards to /api/audit/reprocess only when shot_ids is provided"
+      }
+    ]
+  },
+  "fallback_policy": {
+    "dev_fallback_env_flag": "FORGE_DEV_FALLBACK",
+    "default_behavior": "stop_before_spark_when_kimi_fails",
+    "learn_from_fallback_env_flag": "FORGE_LEARN_FROM_FALLBACK"
+  },
+  "required_shot_fields": {
+    "base": [
+      "id",
+      "campaign_id",
+      "shot_id",
+      "sequence",
+      "workflow_id",
+      "state",
+      "status"
+    ],
+    "kimi": [
+      "kimi_plan",
+      "raw_kimi_prompt",
+      "kimi_rationale",
+      "kimi_constraints",
+      "kimi_raw_response"
+    ],
+    "hermes": [
+      "compiled_prompt",
+      "negative_prompt",
+      "workflow_profile",
+      "skills_used",
+      "compiler_version",
+      "model_standard_name",
+      "model_standard_version"
+    ],
+    "spark": [
+      "prompt_id",
+      "seed",
+      "image_path",
+      "image_url"
+    ],
+    "audit": [
+      "audit_model",
+      "audit_status",
+      "audit_score",
+      "audit_issues",
+      "audit_raw_response",
+      "audit_timestamp"
+    ],
+    "remediation": [
+      "retry_of",
+      "original_compiled_prompt",
+      "remediation_reason",
+      "remediated_prompt",
+      "remediation_model"
+    ]
+  },
+  "kimi_director_shot_schema": {
+    "campaign_id": "string",
+    "shot_id": "string",
+    "sequence": "integer",
+    "narrative_intent": "string",
+    "visual_brief": "string",
+    "characters": [
+      "string"
+    ],
+    "environment": "string",
+    "camera_direction": "string",
+    "lighting_direction": "string",
+    "rationale": "string",
+    "constraints": "string"
+  }
+}

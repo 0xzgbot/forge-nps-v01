@@ -3,7 +3,7 @@ import uuid
 import time
 from datetime import datetime
 from typing import AsyncGenerator, List, Dict, Any, Optional
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query, HTTPException, UploadFile, Form
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query, HTTPException, UploadFile, Form, Request
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 
 from fastapi.staticfiles import StaticFiles
@@ -32,11 +32,18 @@ from .memory_api import (
     get_event_timeline,
     get_graph_data,
     search_memory,
+    get_memory_health,
 )
 from .api.prompt_builder import load_banks, build_recipe, generate_random_recipe
 from .api.spark_monitor import monitor as spark_monitor
+from core.dispatch.comfy_client import ComfyUIClient
+from core.hermes.pipeline import HermesCampaignService, CampaignRequest, HermesAuditService
 
 STATIC_DIR = Path(__file__).parent / "static"
+REPO_ROOT = Path(__file__).parent.parent.resolve()
+MEDIA_ROOT = Path(os.getenv("FORGE_MEDIA_ROOT", "~/Desktop/FORGE_NPS_MEDIA"))
+MEDIA_IMAGES = MEDIA_ROOT / "images"
+MEDIA_IMAGES.mkdir(parents=True, exist_ok=True)
 
 app = FastAPI()
 
@@ -79,113 +86,33 @@ skills_registry = [
 
 # --- Endpoints ---
 
+def _legacy_disabled(route: str, use_endpoint: str) -> JSONResponse:
+    return JSONResponse(
+        status_code=410,
+        content={
+            "status": "legacy_disabled",
+            "route": route,
+            "message": "This legacy endpoint is disabled for hackathon pipeline integrity.",
+            "use_endpoint": use_endpoint,
+        },
+    )
+
+
 @app.post("/api/renders/audit-batch")
-async def api_renders_audit_batch():
-    """Performs a batch visual audit using local LM Studio Gemma 4 model."""
-    repo_root = Path(__file__).parent.parent
-    sienna_dir = repo_root / "dashboard" / "static" / "renders" / "sienna"
-    anchor_path = repo_root / "data" / "character_banks" / "anchors" / "elara_vance.jpg"
-    
-    lmstudio_host = os.getenv("LMSTUDIO_HOST", "http://localhost:1234")
-    vision_model = os.getenv("LMSTUDIO_VISION_MODEL", "gemma-4-26b-a4b-it")
-
-    if not sienna_dir.exists():
-        raise HTTPException(status_code=404, detail="Sienna renders directory not found.")
-    if not anchor_path.exists():
-        raise HTTPException(status_code=404, detail="Character anchor image not found.")
-
-    async def audit_generator() -> AsyncGenerator[str, None]:
-        async with httpx.AsyncClient(timeout=120.0) as client:
-            # 1. Pre-encode Anchor
-            with Image.open(anchor_path) as img:
-                if img.mode != 'RGB': img = img.convert('RGB')
-                buffered = io.BytesIO()
-                img.save(buffered, format="JPEG")
-                anchor_b64 = base64.b64encode(buffered.getvalue()).decode('utf-8')
-
-            render_files = sorted([f for f in sienna_dir.iterdir() if f.suffix.lower() in (".png", ".jpg", ".jpeg")])
-            
-            for render_file in render_files:
-                try:
-                    # 2. Encode Render (with resizing)
-                    with Image.open(render_file) as img:
-                        if img.mode != 'RGB': img = img.convert('RGB')
-                        if img.width > 1024 or img.height > 1024:
-                            img.thumbnail((640, 640))
-                        buffered = io.BytesIO()
-                        img.save(buffered, format="JPEG")
-                        render_b64 = base64.b64encode(buffered.getvalue()).decode('utf-8')
-
-                    # 3. Construct Prompt
-                    prompt_text = (
-                        "Compare the two images provided. Image 1 is a character render. "
-                        "Image 2 is the official character reference for Elara Vance. "
-                        "Elara has platinum crop hair, amber/gold eyes, a charcoal flight jacket with copper piping on seams, "
-                        "and an ember-glow forearm tattoo. "
-                        "Does Image 1 maintain high visual consistency with Image 2? "
-                        "Respond ONLY with a JSON object in this format: "
-                        '{"is_consistent": boolean, "confidence": float (0.0-1.0), "issues": ["issue1", "issue2"]}'
-                    )
-
-                    # 4. Call LM Studio
-                    payload = {
-                        "model": vision_model,
-                        "messages": [
-                            {
-                                "role": "user",
-                                "content": [
-                                    {"type": "text", "text": prompt_text},
-                                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{render_b64}"}},
-                                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{anchor_b64}"}}
-                                ]
-                            }
-                        ],
-                        "temperature": 0.1,
-                        "max_tokens": 150
-                    }
-
-                    resp = await client.post(f"{lmstudio_host}/v1/chat/completions", json=payload)
-                    if resp.status_code != 200:
-                        raise Exception(f"LM Studio error: {resp.text}")
-
-                    raw_content = resp.json()['choices'][0]['message']['content']
-                    clean_json_str = re.sub(r'^```json\s*|```$', '', raw_content.strip(), flags=re.MULTILINE)
-                    verdict = json.loads(clean_json_str)
-
-                    # 5. Process Results
-                    confidence = float(verdict.get("confidence", 0.0))
-                    score = int(confidence * 100)
-                    status = "PASS" if confidence >= 0.75 else "FAIL"
-                    issues = verdict.get("issues", [])
-
-                    # 6. Persistence (Sidecar)
-                    sidecar_path = render_file.with_suffix(render_file.suffix + ".json")
-                    sidecar_data = {
-                        "score": score,
-                        "status": status,
-                        "issues": issues,
-                        "confidence": confidence,
-                        "timestamp": datetime.now().isoformat(),
-                        "prompt": f"Sienna Nomad — {render_file.stem}" 
-                    }
-                    with open(sidecar_path, "w", encoding="utf-8") as sf:
-                        json.dump(sidecar_data, sf, indent=2)
-
-                    # 7. Stream result back
-                    yield json.dumps({
-                        "filename": render_file.name,
-                        "status": status,
-                        "score": score,
-                        "error": None
-                    }) + "\n"
-
-                except Exception as e:
-                    yield json.dumps({
-                        "filename": render_file.name,
-                        "error": str(e)
-                    }) + "\n"
-
-    return StreamingResponse(audit_generator(), media_type="application/x-ndjson")
+async def api_renders_audit_batch(request: Request):
+    """
+    Legacy endpoint compatibility shim.
+    Canonical endpoint is /api/audit/reprocess.
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    shot_ids = body.get("shot_ids", []) if isinstance(body, dict) else []
+    if isinstance(shot_ids, list) and shot_ids:
+        service = _make_audit_service()
+        return await service.reprocess([str(s) for s in shot_ids if str(s).strip()])
+    return _legacy_disabled("/api/renders/audit-batch", "/api/audit/reprocess")
 
 @app.get("/memory")
 async def get_memory_page():
@@ -216,8 +143,18 @@ async def api_memory_stats():
 
 @app.get("/api/stats")
 async def api_stats():
-    """Alias for /api/memory/stats — used by home view."""
-    return get_memory_stats()
+    """Sidebar/system stats used by dashboard UI."""
+    ram_pct = None
+    try:
+        import psutil  # type: ignore
+        ram_pct = round(float(psutil.virtual_memory().percent), 1)
+    except Exception:
+        ram_pct = None
+    return {
+        "shots_in_store": len(_SHOTS_STORE),
+        "chat_sessions": len(sessions_db),
+        "ram_percent": ram_pct,
+    }
 
 @app.get("/api/memory/timeline")
 async def api_memory_timeline(limit: int = Query(50, ge=1, le=200)):
@@ -239,6 +176,11 @@ async def api_memory_graph():
 async def api_memory_search(q: str = Query(..., min_length=1)):
     """Search events and insights by text."""
     return search_memory(q)
+
+
+@app.get("/api/memory/health")
+async def api_memory_health():
+    return get_memory_health()
 
 @app.post("/api/memory/consolidate")
 async def api_memory_consolidate():
@@ -414,6 +356,7 @@ async def run_mock_stream(session_id: str):
 # --- Startup & Mounts ---
 
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+app.mount("/external-renders", StaticFiles(directory=str(MEDIA_IMAGES)), name="external-renders")
 
 _data_renders_dir = Path(__file__).parent.parent / "data" / "renders"
 if _data_renders_dir.exists():
@@ -426,6 +369,13 @@ app.mount("/campaigns", StaticFiles(directory=str(_campaigns_dir)), name="campai
 
 @app.get("/")
 async def root():
+    """
+    Serve the active dashboard UI.
+    The current app frontend lives in dashboard/templates/index.html.
+    """
+    template_index = Path(__file__).parent / "templates" / "index.html"
+    if template_index.exists():
+        return FileResponse(template_index)
     return FileResponse(STATIC_DIR / "index.html")
 
 
@@ -624,6 +574,56 @@ _SHOTS_STORE: List[Dict[str, Any]] = [
      "prompt": "Elara reading schematics, overexposed window behind, moody contrast, close-up hands",
      "seed": 849274},
 ]
+_CAMPAIGNS: Dict[str, Dict[str, Any]] = {}
+_ACTIVE_CAMPAIGN: Optional[str] = None
+_CANCEL_CAMPAIGN = False
+
+
+def _now_iso() -> str:
+    return datetime.utcnow().isoformat() + "Z"
+
+
+def _find_shot(shot_id: str) -> Optional[Dict[str, Any]]:
+    for s in _SHOTS_STORE:
+        if s.get("id") == shot_id:
+            return s
+    return None
+
+
+def _append_event(event: Dict[str, Any]):
+    events_path = REPO_ROOT / "data" / "hermes_memory" / "episodic" / "events.jsonl"
+    events_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(events_path, "a", encoding="utf-8") as f:
+        f.write(json.dumps(event) + "\n")
+
+
+def _record_pipeline_event(
+    event_type: str,
+    shot_id: str = "",
+    campaign_id: str = "",
+    workflow_id: str = "",
+    source: str = "campaign",
+    success: Optional[bool] = None,
+    extra: Optional[Dict[str, Any]] = None,
+):
+    if source == "fallback" and os.getenv("FORGE_LEARN_FROM_FALLBACK", "false").lower() != "true":
+        return
+    payload = {
+        "event_id": f"evt_{uuid.uuid4().hex[:10]}",
+        "timestamp": _now_iso(),
+        "event_type": event_type,
+        "session_id": campaign_id or "unknown",
+        "shot_id": shot_id,
+        "campaign_id": campaign_id or "",
+        "workflow_id": workflow_id or "",
+        "pipeline_mode": "production",
+        "source": source,
+    }
+    if success is not None:
+        payload["success"] = bool(success)
+    if extra:
+        payload.update(extra)
+    _append_event(payload)
 
 
 class UpdateShotRequest(BaseModel):
@@ -636,7 +636,11 @@ class ReparseRequest(BaseModel):
 
 @app.get("/api/shots")
 async def api_get_shots():
-    return _SHOTS_STORE
+    return {
+        "shots": _SHOTS_STORE,
+        "count": len(_SHOTS_STORE),
+        "active_campaign_id": _ACTIVE_CAMPAIGN,
+    }
 
 
 @app.get("/api/scripts")
@@ -935,99 +939,210 @@ async def api_script_update_shot(req: UpdateShotRequest):
     raise HTTPException(status_code=404, detail=f"Shot {req.shot_id} not found")
 
 
+class RunCampaignRequest(BaseModel):
+    brief: str
+    bible_path: str = ""
+    length: str = ""
+    workflow_ids: List[str] = []
+
+
+class ReAuditRequest(BaseModel):
+    shot_ids: List[str]
+
+
+class RemediateRequest(BaseModel):
+    shot_ids: List[str]
+    max_retries: int = 1
+
+
+class ImportBatchRequest(BaseModel):
+    report_path: str
+
+
+def _workflow_file_for_id(workflow_id: str) -> Optional[Path]:
+    candidates = [
+        REPO_ROOT / "workflows" / f"{workflow_id}.json",
+        REPO_ROOT / "workflows" / f"{workflow_id}_api.json",
+    ]
+    for c in candidates:
+        if c.exists():
+            return c
+    return None
+
+
+def _resolve_image_path(image_url: str) -> Optional[Path]:
+    if not image_url:
+        return None
+    p = Path(image_url)
+    if p.is_absolute() and p.exists():
+        return p
+    if image_url.startswith("/campaigns/"):
+        c = REPO_ROOT / "data" / "campaigns" / image_url.replace("/campaigns/", "", 1)
+        if c.exists():
+            return c
+    if image_url.startswith("/renders/"):
+        r = REPO_ROOT / "data" / "renders" / image_url.replace("/renders/", "", 1)
+        if r.exists():
+            return r
+    if image_url.startswith("/external-renders/"):
+        ex = MEDIA_IMAGES / Path(image_url).name
+        if ex.exists():
+            return ex
+    c2 = MEDIA_IMAGES / Path(image_url).name
+    if c2.exists():
+        return c2
+    return None
+
+
+def _make_audit_service() -> HermesAuditService:
+    return HermesAuditService(
+        shots_store=_SHOTS_STORE,
+        find_shot=_find_shot,
+        resolve_image_path=_resolve_image_path,
+        now_iso=_now_iso,
+        record_event=_record_pipeline_event,
+        audit_render=audit_render_with_kimi_vl,
+        workflow_file_for_id=_workflow_file_for_id,
+        media_images=MEDIA_IMAGES,
+        get_hermes_bridge=_get_hermes_bridge,
+    )
+
+
+@app.post("/api/hermes/cancel")
+async def api_hermes_cancel():
+    global _CANCEL_CAMPAIGN
+    _CANCEL_CAMPAIGN = True
+    return {"status": "ok", "cancelled": True}
+
+
+@app.post("/api/hermes/run-campaign")
+async def api_hermes_run_campaign(req: RunCampaignRequest):
+    async def _stream():
+        global _CANCEL_CAMPAIGN, _ACTIVE_CAMPAIGN
+        _CANCEL_CAMPAIGN = False
+
+        def _set_active(campaign_id: str) -> None:
+            global _ACTIVE_CAMPAIGN
+            _ACTIVE_CAMPAIGN = campaign_id
+
+        service = HermesCampaignService(
+            repo_root=REPO_ROOT,
+            media_images=MEDIA_IMAGES,
+            shots_store=_SHOTS_STORE,
+            campaigns=_CAMPAIGNS,
+            now_iso=_now_iso,
+            record_event=_record_pipeline_event,
+            audit_render=audit_render_with_kimi_vl,
+            workflow_file_for_id=_workflow_file_for_id,
+            is_cancelled=lambda: _CANCEL_CAMPAIGN,
+            active_campaign_setter=_set_active,
+        )
+        payload = CampaignRequest(
+            brief=req.brief,
+            bible_path=req.bible_path,
+            length=req.length,
+            workflow_ids=req.workflow_ids,
+        )
+        async for event in service.stream_campaign(payload):
+            yield json.dumps(event) + "\n"
+
+    return StreamingResponse(_stream(), media_type="application/x-ndjson")
+
+
+@app.post("/api/audit/reprocess")
+async def api_audit_reprocess(req: ReAuditRequest):
+    service = _make_audit_service()
+    return await service.reprocess(req.shot_ids)
+
+
+@app.post("/api/audit/remediate")
+async def api_audit_remediate(req: RemediateRequest):
+    service = _make_audit_service()
+    return await service.remediate(req.shot_ids, max_retries=req.max_retries)
+
+
+@app.post("/api/import/sienna-batch")
+async def api_import_sienna_batch(req: ImportBatchRequest):
+    report_path = Path(req.report_path)
+    if not report_path.exists():
+        raise HTTPException(status_code=404, detail=f"Report not found: {report_path}")
+    if report_path.is_dir():
+        files = sorted([p for p in report_path.rglob("*") if p.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"}])
+    elif report_path.suffix.lower() in {".json"}:
+        try:
+            report = json.loads(report_path.read_text(encoding="utf-8"))
+            files = []
+            for item in report.get("images", []):
+                p = Path(item) if Path(item).is_absolute() else report_path.parent / item
+                if p.exists():
+                    files.append(p)
+        except Exception:
+            files = []
+    else:
+        files = [report_path]
+
+    imported = 0
+    updated_existing = 0
+    for f in files:
+        stem = f.stem
+        shot_id = f"sienna_{stem}"
+        existing = _find_shot(shot_id)
+        shot_payload = {
+            "id": shot_id,
+            "campaign_id": "import",
+            "shot_id": shot_id,
+            "sequence": 0,
+            "workflow_id": "imported_media",
+            "status": "rendered",
+            "state": "rendered",
+            "seed": None,
+            "prompt": f"Imported media: {stem}",
+            "compiled_prompt": f"Imported media: {stem}",
+            "negative_prompt": "",
+            "workflow_profile": "import",
+            "skills_used": [],
+            "compiler_version": "",
+            "model_standard_name": "",
+            "model_standard_version": "",
+            "model_standard_source": "",
+            "model_standard_rules": [],
+            "sections": {},
+            "source": "import",
+            "image_path": str(f),
+            "image_url": f"/external-renders/{f.name}",
+            "created_at": _now_iso(),
+        }
+        if existing:
+            existing.update(shot_payload)
+            updated_existing += 1
+        else:
+            _SHOTS_STORE.append(shot_payload)
+            imported += 1
+
+    _record_pipeline_event(
+        "import_completed",
+        campaign_id="import",
+        source="import",
+        extra={"imported": imported, "updated_existing": updated_existing, "report_path": str(report_path)},
+    )
+    return {"status": "ok", "imported": imported, "updated_existing": updated_existing, "report": str(report_path)}
+
+
 @app.post("/api/shots/dispatch-all")
 async def api_shots_dispatch_all():
-    from core.dispatch.comfy_client import ComfyUIClient
-    client = ComfyUIClient("http://localhost:8188")
-    dispatched = []
-    errors = []
-    for shot in _SHOTS_STORE:
-        if shot["status"] in ("ready", "queued"):
-            try:
-                workflow = {"prompt": shot["prompt"], "seed": shot["seed"]}
-                prompt_id = await client.submit_prompt(workflow)
-                if prompt_id:
-                    shot["status"] = "dispatched"
-                    dispatched.append(shot["id"])
-                else:
-                    errors.append(shot["id"])
-            except Exception as e:
-                errors.append(f"{shot['id']}: {e}")
-    return {"dispatched": dispatched, "errors": errors}
+    return _legacy_disabled("/api/shots/dispatch-all", "/api/hermes/run-campaign")
 
 
 @app.post("/api/shots/dispatch")
 async def api_shots_dispatch(req: ShotDispatchRequest):
-    """Dispatches a specific shot prompt to Spark (ComfyUI)."""
-    from core.dispatch.comfy_client import ComfyUIClient
-    # Use the default primary URL from config if not provided, 
-    # but here we'll assume it's configured in the client.
-    client = ComfyUIClient("http://localhost:8188") 
-    
-    # We mimic the api_submit_recipe logic for a single shot
-    workflow = {"prompt": req.prompt, "seed": req.seed} # Minimal mock workflow
-    # Note: Real implementation would load a specific 'shot' workflow template.
-    
-    try:
-        prompt_id = await client.submit_prompt(workflow)
-        if prompt_id:
-            spark_monitor.add_job(req.recipe if hasattr(req, 'recipe') else {"prompt": req.prompt}, 
-                                 prompt_id, f"SHOT_{req.shot_id}")
-            return {"status": "dispatched", "prompt_id": prompt_id}
-        else:
-            raise HTTPException(status_code=502, detail="ComfyUI submission failed.")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    _ = req
+    return _legacy_disabled("/api/shots/dispatch", "/api/hermes/run-campaign")
 
 
 @app.post("/api/submit-recipe")
 async def api_submit_recipe(req: SubmitRecipeRequest):
-    """Submit a recipe to ComfyUI via Spark Monitor."""
-    from core.dispatch.comfy_client import ComfyUIClient
-    import json as _json
-
-    workflow_path = Path(__file__).parent.parent / "workflows" / req.workflow_name
-    if not workflow_path.exists():
-        raise HTTPException(status_code=404, detail=f"Workflow not found: {req.workflow_name}")
-
-    with open(workflow_path, "r", encoding="utf-8") as f:
-        workflow = _json.load(f)
-
-    # Simple prompt injection into CLIPTextEncode nodes
-    prompt_text = req.recipe.get("prompt", "")
-    prompt_block = workflow.get("prompt", workflow)
-    for node_id, node in prompt_block.items():
-        if isinstance(node, dict) and node.get("class_type") == "CLIPTextEncode":
-            text = node.get("inputs", {}).get("text", "")
-            negative_markers = ["blurry,", "low quality,", "distorted,", "worst quality,",
-                                "deformed", "bad anatomy", "extra fingers", "watermark"]
-            is_negative = len(text) < 200 and sum(1 for m in negative_markers if m in text.lower()) >= 2
-            if not is_negative:
-                prompt_block[node_id]["inputs"]["text"] = prompt_text
-
-    # Inject seed
-    seed = req.recipe.get("seed", 42)
-    for node_id, node in prompt_block.items():
-        if isinstance(node, dict):
-            ct = node.get("class_type", "")
-            if ct in ("KSampler", "SamplerCustom", "SamplerCustomAdvanced"):
-                if "seed" in node.get("inputs", {}):
-                    prompt_block[node_id]["inputs"]["seed"] = seed
-            if ct in ("RandomNoise", "FluxNoise"):
-                if "noise_seed" in node.get("inputs", {}):
-                    prompt_block[node_id]["inputs"]["noise_seed"] = seed
-            if ct == "SaveImage":
-                prompt_block[node_id]["inputs"]["filename_prefix"] = req.recipe.get("filename", "FORGE")
-
-    # Submit via ComfyUI client
-    client = ComfyUIClient("http://localhost:8188")
-    prompt_id = await client.submit_prompt(workflow)
-
-    if prompt_id:
-        spark_monitor.add_job(req.recipe, prompt_id, req.recipe.get("filename", "job"))
-        return {"status": "queued", "prompt_id": prompt_id, "recipe": req.recipe}
-    else:
-        raise HTTPException(status_code=502, detail="ComfyUI submission failed")
+    _ = req
+    return _legacy_disabled("/api/submit-recipe", "/api/hermes/run-campaign")
 
 
 class InjectPromptRequest(BaseModel):
@@ -1042,71 +1157,8 @@ class InjectPromptRequest(BaseModel):
 
 @app.post("/api/inject-prompt")
 async def api_inject_prompt(req: InjectPromptRequest):
-    """
-    Wire Hermes prompt -> ComfyUI workflow node injection before dispatch.
-    Loads the named workflow, injects the prompt into the specified node,
-    injects seed into sampler nodes, then submits to ComfyUI.
-    """
-    from core.dispatch.comfy_client import ComfyUIClient
-    import json as _json
-
-    workflow_path = Path(__file__).parent.parent / "workflows" / req.workflow_name
-    if not workflow_path.exists():
-        workflow_path = Path(__file__).parent.parent / "workflows" / (req.workflow_name + ".json")
-    if not workflow_path.exists():
-        raise HTTPException(status_code=404, detail=f"Workflow not found: {req.workflow_name}")
-
-    with open(workflow_path, "r", encoding="utf-8") as f:
-        workflow = _json.load(f)
-
-    prompt_block = workflow.get("prompt", workflow)
-
-    # Inject prompt into the target node (default "6")
-    target = str(req.node_id)
-    if target in prompt_block:
-        node = prompt_block[target]
-        if isinstance(node, dict):
-            node["inputs"]["text"] = req.prompt
-            print(f"[FORGE] Injected prompt into node {target}: {req.prompt[:80]}...")
-    else:
-        # Fallback: inject into first CLIPTextEncode that isn't negative
-        for nid, node in prompt_block.items():
-            if isinstance(node, dict) and node.get("class_type") == "CLIPTextEncode":
-                text = node.get("inputs", {}).get("text", "")
-                neg_markers = ["blurry,", "low quality,", "worst quality", "deformed"]
-                if sum(1 for m in neg_markers if m in text.lower()) < 2:
-                    node["inputs"]["text"] = req.prompt
-                    print(f"[FORGE] Injected prompt into fallback node {nid}")
-                    break
-
-    # Inject seed into sampler nodes
-    for nid, node in prompt_block.items():
-        if isinstance(node, dict):
-            ct = node.get("class_type", "")
-            if ct in ("KSampler", "SamplerCustom", "SamplerCustomAdvanced"):
-                if "seed" in node.get("inputs", {}):
-                    prompt_block[nid]["inputs"]["seed"] = req.seed
-            if ct in ("RandomNoise", "FluxNoise"):
-                if "noise_seed" in node.get("inputs", {}):
-                    prompt_block[nid]["inputs"]["noise_seed"] = req.seed
-            if ct == "SaveImage":
-                prompt_block[nid]["inputs"]["filename_prefix"] = req.filename
-
-    # Submit to ComfyUI
-    client = ComfyUIClient(req.comfy_url)
-    prompt_id = await client.submit_prompt(workflow)
-
-    if prompt_id:
-        spark_monitor.add_job({"prompt": req.prompt, "seed": req.seed}, prompt_id, req.filename)
-        await emit_hermes_event("prompt_injected", {
-            "node_id": req.node_id,
-            "prompt_id": prompt_id,
-            "filename": req.filename,
-            "prompt_preview": req.prompt[:100],
-        })
-        return {"status": "queued", "prompt_id": prompt_id, "node_id": req.node_id}
-    else:
-        raise HTTPException(status_code=502, detail="ComfyUI submission failed")
+    _ = req
+    return _legacy_disabled("/api/inject-prompt", "/api/hermes/run-campaign")
 
 
 class RenderRequest(BaseModel):
@@ -1114,12 +1166,16 @@ class RenderRequest(BaseModel):
     prompt: str = ""
     node_id: str = "6"
     workflow_name: str = "default.json"
+    workflow: str = "default.json"
+    target_node: str = "6"
     comfy_url: str = "http://localhost:8188"
     campaign: str = "default"
     filename: str = "FORGE"
     seed: int = 42
     poll_timeout: int = 300
     audit: bool = True  # Run Kimi-VL audit after render
+    max_retries: int = 1
+    audit_threshold: float = 0.6
 
 
 class AuditRenderRequest(BaseModel):
@@ -1129,45 +1185,259 @@ class AuditRenderRequest(BaseModel):
     campaign: str = "default"
 
 
+class FullImageAuditSchema(BaseModel):
+    overall_score: float | int | None = None
+    model_passed: bool | None = None
+    passed: bool | None = None
+    confidence: float | int | None = None
+    checks: Dict[str, Any] | None = None
+    critical_failures: List[Any] | None = None
+    noncritical_issues: List[Any] | None = None
+    issues: List[Any] | None = None
+    feedback: str | None = None
+    reasoning: str | None = None
+
+
+_AUDIT_CHECK_KEYS = [
+    "hands_ok",
+    "limbs_ok",
+    "face_ok",
+    "reflection_ok",
+    "vehicle_geometry_ok",
+    "text_artifacts_ok",
+    "prompt_adherence_ok",
+]
+_AUDIT_CRITICAL_CHECKS = {"hands_ok", "limbs_ok", "reflection_ok", "vehicle_geometry_ok"}
+_AUDIT_CHECK_WEIGHTS = {
+    "hands_ok": 3.0,
+    "limbs_ok": 3.0,
+    "face_ok": 2.0,
+    "reflection_ok": 3.0,
+    "vehicle_geometry_ok": 3.0,
+    "text_artifacts_ok": 1.0,
+    "prompt_adherence_ok": 2.0,
+}
+_AUDIT_KEYWORD_TO_CHECK = {
+    "hands_ok": ["finger", "thumb", "hand", "extra fingers", "missing fingers"],
+    "limbs_ok": ["extra arm", "extra limb", "arm sticking", "arm through", "deformed anatomy", "broken limb"],
+    "reflection_ok": ["reflection", "mirror", "window reflection", "inconsistent reflection"],
+    "vehicle_geometry_ok": ["vehicle geometry", "wheel geometry", "door geometry", "impossible perspective", "car body"],
+    "face_ok": ["deformed face", "facial distortion", "asymmetric face"],
+    "text_artifacts_ok": ["watermark", "text artifact", "gibberish text"],
+    "prompt_adherence_ok": ["off prompt", "not matching prompt", "wrong scene", "prompt mismatch"],
+}
+
+
+def _safe_float(value: Any, default: float = 0.0) -> float:
+    try:
+        return float(value)
+    except Exception:
+        return default
+
+
+def _normalize_issue_list(values: Any) -> List[str]:
+    if isinstance(values, list):
+        out: List[str] = []
+        for v in values:
+            text = str(v).strip()
+            if text:
+                out.append(text)
+        return out
+    if values is None:
+        return []
+    text = str(values).strip()
+    return [text] if text else []
+
+
+def _merge_checks(primary: Dict[str, Any], secondary: Dict[str, Any]) -> Dict[str, bool]:
+    merged: Dict[str, bool] = {}
+    for key in _AUDIT_CHECK_KEYS:
+        p = primary.get(key)
+        s = secondary.get(key)
+        if isinstance(p, bool) and isinstance(s, bool):
+            merged[key] = p and s
+        elif isinstance(p, bool):
+            merged[key] = p
+        elif isinstance(s, bool):
+            merged[key] = s
+        else:
+            merged[key] = True
+    return merged
+
+
+def _apply_keyword_fails(checks: Dict[str, bool], issues: List[str], feedback: str) -> Dict[str, bool]:
+    merged_text = " ".join(issues + [feedback]).lower()
+    if not merged_text:
+        return checks
+    for check_key, keywords in _AUDIT_KEYWORD_TO_CHECK.items():
+        if any(k in merged_text for k in keywords):
+            checks[check_key] = False
+    return checks
+
+
+def _extract_checks(raw: Dict[str, Any]) -> Dict[str, Any]:
+    checks = raw.get("checks")
+    if isinstance(checks, dict):
+        return checks
+    return {}
+
+
+def _aggregate_audit_results(pass_a: Dict[str, Any], pass_b: Dict[str, Any]) -> Dict[str, Any]:
+    score_a = _safe_float(pass_a.get("overall_score", pass_a.get("score", 0)), 0.0)
+    score_b = _safe_float(pass_b.get("overall_score", pass_b.get("score", 0)), 0.0)
+    score_model = max(score_a, score_b)
+    confidence = max(_safe_float(pass_a.get("confidence"), 0.0), _safe_float(pass_b.get("confidence"), 0.0))
+
+    checks_a = _extract_checks(pass_a)
+    checks_b = _extract_checks(pass_b)
+    checks = _merge_checks(checks_a, checks_b)
+
+    issues = _normalize_issue_list(pass_a.get("issues")) + _normalize_issue_list(pass_b.get("issues"))
+    noncritical = _normalize_issue_list(pass_a.get("noncritical_issues")) + _normalize_issue_list(pass_b.get("noncritical_issues"))
+    critical = _normalize_issue_list(pass_a.get("critical_failures")) + _normalize_issue_list(pass_b.get("critical_failures"))
+    feedback = " | ".join([x for x in [pass_a.get("feedback"), pass_b.get("feedback")] if isinstance(x, str) and x.strip()]).strip()
+
+    checks = _apply_keyword_fails(checks, issues + noncritical + critical, feedback)
+    for key in _AUDIT_CRITICAL_CHECKS:
+        if checks.get(key) is False and not any(key in c for c in critical):
+            critical.append(f"{key} failed")
+
+    total_weight = sum(_AUDIT_CHECK_WEIGHTS.values())
+    passed_weight = sum(weight for key, weight in _AUDIT_CHECK_WEIGHTS.items() if checks.get(key, True))
+    check_score = (passed_weight / total_weight) * 100.0 if total_weight > 0 else 0.0
+    score_backend = round((0.55 * score_model) + (0.45 * check_score), 1)
+
+    model_passed_a = bool(pass_a.get("model_passed", pass_a.get("passed", True)))
+    model_passed_b = bool(pass_b.get("model_passed", pass_b.get("passed", True)))
+    model_passed = model_passed_a and model_passed_b
+
+    min_score = _safe_float(os.getenv("FORGE_AUDIT_MIN_SCORE", "80"), 80.0)
+    min_conf = _safe_float(os.getenv("FORGE_AUDIT_MIN_CONFIDENCE", "0.55"), 0.55)
+    decision_reasons: List[str] = []
+
+    failed_critical_checks = [k for k in _AUDIT_CRITICAL_CHECKS if checks.get(k) is False]
+    if failed_critical_checks:
+        decision_reasons.append("critical_check_failed:" + ",".join(sorted(failed_critical_checks)))
+    if critical:
+        decision_reasons.append("critical_issues_present")
+    if score_backend < min_score:
+        decision_reasons.append(f"backend_score_below_threshold:{score_backend}<{min_score}")
+    if confidence < min_conf:
+        decision_reasons.append(f"confidence_below_threshold:{confidence:.2f}<{min_conf:.2f}")
+    if not model_passed:
+        decision_reasons.append("model_marked_fail")
+
+    final_passed = len(decision_reasons) == 0
+    all_issues = []
+    seen = set()
+    for item in critical + issues + noncritical:
+        t = str(item).strip()
+        if t and t not in seen:
+            seen.add(t)
+            all_issues.append(t)
+    if decision_reasons and not all_issues:
+        all_issues = decision_reasons.copy()
+
+    return {
+        "score": score_backend,
+        "passed": final_passed,
+        "feedback": feedback or ("Passed forensic and cinematic checks." if final_passed else "Failed deterministic audit gates."),
+        "issues": all_issues,
+        "overall_score": score_backend,
+        "model_score": round(score_model, 1),
+        "checks_score": round(check_score, 1),
+        "confidence": round(confidence, 3),
+        "model_passed": model_passed,
+        "final_passed": final_passed,
+        "checks": checks,
+        "critical_failures": critical,
+        "noncritical_issues": noncritical,
+        "audit_decision_reasons": decision_reasons,
+        "audit_passes": {
+            "cinematic": pass_a,
+            "forensic": pass_b,
+        },
+    }
+
+
+async def _run_audit_pass(
+    client: Any,
+    image_path: str,
+    system_prompt: str,
+    user_prompt: str,
+    task_description: str,
+) -> Dict[str, Any]:
+    result = await client.analyze_visuals(
+        image_path=image_path,
+        system_prompt=system_prompt,
+        user_prompt=user_prompt,
+        schema=FullImageAuditSchema,
+        task_description=task_description,
+    )
+    if not isinstance(result, dict):
+        return {}
+    return result
+
+
 async def audit_render_with_kimi_vl(image_path: str, prompt: str = "", campaign: str = "default"):
     """
     Run Kimi-VL audit on a rendered image.
     Returns audit result dict with score, passed, feedback.
     """
-    from pydantic import BaseModel, Field
     from core.bridge.kimi_vl_client import KimiVLClient
-
-    class AuditResult(BaseModel):
-        score: int = Field(0, description="Quality score 0-100")
-        passed: bool = Field(True, description="Whether the render passed quality checks")
-        feedback: str = Field("", description="Human-readable feedback")
-        issues: list = Field(default_factory=list, description="List of detected issues")
-
-    system_prompt = (
-        "You are a visual quality auditor for AI-generated images. "
-        "Evaluate the image for: composition, lighting, character consistency, "
-        "artifact detection, prompt adherence, and overall cinematic quality. "
-        "Be strict but fair. Score 0-100."
-    )
-
-    user_prompt = (
-        f"Audit this rendered image. "
-        f"Original prompt: {prompt[:200] if prompt else 'N/A'} "
-        f"Campaign: {campaign}. "
-        "Return a JSON object with score (0-100), passed (boolean), "
-        "feedback (string), and issues (array of strings)."
-    )
 
     try:
         client = KimiVLClient()
-        result = await client.analyze_visuals(
-            image_path=image_path,
-            system_prompt=system_prompt,
-            user_prompt=user_prompt,
-            schema=AuditResult,
-            task_description=f"Audit render for campaign {campaign}"
+        cinematic_system_prompt = (
+            "You are an image quality auditor. "
+            "Score cinematic composition, lighting quality, prompt adherence, and visible artifacts."
         )
-        print(f"[FORGE] [KIMI-VL] Audit result: score={result.get('score', 'N/A')}, passed={result.get('passed', 'N/A')}")
+        cinematic_user_prompt = (
+            f"Audit this full image for campaign '{campaign}'. "
+            f"Original prompt excerpt: {prompt[:240] if prompt else 'N/A'}. "
+            "Return JSON with keys: overall_score (0-100), model_passed (bool), confidence (0-1), "
+            "checks object with booleans for hands_ok, limbs_ok, face_ok, reflection_ok, vehicle_geometry_ok, "
+            "text_artifacts_ok, prompt_adherence_ok, plus critical_failures (array), noncritical_issues (array), "
+            "feedback (string), issues (array)."
+        )
+
+        forensic_system_prompt = (
+            "You are a forensic visual consistency auditor. "
+            "Be strict on anatomy, reflections, and physical plausibility."
+        )
+        forensic_user_prompt = (
+            f"Inspect this full image for hard failures. Campaign '{campaign}'. "
+            "Explicitly verify: "
+            "1) human hand/finger count and structure, "
+            "2) extra or impossible limbs, "
+            "3) mirror/window reflection consistency with scene geometry, "
+            "4) vehicle body/wheel/door geometry consistency, "
+            "5) deformed faces, "
+            "6) text/watermark artifacts. "
+            "Return JSON in the same schema as requested in the other pass."
+        )
+
+        pass_a = await _run_audit_pass(
+            client=client,
+            image_path=image_path,
+            system_prompt=cinematic_system_prompt,
+            user_prompt=cinematic_user_prompt,
+            task_description=f"Cinematic audit for {campaign}",
+        )
+        pass_b = await _run_audit_pass(
+            client=client,
+            image_path=image_path,
+            system_prompt=forensic_system_prompt,
+            user_prompt=forensic_user_prompt,
+            task_description=f"Forensic audit for {campaign}",
+        )
+        result = _aggregate_audit_results(pass_a, pass_b)
+        print(
+            "[FORGE] [KIMI-VL] Audit result: "
+            f"backend_score={result.get('score', 'N/A')}, "
+            f"final_passed={result.get('passed', 'N/A')}, "
+            f"model_passed={result.get('model_passed', 'N/A')}"
+        )
         return result
     except Exception as e:
         print(f"[FORGE] [KIMI-VL] Audit failed: {e}")
@@ -1176,6 +1446,16 @@ async def audit_render_with_kimi_vl(image_path: str, prompt: str = "", campaign:
             "passed": False,
             "feedback": f"Audit failed: {str(e)}",
             "issues": [str(e)],
+            "overall_score": 0,
+            "model_score": 0,
+            "checks_score": 0,
+            "confidence": 0,
+            "model_passed": False,
+            "final_passed": False,
+            "checks": {k: False for k in _AUDIT_CHECK_KEYS},
+            "critical_failures": ["audit_execution_failure"],
+            "noncritical_issues": [],
+            "audit_decision_reasons": ["audit_execution_failure"],
             "error": True,
         }
 
@@ -1195,9 +1475,13 @@ async def write_audit_to_memory(audit_result: dict, image_path: str, prompt: str
     event = {
         "event_id": f"audit_{uuid.uuid4().hex[:8]}",
         "timestamp": datetime.utcnow().isoformat() + "Z",
-        "event_type": "audit_outcome",
+        "event_type": "audit_result",
         "session_id": campaign,
         "shot_id": Path(image_path).stem if image_path else "",
+        "campaign_id": campaign,
+        "workflow_id": "",
+        "pipeline_mode": "production",
+        "source": "campaign",
         "concept": prompt[:80] if prompt else "render_audit",
         "success": audit_result.get("passed", False),
         "audit_score": audit_result.get("score", 0),
@@ -1229,282 +1513,14 @@ async def write_audit_to_memory(audit_result: dict, image_path: str, prompt: str
 
 @app.post("/api/render/audit")
 async def api_render_audit(req: AuditRenderRequest):
-    """Audit a specific render with Kimi-VL and stream result."""
-    result = await audit_render_with_kimi_vl(req.image_path, req.prompt, req.campaign)
-    # Stream [KIMI-VL] result via WebSocket
-    await emit_hermes_event("kimi_vl_audit", {
-        "image_path": req.image_path,
-        "campaign": req.campaign,
-        "score": result.get("score", 0),
-        "passed": result.get("passed", False),
-        "feedback": result.get("feedback", ""),
-        "issues": result.get("issues", []),
-    })
-    # Write to memory
-    mem = await write_audit_to_memory(result, req.image_path, req.prompt, req.campaign)
-    return {"audit": result, "memory": mem}
+    _ = req
+    return _legacy_disabled("/api/render/audit", "/api/audit/reprocess")
 
 
 @app.post("/api/render")
 async def api_render(req: RenderRequest):
-    """
-    Full render pipeline:
-    1. Load workflow, inject prompt into node (default "6")
-    2. Submit to ComfyUI
-    3. Poll for completion
-    4. Download PNG
-    5. Save to data/campaigns/{campaign}/
-    6. Emit render_complete event with image path
-    """
-    from core.dispatch.comfy_client import ComfyUIClient
-    import json as _json
-
-    # --- Step 1: Load workflow & inject prompt ---
-    workflow_path = Path(__file__).parent.parent / "workflows" / req.workflow_name
-    if not workflow_path.exists():
-        workflow_path = Path(__file__).parent.parent / "workflows" / (req.workflow_name + ".json")
-    if not workflow_path.exists():
-        raise HTTPException(status_code=404, detail=f"Workflow not found: {req.workflow_name}")
-
-    with open(workflow_path, "r", encoding="utf-8") as f:
-        workflow = _json.load(f)
-
-    prompt_block = workflow.get("prompt", workflow)
-
-    # Inject prompt into target node
-    target = str(req.node_id)
-    if target in prompt_block:
-        node = prompt_block[target]
-        if isinstance(node, dict):
-            node["inputs"]["text"] = req.prompt
-    else:
-        # Fallback: first non-negative CLIPTextEncode
-        for nid, node in prompt_block.items():
-            if isinstance(node, dict) and node.get("class_type") == "CLIPTextEncode":
-                text = node.get("inputs", {}).get("text", "")
-                neg_markers = ["blurry,", "low quality,", "worst quality", "deformed"]
-                if sum(1 for m in neg_markers if m in text.lower()) < 2:
-                    node["inputs"]["text"] = req.prompt
-                    break
-
-    # Inject seed + filename
-    import random
-    actual_seed = req.seed if req.seed else random.randint(100000, 999999)
-    for nid, node in prompt_block.items():
-        if isinstance(node, dict):
-            ct = node.get("class_type", "")
-            if ct in ("KSampler", "SamplerCustom", "SamplerCustomAdvanced"):
-                if "seed" in node.get("inputs", {}):
-                    prompt_block[nid]["inputs"]["seed"] = actual_seed
-            if ct in ("RandomNoise", "FluxNoise"):
-                if "noise_seed" in node.get("inputs", {}):
-                    prompt_block[nid]["inputs"]["noise_seed"] = actual_seed
-            if ct == "SaveImage":
-                prompt_block[nid]["inputs"]["filename_prefix"] = req.filename
-
-    # --- Step 2: Submit to ComfyUI ---
-    client = ComfyUIClient(req.comfy_url)
-    prompt_id = await client.submit_prompt(workflow)
-    if not prompt_id:
-        raise HTTPException(status_code=502, detail="ComfyUI submission failed")
-
-    print(f"[FORGE] Submitted render {prompt_id} for campaign '{req.campaign}'")
-    spark_monitor.add_job({"prompt": req.prompt, "seed": actual_seed}, prompt_id, req.filename)
-
-    # --- Step 3: Poll for completion ---
-    filename_on_server = await client.poll_job(prompt_id, timeout_sec=req.poll_timeout)
-    if not filename_on_server:
-        await emit_hermes_event("render_failed", {"prompt_id": prompt_id, "reason": "poll_timeout"})
-        raise HTTPException(status_code=504, detail="Render timed out")
-
-    # --- Step 4: Download outputs ---
-    repo_root = Path(__file__).parent.parent
-    campaigns_dir = repo_root / "data" / "campaigns" / req.campaign
-    campaigns_dir.mkdir(parents=True, exist_ok=True)
-
-    saved = await client.download_outputs(prompt_id, str(campaigns_dir))
-
-    # --- Step 5: Emit render_complete event ---
-    if saved:
-        # Use relative path from repo root for the frontend
-        rel_paths = [str(Path(p).relative_to(repo_root)) for p in saved]
-        await emit_hermes_event("render_complete", {
-            "prompt_id": prompt_id,
-            "campaign": req.campaign,
-            "files": saved,
-            "relative_files": rel_paths,
-            "filename": filename_on_server,
-            "prompt_preview": req.prompt[:100],
-        })
-        print(f"[FORGE] Render complete: {saved}")
-
-        # --- Step 6: Kimi-VL audit (if enabled) ---
-        audit_result = None
-        memory_event = None
-        if req.audit and saved:
-            print(f"[FORGE] Running Kimi-VL audit on {saved[0]}")
-            audit_result = await audit_render_with_kimi_vl(
-                saved[0], req.prompt, req.campaign
-            )
-            await emit_hermes_event("kimi_vl_audit", {
-                "image_path": saved[0],
-                "campaign": req.campaign,
-                "score": audit_result.get("score", 0),
-                "passed": audit_result.get("passed", False),
-                "feedback": audit_result.get("feedback", ""),
-                "issues": audit_result.get("issues", []),
-            })
-            # --- Step 7: Write to memory ---
-            memory_event = await write_audit_to_memory(
-                audit_result, saved[0], req.prompt, req.campaign
-            )
-
-            # --- Step 8: Remediation loop (if audit failed) ---
-            max_retries = getattr(req, 'max_retries', 2)
-            retry_count = 0
-            current_prompt = req.prompt
-            current_saved = saved
-
-            while (not audit_result.get("passed", False) or
-                   audit_result.get("score", 0) < getattr(req, 'audit_threshold', 0.6)) and \
-                  retry_count < max_retries:
-                retry_count += 1
-                print(f"[FORGE] Audit failed (score={audit_result.get('score', 0)}), "
-                      f"remediating (attempt {retry_count}/{max_retries})")
-
-                # Get rewrite reason from audit feedback
-                rewrite_reason = audit_result.get("feedback", "Audit failed")
-                issues = audit_result.get("issues", [])
-                if issues:
-                    rewrite_reason += " | Issues: " + "; ".join(issues[:3])
-
-                # Emit [RETRY] event
-                await emit_hermes_event("remediation_retry", {
-                    "retry_number": retry_count,
-                    "max_retries": max_retries,
-                    "original_score": audit_result.get("score", 0),
-                    "rewrite_reason": rewrite_reason,
-                    "original_prompt": current_prompt[:100],
-                    "campaign": req.campaign,
-                })
-
-                # Call Hermes to analyze failure and generate corrected prompt
-                corrected_prompt = None
-                try:
-                    from core.bridge.nous_hermes_bridge import NousHermesBridge
-                    hermes_brain = NousHermesBridge()
-                    if hermes_brain.is_available:
-                        diagnosis = await hermes_brain.analyze_failure(
-                            visual_audit_result=audit_result,
-                            original_prompt=current_prompt,
-                        )
-                        if diagnosis and isinstance(diagnosis, dict):
-                            corrected_prompt = diagnosis.get("fix_prompt", "")
-                            root_cause = diagnosis.get("root_cause", "Unknown")
-                            print(f"[FORGE] Hermes diagnosis: {root_cause}")
-                            print(f"[FORGE] Corrected prompt: {corrected_prompt[:100]}...")
-                except Exception as e:
-                    print(f"[FORGE] Hermes analysis failed: {e}")
-
-                # Fallback: if Hermes couldn't generate a fix, use audit feedback
-                if not corrected_prompt:
-                    corrected_prompt = current_prompt + " | FIX: " + rewrite_reason
-                    print(f"[FORGE] Using fallback prompt with audit feedback")
-
-                # Re-render with corrected prompt
-                try:
-                    # Re-submit with corrected prompt
-                    re_client = ComfyUIClient(req.comfy_url)
-                    re_workflow = await client.load_workflow(req.workflow)
-                    re_workflow = await client.inject_prompt(re_workflow, corrected_prompt, req.target_node)
-                    re_prompt_id = await re_client.submit_prompt(re_workflow)
-                    if not re_prompt_id:
-                        raise HTTPException(status_code=502, detail="ComfyUI re-submission failed")
-
-                    print(f"[FORGE] Submitted retry render {re_prompt_id}")
-                    spark_monitor.add_job(
-                        {"prompt": corrected_prompt, "seed": actual_seed, "retry": retry_count},
-                        re_prompt_id, req.filename + f"_retry{retry_count}"
-                    )
-
-                    # Poll for completion
-                    re_filename = await re_client.poll_job(re_prompt_id, timeout_sec=req.poll_timeout)
-                    if not re_filename:
-                        await emit_hermes_event("render_failed", {
-                            "prompt_id": re_prompt_id, "reason": "poll_timeout_retry"
-                        })
-                        raise HTTPException(status_code=504, detail="Retry render timed out")
-
-                    # Download retry outputs
-                    retry_dir = campaigns_dir / f"retry_{retry_count}"
-                    retry_dir.mkdir(parents=True, exist_ok=True)
-                    retry_saved = await re_client.download_outputs(re_prompt_id, str(retry_dir))
-
-                    if retry_saved:
-                        current_saved = retry_saved
-                        current_prompt = corrected_prompt
-                        rel_retry_paths = [str(Path(p).relative_to(repo_root)) for p in retry_saved]
-                        await emit_hermes_event("render_complete", {
-                            "prompt_id": re_prompt_id,
-                            "campaign": req.campaign,
-                            "files": retry_saved,
-                            "relative_files": rel_retry_paths,
-                            "filename": re_filename,
-                            "prompt_preview": corrected_prompt[:100],
-                            "retry": retry_count,
-                        })
-                        print(f"[FORGE] Retry render complete: {retry_saved}")
-
-                        # Re-audit the retry render
-                        audit_result = await audit_render_with_kimi_vl(
-                            retry_saved[0], corrected_prompt, req.campaign
-                        )
-                        await emit_hermes_event("kimi_vl_audit", {
-                            "image_path": retry_saved[0],
-                            "campaign": req.campaign,
-                            "score": audit_result.get("score", 0),
-                            "passed": audit_result.get("passed", False),
-                            "feedback": audit_result.get("feedback", ""),
-                            "issues": audit_result.get("issues", []),
-                            "retry": retry_count,
-                        })
-
-                        # Write retry audit to memory
-                        memory_event = await write_audit_to_memory(
-                            audit_result, retry_saved[0], corrected_prompt, req.campaign
-                        )
-                    else:
-                        break
-                except HTTPException:
-                    raise
-                except Exception as e:
-                    print(f"[FORGE] Retry render failed: {e}")
-                    break
-
-            # Emit final remediation status
-            final_passed = audit_result.get("passed", False) if audit_result else False
-            final_score = audit_result.get("score", 0) if audit_result else 0
-            await emit_hermes_event("remediation_complete", {
-                "campaign": req.campaign,
-                "final_score": final_score,
-                "final_passed": final_passed,
-                "retries_used": retry_count,
-                "max_retries": max_retries,
-                "resolved": final_passed and final_score >= getattr(req, 'audit_threshold', 0.6),
-            })
-
-        return {
-            "status": "complete",
-            "prompt_id": prompt_id,
-            "campaign": req.campaign,
-            "files": saved,
-            "relative_files": rel_paths,
-            "audit": audit_result,
-            "memory": memory_event,
-        }
-    else:
-        await emit_hermes_event("render_failed", {"prompt_id": prompt_id, "reason": "no_outputs"})
-        raise HTTPException(status_code=502, detail="No outputs found after render")
+    _ = req
+    return _legacy_disabled("/api/render", "/api/hermes/run-campaign")
 
 
 # --- Spark Monitor Endpoints ---
@@ -1801,9 +1817,38 @@ async def on_shutdown():
 
 @app.get("/api/config")
 async def api_config():
-    """Return current configuration (merged .env + JSON overrides). API key is masked."""
-    from core.bridge.runtime_config import get_config
-    return get_config()
+    """Return UI-oriented nested config structure."""
+    from core.bridge.runtime_config import get_raw_config
+    cfg = get_raw_config()
+    kimi_key = str(cfg.get("KIMI_API_KEY", "") or "")
+    endpoint = str(cfg.get("NIM_ENDPOINT", "") or "")
+    comfy_primary = str(cfg.get("COMFYUI_PRIMARY", "") or "")
+    comfy_secondary = str(cfg.get("COMFYUI_SECONDARY", "") or "")
+    lm_host = str(cfg.get("LMSTUDIO_HOST", "") or "")
+    lm_model = str(cfg.get("LMSTUDIO_CHAT_MODEL", "") or "")
+    vision_model = str(cfg.get("KIMI_VISUAL_MODEL", "") or os.getenv("LMSTUDIO_VISION_MODEL", ""))
+    return {
+        "backend_mode": "remote" if endpoint.startswith("http") else "local",
+        "kimi": {
+            "api_key_set": bool(kimi_key),
+            "endpoint": endpoint,
+        },
+        "models": {
+            "director_kimi": {"model_name": str(cfg.get("KIMI_INSTRUCT_MODEL", "moonshotai/kimi-k2")), "endpoint": endpoint},
+            "kimi_vl": {"model_name": vision_model, "endpoint": endpoint},
+            "hermes_3": {
+                "host": lm_host,
+                "port": 1234 if lm_host else "",
+                "model_name": lm_model,
+            },
+        },
+        "comfyui": {"primary": comfy_primary, "secondary": comfy_secondary},
+        "spark": {
+            "primary": comfy_primary,
+            "secondary": comfy_secondary,
+            "workflow_file": "",
+        },
+    }
 
 
 class ConfigUpdateRequest(BaseModel):
@@ -1822,19 +1867,75 @@ async def api_config_update(req: ConfigUpdateRequest):
 class FlatConfigUpdateRequest(BaseModel):
     """Flat key-value config update (no nested 'updates' key)."""
     model_config = {"extra": "allow"}
-    data: Dict[str, Any] = {}
-
-    def __getitem__(self, key: str) -> Any:
-        return self.data.get(key)
+    updates: Optional[Dict[str, Any]] = None
 
 
 @app.post("/api/config/save")
 async def api_config_save(req: FlatConfigUpdateRequest):
-    """Save individual config fields directly to data/config.json."""
+    """Save config updates from frontend dot-path payloads."""
     from core.bridge.runtime_config import set_config, apply_to_environment
-    updated = set_config(dict(req.data))
+    incoming: Dict[str, Any] = {}
+    if isinstance(req.updates, dict):
+        incoming = dict(req.updates)
+    extra = getattr(req, "__pydantic_extra__", None)
+    if not incoming and isinstance(extra, dict):
+        if isinstance(extra.get("updates"), dict):
+            incoming = dict(extra["updates"])
+        else:
+            incoming = dict(extra)
+    updates = incoming
+
+    mapped: Dict[str, Any] = {}
+    key_map = {
+        "kimi.api_key": "KIMI_API_KEY",
+        "kimi.endpoint": "NIM_ENDPOINT",
+        "models.director_kimi.model_name": "KIMI_INSTRUCT_MODEL",
+        "models.director_kimi.endpoint": "NIM_ENDPOINT",
+        "models.kimi_vl.model_name": "KIMI_VISUAL_MODEL",
+        "models.kimi_vl.endpoint": "NIM_ENDPOINT",
+        "models.hermes_3.host": "LMSTUDIO_HOST",
+        "models.hermes_3.model_name": "LMSTUDIO_CHAT_MODEL",
+        "comfyui.primary": "COMFYUI_PRIMARY",
+        "comfyui.secondary": "COMFYUI_SECONDARY",
+        "spark.primary": "COMFYUI_PRIMARY",
+        "spark.secondary": "COMFYUI_SECONDARY",
+    }
+    for k, v in (updates or {}).items():
+        mapped[key_map.get(k, k)] = v
+    updated = set_config(mapped)
     apply_to_environment()
-    return {"status": "saved", "config": updated}
+    return {"status": "success", "saved": list(mapped.keys()), "config": updated}
+
+
+class KimiTestRequest(BaseModel):
+    api_key: str
+    endpoint: str
+
+
+@app.post("/api/test/kimi")
+async def api_test_kimi(req: KimiTestRequest):
+    endpoint = (req.endpoint or "").strip().rstrip("/")
+    if endpoint and not endpoint.endswith("/chat/completions"):
+        endpoint = endpoint + "/chat/completions"
+    payload = {
+        "model": os.getenv("KIMI_INSTRUCT_MODEL", "moonshotai/kimi-k2"),
+        "messages": [{"role": "user", "content": "ping"}],
+        "max_tokens": 8,
+    }
+    t0 = time.time()
+    try:
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            r = await client.post(
+                endpoint,
+                headers={"Authorization": f"Bearer {req.api_key}", "Content-Type": "application/json"},
+                json=payload,
+            )
+        if r.status_code >= 400:
+            return {"status": "error", "error": f"http {r.status_code}: {r.text[:200]}"}
+        latency_ms = int((time.time() - t0) * 1000)
+        return {"status": "ok", "latency_ms": latency_ms}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
 
 
 @app.post("/api/restart")
@@ -1860,7 +1961,9 @@ async def api_restart():
 @app.get("/api/spark/stats")
 async def api_spark_stats():
     import httpx
-    host = os.getenv("COMFYUI_PRIMARY", "http://localhost:8188").rstrip("/")
+    from core.bridge.runtime_config import get_raw_config
+    cfg = get_raw_config()
+    host = (os.getenv("COMFYUI_PRIMARY", "") or str(cfg.get("COMFYUI_PRIMARY", "")) or "http://localhost:8188").rstrip("/")
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:
             r = await client.get(f"{host}/system_stats")

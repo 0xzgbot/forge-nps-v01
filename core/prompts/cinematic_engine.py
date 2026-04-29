@@ -67,7 +67,8 @@ class CinematicEngine:
 
 if __name__ == "__main__":
     # Simple self-test
-    engine = CinematicEngine("~/Desktop/forge_nps_v01/data/character_banks/lighting_bank.txt")
+    default_lighting_bank = Path(__file__).resolve().parents[2] / "data" / "character_banks" / "lighting_bank.txt"
+    engine = CinematicEngine(str(default_lighting_bank))
     test_params = {
         "lens": "85mm lens, f/1.4",
         "lighting": "golden hour",

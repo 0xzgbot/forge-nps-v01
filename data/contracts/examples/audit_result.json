@@ -1,0 +1,44 @@
+{
+  "request": {
+    "shot_ids": [
+      "b015fdca1bf7__SHOT_001__spark_image_flux2_text_to_image",
+      "b015fdca1bf7__SHOT_002__spark_image_z_image"
+    ]
+  },
+  "response": {
+    "status": "ok",
+    "requested": 2,
+    "updated": 2,
+    "results": [
+      {
+        "shot_id": "b015fdca1bf7__SHOT_001__spark_image_flux2_text_to_image",
+        "status": "ok",
+        "audit_status": "fail",
+        "score": 31.0,
+        "issues": [
+          "anatomy mismatch",
+          "face mutation"
+        ]
+      },
+      {
+        "shot_id": "b015fdca1bf7__SHOT_002__spark_image_z_image",
+        "status": "ok",
+        "audit_status": "pass",
+        "score": 87.0,
+        "issues": []
+      }
+    ]
+  },
+  "shot_record_fields_after_audit": {
+    "audit_model": "string",
+    "audit_status": "pass|fail",
+    "audit_score": "number",
+    "audit_issues": [
+      "string"
+    ],
+    "audit_raw_response": {
+      "score": 0
+    },
+    "audit_timestamp": "ISO8601"
+  }
+}

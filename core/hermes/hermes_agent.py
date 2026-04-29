@@ -11,6 +11,9 @@ logger = logging.getLogger("HermesAgent")
 # Optional event emitter for dashboard integration.
 _event_emitter: Optional[Callable[[str, Dict[str, Any]], Any]] = None
 
+# Maximum total chars for memory injection to prevent self-poisoning.
+MEMORY_INJECTION_CAP = 400
+
 
 def set_event_emitter(emitter: Optional[Callable[[str, Dict[str, Any]], Any]]):
     """Register an async event emitter for Hermes decision events."""
@@ -25,6 +28,69 @@ async def _emit(event_type: str, payload: Dict[str, Any]):
             await _event_emitter(event_type, payload)
         except Exception:
             pass
+
+
+def _build_memory_injection(
+    episodic_examples: List[Dict[str, Any]],
+    semantic_rules: List[Dict[str, Any]],
+    skill_vocab: List[str],
+    max_chars: int = MEMORY_INJECTION_CAP,
+) -> str:
+    """
+    Build a labeled, three-block memory injection string.
+
+    Blocks:
+      [EPISODIC]  - Past successful examples from episodic memory
+      [SEMANTIC]  - Distilled rules from semantic memory
+      [SKILLS]    - Relevant skill vocabulary
+
+    Each block is capped proportionally so the total stays under max_chars.
+    If a block is empty, its label is omitted.
+    """
+    blocks = []
+    remaining = max_chars
+
+    # --- Block 1: Episodic examples ---
+    if episodic_examples:
+        block_lines = []
+        for evt in episodic_examples[:3]:
+            fix = evt.get("fix_applied", "")
+            concept = evt.get("concept", "")
+            line = f"fix={fix}" if fix and fix.lower() != "none" else f"concept={concept}"
+            if line:
+                block_lines.append(f"  - {line}")
+        if block_lines:
+            header = "[EPISODIC]\n"
+            content = header + "\n".join(block_lines)
+            if len(content) <= remaining:
+                blocks.append(content)
+                remaining -= len(content)
+
+    # --- Block 2: Semantic rules ---
+    if semantic_rules:
+        block_lines = []
+        for rule in semantic_rules[:3]:
+            rule_text = rule.get("rule", "")
+            conf = rule.get("confidence", 0)
+            line = f"  - ({conf:.0%}) {rule_text}"
+            if line:
+                block_lines.append(line)
+        if block_lines:
+            header = "[SEMANTIC]\n"
+            content = header + "\n".join(block_lines)
+            if len(content) <= remaining:
+                blocks.append(content)
+                remaining -= len(content)
+
+    # --- Block 3: Skill vocabulary ---
+    if skill_vocab:
+        vocab_str = ", ".join(skill_vocab[:6])
+        header = "[SKILLS]\n  - "
+        content = header + vocab_str
+        if len(content) <= remaining:
+            blocks.append(content)
+
+    return "\n\n".join(blocks)
 
 
 class HermesAgent:
@@ -73,8 +139,8 @@ class HermesAgent:
         override_prompt: Optional[str] = None,  # FIX: Added for remediation override
     ) -> List[Dict[str, Any]]:
         """
-        Dispatch shots to generation. 
-        FIX: If override_prompt is provided, we skip creative re-generation 
+        Dispatch shots to generation.
+        FIX: If override_prompt is provided, we skip creative re-generation
         to ensure technical fixes (from remediation) are strictly applied.
         """
         logger.info(f"Hermes: Dispatching {len(shot_list)} shots...")
@@ -86,30 +152,64 @@ class HermesAgent:
             concept = shot.get("description", "")
             intent = shot.get("intent", "high_fidelity_image")
             kernel_id = shot.get("kernel_id", "zimage_turbo")
+            error_category = shot.get("error_category")  # For post_failure mode
 
             await _emit("MEMORY_QUERY", {"shot_id": shot_id, "concept": concept})
 
-            # --- MEMORY RETRIEVAL ---
-            similar = self.episodic.query_similar(
-                concept=concept,
-                error_category=None,
-                kernel_id=kernel_id,
-                top_k=2,
-            )
-            memory_augmentation = ""
-            if similar:
-                best = similar[0]
-                if best.get("success") and best.get("fix_applied"):
-                    memory_augmentation = f" [Learned: {best['fix_applied']}]"
+            # --- MEMORY RETRIEVAL (Three-block injection) ---
 
-            insights = self.semantic.query_relevant(
-                error_category=None,
+            # Block 1: Episodic examples
+            if error_category:
+                # Post-failure mode: retrieve successful remediations
+                episodic_examples = self.episodic.query_post_failure(
+                    concept=concept,
+                    error_category=error_category,
+                    kernel_id=kernel_id,
+                    top_k=2,
+                )
+            else:
+                # Pre-prompt mode: retrieve successful outcomes
+                episodic_examples = self.episodic.query_pre_prompt(
+                    concept=concept,
+                    kernel_id=kernel_id,
+                    top_k=2,
+                )
+
+            # Block 2: Semantic rules
+            semantic_rules = self.semantic.query_relevant(
+                error_category=error_category,
                 kernel_id=kernel_id,
                 min_confidence=0.6,
                 min_confirmations=2,
             )
-            if insights:
-                top_rule = insights[0]["rule"]
+
+            # Block 3: Skill vocabulary
+            skill_vocab = []
+            if self.skill_registry:
+                # Extract relevant skill names/vocabulary for this context
+                if hasattr(self.skill_registry, "get_relevant"):
+                    skill_vocab = self.skill_registry.get_relevant(
+                        concept=concept, kernel_id=kernel_id
+                    )
+                elif isinstance(self.skill_registry, dict):
+                    skill_vocab = list(self.skill_registry.keys())[:6]
+
+            # Build the labeled injection (capped at 400 chars)
+            memory_injection = _build_memory_injection(
+                episodic_examples=episodic_examples,
+                semantic_rules=semantic_rules,
+                skill_vocab=skill_vocab,
+                max_chars=MEMORY_INJECTION_CAP,
+            )
+
+            # Build backward-compatible augmentation string for bridge calls
+            memory_augmentation = ""
+            if episodic_examples:
+                best = episodic_examples[0]
+                if best.get("success") and best.get("fix_applied"):
+                    memory_augmentation = f" [Learned: {best['fix_applied']}]"
+            if semantic_rules:
+                top_rule = semantic_rules[0]["rule"]
                 memory_augmentation += f" [Rule: {top_rule[:80]}...]"
 
             enriched_description = concept + memory_augmentation
@@ -121,7 +221,7 @@ class HermesAgent:
                     generated_prompt = await self.hermes_bridge.generate_shot_prompt(
                         concept=enriched_description,
                         director_schema=director_result,
-                        memory_context=memory_augmentation
+                        memory_context=memory_injection or memory_augmentation
                     )
                     if generated_prompt and "[Hermes-3 Error]" not in generated_prompt:
                         final_creative_prompt = generated_prompt
@@ -136,11 +236,11 @@ class HermesAgent:
                 final_creative_prompt = override_prompt
             elif self.hermes_brain:
                 # PRIORITY 2: Use the Brain to generate a high-fidelity cinematic description
-                logger.info(f"[HERMES-3 🧠] Generating creative shot prompt for {shot_id}")
+                logger.info(f"[HERMES-3 ] Generating creative shot prompt for {shot_id}")
                 generated_prompt = await self.hermes_brain.generate_shot_prompt(
                     concept=enriched_description,
                     director_schema=director_result,
-                    memory_context=memory_augmentation
+                    memory_context=memory_injection or memory_augmentation
                 )
                 if "[Hermes-3 Error]" not in generated_prompt:
                     final_creative_prompt = generated_prompt
@@ -155,7 +255,7 @@ class HermesAgent:
             if self.visual_agent and hasattr(self.visual_agent, "generate"):
                 result = await self.visual_agent.generate(
                     shot_id=shot_id,
-                    description=final_creative_prompt, 
+                    description=final_creative_prompt,
                     director_schema=director_result,
                 )
             else:
@@ -184,12 +284,13 @@ class HermesAgent:
         error_category: Optional[str] = None,
         fix_applied: Optional[str] = None,
         audit_score: float = 0.0,
+        source: str = "live",
     ):
-        """Only used for explicit manual overrides or special events."""
+        """Record a final_outcome event. Uses canonical event type."""
         self.episodic.record({
             "session_id": getattr(self.session_manager, "session_id", "unknown"),
             "shot_id": shot_id,
-            "event_type": "outcome",
+            "event_type": "final_outcome",
             "concept": concept,
             "kernel_id": kernel_id,
             "success": success,
@@ -197,10 +298,10 @@ class HermesAgent:
             "error_category": error_category or "general",
             "fix_applied": fix_applied or "none",
             "audit_score": audit_score,
-        })
+        }, source=source)
         logger.info(
             f"[HERMES MEMORY] Recorded outcome for {shot_id}: "
-            f"success={success}, iterations={iterations_required}"
+            f"success={success}, iterations={iterations_required}, source={source}"
         )
         try:
             loop = asyncio.get_running_loop()
@@ -213,6 +314,35 @@ class HermesAgent:
             }))
         except RuntimeError:
             pass
+
+    def record_remediation(
+        self,
+        shot_id: str,
+        concept: str,
+        kernel_id: str,
+        error_category: str,
+        fix_applied: str,
+        success: bool,
+        audit_score: float = 0.0,
+        source: str = "live",
+    ):
+        """Record a remediation event. Uses canonical event type."""
+        self.episodic.record({
+            "session_id": getattr(self.session_manager, "session_id", "unknown"),
+            "shot_id": shot_id,
+            "event_type": "remediation",
+            "concept": concept,
+            "kernel_id": kernel_id,
+            "success": success,
+            "iterations_required": 1,
+            "error_category": error_category,
+            "fix_applied": fix_applied,
+            "audit_score": audit_score,
+        }, source=source)
+        logger.info(
+            f"[HERMES MEMORY] Recorded remediation for {shot_id}: "
+            f"error={error_category}, fix={fix_applied[:60]}, success={success}, source={source}"
+        )
 
     async def consolidate_session(self, session_events: List[Dict[str, Any]] = None):
         await _emit("CONSOLIDATION_START", {"event_count": len(session_events) if session_events else "all"})

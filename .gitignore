@@ -13,6 +13,8 @@ __pycache__/
 dist/
 build/
 .eggs/
+venv/
+.venv/
 
 # macOS
 .DS_Store
@@ -22,6 +24,8 @@ logs/
 data/outputs/
 data/sessions/
 data/reasoning_logs/
+data/renders/campaigns/
+data/renders/videos/
 
 # Claude worktrees
 .claude/worktrees/
@@ -43,3 +47,35 @@ hermes_home/models_dev_cache.json
 # Hermes home caches
 hermes_home/profiles/character/skills/
 hermes_home/.skip_upstream_prompt
+hermes_home/.hermes_history
+hermes_home/.skills_prompt_snapshot.json
+hermes_home/.update_check
+hermes_home/interrupt_debug.log
+hermes_home/state.db
+hermes_home/state.db-shm
+hermes_home/state.db-wal
+hermes_home/sessions/
+hermes_home/profiles/*/sessions/
+hermes_home/profiles/*/request_dump_*.json
+hermes_home/bin/
+hermes_home/profiles/*/auth.json
+hermes_home/profiles/*/auth.lock
+hermes_home/profiles/*/state.db
+hermes_home/profiles/*/state.db-shm
+hermes_home/profiles/*/state.db-wal
+hermes_home/profiles/*/logs/
+hermes_home/profiles/*/cache/
+hermes_home/profiles/*/bin/
+hermes_home/profiles/*/.hermes_history
+hermes_home/profiles/*/.skills_prompt_snapshot.json
+hermes_home/profiles/*/interrupt_debug.log
+hermes_home/profiles/*/pastes/
+hermes_home/profiles/*/cron/jobs.json
+hermes_home/profiles/*/memories/*.lock
+hermes_home/profiles/product/
+hermes_home/profiles/script/
+hermes_home/profiles/trading/
+hermes_home/profiles/live/skills/*/
+
+# Local sweep artifacts
+private/artifacts/

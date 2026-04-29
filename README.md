@@ -1,175 +1,109 @@
-# Forge NPS — AI-Native Creative Pipeline
+# Forge NPS
 
-Forge NPS is a multi-model AI pipeline for generating cinematic image campaigns. A creative brief flows through Kimi K2 (director), Hermes/qwen (prompt writer), ComfyUI on Spark (renderer), and Kimi-VL (visual auditor). The system learns from every render — failures are diagnosed, prompts are rewritten, and rules accumulate in memory so the same mistake is never made twice.
+Forge NPS is the hackathon pipeline where:
+1. Kimi is the director (structured shot planning + director self-check).
+2. Hermes is the prompt engineer (skills + model-standard prompt compilation).
+3. Spark/ComfyUI renders.
+4. Vision audit gates quality.
+5. Memory captures what happened.
 
----
+## Canonical Docs
+- `~/Desktop/forge_nps_v01/DEMO_SCRIPT.md`
+- `~/Desktop/forge_nps_v01/STABILITY_CHECKLIST.md`
+- `~/Desktop/forge_nps_v01/PIPELINE_CONTRACT_SUMMARY.md`
+- `~/Desktop/forge_nps_v01/data/contracts/pipeline_contract.json`
 
-## How to Run
+## Demo Scope
+In scope:
+- Kimi structured director plan
+- Hermes workflow-aware prompt compiler
+- Spark render dispatch
+- Vision re-audit and remediation retry
+- Full per-shot provenance in API/UI
 
-### Dashboard (primary interface)
-```bash
-cd ~/dashboard
-KIMI_API_KEY="nvapi-..." python3 forge_dashboard.py
-# Opens at http://localhost:7000
-```
+Out of scope for judging:
+- video generation productionization
+- memory graph visual polish
+- legacy dispatch flows
+- imported-media browsing polish
 
-### Demo (CLI pipeline)
+## Run
 ```bash
 cd ~/Desktop/forge_nps_v01
-python demo.py --mock                          # Mock Kimi, real ComfyUI
-python demo.py --memory-demo                   # Learning loop demonstration
-python demo.py --idea "car commercial"         # Idea → world bible → renders
+KIMI_API_KEY="nvapi-..." uvicorn dashboard.forge_dashboard:app --host 0.0.0.0 --port 7000
+```
+Open: `http://localhost:7000`
+
+## Required Runtime Env
+```bash
+KIMI_API_KEY=nvapi-...
+NIM_ENDPOINT=https://integrate.api.nvidia.com/v1/chat/completions
+COMFYUI_PRIMARY=http://localhost:8188
+LMSTUDIO_HOST=http://localhost:1234
+FORGE_MEDIA_ROOT=~/Desktop/FORGE_NPS_MEDIA
 ```
 
-### Environment Variables
-```
-KIMI_API_KEY=nvapi-...                        # NVIDIA NIM API key (real key in .env only — config.json has masked placeholder)
-LMSTUDIO_HOST=http://localhost:1234        # Hermes/qwen local inference
-COMFYUI_PRIMARY=http://localhost:8188      # Spark GPU cluster
-```
-
-### Config File
-`~/data/config.json` — models, ComfyUI URLs, character paths.
-
----
-
-## The Pipeline
-
-```
-Brief + Length
-    │
-    ▼
-Kimi K2-Instruct (Director)
-    Generates shot list: [{id, description, characters, intent}]
-    │
-    ▼
-Hermes/qwen via LM Studio (Creative Writer)
-    Writes cinematic SD prompt per shot
-    Reads episodic memory before writing — applies learned rules
-    │
-    ▼
-ComfyUI on Spark (Renderer)
-    Injects prompt into workflow node 6 (CLIPTextEncode)
-    Injects seed into node 9 (KSampler)
-    Polls /history until complete, downloads PNG via /view
-    │
-    ▼
-Kimi-VL (Visual Auditor)
-    Compares render to character anchor images
-    Returns: {is_consistent, confidence, issues, error_category}
-    │
-    ├── PASS → write to episodic memory, continue
-    │
-    └── FAIL → Remediation Loop
-                Tier 1: Hermes reads audit + memory → rewrites prompt → re-renders
-                Tier 2: Kimi K2-Instruct heavy rewrite → re-renders
-                Tier 3: Human review flag
-                │
-                ▼
-            Memory Write
-            Episodic: {shot_id, concept, success, iterations, fix_applied, error_category}
-            Semantic: consolidated rules after 2+ confirmations of same pattern
+Optional hard gates:
+```bash
+FORGE_DEV_FALLBACK=false
+FORGE_KIMI_REQUIRE_SELF_CHECK=false
+FORGE_KIMI_MIN_DIRECTOR_SCORE=45
+FORGE_LEARN_FROM_FALLBACK=false
 ```
 
----
+## Canonical API Path
+1. `POST /api/hermes/run-campaign`
+2. `GET /api/shots`
+3. `POST /api/audit/reprocess`
+4. `POST /api/audit/remediate`
+5. `GET /api/memory/health`
 
-## Model Roles
+## Legacy Endpoints
+These are intentionally disabled and return `410 legacy_disabled`:
+- `/api/shots/dispatch-all`
+- `/api/shots/dispatch`
+- `/api/submit-recipe`
+- `/api/inject-prompt`
+- `/api/render`
+- `/api/render/audit`
 
-| Model | Provider | Role |
-|-------|----------|------|
-| `moonshotai/kimi-k2-instruct` | NVIDIA NIM | Director — shot list from brief |
-| `kimi-v2-vision` | NVIDIA NIM | Visual auditor — render vs anchor |
-| `qwen3.6-35b-a3b` (auto-detected at startup) | LM Studio local | Creative writer — SD prompts, failure diagnosis |
-| FLUX2 / Z-Image Turbo | ComfyUI Spark | Image renderer |
+Compatibility shim:
+- `POST /api/renders/audit-batch` only proxies to canonical re-audit if `shot_ids` is provided.
 
----
+## Pipeline Behavior (Current)
+1. Kimi planner generates strict JSON shot plan.
+2. Kimi self-check returns score/status/risks.
+3. Hermes compiler produces workflow-specific artifact:
+   - `compiled_prompt`
+   - `negative_prompt`
+   - `skills_used`
+   - model standard metadata
+4. Spark renders each shot/workflow pair.
+5. Vision audit writes pass/fail + issues + score.
+6. Failed shots can be remediated into linked retries (`retry_of` lineage).
 
-## Folder Structure
+Campaign stops before Spark if Kimi fails and `FORGE_DEV_FALLBACK` is not enabled.
 
-```
-forge_nps_v01/
-├── agents/
-│   ├── auditor/continuity_auditor.py    # Kimi-VL visual audit + lore validation
-│   └── visual/visual_agent.py           # ComfyUI workflow dispatch
-├── core/
-│   ├── bridge/
-│   │   ├── kimi_bridge.py               # Kimi K2 + Kimi-VL API client
-│   │   ├── nous_hermes_bridge.py        # LM Studio client for Hermes/qwen
-│   │   └── lmstudio_client.py           # OpenAI-compatible local inference client
-│   ├── consistency/
-│   │   └── character_consistency_engine.py  # Character DNA + anchor injection
-│   ├── dispatch/
-│   │   └── comfy_client.py              # ComfyUI HTTP client + job polling
-│   ├── feedback/
-│   │   └── remediation_loop.py          # 3-tier failure remediation
-│   ├── genesis/                         # Idea → world bible (partially implemented)
-│   ├── hermes/
-│   │   ├── hermes_agent.py              # Agent orchestrator
-│   │   └── memory/                      # Episodic + semantic memory system
-│   ├── orchestrator/
-│   │   └── forge_orchestrator.py        # Campaign orchestrator
-│   └── state/
-│       └── session_manager.py           # Session persistence
-├── data/
-│   ├── character_banks/anchors/         # Character reference images
-│   ├── config.json                      # Runtime config
-│   ├── lore_bible/world_bible.md        # Character and world definitions
-│   ├── renders/campaigns/               # Campaign render outputs
-│   └── hermes_memory/                   # Episodic + semantic memory store
-├── workflows/
-│   └── hermes_z_image_turbo_api.json   # ComfyUI workflow template
-├── dashboard/                           # FastAPI web dashboard (port 7000)
-└── demo.py                              # CLI entry point
-```
+## Stream Event Types
+- `kimi`
+- `kimi_raw`
+- `kimi_plan`
+- `kimi_review`
+- `hermes`
+- `compiler`
+- `spark`
+- `memory`
+- `warning`
+- `error`
+- `done`
 
----
+## Key Files
+- `~/Desktop/forge_nps_v01/dashboard/forge_dashboard.py`
+- `~/Desktop/forge_nps_v01/core/hermes/pipeline/campaign_service.py`
+- `~/Desktop/forge_nps_v01/core/hermes/pipeline/director_service.py`
+- `~/Desktop/forge_nps_v01/core/hermes/pipeline/audit_service.py`
+- `~/Desktop/forge_nps_v01/core/prompts/prompt_compiler.py`
 
-## Memory System
-
-Every render outcome is recorded. The system gets smarter over campaigns.
-
-**Episodic memory** — written after every audit:
-```json
-{
-  "shot_id": "SHOT_001",
-  "concept": "neon alleyway golden hour",
-  "kernel_id": "zimage_turbo",
-  "success": false,
-  "iterations_required": 3,
-  "error_category": "Photometric",
-  "fix_applied": "reduce highlight intensity, add soft global illumination",
-  "audit_score": 0.92
-}
-```
-
-**Semantic memory** — consolidated from episodic after 2+ matching failures:
-```json
-{
-  "rule": "For neon lighting shots, specify iris color explicitly",
-  "confidence": 0.87,
-  "confirmations": 2
-}
-```
-
-Hermes reads semantic memory before writing every new prompt. Rules compound across campaigns.
-
----
-
-## Character System
-
-Characters are defined in `data/lore_bible/world_bible.md` under `## KEY CHARACTER:` sections. The `CharacterConsistencyEngine` parses these at startup and:
-- Injects physical descriptors into every generated prompt
-- Uses anchor images from `data/character_banks/anchors/` for Kimi-VL comparison
-- Generates deterministic seeds per character for visual consistency
-
----
-
-## Known Issues
-
-| Issue | File | Impact |
-|-------|------|--------|
-| `NousHermesBridge.__init__` takes no params but called with `lmstudio_client` in forge_nps orchestrator | `core/bridge/nous_hermes_bridge.py:29` | Brain injection broken in old orchestrator path |
-| `KimiBridge.direct()` missing return statement | `core/bridge/kimi_bridge.py:178` | Returns None on success |
-| `ContinuityAuditor._perform_semantic_audit()` only detects "red eyes" / "three arms" | `agents/auditor/continuity_auditor.py:136` | Text fallback audit is hardcoded; Kimi-VL path works correctly |
-| `GenesisEngine` missing from `~/core/genesis/` | `core/genesis/` | `forge_run.py` ImportError when run from parent dir |
-| `RemediationLoop` calls `KimiBridge()` with no args | `core/feedback/remediation_loop.py:48` | Auth failure on Kimi escalation tier |
+## Notes
+- Workspace-local Hermes runtime is required for the app stack in this repo.
+- Media rendered by Spark is served from `/external-renders/*` and stored under `FORGE_MEDIA_ROOT/images`.

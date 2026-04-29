@@ -1,73 +1,75 @@
-# Agent Task List — Forge NPS
+# Forge NPS Agent Tasks
 
-> **Updated:** 2026-04-24  
-> **Deadline:** May 3, 2026  
-> **Status:** Bugs fixed. Pipeline integration in progress.
+Updated: 2026-04-29
+Deadline: 2026-05-03
 
----
+## Hard Scope For Hackathon Demo
+Required:
+1. Kimi planning is strict JSON and visible.
+2. Hermes prompt compiler uses skills + model standards.
+3. Spark render path is deterministic.
+4. Vision audit + remediation lineage is real.
+5. UI shows provenance per shot.
 
-## ✅ COMPLETED
+Not in scope:
+- video pipeline productionization
+- memory graph redesign
+- legacy endpoint support
 
-| Task | What | Status |
-|---|---|---|
-| Path migration | Removed spaces, fixed hardcoded paths | ✅ Done |
-| Spark IP update | All hosts updated to `localhost` | ✅ Done |
-| Critical bugs fixed | forge_engine.py imports, kimi_bridge hardcoded path, remediation skill_registry type, IndexError in harness, image lightbox missing | ✅ Done |
-| Flask→FastAPI | Removed Flask Blueprint from `memory_api.py` | ✅ Done |
-| Test suite | 65/65 passing | ✅ Done |
-| LM Studio integration | LMStudioClient, auto-detect models, Settings UI | ✅ Done |
-| Hermes WebSocket | `/ws/hermes` streaming 7 event types | ✅ Done |
-| Teach Mode backend | `POST /api/hermes/teach` — controlled learning demo | ✅ Done |
-| Spark Monitor | `/api/spark/state` + `/ws/spark` | ✅ Done |
-| Consistency Scorer | PIL histogram correlation, 0-100 | ✅ Done |
-| Export Brain | `GET /api/hermes/export` | ✅ Done |
-| Settings wired | `data/config.json` persistence + restart | ✅ Done |
-| LM Studio test button | Auto-detects loaded models | ✅ Done |
-| Image lightbox | `openImageLightbox()` added to app.js | ✅ Done |
-| README rewritten | Full hackathon pitch with real architecture | ✅ Done |
-| NEXT_STEPS updated | Realistic timeline to May 3 | ✅ Done |
+## Assignment Model
+Agent A owns backend service and contract behavior.
+Agent B owns frontend traceability behavior.
+Agent E owns demo and submission docs.
+Avoid overlapping edits to the same file in parallel.
 
----
+## Priority Queue (P0 first)
 
-## 🔴 IN PROGRESS / REMAINING
+### P0 Backend Reliability
+- [ ] Validate `POST /api/hermes/run-campaign` against contract and stream events.
+- [ ] Confirm Kimi failure blocks Spark unless `FORGE_DEV_FALLBACK=true`.
+- [ ] Confirm canonical states are used on all shot records.
+- [ ] Confirm `POST /api/audit/reprocess` updates audit fields on selected shots.
+- [ ] Confirm `POST /api/audit/remediate` creates linked retry (`retry_of`) records.
 
-### Core Pipeline Integration
+### P0 Frontend Traceability
+- [ ] Dashboard and Video views show the same live shot set.
+- [ ] Per-shot pass/fail/retry badges render from backend fields.
+- [ ] Clicking a shot reveals Kimi plan, compiler prompt, audit payload, retry lineage.
+- [ ] Re-audit selected uses only `/api/audit/reprocess`.
+- [ ] Re-render failed uses only `/api/audit/remediate`.
 
-| # | Task | File | Priority |
-|---|------|------|----------|
-| 1 | Create `NousHermesBridge` | `core/bridge/nous_hermes_bridge.py` | 🔴 Critical |
-| 2 | Implement `VisualAgent.generate()` | `agents/visual/visual_agent.py` | 🔴 Critical |
-| 3 | Add `audit_image()` (Kimi-VL) | `core/bridge/kimi_bridge.py` | 🔴 Critical |
-| 4 | Update `ContinuityAuditor` to use Kimi-VL | `agents/auditor/continuity_auditor.py` | 🔴 Critical |
-| 5 | Wire Hermes-3 into `dispatch_shots()` | `core/hermes/hermes_agent.py:129` | 🔴 Critical |
-| 6 | Wire Hermes-3 into remediation tier 2 | `core/feedback/remediation_loop.py` | 🔴 Critical |
-| 7 | Update orchestrator — instantiate both bridges | `core/orchestrator/forge_orchestrator.py` | 🔴 Critical |
-| 8 | Add `NOUS_HERMES_MODEL` to config | `.env` + `data/config.json` | 🟡 High |
+### P0 Demo Stability
+- [ ] Save and verify Kimi endpoint + API key in Settings.
+- [ ] Validate Spark host and workflow presence.
+- [ ] Confirm media path is writable: `~/Desktop/FORGE_NPS_MEDIA/images`.
+- [ ] Run one successful end-to-end campaign before recording.
 
-### Dashboard
+## P1 Product Quality
+- [ ] Tune Kimi planner prompt for better narrative coverage.
+- [ ] Tune prompt profiles for Z-Image vs Flux differentiation.
+- [ ] Add stricter audit issue labeling for anatomy and geometry failures.
+- [ ] Add memory health gating in demo checklist.
 
-| # | Task | File | Priority |
-|---|------|------|----------|
-| 9 | Hermes Live CLI (input + send) | `app.js` + `forge_dashboard.py` | 🟡 High |
-| 10 | Add Character modal + API endpoint | `app.js` + `forge_dashboard.py` | 🟡 High |
-| 11 | Tag pipeline events with model names | `app.js` | 🟡 High |
-| 12 | Wire existing renders to home screen | `app.js` | 🟢 Medium |
+## P1 Documentation
+- [ ] Keep `/data/contracts/pipeline_contract.json` in sync with runtime.
+- [ ] Refresh examples in `/data/contracts/examples/` after backend field changes.
+- [ ] Keep demo script aligned to current UI labels.
 
-### Demo Day
+## P2 Post-Submission
+- [ ] Video tab workflow presets and generation queue.
+- [ ] Script tab modernization.
+- [ ] Memory graph UX polish.
 
-| # | Task | When |
-|---|------|------|
-| 13 | End-to-end pipeline test (full run with real Hermes-3) | Day 5-6 |
-| 14 | Record 60-second demo video | Day 7-8 |
-| 15 | Final test run (all 65 tests) | Day 9 |
-| 16 | Package and submit | May 3 |
+## Verification Commands
+```bash
+cd ~/Desktop/forge_nps_v01
+python3 -m py_compile dashboard/forge_dashboard.py core/hermes/pipeline/*.py
+node --check dashboard/static/js/app.js
+```
 
----
-
-## Notes
-
-- **Hermes-3 model**: Running on LM Studio at `localhost:1234`. Current chat model is `gemma-4-26b-a4b-it` — need to swap to Hermes-3 model or add `NOUS_HERMES_MODEL` as separate config field
-- **ComfyUI hosts**: Primary `localhost:8188`, secondary `localhost:8189` (same Spark box)
-- **Workflow files**: `hermes_z_image_turbo_api.json` at `~/workflows/` — proven working (generated 180 Sienna renders)
-- **Kimi-VL**: Model `moonshotai/Kimi-VL-A3B-Instruct` already in env. API key working. Just needs `audit_image()` method added
-- **Character anchor**: `elara_vance.jpg` exists in `data/character_banks/anchors/`. Use as Kimi-VL reference image for demo
+## Delivery Format For Any Agent
+Each agent response must include:
+1. files changed
+2. behavior changed
+3. verification performed
+4. unresolved blockers

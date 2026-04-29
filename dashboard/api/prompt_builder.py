@@ -12,7 +12,7 @@ from typing import Dict, List, Any, Optional
 
 REPO_ROOT = Path(__file__).parent.parent.parent.resolve()
 BANKS_DIR = REPO_ROOT / "data" / "character_banks"
-LORE_BIBLE = REPO_ROOT / "data" / "lore_bible" / "world_bible.md"
+CREATIVE_BRIEF_PATH = REPO_ROOT / "data" / "lore_bible" / "creative_brief.md"
 
 QUALITY_CONSTANTS = "photorealism, hyperrealistic, sharp focus, professional photography, high detail, 8k resolution, cinema lens"
 
@@ -31,11 +31,11 @@ def load_banks(mode: str = "character") -> Dict[str, List[str]]:
 
 
 def get_character_descriptor(name: Optional[str] = None) -> str:
-    """Extract character descriptor from world bible or CCE."""
+    """Extract character descriptor from creative brief or CCE."""
     try:
         sys.path.insert(0, str(REPO_ROOT))
         from core.consistency.character_consistency_engine import CharacterConsistencyEngine
-        cce = CharacterConsistencyEngine(str(LORE_BIBLE))
+        cce = CharacterConsistencyEngine(str(CREATIVE_BRIEF_PATH))
         detected = cce.detect_characters(name) if name else cce.detect_characters()
         if detected:
             return cce.get_anchor_prompt(detected[0])

@@ -55,10 +55,24 @@ class KimiBridge:
     Handles high-context communication with Kimi K2.6 via NVIDIA NIM endpoints.
     Designed for 'Directing' workflows requiring massive context and structured JSON.
     """
-    def __init__(self, endpoint_url: str, api_key: str, config_manager: Any):
+    def __init__(self, endpoint_url: str = "", api_key: str = "", config_manager: Any = None):
+        # Allow zero-arg construction for legacy callers (orchestrator/dashboard paths),
+        # but still prefer explicit injection when available.
+        self.config_manager = config_manager
+        if not endpoint_url:
+            endpoint_url = (
+                os.getenv("NIM_ENDPOINT")
+                or os.getenv("KIMI_ENDPOINT")
+                or "https://integrate.api.nvidia.com/v1/chat/completions"
+            )
+        endpoint_url = endpoint_url.rstrip("/")
+        if not endpoint_url.endswith("/chat/completions"):
+            endpoint_url = endpoint_url + "/chat/completions"
+        if not api_key:
+            api_key = os.getenv("KIMI_API_KEY", "")
+
         self.endpoint_url = endpoint_url
         self.api_key = api_key
-        self.config_manager = config_manager
         self.headers = {
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json"
@@ -176,6 +190,7 @@ class KimiBridge:
         if temperature is not None:
             kwargs_for_execute["temp_override"] = temperature
         result = await self._execute_request(system_prompt, full_prompt, schema=schema, **kwargs_for_execute)
+        return result
 
     async def direct_with_narrative(
         self,

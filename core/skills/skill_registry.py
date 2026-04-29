@@ -1,15 +1,17 @@
 import json
 import os
 import threading
+from pathlib import Path
 from datetime import datetime
 from typing import Optional, Dict, List, Any
 
 class SkillRegistry:
-    def __init__(self, registry_path: str = "~/Desktop/forge_nps_v01/core/skills/registry.json"):
+    def __init__(self, registry_path: Optional[str] = None):
         """
         Initialize and load existing data if available. Create the file/directory if not.
         """
-        self.registry_path = os.path.abspath(registry_path)
+        default_path = Path(__file__).resolve().parent / "registry.json"
+        self.registry_path = os.path.abspath(registry_path or str(default_path))
         self.lock = threading.Lock()
         self._ensure_registry_exists()
         self.data = self._load_registry()
@@ -134,7 +136,8 @@ class SkillRegistry:
 
 if __name__ == "__main__":
     # Quick manual test
-    registry = SkillRegistry("~/Desktop/forge_nps_v01/core/skills/test_registry.json")
+    test_path = Path(__file__).resolve().parent / "test_registry.json"
+    registry = SkillRegistry(str(test_path))
     print("Initial lookup:", registry.lookup("Photometric", "neon_interior"))
     registry.register_fix("Photometric", "neon_interior", "prompt...", "fix...", True, "reasoning...")
     print("After 1st registration:", registry.lookup("Photometric", "neon_interior"))

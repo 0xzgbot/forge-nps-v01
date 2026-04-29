@@ -1,0 +1,1718 @@
+{
+  "meta": {
+    "model": "nemotron-3-nano-omni",
+    "generated_at": "2026-04-28T12:24:03.828255",
+    "total": 110,
+    "passed": 80,
+    "failed": 30,
+    "error_categories": {
+      "character": 22,
+      "none": 88
+    },
+    "source_images_from": "~/Desktop/forge_nps_v01/data/reports/vision_audit_sienna_nomad_final_20260428_114115.json",
+    "manual_overrides": 1
+  },
+  "results": [
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/FLUX2_TURBO_TEST_00065.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "issues": [
+        "The main image is a futuristic cyberpunk cityscape with neon lights and wireframe buildings, which does not match the context of 'Sienna batch audit image 1', expected to be a product or character-focused image.",
+        "No characters are visible in the main image, making it impossible to assess eye color, hair style, or clothing details as required by the task.",
+        "The product identity is unclear; there is no identifiable Sienna product present in the scene.",
+        "Lighting and style are consistent with a sci-fi digital artwork (neon glow, high contrast, motion blur), but this style is inconsistent with typical audit image standards which usually require clear, well-lit product or character shots."
+      ],
+      "error_category": "character",
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image is a futuristic cyberpunk cityscape with neon lights and wireframe buildings, which does not match the context of 'Sienna batch audit image 1', expected to be a product or character-focused image.",
+          "No characters are visible in the main image, making it impossible to assess eye color, hair style, or clothing details as required by the task.",
+          "The product identity is unclear; there is no identifiable Sienna product present in the scene.",
+          "Lighting and style are consistent with a sci-fi digital artwork (neon glow, high contrast, motion blur), but this style is inconsistent with typical audit image standards which usually require clear, well-lit product or character shots."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00001_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00002_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00003_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "issues": [
+        "No main image provided for comparison against reference images",
+        "Reference images show abstract digital tunnel with pink and cyan light streaks, no characters or products visible",
+        "Cannot assess character features (eye color, hair style, clothing) due to absence of any human subjects",
+        "Cannot verify product identity as no product is depicted in either main or reference images",
+        "Lighting/style comparison not feasible without a defined subject; reference shows high-contrast digital effects while main image lacks clear visual content"
+      ],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "No main image provided for comparison against reference images",
+          "Reference images show abstract digital tunnel with pink and cyan light streaks, no characters or products visible",
+          "Cannot assess character features (eye color, hair style, clothing) due to absence of any human subjects",
+          "Cannot verify product identity as no product is depicted in either main or reference images",
+          "Lighting/style comparison not feasible without a defined subject; reference shows high-contrast digital effects while main image lacks clear visual content"
+        ],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00004_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "issues": [
+        "No main image provided for comparison; reference images are abstract digital tunnel visuals with no characters, products, or identifiable features.",
+        "The context mentions 'Sienna batch audit image 5', but the visible content does not show any character, product, or scene that could be evaluated for consistency.",
+        "There is no visual information about eye color, hair style, clothing details, product identity, lighting, or style in a way that allows comparison to reference images."
+      ],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "No main image provided for comparison; reference images are abstract digital tunnel visuals with no characters, products, or identifiable features.",
+          "The context mentions 'Sienna batch audit image 5', but the visible content does not show any character, product, or scene that could be evaluated for consistency.",
+          "There is no visual information about eye color, hair style, clothing details, product identity, lighting, or style in a way that allows comparison to reference images."
+        ],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00005_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "issues": [
+        "The main image contains a complex geometric structure with glowing lines and a nebula-like background, which does not match any reference images of the Sienna batch audit.",
+        "There are no characters present in the main image, so character features (eye color, hair style, clothing details) cannot be assessed for consistency.",
+        "The product identity is unclear due to the abstract nature of the image; it does not resemble typical Sienna batch audit imagery which should feature a person or product.",
+        "Lighting and style are highly stylized with digital effects, contrasting sharply with realistic lighting expected in an audit context."
+      ],
+      "error_category": "character",
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image contains a complex geometric structure with glowing lines and a nebula-like background, which does not match any reference images of the Sienna batch audit.",
+          "There are no characters present in the main image, so character features (eye color, hair style, clothing details) cannot be assessed for consistency.",
+          "The product identity is unclear due to the abstract nature of the image; it does not resemble typical Sienna batch audit imagery which should feature a person or product.",
+          "Lighting and style are highly stylized with digital effects, contrasting sharply with realistic lighting expected in an audit context."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00006_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "issues": [
+        "The main image depicts a futuristic cyberpunk cityscape with neon lighting and structural towers, which does not match the context of 'Sienna batch audit image 7', implying it should feature a person or product.",
+        "No character features (eye color, hair style) are present as there is no human subject in the image.",
+        "The product identity is unclear or absent; the image shows an abstract scene rather than a specific product.",
+        "Lighting and style are consistent with a sci-fi digital artwork but do not align with what would be expected in a batch audit context, which typically involves real-world lighting on physical objects or people."
+      ],
+      "error_category": "character",
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image depicts a futuristic cyberpunk cityscape with neon lighting and structural towers, which does not match the context of 'Sienna batch audit image 7', implying it should feature a person or product.",
+          "No character features (eye color, hair style) are present as there is no human subject in the image.",
+          "The product identity is unclear or absent; the image shows an abstract scene rather than a specific product.",
+          "Lighting and style are consistent with a sci-fi digital artwork but do not align with what would be expected in a batch audit context, which typically involves real-world lighting on physical objects or people."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00007_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00008_.png",
+      "status": "pass",
+      "confidence": 1.0,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 1.0,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00009_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00010_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "issues": [
+        "The main image is not provided for comparison against the reference images.",
+        "The input describes a 'memory scavenger in a dying cyberpunk city,' which implies a character and setting, but no actual image content can be analyzed for visual consistency.",
+        "Without access to the main image or reference images (e.g., Sienna batch audit image 11), it is impossible to verify character features, product identity, lighting, or style."
+      ],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image is not provided for comparison against the reference images.",
+          "The input describes a 'memory scavenger in a dying cyberpunk city,' which implies a character and setting, but no actual image content can be analyzed for visual consistency.",
+          "Without access to the main image or reference images (e.g., Sienna batch audit image 11), it is impossible to verify character features, product identity, lighting, or style."
+        ],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00011_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "issues": [
+        "No main image provided for comparison against reference images",
+        "Reference images show abstract digital tunnel visuals with pink and cyan light streaks, no characters, products, or identifiable features",
+        "Cannot assess character features (eye color, hair style), clothing details, product identity, or lighting/style consistency due to absence of subject matter"
+      ],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "No main image provided for comparison against reference images",
+          "Reference images show abstract digital tunnel visuals with pink and cyan light streaks, no characters, products, or identifiable features",
+          "Cannot assess character features (eye color, hair style), clothing details, product identity, or lighting/style consistency due to absence of subject matter"
+        ],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00012_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "issues": [
+        "The main image contains a geometric wireframe structure and cosmic background, which do not match any reference images of the Sienna batch audit.",
+        "There are no characters present in the main image to compare for eye color or hair style.",
+        "No product identity (e.g., Sienna bottle, packaging) is visible in the main image.",
+        "The lighting and style are entirely different\u2014cosmic/space-themed with neon wireframe vs. likely studio-lit product photography in references."
+      ],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image contains a geometric wireframe structure and cosmic background, which do not match any reference images of the Sienna batch audit.",
+          "There are no characters present in the main image to compare for eye color or hair style.",
+          "No product identity (e.g., Sienna bottle, packaging) is visible in the main image.",
+          "The lighting and style are entirely different\u2014cosmic/space-themed with neon wireframe vs. likely studio-lit product photography in references."
+        ],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00013_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "issues": [
+        "The main image is a futuristic, neon-lit cityscape with light streaks and wireframe buildings, which does not match the context of 'Sienna batch audit image 14', expected to be a photographic or realistic image of a person.",
+        "No character features (eye color, hair style) are present in the main image as it depicts a scene rather than a person.",
+        "The product identity is unclear due to the abstract nature of the image; no identifiable product is visible.",
+        "Lighting and style are highly stylized with neon cyan and pink tones, contrasting sharply with what would be expected for an audit image (typically neutral, natural lighting)."
+      ],
+      "error_category": "character",
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image is a futuristic, neon-lit cityscape with light streaks and wireframe buildings, which does not match the context of 'Sienna batch audit image 14', expected to be a photographic or realistic image of a person.",
+          "No character features (eye color, hair style) are present in the main image as it depicts a scene rather than a person.",
+          "The product identity is unclear due to the abstract nature of the image; no identifiable product is visible.",
+          "Lighting and style are highly stylized with neon cyan and pink tones, contrasting sharply with what would be expected for an audit image (typically neutral, natural lighting)."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00014_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00015_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "issues": [
+        "Color mismatch detected on shoulder armor: the neon cyan glow (#1C1C1C) does not match expected color scheme for Sienna batch.",
+        "Visual anomaly indicated by '[ERROR: COLOR MISMATCH #1C1C1C]' overlay suggests inconsistency in product detailing or lighting application."
+      ],
+      "error_category": "character",
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "Color mismatch detected on shoulder armor: the neon cyan glow (#1C1C1C) does not match expected color scheme for Sienna batch.",
+          "Visual anomaly indicated by '[ERROR: COLOR MISMATCH #1C1C1C]' overlay suggests inconsistency in product detailing or lighting application."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00016_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "issues": [
+        "The main image contains a neon pink neuron-like structure with cyan circuit-like lines, which does not match any reference images of the Sienna batch audit.",
+        "There are no characters, products, or identifiable features from the Sienna batch present in the image.",
+        "The content is abstract and digital, lacking any real-world lighting, style, or product identity consistent with a batch audit context."
+      ],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image contains a neon pink neuron-like structure with cyan circuit-like lines, which does not match any reference images of the Sienna batch audit.",
+          "There are no characters, products, or identifiable features from the Sienna batch present in the image.",
+          "The content is abstract and digital, lacking any real-world lighting, style, or product identity consistent with a batch audit context."
+        ],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00017_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00018_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "issues": [
+        "The main image features a close-up of a person's face with glowing blue eyes and neon-colored lighting (teal and magenta), set against a cyberpunk cityscape at night.",
+        "There is no reference image provided in the context to compare against, making visual consistency audit impossible.",
+        "Without reference images for character features, product identity, or style comparison, it cannot be determined if there are mismatches.",
+        "The task requires comparing 'the main image' against 'reference images', but only one image (image 19) is described and no references are listed."
+      ],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image features a close-up of a person's face with glowing blue eyes and neon-colored lighting (teal and magenta), set against a cyberpunk cityscape at night.",
+          "There is no reference image provided in the context to compare against, making visual consistency audit impossible.",
+          "Without reference images for character features, product identity, or style comparison, it cannot be determined if there are mismatches.",
+          "The task requires comparing 'the main image' against 'reference images', but only one image (image 19) is described and no references are listed."
+        ],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00019_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "issues": [
+        "Reference images contain a character with brown eyes and dark hair, while the main image shows no character.",
+        "The main image displays text 'FORGE NPS' on a black background, which does not match any product identity shown in reference images (which depict Sienna batch audit visuals).",
+        "Lighting style is uniform digital glow/text presentation, inconsistent with photographic lighting styles seen in reference images."
+      ],
+      "error_category": "character",
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "Reference images contain a character with brown eyes and dark hair, while the main image shows no character.",
+          "The main image displays text 'FORGE NPS' on a black background, which does not match any product identity shown in reference images (which depict Sienna batch audit visuals).",
+          "Lighting style is uniform digital glow/text presentation, inconsistent with photographic lighting styles seen in reference images."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00020_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00021_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00022_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00023_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00024_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00025_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00026_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00027_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00028_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00029_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00030_.png",
+      "status": "fail",
+      "confidence": 0.99,
+      "issues": [
+        "Anatomical corruption: apparent extra fingers/hand structure errors.",
+        "Unintended subject morphology: face/head appears non-human (dog-like)."
+      ],
+      "error_category": "character",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00031_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00032_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00033_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00034_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00035_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00036_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00037_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00038_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00039_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00040_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00041_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00042_.png",
+      "status": "pass",
+      "confidence": 0.98,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.98,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00043_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00044_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00045_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00046_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00047_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00048_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00049_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00050_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00051_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00052_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00053_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00054_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00055_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00056_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00057_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00058_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00059_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00060_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00061_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00062_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00063_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00064_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Flux2_dev_00065_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "issues": [
+        "The main image is a futuristic cyberpunk cityscape with neon lighting and no characters, while the reference images are of a person (Sienna) in a batch audit context.",
+        "There is a complete mismatch in subject matter: character vs. environment.",
+        "No consistent features can be compared due to absence of any human subject in the main image."
+      ],
+      "error_category": "character",
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image is a futuristic cyberpunk cityscape with neon lighting and no characters, while the reference images are of a person (Sienna) in a batch audit context.",
+          "There is a complete mismatch in subject matter: character vs. environment.",
+          "No consistent features can be compared due to absence of any human subject in the main image."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_01_Video_01_ANCHOR_00001_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "issues": [
+        "The main image depicts a vast canyon landscape with red rock formations, likely the Grand Canyon, during twilight or early evening. There are no characters, products, or identifiable features related to 'Sienna batch audit' visible in the scene.",
+        "No character features (e.g., eye color, hair style) are present as there are no people in the image.",
+        "The product identity is not discernible; the context suggests a natural landscape rather than a product-focused image.",
+        "Lighting and style are consistent with a cinematic or high-quality landscape photograph, but this does not align with typical audit imagery which would feature clear product and character representation."
+      ],
+      "error_category": "character",
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image depicts a vast canyon landscape with red rock formations, likely the Grand Canyon, during twilight or early evening. There are no characters, products, or identifiable features related to 'Sienna batch audit' visible in the scene.",
+          "No character features (e.g., eye color, hair style) are present as there are no people in the image.",
+          "The product identity is not discernible; the context suggests a natural landscape rather than a product-focused image.",
+          "Lighting and style are consistent with a cinematic or high-quality landscape photograph, but this does not align with typical audit imagery which would feature clear product and character representation."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_01_Video_01_ANCHOR_00002_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "issues": [
+        "The main image shows a natural landscape of layered red rock formations, likely the Grand Canyon, with no characters present.",
+        "There are no visible characters to compare for eye color or hair style.",
+        "No product is identifiable in the image; it appears to be a scenic photograph rather than an illustration featuring Sienna.",
+        "The lighting and style are consistent with natural outdoor photography at dusk or dawn, but this does not align with typical character-based illustrations where specific stylistic elements would be expected."
+      ],
+      "error_category": "character",
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image shows a natural landscape of layered red rock formations, likely the Grand Canyon, with no characters present.",
+          "There are no visible characters to compare for eye color or hair style.",
+          "No product is identifiable in the image; it appears to be a scenic photograph rather than an illustration featuring Sienna.",
+          "The lighting and style are consistent with natural outdoor photography at dusk or dawn, but this does not align with typical character-based illustrations where specific stylistic elements would be expected."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_01_Video_02_ANCHOR_00001_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_01_Video_03_ANCHOR_00001_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_02_Video_01_ANCHOR_00001_.png",
+      "status": "pass",
+      "confidence": 1.0,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 1.0,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_02_Video_02_ANCHOR_00001_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_02_Video_03_ANCHOR_00001_.png",
+      "status": "pass",
+      "confidence": 0.98,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.98,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_03_Video_01_ANCHOR_00001_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "issues": [
+        "The main image shows a natural canyon landscape with no characters, product, or identifiable subject matter beyond geological formations and tiny figures in the distance.",
+        "There is no visible character to assess for eye color, hair style, or clothing details.",
+        "No product identity is present in the image.",
+        "While lighting appears consistent (bright daylight), there is no 'style' or 'character' content to compare against a reference."
+      ],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image shows a natural canyon landscape with no characters, product, or identifiable subject matter beyond geological formations and tiny figures in the distance.",
+          "There is no visible character to assess for eye color, hair style, or clothing details.",
+          "No product identity is present in the image.",
+          "While lighting appears consistent (bright daylight), there is no 'style' or 'character' content to compare against a reference."
+        ],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_03_Video_02_ANCHOR_00001_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "issues": [
+        "The main image shows a vast desert landscape with sand dunes, rock formations, and tire tracks leading into the distance; there is no visible character, product, or identifiable subject to compare against reference images.",
+        "No character features (e.g., eye color, hair style) are present in the image for evaluation.",
+        "No product identity can be determined as no product is visible.",
+        "The lighting and style appear consistent with a natural desert environment\u2014bright daylight, high contrast shadows\u2014but there is no reference to compare against for stylistic consistency."
+      ],
+      "error_category": "character",
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image shows a vast desert landscape with sand dunes, rock formations, and tire tracks leading into the distance; there is no visible character, product, or identifiable subject to compare against reference images.",
+          "No character features (e.g., eye color, hair style) are present in the image for evaluation.",
+          "No product identity can be determined as no product is visible.",
+          "The lighting and style appear consistent with a natural desert environment\u2014bright daylight, high contrast shadows\u2014but there is no reference to compare against for stylistic consistency."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_03_Video_03_ANCHOR_00001_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_04_Video_01_ANCHOR_00001_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_04_Video_02_ANCHOR_00001_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "issues": [
+        "The main image shows a vast desert landscape with cracked earth and sand dunes, featuring a small silhouette of a person sitting on what appears to be a motorcycle or vehicle.",
+        "There are no reference images provided for comparison, making it impossible to assess consistency in character features (eye color, hair style), clothing details, product identity, or lighting/style against specific benchmarks.",
+        "The context mentions 'Sienna batch audit image 78', suggesting this may be part of a series where visual consistency with prior or reference images is expected, but those references are missing here."
+      ],
+      "error_category": "character",
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image shows a vast desert landscape with cracked earth and sand dunes, featuring a small silhouette of a person sitting on what appears to be a motorcycle or vehicle.",
+          "There are no reference images provided for comparison, making it impossible to assess consistency in character features (eye color, hair style), clothing details, product identity, or lighting/style against specific benchmarks.",
+          "The context mentions 'Sienna batch audit image 78', suggesting this may be part of a series where visual consistency with prior or reference images is expected, but those references are missing here."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_04_Video_03_ANCHOR_00001_.png",
+      "status": "pass",
+      "confidence": 0.98,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.98,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_05_Video_01_ANCHOR_00001_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_05_Video_02_ANCHOR_00001_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_05_Video_03_ANCHOR_00001_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_06_Video_01_ANCHOR_00001_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "issues": [
+        "The main image depicts a natural landscape of the Grand Canyon at twilight, while the reference images show a person (Sienna) in various poses and settings.",
+        "There is no character present in the main image to compare against the reference character's eye color or hair style.",
+        "Product identity cannot be assessed as there is no product visible in the main image; it is a scenic photograph.",
+        "Lighting and style are consistent with a natural landscape photo (cool tones, soft ambient light), but this does not align with typical portrait-style reference images which likely have different lighting setups."
+      ],
+      "error_category": "character",
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image depicts a natural landscape of the Grand Canyon at twilight, while the reference images show a person (Sienna) in various poses and settings.",
+          "There is no character present in the main image to compare against the reference character's eye color or hair style.",
+          "Product identity cannot be assessed as there is no product visible in the main image; it is a scenic photograph.",
+          "Lighting and style are consistent with a natural landscape photo (cool tones, soft ambient light), but this does not align with typical portrait-style reference images which likely have different lighting setups."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_06_Video_02_ANCHOR_00001_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_06_Video_03_ANCHOR_00001_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "issues": [
+        "The main image shows a vast canyon landscape with rock formations, which does not match the reference images of a person (Sienna batch audit).",
+        "There are no characters present in the main image to compare for eye color, hair style, or clothing details.",
+        "Product identity is not applicable as there is no product visible; the context refers to an image of a person named Sienna.",
+        "Lighting and style differ significantly: the reference images appear to be portrait-style with focused lighting on a subject, while the main image is a wide natural landscape shot taken during twilight or dusk."
+      ],
+      "error_category": "character",
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image shows a vast canyon landscape with rock formations, which does not match the reference images of a person (Sienna batch audit).",
+          "There are no characters present in the main image to compare for eye color, hair style, or clothing details.",
+          "Product identity is not applicable as there is no product visible; the context refers to an image of a person named Sienna.",
+          "Lighting and style differ significantly: the reference images appear to be portrait-style with focused lighting on a subject, while the main image is a wide natural landscape shot taken during twilight or dusk."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_07_Video_01_ANCHOR_00001_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_07_Video_02_ANCHOR_00001_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "issues": [
+        "The main image shows a natural rock formation with sunlight streaming through, while the reference images depict a person (Sienna) in a different setting.",
+        "There is no character present in the main image to compare eye color or hair style against.",
+        "Product identity cannot be assessed as there is no product visible in the main image.",
+        "Lighting and style are consistent with natural outdoor photography, but the context does not match the reference images which appear to be studio-style portraits."
+      ],
+      "error_category": "character",
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image shows a natural rock formation with sunlight streaming through, while the reference images depict a person (Sienna) in a different setting.",
+          "There is no character present in the main image to compare eye color or hair style against.",
+          "Product identity cannot be assessed as there is no product visible in the main image.",
+          "Lighting and style are consistent with natural outdoor photography, but the context does not match the reference images which appear to be studio-style portraits."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_07_Video_03_ANCHOR_00001_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "issues": [
+        "The main image depicts a desert landscape with rock formations and a road, while the reference images show a person (Sienna) in a different setting.",
+        "There is no character present in the main image to compare against the reference character's eye color or hair style.",
+        "Product identity cannot be assessed as there is no product visible in the main image.",
+        "Lighting and style are consistent with a natural landscape photograph, but this does not align with what would typically be expected for a character-focused audit."
+      ],
+      "error_category": "character",
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image depicts a desert landscape with rock formations and a road, while the reference images show a person (Sienna) in a different setting.",
+          "There is no character present in the main image to compare against the reference character's eye color or hair style.",
+          "Product identity cannot be assessed as there is no product visible in the main image.",
+          "Lighting and style are consistent with a natural landscape photograph, but this does not align with what would typically be expected for a character-focused audit."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_08_Video_01_ANCHOR_00001_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_08_Video_02_ANCHOR_00001_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "issues": [
+        "The main image shows a steak being cooked in a cast iron skillet, while the reference images are not visible but context indicates this is a Sienna batch audit image which should feature a character or product related to Sienna.",
+        "There is no visible character with identifiable eye color, hair style, or clothing details as required by the task.",
+        "The product identity is inconsistent; the image features food (steak) rather than any Sienna-related product.",
+        "Lighting and style are consistent in terms of warm, outdoor sunset lighting, but this does not align with typical audit image expectations for character or product consistency."
+      ],
+      "error_category": "character",
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image shows a steak being cooked in a cast iron skillet, while the reference images are not visible but context indicates this is a Sienna batch audit image which should feature a character or product related to Sienna.",
+          "There is no visible character with identifiable eye color, hair style, or clothing details as required by the task.",
+          "The product identity is inconsistent; the image features food (steak) rather than any Sienna-related product.",
+          "Lighting and style are consistent in terms of warm, outdoor sunset lighting, but this does not align with typical audit image expectations for character or product consistency."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_08_Video_03_ANCHOR_00001_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_09_Video_01_ANCHOR_00001_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "issues": [
+        "The main image shows a dark, layered geological formation with porous rock structures and curved strata under low-light conditions, while the reference images depict a person (likely a woman) in what appears to be a different setting with distinct clothing and features.",
+        "There is no visible character in the main image for comparison of eye color or hair style.",
+        "The product identity cannot be determined from the main image as it does not show any identifiable product; the reference images seem unrelated to geological formations."
+      ],
+      "error_category": "character",
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image shows a dark, layered geological formation with porous rock structures and curved strata under low-light conditions, while the reference images depict a person (likely a woman) in what appears to be a different setting with distinct clothing and features.",
+          "There is no visible character in the main image for comparison of eye color or hair style.",
+          "The product identity cannot be determined from the main image as it does not show any identifiable product; the reference images seem unrelated to geological formations."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_09_Video_02_ANCHOR_00001_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "issues": [
+        "The main image contains a dark, rocky canyon landscape with no visible characters, product, or identifiable features related to the Sienna batch audit context.",
+        "There is no evidence of character features such as eye color or hair style.",
+        "No product identity (e.g., Sienna batch item) is present in the scene.",
+        "The lighting and style are consistent within the image (dark, moody, natural rock formations), but do not align with any expected visual elements from a 'Sienna batch audit image 93'."
+      ],
+      "error_category": "character",
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image contains a dark, rocky canyon landscape with no visible characters, product, or identifiable features related to the Sienna batch audit context.",
+          "There is no evidence of character features such as eye color or hair style.",
+          "No product identity (e.g., Sienna batch item) is present in the scene.",
+          "The lighting and style are consistent within the image (dark, moody, natural rock formations), but do not align with any expected visual elements from a 'Sienna batch audit image 93'."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_09_Video_03_ANCHOR_00001_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "issues": [
+        "The main image shows a silhouette of a landscape at dusk or dawn with no visible characters, clothing details, eye color, hair style, or product identity.",
+        "There is no visual content to compare against reference images for character features, product identity, or styling elements.",
+        "The scene lacks any discernible subject matter related to the Sienna batch audit context, making consistency verification impossible based on provided information."
+      ],
+      "error_category": "character",
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image shows a silhouette of a landscape at dusk or dawn with no visible characters, clothing details, eye color, hair style, or product identity.",
+          "There is no visual content to compare against reference images for character features, product identity, or styling elements.",
+          "The scene lacks any discernible subject matter related to the Sienna batch audit context, making consistency verification impossible based on provided information."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_10_Video_01_ANCHOR_00001_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "issues": [
+        "The main image shows a beach scene with rocks and water, while the reference images are of a person (Sienna).",
+        "There is no character present in the main image to compare against the reference.",
+        "Product identity cannot be assessed as there is no product visible in the main image.",
+        "Lighting and style are consistent with a natural landscape photograph, but this does not align with the context of a 'Sienna batch audit' which implies a portrait or character-focused image."
+      ],
+      "error_category": "character",
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image shows a beach scene with rocks and water, while the reference images are of a person (Sienna).",
+          "There is no character present in the main image to compare against the reference.",
+          "Product identity cannot be assessed as there is no product visible in the main image.",
+          "Lighting and style are consistent with a natural landscape photograph, but this does not align with the context of a 'Sienna batch audit' which implies a portrait or character-focused image."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_10_Video_02_ANCHOR_00001_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_10_Video_03_ANCHOR_00001_.png",
+      "status": "fail",
+      "confidence": 0.95,
+      "issues": [
+        "The main image depicts a natural landscape of the Grand Canyon at sunrise/sunset, with no characters, products, or identifiable features related to 'Sienna batch audit'.",
+        "There is no visual evidence of any character (human or otherwise) present in the image for comparison against reference images.",
+        "No product identity can be determined as the scene contains only natural geological formations and lighting effects."
+      ],
+      "error_category": "character",
+      "raw": {
+        "is_consistent": false,
+        "confidence": 0.95,
+        "issues": [
+          "The main image depicts a natural landscape of the Grand Canyon at sunrise/sunset, with no characters, products, or identifiable features related to 'Sienna batch audit'.",
+          "There is no visual evidence of any character (human or otherwise) present in the image for comparison against reference images.",
+          "No product identity can be determined as the scene contains only natural geological formations and lighting effects."
+        ],
+        "error_category": "character"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_11_Video_01_ANCHOR_00001_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_11_Video_02_ANCHOR_00001_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_11_Video_03_ANCHOR_00001_.png",
+      "status": "pass",
+      "confidence": 0.98,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.98,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_12_Video_01_ANCHOR_00001_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_12_Video_02_ANCHOR_00001_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_12_Video_03_ANCHOR_00001_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_13_Video_01_ANCHOR_00001_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_13_Video_02_ANCHOR_00001_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_13_Video_03_ANCHOR_00001_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_14_Video_01_ANCHOR_00001_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_14_Video_02_ANCHOR_00001_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_14_Video_03_ANCHOR_00001_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    },
+    {
+      "file": "~/Desktop/projects/Sienna_Nomad_Project/RENDERED_OUTPUT/Prompt_15_Video_01_ANCHOR_00001_.png",
+      "status": "pass",
+      "confidence": 0.95,
+      "issues": [],
+      "error_category": "none",
+      "raw": {
+        "is_consistent": true,
+        "confidence": 0.95,
+        "issues": [],
+        "error_category": "none"
+      }
+    }
+  ]
+}

@@ -31,6 +31,20 @@ CONFIGURABLE_KEYS = [
     "MOCK_MODE",
 ]
 
+# Frontend/UI alias keys -> canonical env/config keys
+KEY_ALIASES = {
+    "kimi_api": "KIMI_API_KEY",
+    "kimi_api_key": "KIMI_API_KEY",
+    "nim_url": "NIM_ENDPOINT",
+    "nim_endpoint": "NIM_ENDPOINT",
+    "comfy_primary": "COMFYUI_PRIMARY",
+    "comfy_secondary": "COMFYUI_SECONDARY",
+    "spark_url": "COMFYUI_PRIMARY",
+    "lmstudio_host": "LMSTUDIO_HOST",
+    "lmstudio_chat_model": "LMSTUDIO_CHAT_MODEL",
+    "lmstudio_embed_model": "LMSTUDIO_EMBED_MODEL",
+}
+
 
 def _load_json_config() -> Dict[str, Any]:
     if not CONFIG_PATH.exists():
@@ -86,8 +100,9 @@ def set_config(updates: Dict[str, Any]) -> Dict[str, str]:
     """Persist config updates to JSON overlay."""
     current = _load_json_config()
     for k, v in updates.items():
-        if k in CONFIGURABLE_KEYS:
-            current[k] = str(v) if v is not None else ""
+        canonical = KEY_ALIASES.get(k, k)
+        if canonical in CONFIGURABLE_KEYS:
+            current[canonical] = str(v) if v is not None else ""
     _save_json_config(current)
     return get_config()
 
