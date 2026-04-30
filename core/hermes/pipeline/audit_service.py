@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any, Awaitable, Callable, Dict, List, Optional
 
 from core.dispatch.comfy_client import ComfyUIClient
+from core.bridge.runtime_config import get_raw_config
 
 from .state_machine import transition_shot
 
@@ -82,7 +83,12 @@ class HermesAuditService:
         # max_retries preserved for API compatibility; currently one pass per selected shot.
         _ = max_retries
         hermes = self.get_hermes_bridge()
-        host = os.getenv("COMFYUI_PRIMARY", "http://100.112.87.8:8188").rstrip("/")
+        cfg = get_raw_config()
+        host = (
+            os.getenv("COMFYUI_PRIMARY", "")
+            or str(cfg.get("COMFYUI_PRIMARY", ""))
+            or "http://100.112.87.8:8188"
+        ).rstrip("/")
         comfy = ComfyUIClient(host)
         results = []
         for shot_id in shot_ids:
@@ -159,7 +165,11 @@ class HermesAuditService:
             transition_shot(retry_record, "retry_rendered")
             if image_path:
                 retry_record["image_path"] = image_path
-                retry_record["image_url"] = f"/external-renders/{Path(image_path).name}"
+                try:
+                    rel = Path(image_path).resolve().relative_to(self.media_images.resolve())
+                    retry_record["image_url"] = f"/external-renders/{rel.as_posix()}"
+                except Exception:
+                    retry_record["image_url"] = f"/external-renders/{Path(image_path).name}"
             self.record_event("render_result", shot_id=retry_shot_id, campaign_id=s.get("campaign_id", ""), workflow_id=s.get("workflow_id", ""), source=s.get("source", "campaign"), success=True)
 
             if image_path:

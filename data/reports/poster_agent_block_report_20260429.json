@@ -1,0 +1,114 @@
+{
+  "agent": "autonomous-poster-agent",
+  "timestamp": "2026-04-29T21:05:00Z",
+  "status": "BLOCKED",
+  "asset_discovery_summary": {
+    "qa_output_scan": {
+      "severity": "CRITICAL",
+      "detail": "79 sessions scanned — zero contain valid asset_path references. All shots marked 'complete' with empty asset_path fields (confirmed false-positive pattern). No QA-approved assets found anywhere."
+    },
+    "session_data_scan": {
+      "severity": "CRITICAL", 
+      "detail": "All 79 session JSON files checked for status='complete' AND non-empty asset_path. Result: 8 sessions with complete shots but empty asset_paths, 0 sessions with valid assets."
+    },
+    "brand_vault_registry": {
+      "severity": "INFO",
+      "detail": "~/.hermes/brand_vault/asset_registry.md exists but contains only a header comment. No approved brand assets registered yet."
+    },
+    "raw_media_pool": {
+      "videos_mp4": 2,
+      "video_sizes_kb": [126.9, 84.1],
+      "severity": "WARNING", 
+      "detail": "2 MP4 files found in render directory — both under 1 MB (126.9 KB and 84.1 KB), well below the 2-5 MB minimum threshold for social platforms. These are almost certainly failed I2V renders."
+    },
+    "campaign_data": {
+      "severity": "INFO",
+      "detail": "Campaigns directory is empty (0 files). Projects directory contains 7 subdirectories (animated_short, aurora_cosmetics, car_commercial, fitness_campaign, neon_drift, summit_coffee, wes_anderson_film) with no associated posting metadata."
+    }
+  },
+  "pre_flight_quality_assessment": {
+    "video_file_sizes": [
+      {"file": "renders/videos/d83e785e6e/...SHOT_001....mp4", "size_bytes": 129946, "status": "FAIL — under 1MB threshold"},
+      {"file": "renders/videos/d83e785e6e/...SHOT_002....mp4", "size_bytes": 86114, "status": "FAIL — under 1MB threshold"}
+    ],
+    "vision_audit_pass_rates": [
+      {"report": "vision_audit_sienna_nomad_20260428_112913.json", "pass_rate_pct": 0.0, "total": 110},
+      {"report": "vision_audit_sienna_nomad_final_20260428_114115.json", "pass_rate_pct": 0.9, "total": 110},
+      {"report": "vision_audit_sienna_nomad_nemotron_20260428_121507.json", "pass_rate_pct": 0.0, "total": 110},
+      {"report": "vision_audit_sienna_nomad_rerun_20260428_113105.json", "pass_rate_pct": 0.0, "total": 110}
+    ],
+    "assessment": "CRITICAL FAILURE — All vision audits show <1% pass rate across 440 total asset evaluations. Quality gate has not cleared."
+  },
+  "credential_verification_table": {
+    "scan_locations": [
+      "/Users/zgbot/.hermes/.env (17,645 bytes)",
+      "/Users/zgbot/Desktop/forge_nps_v01/.env (699 bytes)",
+      "/Users/zgbot/Desktop/forge_nps_v01/hermes_engine/.env.example",
+      "3 additional .env.template files in .claude/worktrees/"
+    ],
+    "platforms": {
+      "instagram_graph_api": {"INSTAGRAM_ACCESS_TOKEN": "MISSING", "INSTAGRAM_ACCOUNT_ID": "MISSING"},
+      "tiktok_business_api": {"TIKTOK_ACCESS_TOKEN": "MISSING", "TIKTOK_PAGE_ID": "MISSING"},
+      "x_api_v2": {"X_BEARER_TOKEN": "MISSING", "X_API_KEY": "MISSING"},
+      "linkedin_api": {"LINKEDIN_ACCESS_TOKEN": "MISSING"}
+    },
+    "note": ".env files contain ComfyUI endpoints, LMStudio configs, Kimi API keys — but zero social media platform credentials."
+  },
+  "raw_media_inventory_count": {
+    "videos_mp4": 2,
+    "total_video_size_bytes": 216060,
+    "images_png": 16,
+    "campaigns_with_assets": 5,
+    "image_campaign_names": ["tik_tok_van_life_in_the_desert", "audi_etron_aspen_colorado_winter", "Salomon_shoe_mountain_runners", "pit_viper_instagram", "spark_workflow_smoke"]
+  },
+  "blocking_issues": [
+    {
+      "severity": "CRITICAL",
+      "issue": "No approved assets exist — all sessions have empty asset_path fields despite status='complete'",
+      "details": "79 sessions scanned across forge_nps_v01/data/sessions/. Every shot marked complete with empty asset_path. This is the known false-positive pattern where I2V renders failed silently and session tracking was not updated.",
+      "resolution_required_by": "render-manager / ltx-2-5-comfyui-workflow agent"
+    },
+    {
+      "severity": "CRITICAL",
+      "issue": "Vision audit quality gate has catastrophically failed across all 4 runs (0.9% avg pass rate)",
+      "details": "440 total asset evaluations, only 1 passed. System failures dominate all failure categories. Quality standards are not being met upstream.",
+      "resolution_required_by": "visual-audit / quality-assurance agent"
+    },
+    {
+      "severity": "CRITICAL", 
+      "issue": "Zero social media API credentials configured in any .env file",
+      "details": "All env files scanned (9 total). Present keys: NIM_ENDPOINT, KIMI_API_KEY, COMFYUI_PRIMARY/SECONDARY, LMSTUDIO_HOST. Missing: INSTAGRAM_ACCESS_TOKEN, INSTAGRAM_ACCOUNT_ID, TIKTOK_ACCESS_TOKEN, TIKTOK_PAGE_ID, X_BEARER_TOKEN, X_API_KEY, LINKEDIN_ACCESS_TOKEN.",
+      "resolution_required_by": "Hermes (setup social media credentials in .env)"
+    },
+    {
+      "severity": "WARNING",
+      "issue": "Raw video renders are below minimum viable quality threshold (<1 MB each)",
+      "details": "2 MP4 files at 126.9 KB and 84.1 KB — social platforms require ≥2-5 MB for acceptable upload quality. These would be rejected or severely downsampled.",
+      "resolution_required_by": "render-manager / ltx-2-5-comfyui-workflow agent"
+    },
+    {
+      "severity": "INFO",
+      "issue": "No posting infrastructure scripts exist in the project",
+      "details": "No post_to_ig, tiktok_post, or social_media publishing scripts found. Campaign data directory is empty.",
+      "resolution_required_by": "Hermes (implement posting pipeline)"
+    }
+  ],
+  "next_agent_handoff": {
+    "primary_recipient": "render-manager / I2V agent",
+    "actions": [
+      "1. Diagnose why all 79 sessions have complete status but empty asset_path — check ComfyUI API response handling and file write permissions",
+      "2. Re-run at least one shot through the full pipeline (prompt → image gen → flux I2V) and verify asset_path is populated in session JSON after completion",
+      "3. Verify render output meets minimum 5 MB size threshold — check ComfyUI video encoder settings for quality/bitrate"
+    ],
+    "secondary_recipient": "quality-assurance / vision audit agent",
+    "actions": [
+      "1. Diagnose root cause of <1% pass rate in vision audits (440 evaluations, 1 passed)",
+      "2. Identify which character consistency anchor system is being used and whether it matches the actual generated content"
+    ],
+    "tertiary_recipient": "Hermes (human operator)",
+    "actions": [
+      "1. Configure social media API credentials: Instagram Graph Access Token + Account ID, TikTok Business tokens, X API v2 bearer token, LinkedIn access token",
+      "2. Create posting script or integrate with existing platform APIs before any assets are ready to deploy"
+    ]
+  }
+}

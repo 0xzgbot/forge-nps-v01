@@ -1,6 +1,7 @@
 import hashlib
 import os
 import random
+import re
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -8,6 +9,7 @@ from typing import Any, AsyncIterator, Awaitable, Callable, Dict, List, Optional
 
 from core.dispatch.comfy_client import ComfyUIClient
 from core.prompts.prompt_compiler import compile_prompt_artifact
+from core.bridge.runtime_config import get_raw_config
 
 from .director_service import KimiDirectorService
 from .state_machine import transition_shot
@@ -35,6 +37,7 @@ class HermesCampaignService:
         workflow_file_for_id: Callable[[str], Optional[Path]],
         is_cancelled: Callable[[], bool],
         active_campaign_setter: Callable[[str], None],
+        remediate_failed: Optional[Callable[[List[str]], Awaitable[Dict[str, Any]]]] = None,
     ) -> None:
         self.repo_root = repo_root
         self.media_images = media_images
@@ -46,6 +49,7 @@ class HermesCampaignService:
         self.workflow_file_for_id = workflow_file_for_id
         self.is_cancelled = is_cancelled
         self.active_campaign_setter = active_campaign_setter
+        self.remediate_failed = remediate_failed
         self.director = KimiDirectorService()
 
     def _resolve_bible_text(self, bible_path: str) -> str:
@@ -61,8 +65,59 @@ class HermesCampaignService:
             return ""
         return ""
 
+    def _build_campaign_id(self, brief: str) -> str:
+        """
+        Create readable campaign ids/folder names from the prompt, with a
+        short uniqueness suffix.
+        """
+        base = (brief or "").strip().lower()
+        base = re.sub(r"[^a-z0-9]+", "_", base)
+        base = re.sub(r"_+", "_", base).strip("_")
+        if not base:
+            base = "campaign"
+        # Keep path/file friendly and concise.
+        base = base[:48].rstrip("_")
+        suffix = hashlib.sha1(f"{time.time()}:{brief}".encode("utf-8")).hexdigest()[:6]
+        campaign_id = f"{base}__{suffix}"
+        # Absolute guard to avoid accidental collisions in-memory.
+        existing = set(self.campaigns.keys())
+        if campaign_id in existing:
+            campaign_id = f"{base}__{suffix}{random.randint(10, 99)}"
+        return campaign_id
+
+    def _write_campaign_manifest(self, campaign_id: str, brief: str, workflow_ids: List[str]) -> None:
+        """Persist campaign metadata so full briefs survive restarts/reindex."""
+        try:
+            folder = self.media_images / campaign_id
+            folder.mkdir(parents=True, exist_ok=True)
+            manifest = {
+                "campaign_id": campaign_id,
+                "brief": brief,
+                "workflow_ids": workflow_ids,
+                "started_at": self.now_iso(),
+            }
+            (folder / "_campaign.json").write_text(
+                json.dumps(manifest, ensure_ascii=True, indent=2),
+                encoding="utf-8",
+            )
+        except Exception:
+            # Non-fatal metadata write.
+            return
+
+    @staticmethod
+    def _exc_reason(e: Exception) -> str:
+        msg = str(e).strip()
+        if msg:
+            return msg
+        # Many network exceptions stringify to empty; keep this explicit.
+        cls = e.__class__.__name__
+        rep = repr(e).strip()
+        if rep and rep != f"{cls}()":
+            return f"{cls}: {rep}"
+        return cls or "unknown_error"
+
     async def stream_campaign(self, req: CampaignRequest) -> AsyncIterator[Dict[str, Any]]:
-        campaign_id = hashlib.sha1(f"{time.time()}:{req.brief}".encode("utf-8")).hexdigest()[:12]
+        campaign_id = self._build_campaign_id(req.brief)
         self.active_campaign_setter(campaign_id)
         workflow_ids = req.workflow_ids or ["spark_image_z_image"]
         self.campaigns[campaign_id] = {
@@ -70,15 +125,23 @@ class HermesCampaignService:
             "started_at": self.now_iso(),
             "workflow_ids": workflow_ids,
         }
+        self._write_campaign_manifest(campaign_id, req.brief, workflow_ids)
         bible_text = self._resolve_bible_text(req.bible_path)
 
         yield {"type": "kimi", "text": "Generating shot list..."}
         use_fallback = os.getenv("FORGE_DEV_FALLBACK", "false").lower() == "true"
+        target_shots = self.director.requested_shot_count(req.brief, req.length)
 
         try:
-            plan = await self.director.request_plan(req.brief, campaign_id, bible_text=bible_text, length=req.length)
+            plan = await self.director.request_plan(
+                req.brief,
+                campaign_id,
+                bible_text=bible_text,
+                length=req.length,
+                target_shots=target_shots,
+            )
         except Exception as e:
-            reason = str(e)
+            reason = self._exc_reason(e)
             yield {"type": "error", "text": f"Kimi shot generation failed: {reason}"}
             if not use_fallback:
                 yield {"type": "done", "text": "Campaign stopped: Kimi failure before Spark dispatch."}
@@ -95,6 +158,47 @@ class HermesCampaignService:
         except Exception as e:
             yield {"type": "error", "text": f"Kimi plan parse failed: {e}"}
             yield {"type": "done", "text": "Campaign stopped: invalid Kimi plan."}
+            return
+
+        if len(kimi_shots) < target_shots:
+            missing = target_shots - len(kimi_shots)
+            yield {"type": "kimi", "text": f"Director returned {len(kimi_shots)}/{target_shots} shots. Requesting {missing} additional shots..."}
+            try:
+                top_up = await self.director.request_missing_shots(
+                    brief=req.brief,
+                    campaign_id=campaign_id,
+                    existing_shots=kimi_shots,
+                    target_shots=target_shots,
+                    bible_text=bible_text,
+                    length=req.length,
+                )
+                top_up_raw = top_up.get("__raw_content", "")
+                if top_up_raw:
+                    raw_content = f"{raw_content}\n\n---TOP_UP---\n{top_up_raw}"
+                    self.campaigns[campaign_id]["kimi_raw_response"] = raw_content
+                    yield {"type": "kimi_raw", "campaign_id": campaign_id, "text": top_up_raw[:800]}
+                top_up_shots = self.director.normalize_shots(top_up, campaign_id)
+                existing_ids = {s["shot_id"] for s in kimi_shots}
+                existing_seq = {int(s["sequence"]) for s in kimi_shots}
+                for s in top_up_shots:
+                    if s["shot_id"] in existing_ids or int(s["sequence"]) in existing_seq:
+                        continue
+                    kimi_shots.append(s)
+                    existing_ids.add(s["shot_id"])
+                    existing_seq.add(int(s["sequence"]))
+                kimi_shots = sorted(kimi_shots, key=lambda x: x["sequence"])
+            except Exception as e:
+                yield {"type": "error", "text": f"Kimi top-up failed: {e}"}
+
+        if len(kimi_shots) < target_shots and not use_fallback:
+            yield {
+                "type": "error",
+                "text": (
+                    f"Kimi coverage incomplete: only {len(kimi_shots)} shots returned vs {target_shots} requested. "
+                    "Campaign stopped before Spark."
+                ),
+            }
+            yield {"type": "done", "text": "Campaign stopped: incomplete Kimi shot plan."}
             return
 
         review: Dict[str, Any] = {}
@@ -126,9 +230,14 @@ class HermesCampaignService:
             yield {"type": "warning", "text": f"Kimi self-check unavailable: {e}"}
 
         yield {"type": "kimi_plan", "campaign_id": campaign_id, "count": len(kimi_shots), "shots": kimi_shots}
-        yield {"type": "kimi", "text": f"Shot list ready: {len(kimi_shots)} shots"}
+        yield {"type": "kimi", "text": f"Shot list ready: {len(kimi_shots)} shots (requested {target_shots})"}
 
-        host = os.getenv("COMFYUI_PRIMARY", "http://100.112.87.8:8188").rstrip("/")
+        cfg = get_raw_config()
+        host = (
+            os.getenv("COMFYUI_PRIMARY", "")
+            or str(cfg.get("COMFYUI_PRIMARY", ""))
+            or "http://100.112.87.8:8188"
+        ).rstrip("/")
         comfy = ComfyUIClient(host)
         rendered_count = 0
         source = "fallback" if use_fallback else "campaign"
@@ -165,10 +274,18 @@ class HermesCampaignService:
                         f"skills={','.join(artifact.get('skills_used', [])) or 'none'}"
                     ),
                 }
+                compiled_text = str(artifact.get("compiled_prompt", "") or "").strip()
+                if compiled_text:
+                    yield {
+                        "type": "hermes",
+                        "shot_id": shot["shot_id"],
+                        "text": f"Compiled prompt ({workflow_id}): {compiled_text}",
+                    }
 
                 shot_record = {
                     "id": record_id,
                     "campaign_id": campaign_id,
+                    "campaign_brief": req.brief,
                     "shot_id": shot["shot_id"],
                     "sequence": shot["sequence"],
                     "workflow_id": workflow_id,
@@ -238,7 +355,11 @@ class HermesCampaignService:
                 transition_shot(shot_record, "rendered")
                 if image_path:
                     shot_record["image_path"] = image_path
-                    shot_record["image_url"] = f"/external-renders/{Path(image_path).name}"
+                    try:
+                        rel = Path(image_path).resolve().relative_to(self.media_images.resolve())
+                        shot_record["image_url"] = f"/external-renders/{rel.as_posix()}"
+                    except Exception:
+                        shot_record["image_url"] = f"/external-renders/{Path(image_path).name}"
                 yield {"type": "spark", "shot_id": shot["shot_id"], "status": "queued", "prompt_id": prompt_id, "text": f"Queued {shot['shot_id']} ({workflow_id})"}
                 self.record_event("render_result", shot_id=record_id, campaign_id=campaign_id, workflow_id=workflow_id, source=source, success=True, extra={"prompt_id": prompt_id})
 
@@ -271,6 +392,57 @@ class HermesCampaignService:
                     shot_record["audit_timestamp"] = self.now_iso()
                     transition_shot(shot_record, "audited_pass" if passed else "audited_fail")
                     self.record_event("audit_result", shot_id=record_id, campaign_id=campaign_id, workflow_id=workflow_id, source=source, success=passed, extra={"audit_score": score})
-                    yield {"type": "memory", "shot_id": shot["shot_id"], "text": f"Audit {shot_record['audit_status']} ({score:.1f})"}
+                    if passed:
+                        yield {"type": "memory", "shot_id": shot["shot_id"], "text": f"Audit pass ({score:.1f})"}
+                    else:
+                        issues = shot_record.get("audit_issues") or []
+                        reasons = shot_record.get("audit_decision_reasons") or []
+                        critical = shot_record.get("audit_critical_failures") or []
+                        feedback = str(audit.get("feedback", "") or "")
+                        audit_error = str(audit.get("error", "") or "")
+                        top = []
+                        top.extend([str(x) for x in critical[:2]])
+                        top.extend([str(x) for x in reasons[:2]])
+                        if not top:
+                            top.extend([str(x) for x in issues[:2]])
+                        if not top and feedback:
+                            top.append(feedback[:220])
+                        if not top and audit_error:
+                            top.append(audit_error[:220])
+                        if not top and isinstance(audit, dict):
+                            raw_hint = str(audit.get("detail") or audit.get("message") or "")
+                            if raw_hint:
+                                top.append(raw_hint[:220])
+                        reason_text = "; ".join([t for t in top if t]) or "no_reason_returned"
+                        yield {
+                            "type": "error",
+                            "shot_id": shot["shot_id"],
+                            "text": f"Audit fail for {shot['shot_id']} ({score:.1f}): {reason_text}",
+                        }
+                        yield {"type": "memory", "shot_id": shot["shot_id"], "text": f"Audit fail ({score:.1f})"}
+                        auto_remediate = os.getenv("FORGE_AUTO_REMEDIATE_ON_FAIL", "true").lower() == "true"
+                        if auto_remediate and self.remediate_failed:
+                            yield {"type": "hermes", "shot_id": shot["shot_id"], "text": f"Auto-remediation queued for {shot['shot_id']}..."}
+                            try:
+                                rem = await self.remediate_failed([record_id])
+                                rlist = rem.get("results", []) if isinstance(rem, dict) else []
+                                if rlist:
+                                    r0 = rlist[0] or {}
+                                    if r0.get("status") == "ok":
+                                        yield {
+                                            "type": "memory",
+                                            "shot_id": shot["shot_id"],
+                                            "text": f"Auto-remediation complete: retry={r0.get('retry_shot_id', 'n/a')} status={r0.get('retry_audit_status', 'n/a')}",
+                                        }
+                                    else:
+                                        yield {
+                                            "type": "error",
+                                            "shot_id": shot["shot_id"],
+                                            "text": f"Auto-remediation failed for {shot['shot_id']}: {r0.get('reason', r0.get('status', 'unknown'))}",
+                                        }
+                                else:
+                                    yield {"type": "warning", "shot_id": shot["shot_id"], "text": f"Auto-remediation returned no result for {shot['shot_id']}"}
+                            except Exception as e:
+                                yield {"type": "error", "shot_id": shot["shot_id"], "text": f"Auto-remediation exception for {shot['shot_id']}: {self._exc_reason(e)}"}
 
         yield {"type": "done", "text": f"Campaign complete. {rendered_count} shots processed."}

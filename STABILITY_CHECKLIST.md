@@ -2,6 +2,12 @@
 
 Run before each demo pass.
 
+## 0) Hermes Engine Pointer
+- If you updated Hermes, run:
+  - `/Users/zgbot/Desktop/forge_nps_v01/scripts/update_hermes_engine.sh`
+- In Forge repo, confirm submodule pointer is committed/pushed:
+  - `git status` should not show unintended `hermes_engine` drift.
+
 ## 1) Kimi Auth and Endpoint
 - Confirm API key is present in Settings.
 - Confirm endpoint ends with `/v1/chat/completions`.
