@@ -26,7 +26,12 @@ class KimiDirectorService:
         cfg = get_raw_config()
         raw_key = (os.getenv("KIMI_API_KEY", "") or str(cfg.get("KIMI_API_KEY", ""))).strip()
         self.api_key = self._sanitize_api_key(raw_key)
-        endpoint = (os.getenv("NIM_ENDPOINT", "") or str(cfg.get("NIM_ENDPOINT", ""))).strip()
+        active = (os.getenv("KIMI_DIRECTOR_ENDPOINT_ACTIVE", "") or str(cfg.get("KIMI_DIRECTOR_ENDPOINT_ACTIVE", "api1"))).strip().lower()
+        api1 = (os.getenv("KIMI_DIRECTOR_ENDPOINT_API1", "") or str(cfg.get("KIMI_DIRECTOR_ENDPOINT_API1", ""))).strip()
+        api2 = (os.getenv("KIMI_DIRECTOR_ENDPOINT_API2", "") or str(cfg.get("KIMI_DIRECTOR_ENDPOINT_API2", ""))).strip()
+        endpoint = api2 if active == "api2" and api2 else api1
+        if not endpoint:
+            endpoint = (os.getenv("NIM_ENDPOINT", "") or str(cfg.get("NIM_ENDPOINT", ""))).strip()
         if not endpoint:
             endpoint = "https://integrate.api.nvidia.com/v1/chat/completions"
         endpoint = endpoint.rstrip("/")
@@ -270,6 +275,83 @@ class KimiDirectorService:
             parsed = _extract_json_block(content)
             if not isinstance(parsed, dict):
                 raise RuntimeError("self_check_invalid_json_shape")
+            parsed["__raw_content"] = content
+            return parsed
+
+    async def revise_plan(
+        self,
+        *,
+        brief: str,
+        campaign_id: str,
+        normalized_shots: List[Dict[str, Any]],
+        review: Dict[str, Any],
+        target_shots: int,
+        bible_text: str = "",
+        length: str = "",
+    ) -> Dict[str, Any]:
+        if not self.api_key:
+            raise RuntimeError("missing_kimi_api_key")
+        if not self.api_key.startswith("nvapi-"):
+            raise RuntimeError("invalid_kimi_api_key_format")
+
+        system_prompt = (
+            "You are Kimi Director Revision pass. "
+            "Rewrite and improve the shot plan using the review findings. "
+            "Return only JSON for a full replacement plan."
+        )
+        payload = {
+            "model": self.model_name,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {
+                    "role": "user",
+                    "content": json.dumps(
+                        {
+                            "campaign_id": campaign_id,
+                            "brief": brief,
+                            "length": length or "unspecified",
+                            "target_shots": int(target_shots),
+                            "world_bible_excerpt": (bible_text[:4000] if bible_text else "none"),
+                            "current_shots": normalized_shots,
+                            "review": review,
+                            "required_output_schema": {
+                                "campaign_id": "string",
+                                "shots": [{
+                                    "shot_id": "SHOT_001",
+                                    "sequence": 1,
+                                    "narrative_intent": "string",
+                                    "visual_brief": "string",
+                                    "characters": ["string"],
+                                    "environment": "string",
+                                    "camera_direction": "string",
+                                    "lighting_direction": "string",
+                                    "rationale": "string",
+                                    "constraints": "string",
+                                }],
+                            },
+                        }
+                    ),
+                },
+            ],
+            "temperature": 0.45,
+            "response_format": {"type": "json_object"},
+        }
+        timeout_sec = float(os.getenv("FORGE_KIMI_TIMEOUT_SEC", "120"))
+        if target_shots >= 20:
+            timeout_sec = max(timeout_sec, float(os.getenv("FORGE_KIMI_TIMEOUT_20_SHOTS_SEC", "240")))
+        async with httpx.AsyncClient(timeout=timeout_sec) as client:
+            resp = await client.post(
+                self.endpoint,
+                headers={"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"},
+                json=payload,
+            )
+            if resp.status_code >= 400:
+                raise RuntimeError(f"http_error status={resp.status_code} error={resp.text[:500]}")
+            data = resp.json()
+            content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+            parsed = _extract_json_block(content)
+            if not isinstance(parsed, dict):
+                raise RuntimeError("kimi_invalid_revision_shape")
             parsed["__raw_content"] = content
             return parsed
 

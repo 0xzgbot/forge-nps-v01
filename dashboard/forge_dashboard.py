@@ -37,13 +37,19 @@ from .memory_api import (
 from .api.prompt_builder import load_banks, build_recipe, generate_random_recipe
 from .api.spark_monitor import monitor as spark_monitor
 from core.dispatch.comfy_client import ComfyUIClient
-from core.hermes.pipeline import HermesCampaignService, CampaignRequest, HermesAuditService
+from core.hermes.pipeline import HermesCampaignService, CampaignRequest, HermesAuditService, HermesVideoService
 
 STATIC_DIR = Path(__file__).parent / "static"
 REPO_ROOT = Path(__file__).parent.parent.resolve()
 MEDIA_ROOT = Path(os.getenv("FORGE_MEDIA_ROOT", "~/Desktop/FORGE_NPS_MEDIA"))
 MEDIA_IMAGES = MEDIA_ROOT / "images"
 MEDIA_IMAGES.mkdir(parents=True, exist_ok=True)
+MEDIA_VIDEOS = MEDIA_ROOT / "videos"
+MEDIA_VIDEOS.mkdir(parents=True, exist_ok=True)
+MEDIA_IDENTITY_ASSETS = MEDIA_ROOT / "identity_assets"
+MEDIA_IDENTITY_ASSETS.mkdir(parents=True, exist_ok=True)
+MEDIA_IDENTITY_TEMPLATES = MEDIA_ROOT / "identity_templates"
+MEDIA_IDENTITY_TEMPLATES.mkdir(parents=True, exist_ok=True)
 
 app = FastAPI()
 
@@ -357,6 +363,7 @@ async def run_mock_stream(session_id: str):
 
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 app.mount("/external-renders", StaticFiles(directory=str(MEDIA_IMAGES)), name="external-renders")
+app.mount("/identity-assets", StaticFiles(directory=str(MEDIA_IDENTITY_ASSETS)), name="identity-assets")
 
 _data_renders_dir = Path(__file__).parent.parent / "data" / "renders"
 if _data_renders_dir.exists():
@@ -638,6 +645,25 @@ class RenameCampaignRequest(BaseModel):
     new_campaign_name: str
 
 
+class CampaignIdentityPack(BaseModel):
+    type: str = ""  # "", "character", "product"
+    name: str = ""
+    anchor_image_ids: List[str] = []
+    identity_tokens: List[str] = []
+    negative_tokens: List[str] = []
+
+
+class CampaignIdentityRequest(BaseModel):
+    campaign_id: str
+    identity_pack: CampaignIdentityPack
+
+
+class CampaignIdentityAssetUpdateRequest(BaseModel):
+    role: Optional[str] = None
+    active: Optional[bool] = None
+    priority: Optional[int] = None
+
+
 @app.get("/api/shots")
 async def api_get_shots():
     return {
@@ -748,6 +774,7 @@ async def api_get_campaigns():
 
     roots = [
         MEDIA_IMAGES,
+        MEDIA_IDENTITY_ASSETS,
         REPO_ROOT / "data" / "renders" / "campaigns",
         REPO_ROOT / "data" / "campaigns",
     ]
@@ -762,24 +789,40 @@ async def api_get_campaigns():
         matching = [s for s in _SHOTS_STORE if str(s.get("campaign_id") or "") == cid]
         shot_count = len(matching)
         meta = _CAMPAIGNS.get(cid, {}) if isinstance(_CAMPAIGNS.get(cid, {}), dict) else {}
+        manifest = _campaign_manifest_load(cid)
         inferred_brief = str(meta.get("brief", "") or "")
+        brief_source = "campaign_meta" if inferred_brief else ""
+        if not inferred_brief:
+            inferred_brief = str(manifest.get("brief", "") or "")
+            if inferred_brief:
+                brief_source = "manifest"
         if not inferred_brief:
             for s in matching:
                 b = str(s.get("campaign_brief", "") or "").strip()
                 if b:
                     inferred_brief = b
+                    brief_source = "shot_record"
                     break
         if not inferred_brief:
             inferred_brief = _brief_from_campaign_manifest(cid)
+            if inferred_brief:
+                brief_source = "manifest_scan"
         if not inferred_brief:
             # Last-resort for older campaigns: humanize campaign id slug.
             inferred_brief = _humanize_campaign_id(cid)
+            brief_source = "humanized_id"
+        identity = meta.get("identity_pack", {}) if isinstance(meta.get("identity_pack", {}), dict) else {}
+        if not identity and isinstance(manifest.get("identity_pack", {}), dict):
+            identity = manifest.get("identity_pack", {})
         campaigns.append({
             "campaign_id": cid,
             "shot_count": shot_count,
             "active": cid == _ACTIVE_CAMPAIGN,
             "brief": inferred_brief,
-            "started_at": str(meta.get("started_at", "") or ""),
+            "brief_source": brief_source,
+            "started_at": str(meta.get("started_at", "") or manifest.get("started_at", "") or ""),
+            "identity_type": str(identity.get("type", "") or ""),
+            "identity_name": str(identity.get("name", "") or ""),
         })
 
     return {
@@ -818,6 +861,26 @@ def _brief_from_campaign_manifest(campaign_id: str) -> str:
     return ""
 
 
+def _campaign_manifest_path(campaign_id: str) -> Path:
+    return MEDIA_IMAGES / campaign_id / "_campaign.json"
+
+
+def _campaign_manifest_load(campaign_id: str) -> Dict[str, Any]:
+    try:
+        p = _campaign_manifest_path(campaign_id)
+        if p.exists():
+            return json.loads(p.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    return {}
+
+
+def _campaign_manifest_write(campaign_id: str, payload: Dict[str, Any]) -> None:
+    p = _campaign_manifest_path(campaign_id)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps(payload, ensure_ascii=True, indent=2), encoding="utf-8")
+
+
 def _humanize_campaign_id(cid: str) -> str:
     if not cid:
         return ""
@@ -827,6 +890,23 @@ def _humanize_campaign_id(cid: str) -> str:
         if re.fullmatch(r"[a-f0-9]{6,12}", right):
             base = left
     return base.replace("__", " ").replace("_", " ").strip()
+
+
+def _campaign_asset_dir(campaign_id: str) -> Path:
+    safe = _safe_campaign_name(campaign_id)
+    return MEDIA_IDENTITY_ASSETS / safe
+
+
+def _normalize_asset_role(role: str) -> str:
+    r = (role or "").strip().lower()
+    if r in {"anchor", "sheet", "detail"}:
+        return r
+    return "anchor"
+
+
+def _identity_template_path(name: str) -> Path:
+    safe = _safe_campaign_name(name or "")
+    return MEDIA_IDENTITY_TEMPLATES / f"{safe}.json"
 
 
 @app.post("/api/campaigns/rename")
@@ -881,6 +961,236 @@ async def api_rename_campaign(req: RenameCampaignRequest):
         "shot_updates": updated,
         "folders_renamed": renamed_folders,
     }
+
+
+@app.get("/api/campaigns/{campaign_id}/identity")
+async def api_get_campaign_identity(campaign_id: str):
+    cid = (campaign_id or "").strip()
+    if not cid:
+        raise HTTPException(status_code=400, detail="campaign_id is required")
+    meta = _CAMPAIGNS.get(cid, {}) if isinstance(_CAMPAIGNS.get(cid, {}), dict) else {}
+    manifest = _campaign_manifest_load(cid)
+    identity = meta.get("identity_pack", {}) if isinstance(meta.get("identity_pack", {}), dict) else {}
+    if not identity and isinstance(manifest.get("identity_pack", {}), dict):
+        identity = manifest.get("identity_pack", {})
+    return {"campaign_id": cid, "identity_pack": identity or {}}
+
+
+@app.post("/api/campaigns/identity")
+async def api_set_campaign_identity(req: CampaignIdentityRequest):
+    cid = (req.campaign_id or "").strip()
+    if not cid:
+        raise HTTPException(status_code=400, detail="campaign_id is required")
+    if cid not in _CAMPAIGNS:
+        _CAMPAIGNS[cid] = {"brief": _brief_from_campaign_manifest(cid), "started_at": ""}
+    identity = req.identity_pack.model_dump()
+    identity_type = str(identity.get("type", "") or "").strip().lower()
+    if identity_type not in {"", "character", "product"}:
+        raise HTTPException(status_code=400, detail="identity_pack.type must be character or product")
+    identity["type"] = identity_type
+    _CAMPAIGNS[cid]["identity_pack"] = identity
+
+    manifest = _campaign_manifest_load(cid)
+    if not manifest:
+        manifest = {
+            "campaign_id": cid,
+            "brief": str(_CAMPAIGNS[cid].get("brief", "") or ""),
+            "started_at": str(_CAMPAIGNS[cid].get("started_at", "") or ""),
+        }
+    manifest["identity_pack"] = identity
+    _campaign_manifest_write(cid, manifest)
+    return {"status": "ok", "campaign_id": cid, "identity_pack": identity}
+
+
+@app.get("/api/campaigns/{campaign_id}/assets")
+async def api_get_campaign_assets(campaign_id: str):
+    cid = (campaign_id or "").strip()
+    if not cid:
+        raise HTTPException(status_code=400, detail="campaign_id is required")
+    folder = _campaign_asset_dir(cid)
+    assets: List[Dict[str, Any]] = []
+    if folder.exists():
+        for meta_path in sorted(folder.glob("*.json")):
+            try:
+                payload = json.loads(meta_path.read_text(encoding="utf-8"))
+                file_name = str(payload.get("file_name", "") or "")
+                if not file_name:
+                    continue
+                p = folder / file_name
+                if not p.exists():
+                    continue
+                assets.append({
+                    "asset_id": str(payload.get("asset_id", meta_path.stem)),
+                    "file_name": file_name,
+                    "role": _normalize_asset_role(str(payload.get("role", "anchor"))),
+                    "active": bool(payload.get("active", True)),
+                    "priority": int(payload.get("priority", 1000) or 1000),
+                    "created_at": str(payload.get("created_at", "") or ""),
+                    "src": f"/identity-assets/{_safe_campaign_name(cid)}/{file_name}",
+                })
+            except Exception:
+                continue
+    assets.sort(key=lambda a: (int(a.get("priority", 1000)), str(a.get("created_at", ""))))
+    return {"campaign_id": cid, "assets": assets, "count": len(assets)}
+
+
+@app.post("/api/campaigns/{campaign_id}/assets/upload")
+async def api_upload_campaign_asset(
+    campaign_id: str,
+    file: UploadFile,
+    role: str = Form("anchor"),
+):
+    cid = (campaign_id or "").strip()
+    if not cid:
+        raise HTTPException(status_code=400, detail="campaign_id is required")
+    if not file or not file.filename:
+        raise HTTPException(status_code=400, detail="file is required")
+    ext = Path(file.filename).suffix.lower()
+    if ext not in {".png", ".jpg", ".jpeg", ".webp"}:
+        raise HTTPException(status_code=400, detail="unsupported file type")
+    asset_id = uuid.uuid4().hex[:12]
+    safe_cid = _safe_campaign_name(cid)
+    out_dir = _campaign_asset_dir(safe_cid)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    file_name = f"{asset_id}{ext}"
+    out_path = out_dir / file_name
+    content = await file.read()
+    out_path.write_bytes(content)
+    meta = {
+        "asset_id": asset_id,
+        "campaign_id": safe_cid,
+        "file_name": file_name,
+        "role": _normalize_asset_role(role),
+        "active": True,
+        "priority": int(time.time()),
+        "created_at": _now_iso(),
+    }
+    (out_dir / f"{asset_id}.json").write_text(json.dumps(meta, ensure_ascii=True, indent=2), encoding="utf-8")
+    return {
+        "status": "ok",
+        "asset": {
+            "asset_id": asset_id,
+            "file_name": file_name,
+            "role": meta["role"],
+            "active": True,
+            "created_at": meta["created_at"],
+            "src": f"/identity-assets/{safe_cid}/{file_name}",
+        },
+    }
+
+
+@app.post("/api/campaigns/{campaign_id}/assets/{asset_id}")
+async def api_update_campaign_asset(campaign_id: str, asset_id: str, req: CampaignIdentityAssetUpdateRequest):
+    cid = _safe_campaign_name(campaign_id or "")
+    aid = (asset_id or "").strip()
+    if not cid or not aid:
+        raise HTTPException(status_code=400, detail="campaign_id and asset_id required")
+    meta_path = _campaign_asset_dir(cid) / f"{aid}.json"
+    if not meta_path.exists():
+        raise HTTPException(status_code=404, detail="asset not found")
+    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    if req.role is not None:
+        meta["role"] = _normalize_asset_role(req.role)
+    if req.active is not None:
+        meta["active"] = bool(req.active)
+    if req.priority is not None:
+        meta["priority"] = int(req.priority)
+    meta_path.write_text(json.dumps(meta, ensure_ascii=True, indent=2), encoding="utf-8")
+    return {
+        "status": "ok",
+        "asset_id": aid,
+        "role": meta.get("role"),
+        "active": bool(meta.get("active", True)),
+        "priority": int(meta.get("priority", 1000) or 1000),
+    }
+
+
+@app.post("/api/campaigns/{campaign_id}/identity/clone/{source_campaign_id}")
+async def api_clone_campaign_identity(campaign_id: str, source_campaign_id: str):
+    dst = (campaign_id or "").strip()
+    src = (source_campaign_id or "").strip()
+    if not dst or not src:
+        raise HTTPException(status_code=400, detail="campaign ids required")
+    src_identity = (await api_get_campaign_identity(src)).get("identity_pack", {})
+    if dst not in _CAMPAIGNS:
+        _CAMPAIGNS[dst] = {"brief": _brief_from_campaign_manifest(dst), "started_at": ""}
+    _CAMPAIGNS[dst]["identity_pack"] = src_identity
+    manifest = _campaign_manifest_load(dst) or {"campaign_id": dst, "brief": str(_CAMPAIGNS[dst].get("brief", "") or ""), "started_at": str(_CAMPAIGNS[dst].get("started_at", "") or "")}
+    manifest["identity_pack"] = src_identity
+    _campaign_manifest_write(dst, manifest)
+    return {"status": "ok", "campaign_id": dst, "source_campaign_id": src, "identity_pack": src_identity}
+
+
+@app.post("/api/campaigns/{campaign_id}/assets/auto-select")
+async def api_auto_select_identity_assets(campaign_id: str):
+    cid = (campaign_id or "").strip()
+    if not cid:
+        raise HTTPException(status_code=400, detail="campaign_id required")
+    folder = _campaign_asset_dir(cid)
+    if not folder.exists():
+        return {"status": "ok", "selected": 0}
+    from PIL import Image  # type: ignore
+    scored: List[tuple[str, float]] = []
+    for meta_path in folder.glob("*.json"):
+        try:
+            meta = json.loads(meta_path.read_text(encoding="utf-8"))
+            fn = str(meta.get("file_name", "") or "")
+            p = folder / fn
+            if not p.exists():
+                continue
+            im = Image.open(p).convert("L")
+            w, h = im.size
+            px = list(im.resize((max(32, min(256, w // 4)), max(32, min(256, h // 4)))).getdata())
+            if len(px) < 2:
+                continue
+            diffs = [abs(px[i] - px[i - 1]) for i in range(1, len(px))]
+            sharp = (sum(diffs) / len(diffs)) if diffs else 0.0
+            score = float(w * h) * 0.000001 + sharp
+            scored.append((meta_path.stem, score))
+        except Exception:
+            continue
+    scored.sort(key=lambda x: x[1], reverse=True)
+    top = {aid for aid, _ in scored[:5]}
+    selected = 0
+    for meta_path in folder.glob("*.json"):
+        try:
+            meta = json.loads(meta_path.read_text(encoding="utf-8"))
+            aid = meta_path.stem
+            active = aid in top
+            meta["active"] = active
+            if active:
+                meta["role"] = "anchor"
+                selected += 1
+            meta_path.write_text(json.dumps(meta, ensure_ascii=True, indent=2), encoding="utf-8")
+        except Exception:
+            continue
+    return {"status": "ok", "selected": selected}
+
+
+@app.get("/api/identity/templates")
+async def api_list_identity_templates():
+    names = []
+    for f in sorted(MEDIA_IDENTITY_TEMPLATES.glob("*.json")):
+        names.append(f.stem)
+    return {"templates": names, "count": len(names)}
+
+
+@app.post("/api/identity/templates/{template_name}")
+async def api_save_identity_template(template_name: str, req: CampaignIdentityPack):
+    p = _identity_template_path(template_name)
+    payload = req.model_dump()
+    payload["type"] = str(payload.get("type", "") or "").strip().lower()
+    p.write_text(json.dumps(payload, ensure_ascii=True, indent=2), encoding="utf-8")
+    return {"status": "ok", "template": p.stem}
+
+
+@app.get("/api/identity/templates/{template_name}")
+async def api_get_identity_template(template_name: str):
+    p = _identity_template_path(template_name)
+    if not p.exists():
+        raise HTTPException(status_code=404, detail="template not found")
+    payload = json.loads(p.read_text(encoding="utf-8"))
+    return {"template": p.stem, "identity_pack": payload}
 
 
 @app.get("/api/scripts")
@@ -1184,6 +1494,9 @@ class RunCampaignRequest(BaseModel):
     bible_path: str = ""
     length: str = ""
     workflow_ids: List[str] = []
+    identity_pack: Optional[CampaignIdentityPack] = None
+    campaign_id: str = ""
+    append_to_campaign: bool = False
 
 
 class ReAuditRequest(BaseModel):
@@ -1197,6 +1510,14 @@ class RemediateRequest(BaseModel):
 
 class ImportBatchRequest(BaseModel):
     report_path: str
+
+
+class VideoProcessRequest(BaseModel):
+    shot_ids: List[str]
+    duration: int = 4
+    fps: int = 24
+    workflow_id: str = "02_ltx2.3_T2V_I2V_distilled"
+    prompt: str = ""
 
 
 def _workflow_file_for_id(workflow_id: str) -> Optional[Path]:
@@ -1284,6 +1605,9 @@ async def api_hermes_run_campaign(req: RunCampaignRequest):
             bible_path=req.bible_path,
             length=req.length,
             workflow_ids=req.workflow_ids,
+            identity_pack=req.identity_pack.model_dump() if req.identity_pack else None,
+            campaign_id=req.campaign_id,
+            append_to_campaign=req.append_to_campaign,
         )
         async for event in service.stream_campaign(payload):
             yield json.dumps(event) + "\n"
@@ -1301,6 +1625,35 @@ async def api_audit_reprocess(req: ReAuditRequest):
 async def api_audit_remediate(req: RemediateRequest):
     service = _make_audit_service()
     return await service.remediate(req.shot_ids, max_retries=req.max_retries)
+
+
+@app.post("/api/video/process")
+async def api_video_process(req: VideoProcessRequest):
+    service = HermesVideoService(
+        media_videos=MEDIA_VIDEOS,
+        active_campaign_getter=lambda: _ACTIVE_CAMPAIGN,
+        find_shot=_find_shot,
+        resolve_image_path=_resolve_image_path,
+        workflow_file_for_id=_workflow_file_for_id,
+    )
+    workflow_id = (req.workflow_id or "").strip()
+    result = await service.process(
+        shot_ids=[str(x) for x in req.shot_ids],
+        workflow_id=workflow_id,
+        duration=int(req.duration or 0),
+        fps=int(req.fps or 0),
+        prompt=str(req.prompt or ""),
+    )
+    if result.get("status") == "error":
+        err = str(result.get("error") or "video_process_error")
+        if err == "shot_ids_required":
+            raise HTTPException(status_code=400, detail="shot_ids required")
+        if err == "workflow_id_required":
+            raise HTTPException(status_code=400, detail="workflow_id required")
+        if err.startswith("workflow_missing:"):
+            raise HTTPException(status_code=404, detail=f"Workflow not found: {workflow_id}")
+        raise HTTPException(status_code=500, detail=err)
+    return result
 
 
 @app.post("/api/import/sienna-batch")
@@ -1629,7 +1982,14 @@ async def audit_render_with_kimi_vl(image_path: str, prompt: str = "", campaign:
     from core.bridge.kimi_vl_client import KimiVLClient
 
     try:
-        client = KimiVLClient()
+        cfg = get_raw_config()
+        active = str(cfg.get("KIMI_VISUAL_ENDPOINT_ACTIVE", "api1") or "api1").strip().lower()
+        api1 = str(cfg.get("KIMI_VISUAL_ENDPOINT_API1", "") or "").strip()
+        api2 = str(cfg.get("KIMI_VISUAL_ENDPOINT_API2", "") or "").strip()
+        endpoint = api2 if active == "api2" and api2 else api1
+        if not endpoint:
+            endpoint = str(cfg.get("NIM_ENDPOINT", "") or "").strip()
+        client = KimiVLClient(endpoint_url=endpoint)
         cinematic_system_prompt = (
             "You are an image quality auditor. "
             "Score cinematic composition, lighting quality, prompt adherence, and visible artifacts."
@@ -2069,6 +2429,14 @@ async def api_config():
     lm_host = str(cfg.get("LMSTUDIO_HOST", "") or "")
     lm_model = str(cfg.get("LMSTUDIO_CHAT_MODEL", "") or "")
     vision_model = str(cfg.get("KIMI_VISUAL_MODEL", "") or os.getenv("LMSTUDIO_VISION_MODEL", ""))
+    director_api1 = str(cfg.get("KIMI_DIRECTOR_ENDPOINT_API1", "") or endpoint or "")
+    director_api2 = str(cfg.get("KIMI_DIRECTOR_ENDPOINT_API2", "") or "")
+    director_active = str(cfg.get("KIMI_DIRECTOR_ENDPOINT_ACTIVE", "") or "api1")
+    visual_api1 = str(cfg.get("KIMI_VISUAL_ENDPOINT_API1", "") or endpoint or "")
+    visual_api2 = str(cfg.get("KIMI_VISUAL_ENDPOINT_API2", "") or "")
+    visual_active = str(cfg.get("KIMI_VISUAL_ENDPOINT_ACTIVE", "") or "api1")
+    director_selected = director_api2 if director_active == "api2" and director_api2 else director_api1
+    visual_selected = visual_api2 if visual_active == "api2" and visual_api2 else visual_api1
     return {
         "backend_mode": "remote" if endpoint.startswith("http") else "local",
         "kimi": {
@@ -2076,8 +2444,20 @@ async def api_config():
             "endpoint": endpoint,
         },
         "models": {
-            "director_kimi": {"model_name": str(cfg.get("KIMI_INSTRUCT_MODEL", "moonshotai/kimi-k2")), "endpoint": endpoint},
-            "kimi_vl": {"model_name": vision_model, "endpoint": endpoint},
+            "director_kimi": {
+                "model_name": str(cfg.get("KIMI_INSTRUCT_MODEL", "moonshotai/kimi-k2")),
+                "endpoint": director_selected,
+                "endpoint_api1": director_api1,
+                "endpoint_api2": director_api2,
+                "endpoint_active": director_active,
+            },
+            "kimi_vl": {
+                "model_name": vision_model,
+                "endpoint": visual_selected,
+                "endpoint_api1": visual_api1,
+                "endpoint_api2": visual_api2,
+                "endpoint_active": visual_active,
+            },
             "hermes_3": {
                 "host": lm_host,
                 "port": 1234 if lm_host else "",
@@ -2133,8 +2513,14 @@ async def api_config_save(req: FlatConfigUpdateRequest):
         "kimi.endpoint": "NIM_ENDPOINT",
         "models.director_kimi.model_name": "KIMI_INSTRUCT_MODEL",
         "models.director_kimi.endpoint": "NIM_ENDPOINT",
+        "models.director_kimi.endpoint_api1": "KIMI_DIRECTOR_ENDPOINT_API1",
+        "models.director_kimi.endpoint_api2": "KIMI_DIRECTOR_ENDPOINT_API2",
+        "models.director_kimi.endpoint_active": "KIMI_DIRECTOR_ENDPOINT_ACTIVE",
         "models.kimi_vl.model_name": "KIMI_VISUAL_MODEL",
         "models.kimi_vl.endpoint": "NIM_ENDPOINT",
+        "models.kimi_vl.endpoint_api1": "KIMI_VISUAL_ENDPOINT_API1",
+        "models.kimi_vl.endpoint_api2": "KIMI_VISUAL_ENDPOINT_API2",
+        "models.kimi_vl.endpoint_active": "KIMI_VISUAL_ENDPOINT_ACTIVE",
         "models.hermes_3.host": "LMSTUDIO_HOST",
         "models.hermes_3.model_name": "LMSTUDIO_CHAT_MODEL",
         "comfyui.primary": "COMFYUI_PRIMARY",

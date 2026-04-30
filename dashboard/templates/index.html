@@ -532,6 +532,36 @@
             grid-template-columns: 1fr 1fr;
             gap: 24px;
         }
+        .settings-subgrid-2x2 {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+        }
+        .settings-subcard {
+            background: transparent;
+            border: 0;
+            border-radius: 0;
+            padding: 10px 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            min-width: 0;
+        }
+        .settings-subcard h4 {
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: #cfd3d7;
+        }
+        .settings-subcard .card-desc {
+            margin-top: -2px;
+        }
+        @media (max-width: 1200px) {
+            .settings-subgrid-2x2 {
+                grid-template-columns: 1fr;
+            }
+        }
         .form-row {
             display: flex;
             flex-direction: column;
@@ -586,6 +616,36 @@
         .test-result.ok { display: block; background: #1B3B1B; color: #66BB6A; border: 1px solid #2E7D32; }
         .test-result.err { display: block; background: #3B1B1B; color: #EF5350; border: 1px solid #C62828; }
         .test-result.loading { display: block; background: #2A2A1A; color: #FFB74D; border: 1px solid #F57F17; }
+        .server-status-row {
+            display: flex;
+            gap: 14px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 2px;
+            font-size: 12px;
+            color: #a8adb3;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .server-status-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .server-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: #6b7280;
+            box-shadow: 0 0 0 1px #3c3f45 inset;
+        }
+        .server-dot.ok {
+            background: #2e7d32;
+            box-shadow: 0 0 8px rgba(46, 125, 50, 0.65);
+        }
+        .server-dot.err {
+            background: #c62828;
+            box-shadow: 0 0 8px rgba(198, 40, 40, 0.65);
+        }
 
         /* Toggle switch */
         .toggle-row {
@@ -1044,6 +1104,7 @@
             <div class="nav-tab active" data-page="dashboard-view" onclick="switchPage('dashboard-view')">Dashboard</div>
             <div class="nav-tab" data-page="script-view" onclick="switchPage('script-view')">Script</div>
             <div class="nav-tab" data-page="spark-view" onclick="switchPage('spark-view')">Media</div>
+            <div class="nav-tab" data-page="identity-view" onclick="switchPage('identity-view'); loadIdentityTab()">Identity</div>
             <div class="nav-tab" data-page="memory-view" onclick="switchPage('memory-view'); loadMemoryTab()">Memory</div>
             <div class="nav-tab" data-page="settings-view" onclick="switchPage('settings-view')">Settings</div>
         </div>
@@ -1053,16 +1114,10 @@
             <div class="sort-row">
                 <select id="campaign-sort-key" class="sort-select" onchange="onCampaignSortChange()">
                     <option value="name">Name</option>
-                    <option value="time">Time Created</option>
+                    <option value="time">Time</option>
                 </select>
                 <label class="model-checkbox"><input type="checkbox" id="campaign-sort-reverse" onchange="onCampaignSortChange()"> Reverse</label>
-            </div>
-            <div class="sort-row">
-                <select id="media-sort-key" class="sort-select" onchange="onMediaSortChange()">
-                    <option value="time">Media Time</option>
-                    <option value="name">Media Name</option>
-                </select>
-                <label class="model-checkbox"><input type="checkbox" id="media-sort-reverse" onchange="onMediaSortChange()"> Reverse</label>
+                <button id="media-sort-toggle" class="btn btn-secondary" style="padding:6px 10px;min-width:44px;" onclick="toggleMediaSortOrder()" title="Toggle media sort order">↓</button>
             </div>
             <div id="campaign-list" class="campaign-list">
                 <div style="color:#666; font-size:12px;">Loading...</div>
@@ -1087,9 +1142,10 @@
                 <button class="btn" id="run-campaign-btn" onclick="runCampaign()">Run Campaign</button>
                 <button class="btn btn-secondary" onclick="reprocessSelectedFromDashboard()">Re-Audit Selected</button>
                 <input type="text" id="dashboard-selected-count" value="0 selected" readonly style="width:120px;background:#222;border:1px solid #444;border-radius:4px;color:#ccc;padding:8px 10px;font-size:12px;">
+                <label class="model-checkbox"><input type="checkbox" id="append-campaign" checked> Append To Selected Campaign</label>
                 <button class="btn btn-cancel" id="cancel-campaign-btn" onclick="cancelCampaign()" style="display:none;">✕ Cancel</button>
                 <label class="model-checkbox"><input type="checkbox" id="model-flux2" checked> Flux2.Dev</label>
-                <label class="model-checkbox"><input type="checkbox" id="model-zimage"> Z-Image</label>
+                <label class="model-checkbox"><input type="checkbox" id="model-zimage"> Flux2 Klein</label>
                 <label class="model-checkbox"><input type="checkbox" id="model-turbo"> Turbo</label>
                 <input type="text" id="bible-path" placeholder="Optional: /path/to/world_bible.md">
                 <input type="text" id="filter-campaign-id" placeholder="Campaign ID" style="width:130px;background:#222;border:1px solid #444;border-radius:4px;color:#ccc;padding:8px 10px;font-size:12px;">
@@ -1113,11 +1169,7 @@
                 <!-- Filmstrip -->
                 <div id="filmstrip"></div>
                 <div class="dashboard-filter-dock">
-                    <select id="media-sort-key-inline" class="sort-select" onchange="syncMediaSortFromInline()">
-                        <option value="time">Time</option>
-                        <option value="name">Name</option>
-                    </select>
-                    <label class="model-checkbox"><input type="checkbox" id="media-sort-reverse-inline" onchange="syncMediaSortFromInline()"> Reverse</label>
+                    <button id="media-sort-toggle-inline" class="btn btn-secondary" style="padding:6px 10px;min-width:44px;" onclick="toggleMediaSortOrder()" title="Toggle media sort order">↓</button>
                     <label class="model-checkbox"><input type="checkbox" id="filter-rendered-only" onchange="loadShots();loadVideoLibrary();"> Rendered</label>
                     <label class="model-checkbox"><input type="checkbox" id="filter-failed-only" onchange="loadShots();loadVideoLibrary();"> Failed</label>
                     <label class="model-checkbox"><input type="checkbox" id="filter-passed-only" onchange="loadShots();loadVideoLibrary();"> Passed</label>
@@ -1149,9 +1201,10 @@
             <!-- Kimi / NIM + Model Selection (combined) -->
             <div class="settings-card" style="grid-column: span 2;">
                 <h3><span class="card-icon">&#128271;</span> Kimi / NVIDIA NIM</h3>
-                <div class="settings-two-col">
-                    <div style="display:flex;flex-direction:column;gap:14px;">
-                        <p class="card-desc">API credentials and endpoint.</p>
+                <div class="settings-subgrid-2x2">
+                    <div class="settings-subcard">
+                        <h4>Access</h4>
+                        <p class="card-desc">Shared credentials and base endpoint.</p>
                         <div class="form-row">
                             <label>API Key</label>
                             <input type="password" id="cfg-kimi-api-key" placeholder="nvapi-..." onchange="markDirty('kimi.api_key')">
@@ -1165,27 +1218,57 @@
                         </div>
                         <div id="kimi-test-result" class="test-result"></div>
                     </div>
-                    <div style="display:flex;flex-direction:column;gap:14px;">
-                        <p class="card-desc">Model names for each agent role.</p>
+
+                    <div class="settings-subcard">
+                        <h4>Director</h4>
+                        <p class="card-desc">Planning model and service endpoints.</p>
                         <div class="form-row">
                             <label>Director Model</label>
                             <input type="text" id="cfg-director-model" placeholder="moonshotai/kimi-k2-instruct" onchange="markDirty('models.director_kimi.model_name')">
                         </div>
                         <div class="form-row">
-                            <label>Director Endpoint</label>
-                            <input type="text" id="cfg-director-endpoint" placeholder="https://integrate.api.nvidia.com/v1/chat/completions" onchange="markDirty('models.director_kimi.endpoint')">
+                            <label>Director Endpoint API 1</label>
+                            <input type="text" id="cfg-director-endpoint-api1" placeholder="https://integrate.api.nvidia.com/v1/chat/completions" onchange="markDirty('models.director_kimi.endpoint_api1')">
                         </div>
+                        <div class="form-row">
+                            <label>Director API Service</label>
+                            <label class="model-checkbox"><input type="radio" name="director-api-active" id="cfg-director-api-active-1" onchange="markDirty('models.director_kimi.endpoint_active')" checked> API 1</label>
+                            <label class="model-checkbox"><input type="radio" name="director-api-active" id="cfg-director-api-active-2" onchange="markDirty('models.director_kimi.endpoint_active')"> API 2</label>
+                        </div>
+                    </div>
+
+                    <div class="settings-subcard">
+                        <h4>Thinking</h4>
+                        <p class="card-desc">Reasoning model and address selection.</p>
                         <div class="form-row">
                             <label>Thinking Model (Kimi VL)</label>
                             <input type="text" id="cfg-thinking-model" placeholder="kimi-v2-vision" onchange="markDirty('models.kimi_vl.model_name')">
                         </div>
                         <div class="form-row">
-                            <label>Thinking Endpoint</label>
+                            <label>Thinking Endpoint (Active)</label>
                             <input type="text" id="cfg-thinking-endpoint" placeholder="https://api.moonshot.cn/v1/chat/completions" onchange="markDirty('models.kimi_vl.endpoint')">
                         </div>
+                    </div>
+
+                    <div class="settings-subcard">
+                        <h4>Vision</h4>
+                        <p class="card-desc">Vision endpoint addresses and model name.</p>
                         <div class="form-row">
                             <label>Visual Model</label>
                             <input type="text" id="cfg-visual-model" placeholder="kimi-v2-vision" onchange="markDirty('models.kimi_vl.model_name')">
+                        </div>
+                        <div class="form-row">
+                            <label>Vision Address API 1</label>
+                            <input type="text" id="cfg-thinking-endpoint-api1" placeholder="https://integrate.api.nvidia.com/v1/chat/completions" onchange="markDirty('models.kimi_vl.endpoint_api1')">
+                        </div>
+                        <div class="form-row">
+                            <label>Vision Address API 2</label>
+                            <input type="text" id="cfg-thinking-endpoint-api2" placeholder="https://api.moonshot.cn/v1/chat/completions" onchange="markDirty('models.kimi_vl.endpoint_api2')">
+                        </div>
+                        <div class="form-row">
+                            <label>Vision API Service</label>
+                            <label class="model-checkbox"><input type="radio" name="visual-api-active" id="cfg-thinking-api-active-1" onchange="markDirty('models.kimi_vl.endpoint_active')" checked> API 1</label>
+                            <label class="model-checkbox"><input type="radio" name="visual-api-active" id="cfg-thinking-api-active-2" onchange="markDirty('models.kimi_vl.endpoint_active')"> API 2</label>
                         </div>
                     </div>
                 </div>
@@ -1225,19 +1308,24 @@
                 <h3><span class="card-icon">&#127912;</span> ComfyUI + Spark &#9889;</h3>
                 <p class="card-desc">Primary ComfyUI host and Spark WebSocket.</p>
                 <div class="form-row">
-                    <label>Primary (Port 8188)</label>
-                    <input type="text" id="cfg-comfyui-primary" placeholder="http://localhost:8188" style="flex:1;" onchange="markDirty('comfyui.primary')">
-                </div>
-                <div class="form-row">
                     <label>Spark Primary WebSocket</label>
                     <input type="text" id="cfg-spark-primary" placeholder="ws://localhost:8000" onchange="markDirty('spark.primary')">
+                </div>
+                <div class="form-row">
+                    <label>Primary (Port 8188)</label>
+                    <input type="text" id="cfg-comfyui-primary" placeholder="http://localhost:8188" style="flex:1;" onchange="markDirty('comfyui.primary')">
                 </div>
                 <div class="form-row">
                     <label>Secondary (Port 8189)</label>
                     <input type="text" id="cfg-comfyui-secondary" placeholder="http://localhost:8189" style="flex:1;" onchange="markDirty('comfyui.secondary')">
                 </div>
                 <div class="card-actions">
-                    <button class="btn btn-secondary" onclick="testComfyUIAll()">Test ComfyUI</button>
+                    <button class="btn btn-secondary" onclick="testComfyUIAll()">Test ComfyUI + Spark</button>
+                </div>
+                <div class="server-status-row" id="comfyui-server-status">
+                    <span class="server-status-item"><span class="server-dot" id="server-dot-primary"></span>Primary</span>
+                    <span class="server-status-item"><span class="server-dot" id="server-dot-secondary"></span>Secondary</span>
+                    <span class="server-status-item"><span class="server-dot" id="server-dot-spark"></span>Spark</span>
                 </div>
                 <div id="comfyui-test-result" class="test-result"></div>
             </div>
@@ -1310,6 +1398,24 @@
         <!-- Toolbar -->
         <div class="spark-toolbar">
             <div class="toolbar-row">
+                <div class="toolbar-group" style="flex:1;min-width:100%;">
+                    <label>Video Workflow</label>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                        <label class="model-checkbox"><input type="radio" name="video-workflow" value="02_ltx2.3_T2V_I2V_distilled" checked> LTX 2.3 Distilled</label>
+                        <label class="model-checkbox"><input type="radio" name="video-workflow" value="03_ltx2.3_T2V_two_stage"> LTX 2.3 Two Stage</label>
+                        <label class="model-checkbox"><input type="radio" name="video-workflow" value="04_ltx2.3_image_to_video"> LTX 2.3 Image→Video</label>
+                        <label class="model-checkbox"><input type="radio" name="video-workflow" value="05_ltx2.3_first_last_frame_to_video"> LTX 2.3 First+Last</label>
+                        <label class="model-checkbox"><input type="radio" name="video-workflow" value="07_ltx2.3_id_lora"> LTX 2.3 ID LoRA</label>
+                    </div>
+                </div>
+            </div>
+            <div class="toolbar-row">
+                <div class="toolbar-group" style="flex:1;min-width:100%;">
+                    <label>Video Prompt</label>
+                    <input type="text" id="video-prompt" placeholder="Optional: override prompt for selected images (used for video generation)">
+                </div>
+            </div>
+            <div class="toolbar-row">
                 <div class="toolbar-group">
                     <label>Selected Photos</label>
                     <input type="text" id="video-selected-count" value="0 selected" readonly>
@@ -1343,6 +1449,125 @@
             </div>
         </div>
         </div>  <!-- /#spark-view -->
+
+        <!-- Identity View -->
+        <div id="identity-view" class="page-view identity-view" style="padding:20px;overflow:auto;">
+            <div class="spark-header">
+                <h2>Identity Pack</h2>
+                <div style="display:flex;gap:8px;">
+                    <button class="btn btn-secondary" onclick="loadIdentityTab()">Refresh</button>
+                    <button class="btn" onclick="saveCampaignIdentity()">Save Identity Pack</button>
+                </div>
+            </div>
+            <div class="spark-toolbar" style="margin-bottom:16px;">
+                <div class="toolbar-row">
+                    <div class="toolbar-group">
+                        <label>Campaign</label>
+                        <input id="identity-campaign-readout" type="text" readonly placeholder="Select campaign in sidebar">
+                    </div>
+                    <div class="toolbar-group">
+                        <label>Mode</label>
+                        <select id="identity-type">
+                            <option value="">None</option>
+                            <option value="character">Character</option>
+                            <option value="product">Product</option>
+                        </select>
+                    </div>
+                    <div class="toolbar-group" style="min-width:260px;">
+                        <label>Name</label>
+                        <input id="identity-name" type="text" placeholder="Character/Product name">
+                    </div>
+                </div>
+                <div class="toolbar-row">
+                    <div class="toolbar-group" style="flex:1;">
+                        <label>Identity Traits (comma separated)</label>
+                        <input id="identity-tokens" type="text" placeholder="red jeep, black hardtop, spare tire on rear door">
+                    </div>
+                    <div class="toolbar-group" style="flex:1;">
+                        <label>Drift Negatives (comma separated)</label>
+                        <input id="identity-negatives" type="text" placeholder="wrong logo, altered wheel design, deformed hands">
+                    </div>
+                </div>
+                <div class="toolbar-row">
+                    <div class="toolbar-group" style="flex:1;">
+                        <label>Anchor IDs (auto from active assets)</label>
+                        <input id="identity-anchors" type="text" readonly placeholder="asset ids populated from active assets">
+                    </div>
+                </div>
+                <div class="toolbar-row">
+                    <div class="toolbar-group" style="flex:1;">
+                        <label>Prompt Preview (identity block)</label>
+                        <textarea id="identity-prompt-preview" rows="3" readonly placeholder="Identity preview will appear here"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <div class="spark-toolbar">
+                <div class="toolbar-row">
+                    <div class="toolbar-group" style="min-width:220px;">
+                        <label>Clone From Campaign</label>
+                        <select id="identity-clone-source"></select>
+                    </div>
+                    <div class="toolbar-group" style="display:flex;align-items:flex-end;">
+                        <button class="btn btn-secondary" onclick="cloneIdentityFromCampaign()">Clone</button>
+                    </div>
+                    <div class="toolbar-group" style="min-width:220px;">
+                        <label>Template</label>
+                        <select id="identity-template-select"></select>
+                    </div>
+                    <div class="toolbar-group" style="display:flex;align-items:flex-end;">
+                        <button class="btn btn-secondary" onclick="loadIdentityTemplateIntoForm()">Load</button>
+                    </div>
+                    <div class="toolbar-group" style="min-width:220px;">
+                        <label>Save Template As</label>
+                        <input id="identity-template-name" type="text" placeholder="luxury_jeep_character_v1">
+                    </div>
+                    <div class="toolbar-group" style="display:flex;align-items:flex-end;">
+                        <button class="btn btn-secondary" onclick="saveIdentityTemplateFromForm()">Save Template</button>
+                    </div>
+                </div>
+                <div class="toolbar-row">
+                    <div class="toolbar-group" style="min-width:200px;">
+                        <label>Asset Role</label>
+                        <select id="identity-upload-role">
+                            <option value="anchor">Anchor</option>
+                            <option value="sheet">Sheet</option>
+                            <option value="detail">Detail</option>
+                        </select>
+                    </div>
+                    <div class="toolbar-group" style="flex:1;">
+                        <label>Upload Character/Product Asset</label>
+                        <input id="identity-upload-input" type="file" accept=".png,.jpg,.jpeg,.webp" onchange="uploadIdentityAsset()">
+                    </div>
+                    <div class="toolbar-group" style="display:flex;align-items:flex-end;">
+                        <button class="btn btn-secondary" onclick="autoSelectIdentityAnchors()">Auto Select Best Anchors</button>
+                    </div>
+                </div>
+                <div class="toolbar-row">
+                    <div class="toolbar-group" style="min-width:220px;">
+                        <label>Bulk Role</label>
+                        <select id="identity-bulk-role">
+                            <option value="anchor">Anchor</option>
+                            <option value="sheet">Sheet</option>
+                            <option value="detail">Detail</option>
+                        </select>
+                    </div>
+                    <div class="toolbar-group" style="display:flex;align-items:flex-end;">
+                        <button class="btn btn-secondary" onclick="bulkSetIdentityRole()">Apply Role to Selected</button>
+                    </div>
+                    <div class="toolbar-group" style="display:flex;align-items:flex-end;">
+                        <button class="btn btn-secondary" onclick="bulkSetIdentityActive(true)">Set Active</button>
+                    </div>
+                    <div class="toolbar-group" style="display:flex;align-items:flex-end;">
+                        <button class="btn btn-secondary" onclick="bulkSetIdentityActive(false)">Set Inactive</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="identity-assets-grid" class="spark-grid" style="margin-top:14px;">
+                <div class="grid-placeholder"><p>Select a campaign to manage identity assets.</p></div>
+            </div>
+        </div> <!-- /#identity-view -->
 
         <!-- ========== MEMORY VIEW ========== -->
         <div id="memory-view" class="page-view memory-view">
@@ -1406,6 +1631,9 @@
                     <div class="detail-row"><span class="detail-label">Skills:</span><span id="lightbox-skills-used">-</span></div>
                     <div class="detail-row"><span class="detail-label">Profile:</span><span id="lightbox-workflow-profile">-</span></div>
                     <div class="detail-row"><span class="detail-label">Model Standard:</span><span id="lightbox-model-standard">-</span></div>
+                    <div class="detail-row"><span class="detail-label">Identity:</span><span id="lightbox-identity">-</span></div>
+                    <div class="detail-row"><span class="detail-label">Identity Expected:</span><span id="lightbox-identity-expected">-</span></div>
+                    <div class="detail-row"><span class="detail-label">Identity Detected:</span><span id="lightbox-identity-detected">-</span></div>
                     <div class="detail-row"><span class="detail-label">Spark Prompt ID:</span><span id="lightbox-prompt-id">-</span></div>
                     <div class="detail-row"><span class="detail-label">Audit:</span><span id="lightbox-audit">-</span></div>
                     <div class="detail-row"><span class="detail-label">Retry Of:</span><span id="lightbox-retry-of">-</span></div>

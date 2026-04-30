@@ -67,6 +67,16 @@ class HermesAuditService:
             s["audit_decision_reasons"] = audit.get("audit_decision_reasons", [])
             s["audit_raw_response"] = audit
             s["audit_timestamp"] = self.now_iso()
+            expected_traits = ((s.get("identity_pack") or {}).get("identity_tokens") or []) if isinstance(s.get("identity_pack"), dict) else []
+            s["identity_expected_traits"] = expected_traits
+            detected_notes = []
+            detected_notes.extend([str(x) for x in (s.get("audit_decision_reasons") or [])[:4]])
+            detected_notes.extend([str(x) for x in (s.get("audit_issues") or [])[:4]])
+            s["identity_detected_notes"] = detected_notes[:6]
+            if s.get("identity_type"):
+                s["identity_status"] = "pass" if passed else "fail"
+                s["identity_score"] = score
+                s["identity_fail_reasons"] = [] if passed else detected_notes[:4]
             transition_shot(s, "audited_pass" if passed else "audited_fail")
             self.record_event("audit_result", shot_id=shot_id, campaign_id=s.get("campaign_id", ""), workflow_id=s.get("workflow_id", ""), source=s.get("source", "campaign"), success=passed, extra={"audit_score": score})
             updated += 1
@@ -193,6 +203,16 @@ class HermesAuditService:
                 retry_record["audit_decision_reasons"] = audit.get("audit_decision_reasons", [])
                 retry_record["audit_raw_response"] = audit
                 retry_record["audit_timestamp"] = self.now_iso()
+                expected_traits = ((retry_record.get("identity_pack") or {}).get("identity_tokens") or []) if isinstance(retry_record.get("identity_pack"), dict) else []
+                retry_record["identity_expected_traits"] = expected_traits
+                detected_notes = []
+                detected_notes.extend([str(x) for x in (retry_record.get("audit_decision_reasons") or [])[:4]])
+                detected_notes.extend([str(x) for x in (retry_record.get("audit_issues") or [])[:4]])
+                retry_record["identity_detected_notes"] = detected_notes[:6]
+                if retry_record.get("identity_type"):
+                    retry_record["identity_status"] = "pass" if passed else "fail"
+                    retry_record["identity_score"] = score
+                    retry_record["identity_fail_reasons"] = [] if passed else detected_notes[:4]
                 transition_shot(retry_record, "final_pass" if passed else "final_fail")
                 self.record_event("audit_result", shot_id=retry_shot_id, campaign_id=s.get("campaign_id", ""), workflow_id=s.get("workflow_id", ""), source=s.get("source", "campaign"), success=passed, extra={"audit_score": score})
                 self.record_event("remediation_result", shot_id=retry_shot_id, campaign_id=s.get("campaign_id", ""), workflow_id=s.get("workflow_id", ""), source=s.get("source", "campaign"), success=passed)

@@ -266,6 +266,7 @@ def compile_prompt_artifact(
     No network calls.
     """
     shot_meta = shot_meta or {}
+    identity_pack = shot_meta.get("identity_pack") or {}
     plan = kimi_plan or {}
     profile, warnings = _load_profile(workflow_id)
     model_family = _safe_text(profile.get("model_family"))
@@ -308,6 +309,26 @@ def compile_prompt_artifact(
     constraints = _safe_text(plan.get("constraints"))
     suffix = f"model profile: {_safe_text(profile.get('profile_name'))}, family: {_safe_text(profile.get('model_family'))}"
     standard_clause = _render_standard_clause(model_standard)
+    identity_type = _safe_text(identity_pack.get("type")).lower()
+    identity_name = _safe_text(identity_pack.get("name"))
+    identity_tokens = identity_pack.get("identity_tokens") if isinstance(identity_pack.get("identity_tokens"), list) else []
+    negative_tokens = identity_pack.get("negative_tokens") if isinstance(identity_pack.get("negative_tokens"), list) else []
+    anchors = identity_pack.get("anchor_image_ids") if isinstance(identity_pack.get("anchor_image_ids"), list) else []
+    id_lines = []
+    if identity_type in {"character", "product"}:
+        if identity_name:
+            id_lines.append(f"{identity_type} identity lock: {identity_name}")
+        if identity_tokens:
+            id_lines.append("identity traits: " + ", ".join([_safe_text(x) for x in identity_tokens if _safe_text(x)]))
+        if anchors:
+            id_lines.append(f"anchor refs: {len(anchors)}")
+        if negative_tokens:
+            id_lines.append("identity drift negatives: " + ", ".join([_safe_text(x) for x in negative_tokens if _safe_text(x)]))
+        if identity_type == "character":
+            id_lines.append("character continuity: preserve facial geometry, hairline, eye spacing, skin tone, and wardrobe signature across shots")
+        if identity_type == "product":
+            id_lines.append("product continuity: preserve exact geometry, proportions, logo placement, materials, and finish across shots")
+    identity_clause = "; ".join([x for x in id_lines if x])
 
     sections = {
         "Subject/Action": subject_action,
@@ -315,6 +336,7 @@ def compile_prompt_artifact(
         "Camera/Lens": camera,
         "Lighting": lighting,
         "Character Continuity": char_line,
+        "Identity Continuity": identity_clause or "none",
         "Style/Quality": style_quality,
         "Model Standard": standard_clause,
         "Skill Modifiers": skill_line or "none",
@@ -327,6 +349,7 @@ def compile_prompt_artifact(
         sections["Camera/Lens"],
         sections["Lighting"],
         sections["Character Continuity"],
+        sections["Identity Continuity"],
         sections["Style/Quality"],
         sections["Model Standard"],
     ]
@@ -352,6 +375,7 @@ def compile_prompt_artifact(
         "skills_used": skills_used,
         "compiled_prompt": compiled,
         "negative_prompt": _safe_text(profile.get("negative_prompt")),
+        "identity_negative_prompt": ", ".join([_safe_text(x) for x in negative_tokens if _safe_text(x)]),
         "compiler_version": COMPILER_VERSION,
         "model_standard_name": _safe_text(model_standard.get("name")),
         "model_standard_version": _safe_text(model_standard.get("version")),

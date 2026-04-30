@@ -22,10 +22,12 @@ let videoSelection = new Set();
 let videoShotsById = {};
 let dashboardSelection = new Set();
 let currentCampaignId = "";
+let identityAssets = [];
+let identityAssetSelection = new Set();
 const MAX_DASHBOARD_THUMBS = 180;
 const MAX_VIDEO_THUMBS = 180;
 let campaignSort = { key: "name", reverse: false };
-let mediaSort = { key: "time", reverse: false };
+let mediaSort = { key: "time", reverse: true }; // newest first
 const shotFilters = {
     campaignId: "",
     renderedOnly: false,
@@ -57,9 +59,15 @@ const $videoSelectedCount = document.getElementById("video-selected-count");
 const $dashboardSelectedCount = document.getElementById("dashboard-selected-count");
 const $videoDuration = document.getElementById("video-duration");
 const $videoFps = document.getElementById("video-fps");
+const $videoPrompt = document.getElementById("video-prompt");
 const $sparkGrid = document.getElementById("spark-grid");
 const $sparkStatusText = document.getElementById("spark-status-text");
 const $sparkProgress = document.getElementById("spark-progress");
+
+function getSelectedVideoWorkflow() {
+    const el = document.querySelector('input[name="video-workflow"]:checked');
+    return el ? String(el.value || "").trim() : "02_ltx2.3_T2V_I2V_distilled";
+}
 const $startBatchBtn = document.getElementById("start-batch-btn");
 const $lightboxModal = document.getElementById("lightbox-modal");
 const $dashboardDivider = document.getElementById("dashboard-divider");
@@ -80,15 +88,352 @@ window.addEventListener("DOMContentLoaded", () => {
     const csr = document.getElementById("campaign-sort-reverse");
     if (csk) campaignSort.key = csk.value || "name";
     if (csr) campaignSort.reverse = !!csr.checked;
-    const msk = document.getElementById("media-sort-key");
-    const msr = document.getElementById("media-sort-reverse");
-    if (msk) mediaSort.key = msk.value || "time";
-    if (msr) mediaSort.reverse = !!msr.checked;
+    mediaSort = { key: "time", reverse: true };
     syncInlineMediaSortControls();
     initDashboardResizer();
+    ["identity-type","identity-name","identity-tokens","identity-negatives"].forEach((k) => {
+        const el = id(k);
+        if (el) el.addEventListener("input", updateIdentityPreview);
+        if (el) el.addEventListener("change", updateIdentityPreview);
+    });
 });
 
 function id(s) { return document.getElementById(s); }
+
+function _csvToList(v) {
+    return String(v || "")
+        .split(",")
+        .map((x) => x.trim())
+        .filter(Boolean);
+}
+
+function getIdentityPackFromUI() {
+    const type = (id("identity-type")?.value || "").trim().toLowerCase();
+    const name = (id("identity-name")?.value || "").trim();
+    const anchor_image_ids = identityAssets.filter((a) => a.active).map((a) => a.asset_id);
+    const identity_tokens = _csvToList(id("identity-tokens")?.value);
+    const negative_tokens = _csvToList(id("identity-negatives")?.value);
+    if (!type) return null;
+    return { type, name, anchor_image_ids, identity_tokens, negative_tokens };
+}
+
+function setIdentityUI(identity) {
+    const pack = identity || {};
+    if (id("identity-type")) id("identity-type").value = pack.type || "";
+    if (id("identity-name")) id("identity-name").value = pack.name || "";
+    if (id("identity-tokens")) id("identity-tokens").value = Array.isArray(pack.identity_tokens) ? pack.identity_tokens.join(", ") : "";
+    if (id("identity-negatives")) id("identity-negatives").value = Array.isArray(pack.negative_tokens) ? pack.negative_tokens.join(", ") : "";
+    if (id("identity-campaign-readout")) id("identity-campaign-readout").value = shotFilters.campaignId || currentCampaignId || "";
+    updateIdentityPreview();
+}
+
+function syncIdentityAnchorsFromAssets() {
+    const anchors = identityAssets.filter((a) => a.active).map((a) => a.asset_id);
+    if (id("identity-anchors")) id("identity-anchors").value = anchors.join(", ");
+    updateIdentityPreview();
+}
+
+async function loadCampaignIdentity(campaignId) {
+    if (!campaignId) {
+        setIdentityUI(null);
+        identityAssets = [];
+        renderIdentityAssets([]);
+        return;
+    }
+    try {
+        const resp = await fetch("/api/campaigns/" + encodeURIComponent(campaignId) + "/identity");
+        const data = await resp.json();
+        if (resp.ok) setIdentityUI(data.identity_pack || null);
+        await loadIdentityAssets(campaignId);
+    } catch (_e) {}
+}
+
+async function saveCampaignIdentity() {
+    const cid = (shotFilters.campaignId || currentCampaignId || "").trim();
+    if (!cid) {
+        addLogEntry("error", "Select a campaign folder first.");
+        return;
+    }
+    const identity_pack = getIdentityPackFromUI() || { type: "", name: "", anchor_image_ids: [], identity_tokens: [], negative_tokens: [] };
+    try {
+        const resp = await fetch("/api/campaigns/identity", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ campaign_id: cid, identity_pack }),
+        });
+        const data = await resp.json();
+        if (!resp.ok || data.status !== "ok") {
+            addLogEntry("error", "Identity save failed: " + (data.detail || data.error || resp.status));
+            return;
+        }
+        addLogEntry("hermes", "Identity saved for campaign: " + cid);
+        loadCampaignFolders();
+        await loadCampaignIdentity(cid);
+    } catch (e) {
+        addLogEntry("error", "Identity save error: " + e.message);
+    }
+}
+
+function renderIdentityAssets(assets) {
+    const grid = id("identity-assets-grid");
+    if (!grid) return;
+    if (!assets || !assets.length) {
+        grid.innerHTML = '<div class="grid-placeholder"><p>No identity assets uploaded for this campaign.</p></div>';
+        return;
+    }
+    grid.innerHTML = "";
+    assets.forEach((a) => {
+        const cell = document.createElement("div");
+        cell.className = "grid-cell rendered";
+        const img = document.createElement("img");
+        img.src = a.src;
+        img.alt = a.asset_id;
+        img.loading = "lazy";
+        const label = document.createElement("div");
+        label.className = "cell-label";
+        const pick = document.createElement("input");
+        pick.type = "checkbox";
+        pick.checked = identityAssetSelection.has(a.asset_id);
+        pick.addEventListener("change", () => {
+            if (pick.checked) identityAssetSelection.add(a.asset_id);
+            else identityAssetSelection.delete(a.asset_id);
+        });
+        const active = document.createElement("input");
+        active.type = "checkbox";
+        active.checked = !!a.active;
+        active.addEventListener("change", () => updateIdentityAsset(a.asset_id, { active: active.checked }));
+        const txt = document.createElement("span");
+        txt.textContent = " " + a.asset_id;
+        const role = document.createElement("select");
+        role.style.marginLeft = "6px";
+        role.innerHTML = '<option value="anchor">anchor</option><option value="sheet">sheet</option><option value="detail">detail</option>';
+        role.value = a.role || "anchor";
+        role.addEventListener("change", () => updateIdentityAsset(a.asset_id, { role: role.value }));
+        const up = document.createElement("button");
+        up.textContent = "↑";
+        up.className = "btn btn-secondary";
+        up.style.padding = "2px 6px";
+        up.style.marginLeft = "6px";
+        up.addEventListener("click", (e) => { e.stopPropagation(); updateIdentityAsset(a.asset_id, { priority: (a.priority || 1000) - 1 }); });
+        const down = document.createElement("button");
+        down.textContent = "↓";
+        down.className = "btn btn-secondary";
+        down.style.padding = "2px 6px";
+        down.style.marginLeft = "4px";
+        down.addEventListener("click", (e) => { e.stopPropagation(); updateIdentityAsset(a.asset_id, { priority: (a.priority || 1000) + 1 }); });
+        label.appendChild(pick);
+        label.appendChild(active);
+        label.appendChild(txt);
+        label.appendChild(role);
+        label.appendChild(up);
+        label.appendChild(down);
+        cell.appendChild(img);
+        cell.appendChild(label);
+        grid.appendChild(cell);
+    });
+}
+
+async function loadIdentityAssets(campaignId) {
+    const cid = (campaignId || shotFilters.campaignId || currentCampaignId || "").trim();
+    if (!cid) {
+        identityAssets = [];
+        renderIdentityAssets([]);
+        syncIdentityAnchorsFromAssets();
+        return;
+    }
+    try {
+        const resp = await fetch("/api/campaigns/" + encodeURIComponent(cid) + "/assets");
+        const data = await resp.json();
+        identityAssets = Array.isArray(data.assets) ? data.assets : [];
+        identityAssetSelection = new Set([...identityAssetSelection].filter((x) => identityAssets.some((a) => a.asset_id === x)));
+        renderIdentityAssets(identityAssets);
+        syncIdentityAnchorsFromAssets();
+    } catch (_e) {
+        identityAssets = [];
+        renderIdentityAssets([]);
+    }
+}
+
+async function uploadIdentityAsset() {
+    const cid = (shotFilters.campaignId || currentCampaignId || "").trim();
+    const fileInput = id("identity-upload-input");
+    if (!cid || !fileInput || !fileInput.files || !fileInput.files.length) {
+        addLogEntry("error", "Select a campaign and file first.");
+        return;
+    }
+    const role = id("identity-upload-role")?.value || "anchor";
+    const fd = new FormData();
+    fd.append("file", fileInput.files[0]);
+    fd.append("role", role);
+    try {
+        const resp = await fetch("/api/campaigns/" + encodeURIComponent(cid) + "/assets/upload", {
+            method: "POST",
+            body: fd,
+        });
+        const data = await resp.json();
+        if (!resp.ok || data.status !== "ok") {
+            addLogEntry("error", "Identity upload failed: " + (data.detail || data.error || resp.status));
+            return;
+        }
+        addLogEntry("hermes", "Identity asset uploaded: " + data.asset.asset_id);
+        fileInput.value = "";
+        await loadIdentityAssets(cid);
+    } catch (e) {
+        addLogEntry("error", "Identity upload error: " + e.message);
+    }
+}
+
+async function updateIdentityAsset(assetId, patch) {
+    const cid = (shotFilters.campaignId || currentCampaignId || "").trim();
+    if (!cid || !assetId) return;
+    try {
+        await fetch("/api/campaigns/" + encodeURIComponent(cid) + "/assets/" + encodeURIComponent(assetId), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(patch),
+        });
+        await loadIdentityAssets(cid);
+    } catch (_e) {}
+}
+
+async function loadIdentityTab() {
+    const cid = (shotFilters.campaignId || currentCampaignId || "").trim();
+    if (id("identity-campaign-readout")) id("identity-campaign-readout").value = cid;
+    await loadCampaignIdentity(cid);
+    await loadIdentityTemplates();
+    await loadCampaignFolders();
+    populateIdentityCloneOptions();
+}
+
+function populateIdentityCloneOptions() {
+    const sel = id("identity-clone-source");
+    if (!sel) return;
+    sel.innerHTML = "";
+    const rows = document.querySelectorAll("#campaign-list .campaign-row .campaign-btn");
+    rows.forEach((btn) => {
+        const cid = String(btn.textContent || "").trim();
+        if (!cid || cid === "All") return;
+        const opt = document.createElement("option");
+        opt.value = cid;
+        opt.textContent = cid;
+        sel.appendChild(opt);
+    });
+}
+
+async function cloneIdentityFromCampaign() {
+    const dst = (shotFilters.campaignId || currentCampaignId || "").trim();
+    const src = id("identity-clone-source")?.value || "";
+    if (!dst || !src) return;
+    try {
+        const resp = await fetch("/api/campaigns/" + encodeURIComponent(dst) + "/identity/clone/" + encodeURIComponent(src), { method: "POST" });
+        const data = await resp.json();
+        if (!resp.ok || data.status !== "ok") throw new Error(data.detail || "clone failed");
+        await loadCampaignIdentity(dst);
+        addLogEntry("hermes", "Identity cloned from " + src);
+    } catch (e) {
+        addLogEntry("error", "Identity clone failed: " + e.message);
+    }
+}
+
+async function autoSelectIdentityAnchors() {
+    const cid = (shotFilters.campaignId || currentCampaignId || "").trim();
+    if (!cid) return;
+    try {
+        const resp = await fetch("/api/campaigns/" + encodeURIComponent(cid) + "/assets/auto-select", { method: "POST" });
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.detail || "auto-select failed");
+        await loadIdentityAssets(cid);
+        addLogEntry("hermes", "Auto-selected " + (data.selected || 0) + " anchor assets.");
+    } catch (e) {
+        addLogEntry("error", "Auto-select failed: " + e.message);
+    }
+}
+
+async function bulkSetIdentityRole() {
+    const role = id("identity-bulk-role")?.value || "anchor";
+    const cid = (shotFilters.campaignId || currentCampaignId || "").trim();
+    if (!cid || !identityAssetSelection.size) return;
+    for (const aid of identityAssetSelection) {
+        await updateIdentityAsset(aid, { role });
+    }
+}
+
+async function bulkSetIdentityActive(flag) {
+    const cid = (shotFilters.campaignId || currentCampaignId || "").trim();
+    if (!cid || !identityAssetSelection.size) return;
+    for (const aid of identityAssetSelection) {
+        await updateIdentityAsset(aid, { active: !!flag });
+    }
+}
+
+async function loadIdentityTemplates() {
+    const sel = id("identity-template-select");
+    if (!sel) return;
+    try {
+        const resp = await fetch("/api/identity/templates");
+        const data = await resp.json();
+        sel.innerHTML = "";
+        (data.templates || []).forEach((t) => {
+            const opt = document.createElement("option");
+            opt.value = t;
+            opt.textContent = t;
+            sel.appendChild(opt);
+        });
+    } catch (_e) {}
+}
+
+async function saveIdentityTemplateFromForm() {
+    const name = (id("identity-template-name")?.value || "").trim();
+    if (!name) return;
+    const pack = getIdentityPackFromUI();
+    if (!pack) return;
+    try {
+        const resp = await fetch("/api/identity/templates/" + encodeURIComponent(name), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(pack),
+        });
+        if (!resp.ok) throw new Error("save failed");
+        await loadIdentityTemplates();
+        addLogEntry("hermes", "Identity template saved: " + name);
+    } catch (e) {
+        addLogEntry("error", "Template save failed: " + e.message);
+    }
+}
+
+async function loadIdentityTemplateIntoForm() {
+    const name = id("identity-template-select")?.value || "";
+    if (!name) return;
+    try {
+        const resp = await fetch("/api/identity/templates/" + encodeURIComponent(name));
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.detail || "load failed");
+        setIdentityUI(data.identity_pack || {});
+        addLogEntry("hermes", "Identity template loaded: " + name);
+        updateIdentityPreview();
+    } catch (e) {
+        addLogEntry("error", "Template load failed: " + e.message);
+    }
+}
+
+function updateIdentityPreview() {
+    const el = id("identity-anchors");
+    const out = id("identity-prompt-preview");
+    if (!el) return;
+    const pack = getIdentityPackFromUI();
+    if (!pack) {
+        if (out) out.value = "";
+        return;
+    }
+    const preview = [
+        pack.type ? ("identity lock " + pack.type + ": " + (pack.name || "unnamed")) : "",
+        pack.identity_tokens.length ? ("traits: " + pack.identity_tokens.join(", ")) : "",
+        pack.negative_tokens.length ? ("drift negatives: " + pack.negative_tokens.join(", ")) : "",
+        pack.anchor_image_ids.length ? ("anchors: " + pack.anchor_image_ids.length) : "",
+    ].filter(Boolean).join(" | ");
+    el.title = preview;
+    if (out) out.value = preview;
+}
 
 function onCampaignSortChange() {
     const key = document.getElementById("campaign-sort-key")?.value || "name";
@@ -98,29 +443,29 @@ function onCampaignSortChange() {
 }
 
 function onMediaSortChange() {
-    const key = document.getElementById("media-sort-key")?.value || "time";
-    const reverse = !!document.getElementById("media-sort-reverse")?.checked;
-    mediaSort = { key, reverse };
+    mediaSort = { key: "time", reverse: !!mediaSort.reverse };
     syncInlineMediaSortControls();
     loadShots();
     loadVideoLibrary();
 }
 
 function syncInlineMediaSortControls() {
-    const keyInline = document.getElementById("media-sort-key-inline");
-    const revInline = document.getElementById("media-sort-reverse-inline");
-    if (keyInline) keyInline.value = mediaSort.key;
-    if (revInline) revInline.checked = !!mediaSort.reverse;
+    const labels = mediaSort.reverse ? ["Newest", "↓"] : ["Oldest", "↑"];
+    const sideBtn = document.getElementById("media-sort-toggle");
+    const dockBtn = document.getElementById("media-sort-toggle-inline");
+    if (sideBtn) {
+        sideBtn.title = "Toggle media sort order";
+        sideBtn.textContent = labels[1];
+    }
+    if (dockBtn) {
+        dockBtn.title = "Sort: " + labels[0] + " first";
+        dockBtn.textContent = labels[1];
+    }
 }
 
-function syncMediaSortFromInline() {
-    const key = document.getElementById("media-sort-key-inline")?.value || "time";
-    const reverse = !!document.getElementById("media-sort-reverse-inline")?.checked;
-    mediaSort = { key, reverse };
-    const keyMain = document.getElementById("media-sort-key");
-    const revMain = document.getElementById("media-sort-reverse");
-    if (keyMain) keyMain.value = key;
-    if (revMain) revMain.checked = reverse;
+function toggleMediaSortOrder() {
+    mediaSort = { key: "time", reverse: !mediaSort.reverse };
+    syncInlineMediaSortControls();
     loadShots();
     loadVideoLibrary();
 }
@@ -274,6 +619,9 @@ function switchPage(pageClass) {
     if (pageClass === "spark-view") {
         loadVideoLibrary();
     }
+    if (pageClass === "identity-view") {
+        loadIdentityTab();
+    }
     if (pageClass === "memory-view") {
         loadMemoryTab();
     }
@@ -302,6 +650,7 @@ async function loadCampaignFolders() {
             if (filter) filter.value = "";
             shotFilters.campaignId = "";
             currentCampaignId = "";
+            loadCampaignIdentity("");
             loadShots();
             loadVideoLibrary();
             loadCampaignFolders();
@@ -330,14 +679,26 @@ async function loadCampaignFolders() {
                 if (filter) filter.value = c.campaign_id;
                 shotFilters.campaignId = c.campaign_id;
                 currentCampaignId = c.campaign_id;
-                if ($briefInput && c.brief) {
+                // Do not overwrite the creative brief with slug-derived fallbacks.
+                // Older campaigns without persisted manifest briefs can return a
+                // truncated humanized campaign id as "brief".
+                if ($briefInput && c.brief && c.brief_source !== "humanized_id") {
                     $briefInput.value = c.brief;
                 }
+                loadCampaignIdentity(c.campaign_id);
                 loadShots();
                 loadVideoLibrary();
                 loadCampaignFolders();
             });
             row.appendChild(campaignBtn);
+
+            if (c.identity_type) {
+                const idBadge = document.createElement("span");
+                idBadge.className = "campaign-meta";
+                idBadge.textContent = c.identity_type === "product" ? "PROD" : "CHAR";
+                idBadge.title = c.identity_name || c.identity_type;
+                row.appendChild(idBadge);
+            }
 
             const meta = document.createElement("span");
             meta.className = "campaign-meta";
@@ -412,11 +773,33 @@ async function loadConfig() {
         const director = models.director_kimi || {};
         document.getElementById("cfg-director-model").value = director.model_name || "";
         document.getElementById("cfg-director-endpoint").value = director.endpoint || "";
+        const dApi1 = director.endpoint_api1 || director.endpoint || "";
+        const dApi2 = director.endpoint_api2 || "";
+        const dActive = (director.endpoint_active || "api1").toLowerCase();
+        const dApi1El = document.getElementById("cfg-director-endpoint-api1");
+        const dApi2El = document.getElementById("cfg-director-endpoint-api2");
+        if (dApi1El) dApi1El.value = dApi1;
+        if (dApi2El) dApi2El.value = dApi2;
+        const dA1 = document.getElementById("cfg-director-api-active-1");
+        const dA2 = document.getElementById("cfg-director-api-active-2");
+        if (dA1) dA1.checked = dActive !== "api2";
+        if (dA2) dA2.checked = dActive === "api2";
 
         // Thinking (Kimi VL)
         const kimiVl = models.kimi_vl || {};
         document.getElementById("cfg-thinking-model").value = kimiVl.model_name || "";
         document.getElementById("cfg-thinking-endpoint").value = kimiVl.endpoint || "";
+        const vApi1 = kimiVl.endpoint_api1 || kimiVl.endpoint || "";
+        const vApi2 = kimiVl.endpoint_api2 || "";
+        const vActive = (kimiVl.endpoint_active || "api1").toLowerCase();
+        const vApi1El = document.getElementById("cfg-thinking-endpoint-api1");
+        const vApi2El = document.getElementById("cfg-thinking-endpoint-api2");
+        if (vApi1El) vApi1El.value = vApi1;
+        if (vApi2El) vApi2El.value = vApi2;
+        const vA1 = document.getElementById("cfg-thinking-api-active-1");
+        const vA2 = document.getElementById("cfg-thinking-api-active-2");
+        if (vA1) vA1.checked = vActive !== "api2";
+        if (vA2) vA2.checked = vActive === "api2";
 
         // Visual (same as kimi_vl for now, can be separate)
         document.getElementById("cfg-visual-model").value = kimiVl.model_name || "";
@@ -473,8 +856,14 @@ function markDirty(dotKey) {
         'kimi.endpoint': () => document.getElementById("cfg-kimi-endpoint").value,
         'models.director_kimi.model_name': () => document.getElementById("cfg-director-model").value,
         'models.director_kimi.endpoint': () => document.getElementById("cfg-director-endpoint").value,
+        'models.director_kimi.endpoint_api1': () => document.getElementById("cfg-director-endpoint-api1")?.value || "",
+        'models.director_kimi.endpoint_api2': () => document.getElementById("cfg-director-endpoint-api2")?.value || "",
+        'models.director_kimi.endpoint_active': () => document.getElementById("cfg-director-api-active-2")?.checked ? "api2" : "api1",
         'models.kimi_vl.model_name': () => document.getElementById("cfg-thinking-model").value,
         'models.kimi_vl.endpoint': () => document.getElementById("cfg-thinking-endpoint").value,
+        'models.kimi_vl.endpoint_api1': () => document.getElementById("cfg-thinking-endpoint-api1")?.value || "",
+        'models.kimi_vl.endpoint_api2': () => document.getElementById("cfg-thinking-endpoint-api2")?.value || "",
+        'models.kimi_vl.endpoint_active': () => document.getElementById("cfg-thinking-api-active-2")?.checked ? "api2" : "api1",
         'models.hermes_3.host': () => document.getElementById("cfg-lmstudio-host").value,
         'models.hermes_3.port': () => parseInt(document.getElementById("cfg-lmstudio-port").value) || 0,
         'models.hermes_3.model_name': () => document.getElementById("cfg-lmstudio-model").value,
@@ -659,14 +1048,26 @@ async function testComfyUIAll() {
     const $result = document.getElementById("comfyui-test-result");
     const primary = document.getElementById("cfg-comfyui-primary")?.value?.trim() || "";
     const secondary = document.getElementById("cfg-comfyui-secondary")?.value?.trim() || "";
+    const sparkRaw = document.getElementById("cfg-spark-primary")?.value?.trim() || "";
+    const setDot = (id, status) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.classList.remove("ok", "err");
+        if (status === "ok") el.classList.add("ok");
+        if (status === "err") el.classList.add("err");
+    };
 
-    if (!primary && !secondary) {
-        $result.textContent = "Please fill in at least one ComfyUI host URL";
+    setDot("server-dot-primary", "");
+    setDot("server-dot-secondary", "");
+    setDot("server-dot-spark", "");
+
+    if (!primary && !secondary && !sparkRaw) {
+        $result.textContent = "Please fill in at least one ComfyUI/Spark URL";
         $result.className = "test-result err";
         return;
     }
 
-    $result.textContent = "Testing ComfyUI hosts...";
+    $result.textContent = "Testing ComfyUI + Spark...";
     $result.className = "test-result loading";
 
     const checkOne = async (label, host) => {
@@ -687,8 +1088,42 @@ async function testComfyUIAll() {
 
     const p = await checkOne("primary", primary);
     const s = await checkOne("secondary", secondary);
-    const parts = [p, s].filter(x => x.status !== "skipped").map(x => `${x.label}: ${x.status === "ok" ? "ok" : "fail"} (${x.msg})`);
-    const anyFail = [p, s].some(x => x.status === "err");
+
+    const normalizeSparkHttp = (url) => {
+        const u = String(url || "").trim();
+        if (!u) return "";
+        if (u.startsWith("http://") || u.startsWith("https://")) return u;
+        if (u.startsWith("ws://")) return "http://" + u.slice("ws://".length);
+        if (u.startsWith("wss://")) return "https://" + u.slice("wss://".length);
+        return u.startsWith("//") ? ("http:" + u) : ("http://" + u);
+    };
+
+    const checkSpark = async (raw) => {
+        if (!raw) return { label: "spark", status: "skipped", msg: "not set" };
+        const httpUrl = normalizeSparkHttp(raw);
+        try {
+            const u = new URL(httpUrl);
+            const resp = await fetch(`/api/spark/test?url=${encodeURIComponent(u.origin)}`);
+            if (!resp.ok) {
+                let detail = "unknown error";
+                try {
+                    const body = await resp.json();
+                    detail = body?.detail || detail;
+                } catch (_e) {}
+                return { label: "spark", status: "err", msg: detail };
+            }
+            return { label: "spark", status: "ok", msg: u.origin };
+        } catch (e) {
+            return { label: "spark", status: "err", msg: e.message };
+        }
+    };
+
+    const sp = await checkSpark(sparkRaw);
+    setDot("server-dot-primary", p.status === "ok" ? "ok" : (p.status === "err" ? "err" : ""));
+    setDot("server-dot-secondary", s.status === "ok" ? "ok" : (s.status === "err" ? "err" : ""));
+    setDot("server-dot-spark", sp.status === "ok" ? "ok" : (sp.status === "err" ? "err" : ""));
+    const parts = [p, s, sp].filter(x => x.status !== "skipped").map(x => `${x.label}: ${x.status === "ok" ? "ok" : "fail"} (${x.msg})`);
+    const anyFail = [p, s, sp].some(x => x.status === "err");
     $result.textContent = parts.join(" | ") || "No hosts to test";
     $result.className = "test-result " + (anyFail ? "err" : "ok");
 }
@@ -1086,13 +1521,25 @@ async function runCampaign() {
     const zImage = document.getElementById("model-zimage")?.checked;
     const flux2 = document.getElementById("model-flux2")?.checked;
     const turbo = document.getElementById("model-turbo")?.checked;
+    const appendToCampaign = !!document.getElementById("append-campaign")?.checked;
+    const selectedCampaignId =
+        (document.getElementById("filter-campaign-id")?.value || "").trim() ||
+        (currentCampaignId || "").trim();
     const workflow_ids = [];
-    if (zImage) workflow_ids.push(turbo ? "spark_image_z_image_turbo" : "spark_image_z_image");
-    if (flux2) workflow_ids.push(turbo ? "spark_image_flux2_text_to_image_turbo" : "spark_image_flux2_text_to_image");
+    if (zImage) workflow_ids.push("08_flux2_klein_9b_text_to_image");
+    if (flux2) workflow_ids.push("01_flux2_text_to_image");
+    if (turbo) {
+        addLogEntry("system", "Turbo toggle is currently ignored for numbered workflow mode.");
+    }
     if (!workflow_ids.length) {
-        addLogEntry("error", "Select at least one base model: Z-Image and/or Flux2.Dev");
+        addLogEntry("error", "Select at least one base model: Flux2 Klein and/or Flux2.Dev");
         return;
     }
+    if (appendToCampaign && !selectedCampaignId) {
+        addLogEntry("error", "Append is enabled, but no campaign is selected. Pick a campaign in the sidebar or disable append.");
+        return;
+    }
+    const identity_pack = getIdentityPackFromUI();
 
     $runBtn.disabled = true;
     $runBtn.textContent = "Running...";
@@ -1107,7 +1554,15 @@ async function runCampaign() {
         const resp = await fetch("/api/hermes/run-campaign", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ brief: brief, bible_path: biblePath, length: length, workflow_ids: workflow_ids }),
+            body: JSON.stringify({
+                brief: brief,
+                bible_path: biblePath,
+                length: length,
+                workflow_ids: workflow_ids,
+                identity_pack: identity_pack,
+                campaign_id: selectedCampaignId,
+                append_to_campaign: appendToCampaign,
+            }),
             signal: campaignAbortController.signal,
         });
 
@@ -1428,6 +1883,10 @@ async function loadShots() {
                         workflow_profile: s.workflow_profile || "",
                         model_standard_name: s.model_standard_name || "",
                         model_standard_version: s.model_standard_version || "",
+                        identity_type: s.identity_type || "",
+                        identity_name: s.identity_name || "",
+                        identity_expected_traits: s.identity_expected_traits || [],
+                        identity_detected_notes: s.identity_detected_notes || [],
                         seed: s.seed || "Random",
                         kimi_plan: s.kimi_plan || null,
                         kimi_rationale: s.kimi_rationale || "",
@@ -1476,6 +1935,12 @@ async function loadShots() {
                 badge.className = "shot-badge " + audit;
                 badge.textContent = audit.toUpperCase();
                 label.appendChild(badge);
+            }
+            if (s.identity_type && s.identity_status) {
+                const idb = document.createElement("span");
+                idb.className = "shot-badge " + (s.identity_status === "pass" ? "pass" : "fail");
+                idb.textContent = "ID " + String(s.identity_status).toUpperCase();
+                label.appendChild(idb);
             }
             if (isRetry) {
                 const retryBadge = document.createElement("span");
@@ -1673,6 +2138,12 @@ async function loadVideoLibrary() {
                 b.textContent = auditStatus.toUpperCase();
                 label.appendChild(b);
             }
+            if (s.identity_type && s.identity_status) {
+                const idb = document.createElement("span");
+                idb.className = "audit-badge " + (s.identity_status === "pass" ? "pass" : "fail");
+                idb.textContent = "ID " + String(s.identity_status).toUpperCase();
+                label.appendChild(idb);
+            }
             if (isRetry) {
                 const b2 = document.createElement("span");
                 b2.className = "audit-badge retry";
@@ -1694,6 +2165,10 @@ async function loadVideoLibrary() {
                     workflow_profile: s.workflow_profile || "",
                     model_standard_name: s.model_standard_name || "",
                     model_standard_version: s.model_standard_version || "",
+                    identity_type: s.identity_type || "",
+                    identity_name: s.identity_name || "",
+                    identity_expected_traits: s.identity_expected_traits || [],
+                    identity_detected_notes: s.identity_detected_notes || [],
                     seed: s.seed || "Random",
                     kimi_plan: s.kimi_plan || null,
                     kimi_rationale: s.kimi_rationale || "",
@@ -1781,9 +2256,11 @@ async function processSelectedVideos() {
     }
     const duration = parseInt($videoDuration?.value || "4", 10);
     const fps = parseInt($videoFps?.value || "24", 10);
+    const workflowId = getSelectedVideoWorkflow();
+    const videoPrompt = ($videoPrompt?.value || "").trim();
     $startBatchBtn.disabled = true;
     $startBatchBtn.textContent = "Processing...";
-    $sparkStatusText.textContent = "Processing " + videoSelection.size + " image(s) into videos...";
+    $sparkStatusText.textContent = "Processing " + videoSelection.size + " image(s) into videos via " + workflowId + "...";
     try {
         const resp = await fetch("/api/video/process", {
             method: "POST",
@@ -1792,12 +2269,14 @@ async function processSelectedVideos() {
                 shot_ids: Array.from(videoSelection),
                 duration,
                 fps,
+                workflow_id: workflowId,
+                prompt: videoPrompt,
             }),
         });
         const data = await resp.json();
         if (data.status !== "ok") throw new Error(data.error || "Video processing failed");
         const done = (data.results || []).filter(r => r.status === "ok").length;
-        $sparkStatusText.textContent = "Video processing complete: " + done + "/" + (data.results || []).length + " ok";
+        $sparkStatusText.textContent = "Video processing complete (" + workflowId + "): " + done + "/" + (data.results || []).length + " ok";
         $sparkProgress.textContent = (data.output_dir || "");
     } catch (e) {
         $sparkStatusText.textContent = "Error: " + e.message;
@@ -1950,6 +2429,19 @@ function openLightbox(result) {
         ? (result.model_standard_name + (result.model_standard_version ? " @" + result.model_standard_version : ""))
         : "-";
     document.getElementById("lightbox-model-standard").textContent = standardLabel;
+    const identityLabel = result.identity_type
+        ? ((String(result.identity_type).toUpperCase()) + (result.identity_name ? (": " + result.identity_name) : ""))
+        : "-";
+    const identityEl = document.getElementById("lightbox-identity");
+    if (identityEl) identityEl.textContent = identityLabel;
+    const expEl = document.getElementById("lightbox-identity-expected");
+    if (expEl) expEl.textContent = Array.isArray(result.identity_expected_traits) && result.identity_expected_traits.length
+        ? result.identity_expected_traits.join(", ")
+        : "-";
+    const detEl = document.getElementById("lightbox-identity-detected");
+    if (detEl) detEl.textContent = Array.isArray(result.identity_detected_notes) && result.identity_detected_notes.length
+        ? result.identity_detected_notes.join("; ")
+        : "-";
     document.getElementById("lightbox-prompt-id").textContent = result.prompt_id || "-";
     const audit = result.audit_status
         ? (String(result.audit_status).toUpperCase() + (result.audit_score !== undefined && result.audit_score !== "" ? " (" + result.audit_score + ")" : ""))
