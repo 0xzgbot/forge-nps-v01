@@ -10,6 +10,7 @@ let chatHistory = [];
 let sessionId = "session_" + Date.now();
 let campaignActive = false;
 let campaignAbortController = null;
+let campaignRecoveryTimer = null;
 let configDirty = {}; // dot_key -> new_value
 let currentConfig = {};
 
@@ -21,6 +22,10 @@ let videoSelection = new Set();
 let videoShotsById = {};
 let dashboardSelection = new Set();
 let currentCampaignId = "";
+const MAX_DASHBOARD_THUMBS = 180;
+const MAX_VIDEO_THUMBS = 180;
+let campaignSort = { key: "name", reverse: false };
+let mediaSort = { key: "time", reverse: false };
 const shotFilters = {
     campaignId: "",
     renderedOnly: false,
@@ -45,6 +50,7 @@ const $biblePath = document.getElementById("bible-path");
 const $runBtn = document.getElementById("run-campaign-btn");
 const $charList = document.getElementById("char-list");
 const $lengthSelect = document.getElementById("length-select"); // may be null if removed
+const $campaignList = document.getElementById("campaign-list");
 
 // Spark DOM refs
 const $videoSelectedCount = document.getElementById("video-selected-count");
@@ -66,13 +72,110 @@ window.addEventListener("DOMContentLoaded", () => {
     loadCharacters();
     loadStats();
     loadShots();
+    loadCampaignFolders();
     setInterval(loadStats, 10000);
     loadConfig();
     loadVideoLibrary();
+    const csk = document.getElementById("campaign-sort-key");
+    const csr = document.getElementById("campaign-sort-reverse");
+    if (csk) campaignSort.key = csk.value || "name";
+    if (csr) campaignSort.reverse = !!csr.checked;
+    const msk = document.getElementById("media-sort-key");
+    const msr = document.getElementById("media-sort-reverse");
+    if (msk) mediaSort.key = msk.value || "time";
+    if (msr) mediaSort.reverse = !!msr.checked;
+    syncInlineMediaSortControls();
     initDashboardResizer();
 });
 
 function id(s) { return document.getElementById(s); }
+
+function onCampaignSortChange() {
+    const key = document.getElementById("campaign-sort-key")?.value || "name";
+    const reverse = !!document.getElementById("campaign-sort-reverse")?.checked;
+    campaignSort = { key, reverse };
+    loadCampaignFolders();
+}
+
+function onMediaSortChange() {
+    const key = document.getElementById("media-sort-key")?.value || "time";
+    const reverse = !!document.getElementById("media-sort-reverse")?.checked;
+    mediaSort = { key, reverse };
+    syncInlineMediaSortControls();
+    loadShots();
+    loadVideoLibrary();
+}
+
+function syncInlineMediaSortControls() {
+    const keyInline = document.getElementById("media-sort-key-inline");
+    const revInline = document.getElementById("media-sort-reverse-inline");
+    if (keyInline) keyInline.value = mediaSort.key;
+    if (revInline) revInline.checked = !!mediaSort.reverse;
+}
+
+function syncMediaSortFromInline() {
+    const key = document.getElementById("media-sort-key-inline")?.value || "time";
+    const reverse = !!document.getElementById("media-sort-reverse-inline")?.checked;
+    mediaSort = { key, reverse };
+    const keyMain = document.getElementById("media-sort-key");
+    const revMain = document.getElementById("media-sort-reverse");
+    if (keyMain) keyMain.value = key;
+    if (revMain) revMain.checked = reverse;
+    loadShots();
+    loadVideoLibrary();
+}
+
+function _parseTs(v) {
+    if (!v) return 0;
+    const t = Date.parse(v);
+    return Number.isFinite(t) ? t : 0;
+}
+
+function _sortCampaigns(list) {
+    const arr = [...(list || [])];
+    arr.sort((a, b) => {
+        if (campaignSort.key === "time") {
+            const ta = _parseTs(a.started_at || a.created_at);
+            const tb = _parseTs(b.started_at || b.created_at);
+            return ta - tb;
+        }
+        return String(a.campaign_id || "").localeCompare(String(b.campaign_id || ""));
+    });
+    if (campaignSort.reverse) arr.reverse();
+    return arr;
+}
+
+function _sortShots(list) {
+    const arr = [...(list || [])];
+    arr.sort((a, b) => {
+        if (mediaSort.key === "name") {
+            return String(a.id || a.shot_id || "").localeCompare(String(b.id || b.shot_id || ""));
+        }
+        const ta = _parseTs(a.created_at) || _parseTs(a.audit_timestamp);
+        const tb = _parseTs(b.created_at) || _parseTs(b.audit_timestamp);
+        return ta - tb;
+    });
+    if (mediaSort.reverse) arr.reverse();
+    return arr;
+}
+
+async function refreshShotViews() {
+    // Keep filter state in sync with controls before reloading.
+    shotFilters.campaignId = (document.getElementById("filter-campaign-id")?.value || "").trim();
+    shotFilters.renderedOnly = !!document.getElementById("filter-rendered-only")?.checked;
+    shotFilters.failedOnly = !!document.getElementById("filter-failed-only")?.checked;
+    shotFilters.passedOnly = !!document.getElementById("filter-passed-only")?.checked;
+    shotFilters.retriesOnly = !!document.getElementById("filter-retries-only")?.checked;
+    shotFilters.importedOnly = !!document.getElementById("filter-imported-only")?.checked;
+    try {
+        await fetch("/api/shots/reindex-storage", { method: "POST" });
+    } catch (_e) {
+        // best effort
+    }
+    await loadShots();
+    await loadVideoLibrary();
+    await loadCampaignFolders();
+}
 
 function initDashboardResizer() {
     if (!$dashboardDivider || !$dashboardLeftPane) return;
@@ -121,11 +224,12 @@ function shotMatchesFilters(s) {
     const campaign = String(s.campaign_id || "");
     const state = String(s.state || s.status || "").toLowerCase();
     const source = String(s.source || "");
+    const effectiveAudit = audit || (state.includes("fail") ? "fail" : (state.includes("pass") ? "pass" : ""));
 
     if (shotFilters.campaignId && campaign !== shotFilters.campaignId) return false;
     if (shotFilters.renderedOnly && !(s.image_url || state.includes("rendered") || state.includes("audited") || state.includes("final"))) return false;
-    if (shotFilters.failedOnly && audit !== "fail") return false;
-    if (shotFilters.passedOnly && audit !== "pass") return false;
+    if (shotFilters.failedOnly && effectiveAudit !== "fail") return false;
+    if (shotFilters.passedOnly && effectiveAudit !== "pass") return false;
     if (shotFilters.retriesOnly && !isRetry) return false;
     if (shotFilters.importedOnly && source !== "import") return false;
     return true;
@@ -135,6 +239,8 @@ function shotMatchesFilters(s) {
 // Page Navigation
 // ---------------------------------------------------------------------------
 function switchPage(pageClass) {
+    const prevActive = document.querySelector(".page-view.active");
+    const prevClass = prevActive ? Array.from(prevActive.classList).find((c) => c.endsWith("-view")) : "";
     // Hide all page views
     document.querySelectorAll(".page-view").forEach(el => {
         el.classList.remove("active");
@@ -153,6 +259,14 @@ function switchPage(pageClass) {
         tab.classList.toggle("active", tab.getAttribute("data-page") === pageClass);
     });
 
+    // Tear down heavy graph resources when leaving Memory.
+    if (prevClass === "memory-view" && pageClass !== "memory-view" && window._memoryCy) {
+        try { window._memoryCy.destroy(); } catch (_e) {}
+        window._memoryCy = null;
+        const cy = document.getElementById("cy-canvas");
+        if (cy) cy.innerHTML = "";
+    }
+
     // Load config when switching to settings
     if (pageClass === "settings-view") {
         loadConfig();
@@ -162,6 +276,112 @@ function switchPage(pageClass) {
     }
     if (pageClass === "memory-view") {
         loadMemoryTab();
+    }
+}
+
+async function loadCampaignFolders() {
+    if (!$campaignList) return;
+    try {
+        const resp = await fetch("/api/campaigns");
+        const data = await resp.json();
+        const campaigns = _sortCampaigns(Array.isArray(data.campaigns) ? data.campaigns : []);
+        $campaignList.innerHTML = "";
+
+        // "All" option: clears campaign filter and shows every campaign.
+        const allRow = document.createElement("div");
+        allRow.className = "campaign-row";
+        const allSelected = !shotFilters.campaignId;
+        if (allSelected) allRow.classList.add("active");
+
+        const allBtn = document.createElement("button");
+        allBtn.className = "campaign-btn";
+        allBtn.textContent = "All";
+        allBtn.title = "Show all campaigns";
+        allBtn.addEventListener("click", () => {
+            const filter = document.getElementById("filter-campaign-id");
+            if (filter) filter.value = "";
+            shotFilters.campaignId = "";
+            currentCampaignId = "";
+            loadShots();
+            loadVideoLibrary();
+            loadCampaignFolders();
+        });
+        allRow.appendChild(allBtn);
+
+        const allMeta = document.createElement("span");
+        allMeta.className = "campaign-meta";
+        allMeta.textContent = String(data.count || campaigns.length || 0);
+        allRow.appendChild(allMeta);
+        $campaignList.appendChild(allRow);
+
+        if (!campaigns.length) return;
+
+        campaigns.forEach((c) => {
+            const row = document.createElement("div");
+            row.className = "campaign-row";
+            if (shotFilters.campaignId && c.campaign_id === shotFilters.campaignId) row.classList.add("active");
+
+            const campaignBtn = document.createElement("button");
+            campaignBtn.className = "campaign-btn";
+            campaignBtn.textContent = c.campaign_id;
+            campaignBtn.title = c.campaign_id;
+            campaignBtn.addEventListener("click", () => {
+                const filter = document.getElementById("filter-campaign-id");
+                if (filter) filter.value = c.campaign_id;
+                shotFilters.campaignId = c.campaign_id;
+                currentCampaignId = c.campaign_id;
+                if ($briefInput && c.brief) {
+                    $briefInput.value = c.brief;
+                }
+                loadShots();
+                loadVideoLibrary();
+                loadCampaignFolders();
+            });
+            row.appendChild(campaignBtn);
+
+            const meta = document.createElement("span");
+            meta.className = "campaign-meta";
+            meta.textContent = String(c.shot_count || 0);
+            row.appendChild(meta);
+
+            const renameBtn = document.createElement("button");
+            renameBtn.className = "campaign-rename";
+            renameBtn.textContent = "Rename";
+            renameBtn.addEventListener("click", async (event) => {
+                event.stopPropagation();
+                const newName = window.prompt("Rename campaign folder", c.campaign_id);
+                if (!newName || newName.trim() === c.campaign_id) return;
+                try {
+                    const renameResp = await fetch("/api/campaigns/rename", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            old_campaign_id: c.campaign_id,
+                            new_campaign_name: newName.trim(),
+                        }),
+                    });
+                    const result = await renameResp.json();
+                    if (!renameResp.ok || result.status !== "ok") {
+                        addLogEntry("error", "Campaign rename failed: " + (result.detail || result.error || renameResp.status));
+                        return;
+                    }
+                    addLogEntry("system", "Campaign renamed: " + result.old_campaign_id + " -> " + result.new_campaign_id);
+                    if (currentCampaignId === result.old_campaign_id) currentCampaignId = result.new_campaign_id;
+                    const filter = document.getElementById("filter-campaign-id");
+                    if (filter && filter.value === result.old_campaign_id) filter.value = result.new_campaign_id;
+                    loadCampaignFolders();
+                    loadShots();
+                    loadVideoLibrary();
+                } catch (err) {
+                    addLogEntry("error", "Campaign rename error: " + err.message);
+                }
+            });
+            row.appendChild(renameBtn);
+
+            $campaignList.appendChild(row);
+        });
+    } catch (e) {
+        $campaignList.innerHTML = '<div style="color:#666; font-size:12px;">Failed to load campaigns</div>';
     }
 }
 
@@ -209,14 +429,19 @@ async function loadConfig() {
 
         // ComfyUI
         const comfyui = currentConfig.comfyui || {};
-        document.getElementById("cfg-comfyui-primary").value = comfyui.primary || "";
-        document.getElementById("cfg-comfyui-secondary").value = comfyui.secondary || "";
+        const comfyPrimaryEl = document.getElementById("cfg-comfyui-primary");
+        if (comfyPrimaryEl) comfyPrimaryEl.value = comfyui.primary || "";
+        const comfySecondaryEl = document.getElementById("cfg-comfyui-secondary");
+        if (comfySecondaryEl) comfySecondaryEl.value = comfyui.secondary || "";
 
         // Spark
         const spark = currentConfig.spark || {};
-        document.getElementById("cfg-spark-primary").value = spark.primary || "";
-        document.getElementById("cfg-spark-secondary").value = spark.secondary || "";
-        document.getElementById("cfg-spark-workflow").value = spark.workflow_file || "";
+        const sparkPrimaryEl = document.getElementById("cfg-spark-primary");
+        if (sparkPrimaryEl) sparkPrimaryEl.value = spark.primary || "";
+        const sparkSecondaryEl = document.getElementById("cfg-spark-secondary");
+        if (sparkSecondaryEl) sparkSecondaryEl.value = spark.secondary || "";
+        const sparkWorkflowEl = document.getElementById("cfg-spark-workflow");
+        if (sparkWorkflowEl) sparkWorkflowEl.value = spark.workflow_file || "";
 
     } catch (e) {
         console.error("Failed to load config:", e);
@@ -253,11 +478,11 @@ function markDirty(dotKey) {
         'models.hermes_3.host': () => document.getElementById("cfg-lmstudio-host").value,
         'models.hermes_3.port': () => parseInt(document.getElementById("cfg-lmstudio-port").value) || 0,
         'models.hermes_3.model_name': () => document.getElementById("cfg-lmstudio-model").value,
-        'comfyui.primary': () => document.getElementById("cfg-comfyui-primary").value,
-        'comfyui.secondary': () => document.getElementById("cfg-comfyui-secondary").value,
-        'spark.primary': () => document.getElementById("cfg-spark-primary").value,
-        'spark.secondary': () => document.getElementById("cfg-spark-secondary").value,
-        'spark.workflow_file': () => document.getElementById("cfg-spark-workflow").value,
+        'comfyui.primary': () => document.getElementById("cfg-comfyui-primary")?.value || "",
+        'comfyui.secondary': () => document.getElementById("cfg-comfyui-secondary")?.value || "",
+        'spark.primary': () => document.getElementById("cfg-spark-primary")?.value || "",
+        'spark.secondary': () => document.getElementById("cfg-spark-secondary")?.value || "",
+        'spark.workflow_file': () => document.getElementById("cfg-spark-workflow")?.value || "",
     };
 
     if (fieldMap[dotKey]) {
@@ -428,6 +653,44 @@ async function testComfyUI(which) {
         $result.textContent = which + " error: " + e.message;
         $result.className = "test-result err";
     }
+}
+
+async function testComfyUIAll() {
+    const $result = document.getElementById("comfyui-test-result");
+    const primary = document.getElementById("cfg-comfyui-primary")?.value?.trim() || "";
+    const secondary = document.getElementById("cfg-comfyui-secondary")?.value?.trim() || "";
+
+    if (!primary && !secondary) {
+        $result.textContent = "Please fill in at least one ComfyUI host URL";
+        $result.className = "test-result err";
+        return;
+    }
+
+    $result.textContent = "Testing ComfyUI hosts...";
+    $result.className = "test-result loading";
+
+    const checkOne = async (label, host) => {
+        if (!host) return { label, status: "skipped", msg: "not set" };
+        try {
+            const resp = await fetch("/api/test/comfyui", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ host }),
+            });
+            const data = await resp.json();
+            if (data.status === "ok") return { label, status: "ok", msg: `${data.latency_ms}ms` };
+            return { label, status: "err", msg: data.error || "unknown error" };
+        } catch (e) {
+            return { label, status: "err", msg: e.message };
+        }
+    };
+
+    const p = await checkOne("primary", primary);
+    const s = await checkOne("secondary", secondary);
+    const parts = [p, s].filter(x => x.status !== "skipped").map(x => `${x.label}: ${x.status === "ok" ? "ok" : "fail"} (${x.msg})`);
+    const anyFail = [p, s].some(x => x.status === "err");
+    $result.textContent = parts.join(" | ") || "No hosts to test";
+    $result.className = "test-result " + (anyFail ? "err" : "ok");
 }
 
 // ---------------------------------------------------------------------------
@@ -756,12 +1019,19 @@ function clearShotList() {
 // ---------------------------------------------------------------------------
 // Logging
 // ---------------------------------------------------------------------------
+let __systemLogSideRight = false;
+let __lastLogSpeaker = null;
 function addLogEntry(type, text) {
     const ts = new Date().toLocaleTimeString("en-US", { hour12: false });
-    const entry = document.createElement("div");
-    entry.className = "log-entry " + type;
+    const row = document.createElement("div");
+    if (__lastLogSpeaker !== type) {
+        __systemLogSideRight = !__systemLogSideRight;
+        __lastLogSpeaker = type;
+    }
+    row.className = "log-row " + type + " " + (__systemLogSideRight ? "right" : "left");
 
     const tags = {
+        user: "YOU",
         kimi: "[KIMI \u270D]",
         hermes: "[HERMES \uD83E\uDDE0]",
         spark: "[SPARK \u26A1]",
@@ -770,17 +1040,22 @@ function addLogEntry(type, text) {
         error: "[ERR]",
     };
 
-    entry.innerHTML =
-        '<span class="ts">' + ts + "</span>" +
-        '<span class="tag">' + (tags[type] || "[" + type.toUpperCase() + "]") + "</span> " +
-        '<span class="msg">' + escapeHtml(text) + "</span>";
+    row.innerHTML =
+        '<div class="log-bubble">' +
+            '<div class="meta">' +
+                '<span class="tag">' + escapeHtml((tags[type] || "[" + type.toUpperCase() + "]").replace(/^\[|\]$/g, "")) + "</span>" +
+                '<span class="ts">' + ts + "</span>" +
+            "</div>" +
+            '<div class="msg">' + escapeHtml(text) + "</div>" +
+        "</div>";
 
-    $log.appendChild(entry);
+    $log.appendChild(row);
     $log.scrollTop = $log.scrollHeight;
 }
 
 function clearLog() {
     $log.innerHTML = "";
+    __lastLogSpeaker = null;
     addLogEntry("system", "Log cleared");
 }
 
@@ -876,7 +1151,21 @@ async function runCampaign() {
         }
 
     } catch (e) {
-        if (e.name !== "AbortError") addLogEntry("error", "Campaign failed: " + e.message);
+        if (e.name !== "AbortError") {
+            addLogEntry("warning", "Campaign stream disconnected: " + e.message);
+            addLogEntry("system", "Backend may still be processing. Auto-refreshing media for 45s.");
+            if (campaignRecoveryTimer) clearInterval(campaignRecoveryTimer);
+            let ticks = 0;
+            campaignRecoveryTimer = setInterval(async () => {
+                ticks += 1;
+                await refreshShotViews();
+                if (ticks >= 9) {
+                    clearInterval(campaignRecoveryTimer);
+                    campaignRecoveryTimer = null;
+                    addLogEntry("system", "Recovery refresh complete.");
+                }
+            }, 5000);
+        }
     } finally {
         $runBtn.disabled = false;
         $runBtn.textContent = "Run Campaign";
@@ -893,8 +1182,7 @@ function handleCampaignEvent(event) {
     const shotId = event.shot_id || "";
     if (event.campaign_id) {
         currentCampaignId = event.campaign_id;
-        const f = document.getElementById("filter-campaign-id");
-        if (f && !f.value) f.value = currentCampaignId;
+        loadCampaignFolders();
     }
 
     switch (type) {
@@ -978,7 +1266,7 @@ async function sendChat() {
     $chatInput.value = "";
     $chatStatus.textContent = "Hermes is thinking...";
 
-    addLogEntry("system", "You: " + msg);
+    addLogEntry("user", msg);
 
     try {
         const resp = await fetch("/api/hermes/chat", {
@@ -1017,7 +1305,7 @@ async function sendChat() {
                     if (data.token) {
                         fullResponse += data.token;
                         // Live update last hermes log entry
-                        const entries = $log.querySelectorAll(".log-entry.hermes .msg");
+                        const entries = $log.querySelectorAll(".log-row.hermes .msg");
                         if (entries.length) {
                             entries[entries.length - 1].textContent = fullResponse;
                             $log.scrollTop = $log.scrollHeight;
@@ -1101,15 +1389,18 @@ async function loadShots() {
         const data = await resp.json();
         const rawShots = Array.isArray(data) ? data : (data.shots || []);
         if (data.active_campaign_id) currentCampaignId = data.active_campaign_id;
-        let shots = rawShots.filter(shotMatchesFilters);
+        let shots = _sortShots(rawShots.filter(shotMatchesFilters));
         const hasRealMedia = shots.some(s => !!s.image_url);
         if (hasRealMedia) {
             shots = shots.filter(s => !!s.image_url || !s.id || String(s.id).includes("__retry_"));
         }
+        const totalBeforeCap = shots.length;
+        if (shots.length > MAX_DASHBOARD_THUMBS) shots = shots.slice(-MAX_DASHBOARD_THUMBS);
         $filmstrip.innerHTML = "";
         shots.forEach((s) => {
             const isRetry = !!(s.retry_of || s.parent_shot_id || String(s.id).includes("__retry_"));
-            const audit = s.audit_status || "";
+            const state = String(s.state || s.status || "").toLowerCase();
+            const audit = String(s.audit_status || "").toLowerCase() || (state.includes("fail") ? "fail" : (state.includes("pass") ? "pass" : ""));
 
             const item = document.createElement("div");
             item.className = "filmstrip-item";
@@ -1121,6 +1412,8 @@ async function loadShots() {
                 const img = document.createElement("img");
                 img.src = s.image_url;
                 img.alt = s.id || "shot";
+                img.loading = "lazy";
+                img.decoding = "async";
                 item.appendChild(img);
 
                 item.addEventListener("click", () => toggleDashboardSelect(s.id, item));
@@ -1196,8 +1489,12 @@ async function loadShots() {
             item.classList.toggle("selected", dashboardSelection.has(s.id));
         });
         updateDashboardSelectionUI();
+        if (totalBeforeCap > MAX_DASHBOARD_THUMBS) {
+            addLogEntry("system", "Dashboard showing latest " + MAX_DASHBOARD_THUMBS + " of " + totalBeforeCap + " shots for stability.");
+        }
+        loadCampaignFolders();
     } catch (e) {
-        // silent
+        addLogEntry("error", "Failed to refresh dashboard shots: " + (e?.message || e));
     }
 }
 
@@ -1321,7 +1618,9 @@ async function loadVideoLibrary() {
         const resp = await fetch("/api/shots");
         const data = await resp.json();
         const allShots = Array.isArray(data) ? data : (data.shots || []);
-        const shots = allShots.filter(s => !!s.image_url).filter(shotMatchesFilters);
+        let shots = _sortShots(allShots.filter(s => !!s.image_url).filter(shotMatchesFilters));
+        const totalBeforeCap = shots.length;
+        if (shots.length > MAX_VIDEO_THUMBS) shots = shots.slice(-MAX_VIDEO_THUMBS);
         videoShotsById = {};
         shots.forEach(s => { videoShotsById[s.id] = s; });
         if (!shots.length) {
@@ -1334,7 +1633,8 @@ async function loadVideoLibrary() {
             const selected = videoSelection.has(s.id);
             const cell = document.createElement("div");
             const isRetry = !!(s.retry_of || s.parent_shot_id || String(s.id).includes("__retry_"));
-            const auditStatus = s.audit_status || "";
+            const state = String(s.state || s.status || "").toLowerCase();
+            const auditStatus = String(s.audit_status || "").toLowerCase() || (state.includes("fail") ? "fail" : (state.includes("pass") ? "pass" : ""));
             const cls = ["grid-cell", "rendered"];
             if (selected) cls.push("selected");
             if (auditStatus === "pass") cls.push("audit-pass");
@@ -1346,6 +1646,8 @@ async function loadVideoLibrary() {
             const img = document.createElement("img");
             img.src = s.image_url;
             img.alt = s.id;
+            img.loading = "lazy";
+            img.decoding = "async";
 
             const label = document.createElement("div");
             label.className = "cell-label";
@@ -1406,7 +1708,10 @@ async function loadVideoLibrary() {
             });
             gridEl.appendChild(cell);
         });
-        if (statusEl) statusEl.textContent = "Ready — loaded " + shots.length + " photo(s)";
+        if (statusEl) {
+            statusEl.textContent = "Ready — loaded " + shots.length + " photo(s)" +
+                (totalBeforeCap > MAX_VIDEO_THUMBS ? (" (latest " + MAX_VIDEO_THUMBS + " of " + totalBeforeCap + ")") : "");
+        }
         updateVideoSelectionUI();
     } catch (e) {
         if (statusEl) statusEl.textContent = "Failed to load photos: " + e.message;
@@ -1683,18 +1988,34 @@ const TL_TYPE_COLOR = {
 };
 
 async function loadMemoryTab() {
+  const cyEl = document.getElementById('cy-canvas');
+  if (cyEl) cyEl.innerHTML = "";
   try {
     const s = await fetch('/api/memory/stats').then(r => r.json());
     document.getElementById('mg-events').textContent = s.events ?? '—';
     document.getElementById('mg-insights').textContent = s.insights ?? '—';
     document.getElementById('mg-sessions').textContent = s.sessions ?? '—';
     document.getElementById('mg-rules').textContent = s.rules ?? '—';
-  } catch(e) {}
+  } catch(e) {
+    addLogEntry("error", "Memory stats failed: " + (e?.message || e));
+  }
 
   try {
+    await ensureCytoscapeLoaded();
     const g = await fetch('/api/memory/graph').then(r => r.json());
-    initMemoryGraph(g.nodes || [], g.edges || []);
-  } catch(e) {}
+    const nodes = Array.isArray(g.nodes) ? g.nodes : [];
+    const edges = Array.isArray(g.edges) ? g.edges : [];
+    if (!nodes.length && cyEl) {
+      cyEl.innerHTML = '<div style="padding:14px;color:#888;font-size:12px;">No memory graph data yet.</div>';
+    } else {
+      initMemoryGraph(nodes, edges);
+    }
+  } catch(e) {
+    if (cyEl) {
+      cyEl.innerHTML = '<div style="padding:14px;color:#ff8a80;font-size:12px;">Memory graph failed to load.</div>';
+    }
+    addLogEntry("error", "Memory graph failed: " + (e?.message || e));
+  }
 
   try {
     const rules = await fetch('/api/memory/insights').then(r => r.json());
@@ -1710,7 +2031,9 @@ async function loadMemoryTab() {
           <div class="rule-meta">${r.confirmations || 0}× confirmed · ${r.source || 'semantic'}</div>
         </div>`).join('');
     }
-  } catch(e) {}
+  } catch(e) {
+    addLogEntry("error", "Memory insights failed: " + (e?.message || e));
+  }
 
   try {
     const tl = await fetch('/api/memory/timeline').then(r => r.json());
@@ -1727,16 +2050,60 @@ async function loadMemoryTab() {
         </div>
       </div>`;
     }).join('');
-  } catch(e) {}
+  } catch(e) {
+    addLogEntry("error", "Memory timeline failed: " + (e?.message || e));
+  }
+}
+
+async function ensureCytoscapeLoaded() {
+  if (window.cytoscape) return;
+  const sources = [
+    "https://unpkg.com/cytoscape@3.26.0/dist/cytoscape.min.js",
+    "https://cdn.jsdelivr.net/npm/cytoscape@3.26.0/dist/cytoscape.min.js",
+  ];
+  for (const src of sources) {
+    await new Promise((resolve) => {
+      const s = document.createElement("script");
+      s.src = src;
+      s.async = true;
+      s.onload = () => resolve(true);
+      s.onerror = () => resolve(false);
+      document.head.appendChild(s);
+    });
+    if (window.cytoscape) return;
+  }
+  throw new Error("cytoscape_script_unavailable");
 }
 
 function initMemoryGraph(nodes, edges) {
   const el = document.getElementById('cy-canvas');
   if (!el || !window.cytoscape) return;
   if (window._memoryCy) { window._memoryCy.destroy(); }
+  const MAX_NODES = 220;
+  const useNodes = nodes.slice(-MAX_NODES);
+  const allowedNodeIds = new Set(useNodes.map((n) => n.id));
+  const useEdges = edges.filter((e) => allowedNodeIds.has(e.source) && allowedNodeIds.has(e.target));
+  const cyNodes = (useNodes || []).map((n) => ({
+    data: {
+      id: n.id,
+      label: n.label || n.id,
+      type: n.type || "event",
+      size: n.size || 20,
+      ...(n.data || {}),
+    },
+  }));
+  const cyEdges = (useEdges || []).map((e) => ({
+    data: {
+      id: e.id || (e.source + "->" + e.target),
+      source: e.source,
+      target: e.target,
+      type: e.type || "link",
+      label: e.label || "",
+    },
+  }));
   window._memoryCy = cytoscape({
     container: el,
-    elements: [...nodes, ...edges],
+    elements: [...cyNodes, ...cyEdges],
     style: [
       {
         selector: 'node',
@@ -1747,8 +2114,8 @@ function initMemoryGraph(nodes, edges) {
           'font-size': '9px',
           'text-valign': 'bottom',
           'text-halign': 'center',
-          'width': (n) => n.data('type') === 'session' ? 28 : 18,
-          'height': (n) => n.data('type') === 'session' ? 28 : 18,
+          'width': (n) => n.data('size') || (n.data('type') === 'session' ? 28 : 18),
+          'height': (n) => n.data('size') || (n.data('type') === 'session' ? 28 : 18),
           'shape': (n) => ({ session: 'diamond', insight: 'star', concept: 'rectangle' }[n.data('type')] || 'ellipse'),
         }
       },

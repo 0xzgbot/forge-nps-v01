@@ -633,6 +633,10 @@ class UpdateShotRequest(BaseModel):
 class ReparseRequest(BaseModel):
     path: str = ""
 
+class RenameCampaignRequest(BaseModel):
+    old_campaign_id: str
+    new_campaign_name: str
+
 
 @app.get("/api/shots")
 async def api_get_shots():
@@ -640,6 +644,242 @@ async def api_get_shots():
         "shots": _SHOTS_STORE,
         "count": len(_SHOTS_STORE),
         "active_campaign_id": _ACTIVE_CAMPAIGN,
+    }
+
+
+@app.post("/api/shots/reindex-storage")
+async def api_reindex_shots_from_storage():
+    """
+    Rehydrate shot records from on-disk render folders so historical campaigns
+    appear again in Dashboard/Video after server restarts or store drift.
+    """
+    roots = [
+        ("external", MEDIA_IMAGES, "/external-renders", "campaign"),
+        ("campaigns", REPO_ROOT / "data" / "campaigns", "/campaigns", "campaign"),
+        ("renders_campaigns", REPO_ROOT / "data" / "renders" / "campaigns", "/renders/campaigns", "campaign"),
+    ]
+
+    image_exts = {".png", ".jpg", ".jpeg", ".webp"}
+    rebuilt: List[Dict[str, Any]] = []
+    seen_ids = set()
+
+    def _guess_campaign_and_shot(stem: str, rel_parts: List[str]) -> tuple[str, str]:
+        campaign = ""
+        shot = ""
+        if rel_parts:
+            campaign = rel_parts[0]
+        # Common id pattern: <campaign>__SHOT_001__workflow
+        if "__SHOT_" in stem:
+            parts = stem.split("__")
+            if not campaign and parts:
+                campaign = parts[0]
+            for p in parts:
+                if p.startswith("SHOT_"):
+                    shot = p
+                    break
+        if not campaign:
+            campaign = "legacy"
+        if not shot:
+            shot = stem[:40]
+        return campaign, shot
+
+    for mount_name, root, url_prefix, source in roots:
+        if not root.exists():
+            continue
+        for f in sorted(root.rglob("*")):
+            if not f.is_file() or f.suffix.lower() not in image_exts:
+                continue
+            stem = f.stem
+            rel = f.relative_to(root)
+            rel_parts = list(rel.parts[:-1])
+            campaign_id, shot_id = _guess_campaign_and_shot(stem, rel_parts)
+            record_id = stem
+            if record_id in seen_ids:
+                continue
+            seen_ids.add(record_id)
+            image_url = f"{url_prefix}/{rel.as_posix()}" if mount_name != "external" else f"{url_prefix}/{rel.as_posix()}"
+            rebuilt.append({
+                "id": record_id,
+                "campaign_id": campaign_id,
+                "shot_id": shot_id,
+                "sequence": 0,
+                "workflow_id": "reindexed_media",
+                "status": "complete",
+                "state": "rendered",
+                "seed": None,
+                "prompt": f"Reindexed media: {stem}",
+                "compiled_prompt": f"Reindexed media: {stem}",
+                "negative_prompt": "",
+                "workflow_profile": "reindexed",
+                "skills_used": [],
+                "compiler_version": "",
+                "model_standard_name": "",
+                "model_standard_version": "",
+                "model_standard_source": "",
+                "model_standard_rules": [],
+                "sections": {},
+                "source": source,
+                "image_path": str(f),
+                "image_url": image_url,
+                "created_at": _now_iso(),
+            })
+
+    # Preserve any existing non-media script shots, but prioritize media records.
+    non_media = [s for s in _SHOTS_STORE if not s.get("image_url")]
+    _SHOTS_STORE.clear()
+    _SHOTS_STORE.extend(rebuilt + non_media)
+
+    return {
+        "status": "ok",
+        "reindexed": len(rebuilt),
+        "preserved_non_media": len(non_media),
+        "count": len(_SHOTS_STORE),
+    }
+
+
+@app.get("/api/campaigns")
+async def api_get_campaigns():
+    ids = set()
+    for s in _SHOTS_STORE:
+        cid = str(s.get("campaign_id") or "").strip()
+        if cid and cid != "import":
+            ids.add(cid)
+    ids.update(k for k in _CAMPAIGNS.keys() if k and k != "import")
+
+    roots = [
+        MEDIA_IMAGES,
+        REPO_ROOT / "data" / "renders" / "campaigns",
+        REPO_ROOT / "data" / "campaigns",
+    ]
+    for root in roots:
+        if root.exists():
+            for d in root.iterdir():
+                if d.is_dir() and d.name and d.name != "import":
+                    ids.add(d.name)
+
+    campaigns = []
+    for cid in sorted(ids):
+        matching = [s for s in _SHOTS_STORE if str(s.get("campaign_id") or "") == cid]
+        shot_count = len(matching)
+        meta = _CAMPAIGNS.get(cid, {}) if isinstance(_CAMPAIGNS.get(cid, {}), dict) else {}
+        inferred_brief = str(meta.get("brief", "") or "")
+        if not inferred_brief:
+            for s in matching:
+                b = str(s.get("campaign_brief", "") or "").strip()
+                if b:
+                    inferred_brief = b
+                    break
+        if not inferred_brief:
+            inferred_brief = _brief_from_campaign_manifest(cid)
+        if not inferred_brief:
+            # Last-resort for older campaigns: humanize campaign id slug.
+            inferred_brief = _humanize_campaign_id(cid)
+        campaigns.append({
+            "campaign_id": cid,
+            "shot_count": shot_count,
+            "active": cid == _ACTIVE_CAMPAIGN,
+            "brief": inferred_brief,
+            "started_at": str(meta.get("started_at", "") or ""),
+        })
+
+    return {
+        "campaigns": campaigns,
+        "count": len(campaigns),
+        "active_campaign_id": _ACTIVE_CAMPAIGN,
+    }
+
+
+def _safe_campaign_name(raw: str) -> str:
+    # Keep this filesystem-safe and UI-friendly.
+    name = re.sub(r"[^A-Za-z0-9._-]+", "_", (raw or "").strip())
+    name = re.sub(r"_+", "_", name).strip("._-")
+    return name[:80]
+
+
+def _brief_from_campaign_manifest(campaign_id: str) -> str:
+    if not campaign_id:
+        return ""
+    roots = [
+        MEDIA_IMAGES / campaign_id,
+        REPO_ROOT / "data" / "campaigns" / campaign_id,
+        REPO_ROOT / "data" / "renders" / "campaigns" / campaign_id,
+    ]
+    for root in roots:
+        try:
+            manifest = root / "_campaign.json"
+            if not manifest.exists():
+                continue
+            payload = json.loads(manifest.read_text(encoding="utf-8"))
+            brief = str(payload.get("brief", "") or "").strip()
+            if brief:
+                return brief
+        except Exception:
+            continue
+    return ""
+
+
+def _humanize_campaign_id(cid: str) -> str:
+    if not cid:
+        return ""
+    base = cid
+    if "__" in cid:
+        left, right = cid.rsplit("__", 1)
+        if re.fullmatch(r"[a-f0-9]{6,12}", right):
+            base = left
+    return base.replace("__", " ").replace("_", " ").strip()
+
+
+@app.post("/api/campaigns/rename")
+async def api_rename_campaign(req: RenameCampaignRequest):
+    global _ACTIVE_CAMPAIGN
+    old_id = (req.old_campaign_id or "").strip()
+    new_name = _safe_campaign_name(req.new_campaign_name)
+    if not old_id:
+        raise HTTPException(status_code=400, detail="old_campaign_id is required")
+    if not new_name:
+        raise HTTPException(status_code=400, detail="new_campaign_name is invalid")
+    if old_id == new_name:
+        return {"status": "ok", "old_campaign_id": old_id, "new_campaign_id": new_name, "shot_updates": 0, "folders_renamed": 0}
+
+    existing_ids = {str(s.get("campaign_id") or "") for s in _SHOTS_STORE}
+    existing_ids.update(_CAMPAIGNS.keys())
+    if new_name in existing_ids:
+        raise HTTPException(status_code=409, detail="new campaign name already exists")
+
+    updated = 0
+    for s in _SHOTS_STORE:
+        if str(s.get("campaign_id") or "") == old_id:
+            s["campaign_id"] = new_name
+            updated += 1
+
+    if old_id in _CAMPAIGNS:
+        _CAMPAIGNS[new_name] = _CAMPAIGNS.pop(old_id)
+    if _ACTIVE_CAMPAIGN == old_id:
+        _ACTIVE_CAMPAIGN = new_name
+
+    roots = [
+        MEDIA_IMAGES,
+        REPO_ROOT / "data" / "renders" / "campaigns",
+        REPO_ROOT / "data" / "campaigns",
+    ]
+    renamed_folders = 0
+    for root in roots:
+        src = root / old_id
+        dst = root / new_name
+        try:
+            if src.exists() and src.is_dir() and not dst.exists():
+                src.rename(dst)
+                renamed_folders += 1
+        except Exception:
+            # Keep rename best-effort; shot lineage is primary source of truth.
+            pass
+
+    return {
+        "status": "ok",
+        "old_campaign_id": old_id,
+        "new_campaign_id": new_name,
+        "shot_updates": updated,
+        "folders_renamed": renamed_folders,
     }
 
 
@@ -985,7 +1225,8 @@ def _resolve_image_path(image_url: str) -> Optional[Path]:
         if r.exists():
             return r
     if image_url.startswith("/external-renders/"):
-        ex = MEDIA_IMAGES / Path(image_url).name
+        rel = image_url.replace("/external-renders/", "", 1).lstrip("/")
+        ex = MEDIA_IMAGES / rel
         if ex.exists():
             return ex
     c2 = MEDIA_IMAGES / Path(image_url).name
@@ -1036,6 +1277,7 @@ async def api_hermes_run_campaign(req: RunCampaignRequest):
             workflow_file_for_id=_workflow_file_for_id,
             is_cancelled=lambda: _CANCEL_CAMPAIGN,
             active_campaign_setter=_set_active,
+            remediate_failed=lambda shot_ids: _make_audit_service().remediate(shot_ids, max_retries=1),
         )
         payload = CampaignRequest(
             brief=req.brief,
@@ -1936,6 +2178,57 @@ async def api_test_kimi(req: KimiTestRequest):
         return {"status": "ok", "latency_ms": latency_ms}
     except Exception as e:
         return {"status": "error", "error": str(e)}
+
+
+@app.get("/api/test/lmstudio")
+async def api_test_lmstudio(host: str = "http://127.0.0.1", port: int = 1234):
+    base = (host or "").strip().rstrip("/")
+    if not base:
+        base = "http://127.0.0.1"
+    if not base.startswith("http://") and not base.startswith("https://"):
+        base = "http://" + base
+    url = f"{base}:{int(port)}/v1/models"
+    try:
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            r = await client.get(url)
+        if r.status_code >= 400:
+            return {"status": "error", "error": f"http {r.status_code}: {r.text[:200]}", "models": []}
+        data = r.json()
+        models = [m.get("id") for m in data.get("data", []) if isinstance(m, dict) and m.get("id")]
+        return {"status": "ok", "models": models}
+    except Exception as e:
+        return {"status": "error", "error": str(e), "models": []}
+
+
+@app.get("/api/test/nim")
+async def api_test_nim():
+    cm = ConfigManager()
+    endpoint = (cm.get("NIM_ENDPOINT", "") or cm.get_nim_endpoint() or "").strip().rstrip("/")
+    if endpoint and not endpoint.endswith("/chat/completions"):
+        endpoint = endpoint + "/chat/completions"
+    api_key = cm.get_kimi_api_key()
+    if not endpoint:
+        return {"status": "error", "error": "missing endpoint"}
+    if not api_key:
+        return {"status": "error", "error": "missing api key"}
+    payload = {
+        "model": cm.get("KIMI_INSTRUCT_MODEL", "moonshotai/kimi-k2"),
+        "messages": [{"role": "user", "content": "ping"}],
+        "max_tokens": 8,
+    }
+    t0 = time.time()
+    try:
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            r = await client.post(
+                endpoint,
+                headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                json=payload,
+            )
+        if r.status_code >= 400:
+            return {"status": "error", "error": f"http {r.status_code}: {r.text[:200]}"}
+        return {"status": "ok", "latency_ms": int((time.time() - t0) * 1000), "endpoint": endpoint}
+    except Exception as e:
+        return {"status": "error", "error": str(e), "endpoint": endpoint}
 
 
 @app.post("/api/restart")

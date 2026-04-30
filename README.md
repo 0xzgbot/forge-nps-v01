@@ -34,6 +34,26 @@ KIMI_API_KEY="nvapi-..." uvicorn dashboard.forge_dashboard:app --host 0.0.0.0 --
 ```
 Open: `http://localhost:7000`
 
+## Updating Hermes Engine (Submodule)
+`hermes_engine` is intentionally tracked as a submodule so Forge keeps a normal updatable Hermes install.
+
+Use the repo helper:
+```bash
+~/Desktop/forge_nps_v01/scripts/update_hermes_engine.sh
+```
+
+Then persist the new engine pointer in Forge:
+```bash
+cd ~/Desktop/forge_nps_v01
+git status
+git commit -am "chore: update hermes_engine"
+git push
+```
+
+Notes:
+- This updates `hermes_engine` from `origin/main` (NousResearch hermes-agent).
+- Keep Forge-specific behavior in this repo (`dashboard/`, `core/`, `hermes_home/skills`, `hermes_home/profiles/forgehermes`), not by ad-hoc edits to upstream engine internals.
+
 ## Required Runtime Env
 ```bash
 KIMI_API_KEY=nvapi-...

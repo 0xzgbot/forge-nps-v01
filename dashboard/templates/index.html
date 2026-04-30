@@ -195,6 +195,20 @@
             flex-direction: column;
             min-height: 0;
             background: #0d0d0d;
+            position: relative;
+        }
+        .dashboard-filter-dock {
+            position: sticky;
+            bottom: 0;
+            z-index: 20;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+            padding: 10px 14px;
+            background: rgba(10, 10, 10, 0.92);
+            border-top: 1px solid #222;
         }
         .dashboard-divider {
             width: 8px;
@@ -223,15 +237,38 @@
             font-size: 12px;
             line-height: 1.6;
         }
-        .log-entry { margin-bottom: 4px; white-space: pre-wrap; word-break: break-word; }
-        .log-entry .ts { color: #555; margin-right: 8px; }
-        .log-entry.kimi .tag { color: #4FC3F7; }
-        .log-entry.hermes .tag { color: #CE93D8; }
-        .log-entry.spark .tag { color: #66BB6A; }
-        .log-entry.memory .tag { color: #FFB74D; }
-        .log-entry.system .tag { color: #90A4AE; }
-        .log-entry.error .tag { color: #EF5350; }
-        .log-entry .msg { color: #ccc; }
+        .log-row {
+            display: flex;
+            margin-bottom: 8px;
+            gap: 8px;
+            align-items: flex-end;
+        }
+        .log-row.left { justify-content: flex-start; }
+        .log-row.right { justify-content: flex-end; }
+        .log-bubble {
+            max-width: 78%;
+            border-radius: 16px;
+            padding: 8px 12px;
+            white-space: pre-wrap;
+            word-break: break-word;
+            border: 1px solid #2a2a2a;
+        }
+        .log-bubble .meta {
+            display: flex;
+            gap: 8px;
+            align-items: baseline;
+            margin-bottom: 4px;
+            font-size: 12px;
+        }
+        .log-bubble .ts { opacity: 0.7; }
+        .log-bubble .msg { color: #f3f4f6; }
+        .log-row.kimi .log-bubble { background: #0b3b72; border-color: #2f6fb4; }
+        .log-row.hermes .log-bubble { background: #4f2a75; border-color: #7f55b0; }
+        .log-row.spark .log-bubble { background: #1f6a35; border-color: #3ea85d; }
+        .log-row.memory .log-bubble { background: #7a5a10; border-color: #bb8a22; }
+        .log-row.user .log-bubble { background: #0f4acb; border-color: #4d7fff; }
+        .log-row.system .log-bubble { background: #2c3f50; border-color: #4f6477; }
+        .log-row.error .log-bubble { background: #6b1f1f; border-color: #c74646; }
 
         /* Filmstrip / Gallery */
         #filmstrip {
@@ -358,6 +395,72 @@
         }
         .nav-tab:hover { background: #2a2a2a; color: #ccc; }
         .nav-tab.active { background: #3D5AFE; border-color: #3D5AFE; color: #fff; }
+        .campaign-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-height: 0;
+            flex: 1;
+            overflow-y: auto;
+        }
+        .sort-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .sort-select {
+            background: #222;
+            border: 1px solid #444;
+            border-radius: 4px;
+            color: #ccc;
+            padding: 6px 8px;
+            font-size: 12px;
+        }
+        .sidebar-section.campaigns-section {
+            flex: 1;
+            min-height: 0;
+        }
+        .campaign-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: #222;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 6px 8px;
+        }
+        .campaign-row.active {
+            border-color: #3D5AFE;
+        }
+        .campaign-btn {
+            flex: 1;
+            text-align: left;
+            background: transparent;
+            border: 0;
+            color: #ccc;
+            font-size: 12px;
+            cursor: pointer;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .campaign-btn:hover { color: #fff; }
+        .campaign-meta {
+            color: #777;
+            font-size: 11px;
+            font-family: 'JetBrains Mono', monospace;
+            margin-left: 6px;
+        }
+        .campaign-rename {
+            background: #2f2f2f;
+            border: 1px solid #444;
+            color: #bbb;
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+            padding: 3px 6px;
+        }
+        .campaign-rename:hover { color: #fff; border-color: #666; }
 
         /* Settings page */
         #settings-view {
@@ -940,29 +1043,34 @@
         <div class="nav-tabs">
             <div class="nav-tab active" data-page="dashboard-view" onclick="switchPage('dashboard-view')">Dashboard</div>
             <div class="nav-tab" data-page="script-view" onclick="switchPage('script-view')">Script</div>
-            <div class="nav-tab" data-page="spark-view" onclick="switchPage('spark-view')">Video</div>
+            <div class="nav-tab" data-page="spark-view" onclick="switchPage('spark-view')">Media</div>
             <div class="nav-tab" data-page="memory-view" onclick="switchPage('memory-view'); loadMemoryTab()">Memory</div>
             <div class="nav-tab" data-page="settings-view" onclick="switchPage('settings-view')">Settings</div>
         </div>
 
-        <div class="sidebar-section">
-            <h3>Characters</h3>
-            <div id="char-list">
+        <div class="sidebar-section campaigns-section">
+            <h3>Campaigns</h3>
+            <div class="sort-row">
+                <select id="campaign-sort-key" class="sort-select" onchange="onCampaignSortChange()">
+                    <option value="name">Name</option>
+                    <option value="time">Time Created</option>
+                </select>
+                <label class="model-checkbox"><input type="checkbox" id="campaign-sort-reverse" onchange="onCampaignSortChange()"> Reverse</label>
+            </div>
+            <div class="sort-row">
+                <select id="media-sort-key" class="sort-select" onchange="onMediaSortChange()">
+                    <option value="time">Media Time</option>
+                    <option value="name">Media Name</option>
+                </select>
+                <label class="model-checkbox"><input type="checkbox" id="media-sort-reverse" onchange="onMediaSortChange()"> Reverse</label>
+            </div>
+            <div id="campaign-list" class="campaign-list">
                 <div style="color:#666; font-size:12px;">Loading...</div>
             </div>
         </div>
 
-        <div class="sidebar-section">
-            <h3>System</h3>
-            <div id="stats-panel">
-                <div class="stat-row"><span>Shots</span><span class="val" id="stat-shots">-</span></div>
-                <div class="stat-row"><span>Sessions</span><span class="val" id="stat-sessions">-</span></div>
-                <div class="stat-row"><span>RAM</span><span class="val" id="stat-ram">-</span></div>
-            </div>
-        </div>
-
         <div class="sidebar-section" style="margin-top:auto;">
-            <button class="btn btn-secondary" onclick="loadShots()">Refresh Shots</button>
+            <button class="btn btn-secondary" onclick="refreshShotViews()">Refresh Shots</button>
             <button class="btn btn-secondary" onclick="clearLog()">Clear Log</button>
         </div>
     </div>
@@ -980,17 +1088,11 @@
                 <button class="btn btn-secondary" onclick="reprocessSelectedFromDashboard()">Re-Audit Selected</button>
                 <input type="text" id="dashboard-selected-count" value="0 selected" readonly style="width:120px;background:#222;border:1px solid #444;border-radius:4px;color:#ccc;padding:8px 10px;font-size:12px;">
                 <button class="btn btn-cancel" id="cancel-campaign-btn" onclick="cancelCampaign()" style="display:none;">✕ Cancel</button>
-                <label class="model-checkbox"><input type="checkbox" id="model-zimage" checked> Z-Image</label>
-                <label class="model-checkbox"><input type="checkbox" id="model-flux2"> Flux2.Dev</label>
+                <label class="model-checkbox"><input type="checkbox" id="model-flux2" checked> Flux2.Dev</label>
+                <label class="model-checkbox"><input type="checkbox" id="model-zimage"> Z-Image</label>
                 <label class="model-checkbox"><input type="checkbox" id="model-turbo"> Turbo</label>
                 <input type="text" id="bible-path" placeholder="Optional: /path/to/world_bible.md">
                 <input type="text" id="filter-campaign-id" placeholder="Campaign ID" style="width:130px;background:#222;border:1px solid #444;border-radius:4px;color:#ccc;padding:8px 10px;font-size:12px;">
-                <label class="model-checkbox"><input type="checkbox" id="filter-rendered-only" onchange="loadShots();loadVideoLibrary();"> Rendered</label>
-                <label class="model-checkbox"><input type="checkbox" id="filter-failed-only" onchange="loadShots();loadVideoLibrary();"> Failed</label>
-                <label class="model-checkbox"><input type="checkbox" id="filter-passed-only" onchange="loadShots();loadVideoLibrary();"> Passed</label>
-                <label class="model-checkbox"><input type="checkbox" id="filter-retries-only" onchange="loadShots();loadVideoLibrary();"> Retries</label>
-                <label class="model-checkbox"><input type="checkbox" id="filter-imported-only" onchange="loadShots();loadVideoLibrary();"> Imported</label>
-                <button class="btn btn-secondary" onclick="applyShotFilters()">Apply Filters</button>
             </div>
         </div>
 
@@ -1010,6 +1112,19 @@
             <div class="dashboard-right-pane">
                 <!-- Filmstrip -->
                 <div id="filmstrip"></div>
+                <div class="dashboard-filter-dock">
+                    <select id="media-sort-key-inline" class="sort-select" onchange="syncMediaSortFromInline()">
+                        <option value="time">Time</option>
+                        <option value="name">Name</option>
+                    </select>
+                    <label class="model-checkbox"><input type="checkbox" id="media-sort-reverse-inline" onchange="syncMediaSortFromInline()"> Reverse</label>
+                    <label class="model-checkbox"><input type="checkbox" id="filter-rendered-only" onchange="loadShots();loadVideoLibrary();"> Rendered</label>
+                    <label class="model-checkbox"><input type="checkbox" id="filter-failed-only" onchange="loadShots();loadVideoLibrary();"> Failed</label>
+                    <label class="model-checkbox"><input type="checkbox" id="filter-passed-only" onchange="loadShots();loadVideoLibrary();"> Passed</label>
+                    <label class="model-checkbox"><input type="checkbox" id="filter-retries-only" onchange="loadShots();loadVideoLibrary();"> Retries</label>
+                    <label class="model-checkbox"><input type="checkbox" id="filter-imported-only" onchange="loadShots();loadVideoLibrary();"> Imported</label>
+                    <button class="btn btn-secondary" onclick="applyShotFilters()">Apply Filters</button>
+                </div>
             </div>
         </div>
         </div>  <!-- /#main dashboard-view -->
@@ -1107,41 +1222,24 @@
 
             <!-- ComfyUI Hosts Card -->
             <div class="settings-card">
-                <h3><span class="card-icon">&#127912;</span> ComfyUI Hosts</h3>
-                <p class="card-desc">Dual-server setup for parallel image generation and video rendering.</p>
+                <h3><span class="card-icon">&#127912;</span> ComfyUI + Spark &#9889;</h3>
+                <p class="card-desc">Primary ComfyUI host and Spark WebSocket.</p>
                 <div class="form-row">
                     <label>Primary (Port 8188)</label>
-                    <div style="display:flex;gap:8px;">
-                        <input type="text" id="cfg-comfyui-primary" placeholder="http://localhost:8188" style="flex:1;" onchange="markDirty('comfyui.primary')">
-                        <button class="btn btn-secondary" style="white-space:nowrap;" onclick="testComfyUI('primary')">Test</button>
-                    </div>
+                    <input type="text" id="cfg-comfyui-primary" placeholder="http://localhost:8188" style="flex:1;" onchange="markDirty('comfyui.primary')">
                 </div>
                 <div class="form-row">
-                    <label>Secondary (Port 8189)</label>
-                    <div style="display:flex;gap:8px;">
-                        <input type="text" id="cfg-comfyui-secondary" placeholder="http://localhost:8189" style="flex:1;" onchange="markDirty('comfyui.secondary')">
-                        <button class="btn btn-secondary" style="white-space:nowrap;" onclick="testComfyUI('secondary')">Test</button>
-                    </div>
-                </div>
-                <div id="comfyui-test-result" class="test-result"></div>
-            </div>
-
-            <!-- DGX Spark Card -->
-            <div class="settings-card">
-                <h3><span class="card-icon">&#9889;</span> DGX Spark</h3>
-                <p class="card-desc">WebSocket endpoints for Spark agent communication and workflow files.</p>
-                <div class="form-row">
-                    <label>Primary WebSocket</label>
+                    <label>Spark Primary WebSocket</label>
                     <input type="text" id="cfg-spark-primary" placeholder="ws://localhost:8000" onchange="markDirty('spark.primary')">
                 </div>
                 <div class="form-row">
-                    <label>Secondary WebSocket</label>
-                    <input type="text" id="cfg-spark-secondary" placeholder="ws://localhost:8001" onchange="markDirty('spark.secondary')">
+                    <label>Secondary (Port 8189)</label>
+                    <input type="text" id="cfg-comfyui-secondary" placeholder="http://localhost:8189" style="flex:1;" onchange="markDirty('comfyui.secondary')">
                 </div>
-                <div class="form-row">
-                    <label>Workflow File</label>
-                    <input type="text" id="cfg-spark-workflow" placeholder="workflows/default.json" onchange="markDirty('spark.workflow_file')">
+                <div class="card-actions">
+                    <button class="btn btn-secondary" onclick="testComfyUIAll()">Test ComfyUI</button>
                 </div>
+                <div id="comfyui-test-result" class="test-result"></div>
             </div>
 
         </div>
