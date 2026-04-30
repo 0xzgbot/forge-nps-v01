@@ -4,6 +4,7 @@ import json
 import os
 import logging
 from pathlib import Path
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +69,26 @@ class ComfyUIClient:
                 }
         except Exception as e:
             logger.error(f"Error submitting prompt: {e}")
+            return {"ok": False, "error": str(e)}
+
+    async def upload_image(self, image_path: str) -> dict:
+        """Upload a local image to ComfyUI input directory."""
+        p = Path(image_path)
+        if not p.exists():
+            return {"ok": False, "error": f"file_not_found:{image_path}"}
+        try:
+            async with httpx.AsyncClient() as client:
+                with open(p, "rb") as f:
+                    files = {"image": (p.name, f, "application/octet-stream")}
+                    data = {"overwrite": "true", "type": "input"}
+                    response = await client.post(f"{self.base_url}/upload/image", files=files, data=data, timeout=30.0)
+            if response.status_code == 200:
+                payload = response.json() if response.text else {}
+                name = payload.get("name") or p.name
+                subfolder = payload.get("subfolder", "")
+                return {"ok": True, "name": name, "subfolder": subfolder}
+            return {"ok": False, "error": f"http_{response.status_code}:{response.text[:200]}"}
+        except Exception as e:
             return {"ok": False, "error": str(e)}
 
     async def load_workflow(self, workflow_name: str) -> dict:
@@ -179,6 +200,16 @@ class ComfyUIClient:
                 if current not in ("", None):
                     continue
                 if isinstance(spec, list) and spec:
+                    # COMBO fields in object_info often look like:
+                    # ["COMBO", {"options": [...]}]
+                    if (
+                        len(spec) > 1
+                        and isinstance(spec[1], dict)
+                        and isinstance(spec[1].get("options"), list)
+                        and spec[1]["options"]
+                    ):
+                        inputs[key] = spec[1]["options"][0]
+                        continue
                     # Choice list, e.g. [["euler", ...], {...}]
                     if isinstance(spec[0], list) and spec[0]:
                         inputs[key] = spec[0][0]
@@ -201,11 +232,15 @@ class ComfyUIClient:
                         inputs[field] = choice
 
             # Fill empty prompt text nodes
-            if class_type == "CLIPTextEncode" and "text" in inputs and (inputs["text"] == "" or inputs["text"] is None):
+            if class_type == "CLIPTextEncode":
+                # Ensure text field exists even when the workflow converter did not
+                # attach a widget/default (common with subgraph exports).
+                if "text" not in inputs:
+                    inputs["text"] = ""
                 title = str(node.get("_meta", {}).get("title", "")).lower()
                 if "neg" in title:
                     inputs["text"] = negative_default
-                else:
+                elif inputs["text"] == "" or inputs["text"] is None:
                     inputs["text"] = prompt or "cinematic still frame"
 
     def _convert_webui_workflow_to_api(self, workflow: dict, object_info: dict) -> dict:
@@ -394,6 +429,8 @@ class ComfyUIClient:
         workflow_path: str | None = None,
         seed: int | None = None,
         output_dir: str | None = None,
+        image_path: Optional[str] = None,
+        wait_for_output: bool = True,
     ) -> dict:
         """Load a workflow, inject prompt/seed, submit, poll, and optionally download outputs."""
         import random
@@ -401,10 +438,8 @@ class ComfyUIClient:
         repo_root = Path(__file__).resolve().parents[2]
         if not workflow_path:
             candidates = [
-                repo_root / "workflows" / "spark_image_z_image_turbo_api.json",
-                repo_root / "workflows" / "spark_image_z_image_api.json",
-                repo_root / "workflows" / "spark_image_flux2_text_to_image_turbo_api.json",
-                repo_root / "workflows" / "spark_image_flux2_text_to_image_api.json",
+                repo_root / "workflows" / "01_flux2_text_to_image.json",
+                repo_root / "workflows" / "08_flux2_klein_9b_text_to_image.json",
             ]
             workflow_path = next((str(path) for path in candidates if path.exists()), None)
 
@@ -425,9 +460,18 @@ class ComfyUIClient:
             return {"status": "error", "error": "Workflow is not ComfyUI API format"}
         self._hydrate_workflow_placeholders(nodes, prompt, object_info)
 
+        uploaded_name = None
+        if image_path:
+            up = await self.upload_image(image_path)
+            if up.get("ok"):
+                uploaded_name = str(up.get("name") or "")
+            else:
+                logger.warning("Image upload failed for %s: %s", image_path, up.get("error"))
+
         chosen_seed = seed if seed is not None else random.randint(1, 2**32 - 1)
         negative_markers = ("blurry", "low quality", "worst quality", "deformed", "watermark")
 
+        load_image_slots = []
         for node in nodes.values():
             if not isinstance(node, dict):
                 continue
@@ -440,12 +484,21 @@ class ComfyUIClient:
                 existing = str(inputs.get("text", "")).lower()
                 if not any(marker in existing for marker in negative_markers):
                     inputs["text"] = prompt
+            if uploaded_name and class_type in ("LoadImage", "LoadImageMask", "VHS_LoadImagePath"):
+                load_image_slots.append(inputs)
             if class_type in ("KSampler", "SamplerCustom", "SamplerCustomAdvanced") and "seed" in inputs:
                 inputs["seed"] = chosen_seed
             if class_type in ("RandomNoise", "FluxNoise") and "noise_seed" in inputs:
                 inputs["noise_seed"] = chosen_seed
             if class_type == "SaveImage" and shot_id:
                 inputs["filename_prefix"] = shot_id
+
+        if uploaded_name and load_image_slots:
+            # Primary source image for i2v workflows.
+            load_image_slots[0]["image"] = uploaded_name
+            # Optional second source (e.g., first/last-frame workflows): reuse image.
+            if len(load_image_slots) > 1:
+                load_image_slots[1]["image"] = uploaded_name
 
         self._ensure_output_node(nodes, filename_prefix=shot_id or "render")
         submit_result = await self.submit_prompt(nodes)
@@ -459,6 +512,16 @@ class ComfyUIClient:
         prompt_id = submit_result.get("prompt_id")
         if not prompt_id:
             return {"status": "error", "error": "Submission returned no prompt_id"}
+
+        if not wait_for_output:
+            return {
+                "shot_id": shot_id,
+                "status": "success",
+                "prompt_id": prompt_id,
+                "seed": chosen_seed,
+                "queued": True,
+                "uploaded_image": uploaded_name,
+            }
 
         output_filename = await self.poll_job(prompt_id, timeout_sec=600)
         if not output_filename:
