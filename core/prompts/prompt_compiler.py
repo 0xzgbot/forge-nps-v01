@@ -1,6 +1,7 @@
 import json
 import re
 from pathlib import Path
+import fnmatch
 from typing import Any, Dict, List, Optional, Tuple
 
 from core.skills.skill_loader import SkillLoader
@@ -119,6 +120,19 @@ def _extract_skill_names(skills: List[Dict[str, Any]]) -> List[str]:
         if name:
             names.append(name)
     return names
+
+
+def _filter_skills_by_patterns(skills: List[Dict[str, Any]], patterns: List[str]) -> List[Dict[str, Any]]:
+    if not patterns:
+        return skills
+    out: List[Dict[str, Any]] = []
+    for skill in skills:
+        name = _safe_text(skill.get("name"))
+        if not name:
+            continue
+        if any(fnmatch.fnmatch(name, p) for p in patterns):
+            out.append(skill)
+    return out
 
 
 def _extract_frontmatter(markdown: str) -> Dict[str, str]:
@@ -260,6 +274,8 @@ def compile_prompt_artifact(
     kimi_plan: Optional[Dict[str, Any]] = None,
     character_names: Optional[List[str]] = None,
     shot_meta: Optional[Dict[str, Any]] = None,
+    role_key: str = "prompt_compiler",
+    allowed_skill_patterns: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     """
     Compile a workflow-aware prompt artifact from high-level concept + Kimi plan.
@@ -284,7 +300,8 @@ def compile_prompt_artifact(
                 _safe_text(model_standard.get("name")),
             ]
         )
-        matched_skills = loader.match(match_text)
+        matched_skills = loader.match(match_text, max_skills=12)
+        matched_skills = _filter_skills_by_patterns(matched_skills, allowed_skill_patterns or [])
     except Exception:
         matched_skills = []
         warnings.append("skills_unavailable")
@@ -371,6 +388,7 @@ def compile_prompt_artifact(
     return {
         "raw_concept": _safe_text(raw_concept),
         "workflow_id": _safe_text(workflow_id),
+        "role_key": _safe_text(role_key),
         "profile_name": _safe_text(profile.get("profile_name")),
         "skills_used": skills_used,
         "compiled_prompt": compiled,

@@ -1,0 +1,88 @@
+{
+  "version": "1.0.0",
+  "profiles": {
+    "director_planner": {
+      "allow": [
+        "story_spine_narrative",
+        "cinematic_continuity",
+        "cinematic_consistency_protocol",
+        "ltx25-beat-based-scripting",
+        "composition_drift",
+        "ensemble_group_dynamics"
+      ]
+    },
+    "coverage_critic": {
+      "allow": [
+        "cinematic_continuity",
+        "cinematic_consistency_protocol",
+        "composition_drift",
+        "character_age_drift",
+        "eye_color_mismatch",
+        "skin_tone_inconsistency",
+        "anatomical_errors"
+      ]
+    },
+    "prompt_compiler": {
+      "allow": [
+        "positive_prompt_structure",
+        "negative_prompt_library",
+        "style_suffix_library",
+        "resolution_aspect_ratio",
+        "quality_token_sets",
+        "flux-ltx-prompt-engineering-standard",
+        "flux-dir-command-protocol",
+        "workflow_*",
+        "*_framing",
+        "*_lighting",
+        "*_mastery",
+        "*_consistency",
+        "*_continuity"
+      ]
+    },
+    "continuity_guard": {
+      "allow": [
+        "character_consistency",
+        "ltx23_character_consistency",
+        "cinematic_continuity",
+        "cinematic_consistency_protocol",
+        "character_age_drift",
+        "eye_color_mismatch",
+        "skin_tone_inconsistency",
+        "clothing_detail_loss",
+        "composition_drift",
+        "scale_distortion",
+        "background_bleed"
+      ]
+    },
+    "remediation_reprompter": {
+      "allow": [
+        "iterative_prompt_refinement",
+        "anatomical_errors",
+        "character_consistency",
+        "cinematic_continuity",
+        "negative_prompt_library",
+        "resolution_aspect_ratio",
+        "quality_token_sets",
+        "motion_blur_artifacts",
+        "photometric_overexposure",
+        "scale_distortion",
+        "background_bleed",
+        "clothing_detail_loss"
+      ]
+    },
+    "audit_judge": {
+      "allow": [
+        "anatomical_errors",
+        "character_consistency",
+        "cinematic_continuity",
+        "composition_drift",
+        "scale_distortion",
+        "background_bleed",
+        "clothing_detail_loss",
+        "eye_color_mismatch",
+        "skin_tone_inconsistency",
+        "photometric_overexposure"
+      ]
+    }
+  }
+}

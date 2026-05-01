@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Forge NPS — Transition: Data to Light</title>
+  <script>p5.disableFriendlyErrors = true;</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.3/p5.min.js"></script>
+  <style>html,body{margin:0;padding:0;overflow:hidden;background:#0A0E14;}canvas{display:block;}</style>
+</head>
+<body>
+<script>
+// ── Forge NPS — "Data to Light" Particle Transition ───────────────────────
+// Particles sample from a source image/texture, then swarm and reassemble
+// into a target composition. Used to transition from TouchDesigner memory
+// graph into ComfyUI hero frames.
+//
+// EXPORT: Press 'S' to save PNG, 'R' to render frame sequence for video
+// ──────────────────────────────────────────────────────────────────────────
+
+const CONFIG = {
+  seed: 42,
+  particleCount: 1800,
+  transitionDuration: 300,  // frames (~10 sec @ 30fps)
+  holdDuration: 60,         // frames to hold at end
+  bgColor: '#0A0E14',
+};
+
+const PALETTE = {
+  bg: [10, 14, 20],
+  primary: [0, 255, 255],    // cyan
+  secondary: [0, 255, 65],   // green
+  accent: [189, 0, 255],     // purple
+  highlight: [255, 191, 0],  // amber
+};
+
+let particles = [];
+let phase = 'swarm';  // 'swarm' -> 'assemble' -> 'hold'
+let frame = 0;
+let targetPoints = [];
+let sourcePoints = [];
+
+function setup() {
+  createCanvas(1920, 1080);
+  pixelDensity(1);
+  randomSeed(CONFIG.seed);
+  noiseSeed(CONFIG.seed);
+  colorMode(RGB, 255, 255, 255, 100);
+  noLoop();
+  window._p5Ready = true;
+
+  initTargetPoints();
+  initParticles();
+}
+
+function initTargetPoints() {
+  // Target: a glowing "FORGE" word made of points
+  // We'll approximate this with a grid of points in the center
+  targetPoints = [];
+  let cols = 40;
+  let rows = 10;
+  let startX = width * 0.35;
+  let startY = height * 0.45;
+  let spacing = 18;
+
+  // Create a pattern that suggests text without needing a font
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      let x = startX + c * spacing;
+      let y = startY + r * spacing;
+      // Only keep points that form a shape (horizontal bars with gaps)
+      let keep = false;
+      if (r === 0 || r === rows - 1) keep = true;  // top/bottom bars
+      if (r === floor(rows / 2)) keep = true;       // middle bar
+      if (c === 0) keep = true;                      // left vertical
+      if (c === cols - 1 && r < rows / 2) keep = true; // right vertical (F shape)
+      if (c === floor(cols * 0.6) && r > rows / 2) keep = true; // inner vertical
+
+      if (keep) {
+        targetPoints.push({ x, y, color: PALETTE.primary });
+      }
+    }
+  }
+
+  // Add some decorative orbs around the text
+  for (let i = 0; i < 80; i++) {
+    let angle = random(TWO_PI);
+    let radius = random(200, 400);
+    targetPoints.push({
+      x: width / 2 + cos(angle) * radius,
+      y: height / 2 + sin(angle) * radius,
+      color: random() > 0.5 ? PALETTE.accent : PALETTE.secondary
+    });
+  }
+}
+
+function initParticles() {
+  particles = [];
+  for (let i = 0; i < CONFIG.particleCount; i++) {
+    particles.push({
+      x: random(width),
+      y: random(height),
+      vx: 0,
+      vy: 0,
+      size: random(1.5, 4),
+      color: random([
+        PALETTE.primary,
+        PALETTE.secondary,
+        PALETTE.accent,
+        PALETTE.highlight,
+      ]),
+      targetIdx: floor(random(targetPoints.length)),
+      noiseOffset: random(1000),
+      brightness: random(0.3, 1.0),
+    });
+  }
+}
+
+function draw() {
+  // Fade background for trails
+  background(PALETTE.bg[0], PALETTE.bg[1], PALETTE.bg[2], 12);
+
+  let t = frame / CONFIG.transitionDuration;  // 0 -> 1
+
+  if (t >= 1.0) {
+    phase = 'hold';
+    t = 1.0;
+  } else {
+    phase = 'assemble';
+  }
+
+  // Easing: slow start, fast middle, gentle landing
+  let ease = t < 0.5 ? 4 * t * t * t : 1 - pow(-2 * t + 2, 3) / 2;
+
+  for (let p of particles) {
+    let target = targetPoints[p.targetIdx % targetPoints.length];
+
+    // Noise-driven drift (chaos phase)
+    let noiseScale = 0.003;
+    let nX = noise(p.noiseOffset + frame * 0.01, 0);
+    let nY = noise(0, p.noiseOffset + frame * 0.01);
+    let driftX = (nX - 0.5) * 4;
+    let driftY = (nY - 0.5) * 4;
+
+    // Attraction to target (assembly phase)
+    let dx = target.x - p.x;
+    let dy = target.y - p.y;
+    let dist = sqrt(dx * dx + dy * dy);
+    let attraction = ease * 0.08;
+    let ax = dx * attraction;
+    let ay = dy * attraction;
+
+    // Apply forces
+    p.vx = p.vx * 0.92 + ax + driftX * (1 - ease);
+    p.vy = p.vy * 0.92 + ay + driftY * (1 - ease);
+    p.x += p.vx;
+    p.y += p.vy;
+
+    // Draw
+    let alpha = 30 + ease * 50;
+    let r = lerp(p.color[0], target.color[0], ease);
+    let g = lerp(p.color[1], target.color[1], ease);
+    let b = lerp(p.color[2], target.color[2], ease);
+
+    noStroke();
+    fill(r, g, b, alpha * p.brightness);
+    ellipse(p.x, p.y, p.size, p.size);
+
+    // Glow for assembled particles
+    if (ease > 0.7 && dist < 30) {
+      fill(r, g, b, alpha * 0.15);
+      ellipse(p.x, p.y, p.size * 4, p.size * 4);
+    }
+  }
+
+  // Draw target text glow
+  if (ease > 0.5) {
+    for (let tp of targetPoints) {
+      fill(tp.color[0], tp.color[1], tp.color[2], (ease - 0.5) * 2 * 8);
+      ellipse(tp.x, tp.y, 6, 6);
+    }
+  }
+
+  // Scanline overlay
+  stroke(0, 255, 255, 3);
+  strokeWeight(1);
+  for (let y = 0; y < height; y += 4) {
+    line(0, y, width, y);
+  }
+
+  frame++;
+
+  // Auto-stop for headless rendering
+  if (phase === 'hold' && frame > CONFIG.transitionDuration + CONFIG.holdDuration) {
+    noLoop();
+    console.log('TRANSITION_COMPLETE');
+  }
+}
+
+function keyPressed() {
+  if (key === 's' || key === 'S') saveCanvas('transition_data_to_light', 'png');
+  if (key === 'r' || key === 'R') { frame = 0; phase = 'swarm'; loop(); }
+  if (key === ' ') { CONFIG.paused = !CONFIG.paused; CONFIG.paused ? noLoop() : loop(); }
+}
+</script>
+</body>
+</html>

@@ -39,6 +39,10 @@ const shotFilters = {
 
 // Script / Director state
 let director_shots = {};
+let memoryGraphRaw = { nodes: [], edges: [] };
+let memoryPlaybackTimer = null;
+let memoryPlaybackRunning = false;
+let memoryNexusOverlay = { nodes: [], edges: [] };
 
 // ---------------------------------------------------------------------------
 // DOM refs
@@ -650,6 +654,23 @@ async function loadCampaignFolders() {
             if (filter) filter.value = "";
             shotFilters.campaignId = "";
             currentCampaignId = "";
+            // Reset sidebar/media filters so "All" truly shows all shots.
+            shotFilters.renderedOnly = false;
+            shotFilters.failedOnly = false;
+            shotFilters.passedOnly = false;
+            shotFilters.retriesOnly = false;
+            shotFilters.importedOnly = false;
+            const ids = [
+                "filter-rendered-only",
+                "filter-failed-only",
+                "filter-passed-only",
+                "filter-retries-only",
+                "filter-imported-only",
+            ];
+            ids.forEach((id) => {
+                const el = document.getElementById(id);
+                if (el) el.checked = false;
+            });
             loadCampaignIdentity("");
             loadShots();
             loadVideoLibrary();
@@ -738,6 +759,37 @@ async function loadCampaignFolders() {
                 }
             });
             row.appendChild(renameBtn);
+
+            const deleteBtn = document.createElement("button");
+            deleteBtn.className = "campaign-delete";
+            deleteBtn.textContent = "Delete";
+            deleteBtn.addEventListener("click", async (event) => {
+                event.stopPropagation();
+                const ok = window.confirm(`Delete campaign "${c.campaign_id}"?\n\nThis removes campaign shots and campaign folders from media storage.`);
+                if (!ok) return;
+                try {
+                    const delResp = await fetch("/api/campaigns/" + encodeURIComponent(c.campaign_id), {
+                        method: "DELETE",
+                    });
+                    const result = await delResp.json();
+                    if (!delResp.ok || result.status !== "ok") {
+                        addLogEntry("error", "Campaign delete failed: " + (result.detail || result.error || delResp.status));
+                        return;
+                    }
+                    addLogEntry("system", "Campaign deleted: " + c.campaign_id + " (removed shots: " + String(result.removed_shots || 0) + ")");
+                    if (currentCampaignId === c.campaign_id) currentCampaignId = "";
+                    const filter = document.getElementById("filter-campaign-id");
+                    if (filter && filter.value === c.campaign_id) filter.value = "";
+                    shotFilters.campaignId = "";
+                    loadCampaignIdentity("");
+                    loadCampaignFolders();
+                    loadShots();
+                    loadVideoLibrary();
+                } catch (err) {
+                    addLogEntry("error", "Campaign delete error: " + err.message);
+                }
+            });
+            row.appendChild(deleteBtn);
 
             $campaignList.appendChild(row);
         });
@@ -1473,6 +1525,12 @@ function addLogEntry(type, text) {
         memory: "[MEM \uD83D\uDCBE]",
         system: "[SYS]",
         error: "[ERR]",
+        profile_director_kimi: "[Director Planner (kimi)]",
+        profile_critic_kimi: "[Coverage Critic (kimi)]",
+        profile_compiler_lmstudio: "[Prompt Compiler (lmstudio)]",
+        profile_continuity_lmstudio: "[Continuity Guard (lmstudio)]",
+        profile_remediation_lmstudio: "[Remediation Reprompter (lmstudio)]",
+        profile_audit_kimi: "[Audit Judge (kimi)]",
     };
 
     row.innerHTML =
@@ -1518,20 +1576,33 @@ async function runCampaign() {
 
     const biblePath = $biblePath ? $biblePath.value.trim() : "";
     const length = $lengthSelect ? $lengthSelect.value : "";
-    const zImage = document.getElementById("model-zimage")?.checked;
+    const klein = document.getElementById("model-klein")?.checked;
     const flux2 = document.getElementById("model-flux2")?.checked;
     const turbo = document.getElementById("model-turbo")?.checked;
     const appendToCampaign = !!document.getElementById("append-campaign")?.checked;
     const selectedCampaignId =
         (document.getElementById("filter-campaign-id")?.value || "").trim() ||
         (currentCampaignId || "").trim();
+    const workflowMap = {
+        flux2: {
+            standard: "01_flux2_text_to_image",
+            turbo: "01_flux2_text_to_image",
+        },
+        klein: "08_flux2_klein_9b_text_to_image",
+    };
     const workflow_ids = [];
-    if (zImage) workflow_ids.push("08_flux2_klein_9b_text_to_image");
-    if (flux2) workflow_ids.push("01_flux2_text_to_image");
+    if (klein) workflow_ids.push(workflowMap.klein);
+    if (flux2) workflow_ids.push(turbo ? workflowMap.flux2.turbo : workflowMap.flux2.standard);
     if (turbo) {
-        addLogEntry("system", "Turbo toggle is currently ignored for numbered workflow mode.");
+        if (flux2) {
+            addLogEntry("system", "Turbo mode enabled for Flux2.Dev.");
+        } else {
+            addLogEntry("system", "Turbo is only applied to Flux2.Dev.");
+        }
     }
-    if (!workflow_ids.length) {
+    // De-dupe in case multiple toggles currently map to the same numbered workflow.
+    const dedupedWorkflows = [...new Set(workflow_ids)];
+    if (!dedupedWorkflows.length) {
         addLogEntry("error", "Select at least one base model: Flux2 Klein and/or Flux2.Dev");
         return;
     }
@@ -1558,7 +1629,7 @@ async function runCampaign() {
                 brief: brief,
                 bible_path: biblePath,
                 length: length,
-                workflow_ids: workflow_ids,
+                workflow_ids: dedupedWorkflows,
                 identity_pack: identity_pack,
                 campaign_id: selectedCampaignId,
                 append_to_campaign: appendToCampaign,
@@ -1699,6 +1770,9 @@ function handleCampaignEvent(event) {
 
         case "warning":
             addLogEntry("system", "Warning: " + text);
+            break;
+        case "profile":
+            addLogEntry(event.profile_color_key || "profile_compiler_lmstudio", text || "Profile event");
             break;
 
         case "done":
@@ -2150,6 +2224,12 @@ async function loadVideoLibrary() {
                 b2.textContent = "RETRY";
                 label.appendChild(b2);
             }
+            const verdict = evaluateShotForVideo(s, getVideoEligibilitySettings());
+            const vBadge = document.createElement("span");
+            vBadge.className = "audit-badge " + (verdict.eligible ? "pass" : "fail");
+            vBadge.textContent = verdict.eligible ? "VIDEO_OK" : "BLOCKED";
+            if (!verdict.eligible) vBadge.title = verdict.reasons.join(", ");
+            label.appendChild(vBadge);
 
             cell.appendChild(img);
             cell.appendChild(label);
@@ -2208,14 +2288,54 @@ function clearVideoSelection() {
     document.querySelectorAll('#spark-grid .grid-cell input[type="checkbox"]').forEach(el => el.checked = false);
 }
 
+function getVideoEligibilitySettings() {
+    return {
+        minScore: Number(document.getElementById("video-min-audit-score")?.value || 0.85),
+        minConfidence: Number(document.getElementById("video-min-audit-confidence")?.value || 0.70),
+        requireAudit: !!document.getElementById("video-require-audit")?.checked,
+        allowFailedOverride: !!document.getElementById("video-allow-failed-override")?.checked,
+    };
+}
+
+function evaluateShotForVideo(shot, settings) {
+    const reasons = [];
+    if (!shot) return { eligible: false, reasons: ["shot_missing"] };
+    const auditStatus = String(shot.audit_status || "").toLowerCase();
+    const score = Number(shot.audit_score ?? 0);
+    const confidence = Number(shot.audit_confidence ?? 0);
+    const critical = Array.isArray(shot.audit_critical_failures) ? shot.audit_critical_failures.map(String) : [];
+    const issues = Array.isArray(shot.audit_issues) ? shot.audit_issues.map(String) : [];
+    const combined = [...critical, ...issues].join(" ").toLowerCase();
+    const hardFailTerms = [
+        "extra fingers", "extra limbs", "deformed", "dog head", "wrong identity",
+        "identity mismatch", "anatomy", "broken face", "mirror contradiction", "reflection contradiction"
+    ];
+    const hasHardFail = hardFailTerms.some((t) => combined.includes(t));
+    if (hasHardFail) reasons.push("hard_fail_visual");
+    if (settings.requireAudit && !auditStatus) reasons.push("audit_missing");
+    if (settings.requireAudit && auditStatus !== "pass") reasons.push("audit_not_passed");
+    if (score < settings.minScore) reasons.push("score_below_threshold");
+    if (confidence < settings.minConfidence) reasons.push("confidence_below_threshold");
+    if (!shot.image_path && !shot.image_url) reasons.push("image_missing");
+    const hasSoftFailures = reasons.length > 0 && !hasHardFail;
+    const eligible = (reasons.length === 0) || (settings.allowFailedOverride && hasSoftFailures);
+    return { eligible, reasons, hasHardFail };
+}
+
 function updateVideoSelectionUI() {
     if ($videoSelectedCount) {
         let failedCount = 0;
+        let blockedCount = 0;
+        const settings = getVideoEligibilitySettings();
         videoSelection.forEach(id => {
             const s = videoShotsById[id];
             if (s && s.audit_status === "fail") failedCount += 1;
+            const verdict = evaluateShotForVideo(s, settings);
+            if (!verdict.eligible) blockedCount += 1;
         });
-        $videoSelectedCount.value = videoSelection.size + " selected" + (failedCount ? (" (" + failedCount + " failed)") : "");
+        $videoSelectedCount.value = videoSelection.size + " selected" +
+            (failedCount ? (" (" + failedCount + " failed)") : "") +
+            (blockedCount ? (" (" + blockedCount + " blocked for video)") : "");
     }
 }
 
@@ -2258,6 +2378,7 @@ async function processSelectedVideos() {
     const fps = parseInt($videoFps?.value || "24", 10);
     const workflowId = getSelectedVideoWorkflow();
     const videoPrompt = ($videoPrompt?.value || "").trim();
+    const gate = getVideoEligibilitySettings();
     $startBatchBtn.disabled = true;
     $startBatchBtn.textContent = "Processing...";
     $sparkStatusText.textContent = "Processing " + videoSelection.size + " image(s) into videos via " + workflowId + "...";
@@ -2271,12 +2392,18 @@ async function processSelectedVideos() {
                 fps,
                 workflow_id: workflowId,
                 prompt: videoPrompt,
+                min_audit_score: gate.minScore,
+                min_audit_confidence: gate.minConfidence,
+                require_audit_pass: gate.requireAudit,
+                allow_failed_override: gate.allowFailedOverride,
             }),
         });
         const data = await resp.json();
         if (data.status !== "ok") throw new Error(data.error || "Video processing failed");
         const done = (data.results || []).filter(r => r.status === "ok").length;
-        $sparkStatusText.textContent = "Video processing complete (" + workflowId + "): " + done + "/" + (data.results || []).length + " ok";
+        const blocked = (data.results || []).filter(r => r.status === "blocked").length;
+        const errs = (data.results || []).filter(r => r.status === "error").length;
+        $sparkStatusText.textContent = "Video processing complete (" + workflowId + "): " + done + " queued, " + blocked + " blocked, " + errs + " errors";
         $sparkProgress.textContent = (data.output_dir || "");
     } catch (e) {
         $sparkStatusText.textContent = "Error: " + e.message;
@@ -2495,8 +2622,15 @@ async function loadMemoryTab() {
   try {
     await ensureCytoscapeLoaded();
     const g = await fetch('/api/memory/graph').then(r => r.json());
-    const nodes = Array.isArray(g.nodes) ? g.nodes : [];
-    const edges = Array.isArray(g.edges) ? g.edges : [];
+    memoryGraphRaw = {
+      nodes: Array.isArray(g.nodes) ? g.nodes : [],
+      edges: Array.isArray(g.edges) ? g.edges : [],
+    };
+    populateMemoryCampaignFilter(memoryGraphRaw.nodes);
+    bindMemoryControls();
+    const filtered = buildMemoryFilteredGraph();
+    const nodes = filtered.nodes;
+    const edges = filtered.edges;
     if (!nodes.length && cyEl) {
       cyEl.innerHTML = '<div style="padding:14px;color:#888;font-size:12px;">No memory graph data yet.</div>';
     } else {
@@ -2567,23 +2701,144 @@ async function ensureCytoscapeLoaded() {
   throw new Error("cytoscape_script_unavailable");
 }
 
+function mapMemoryActorFromEventType(eventType) {
+  const t = String(eventType || "").toLowerCase();
+  if (t === "shot_planned") return "kimi";
+  if (t.startsWith("render_")) return "spark";
+  if (t.startsWith("audit_")) return "audit";
+  if (t.startsWith("remediation_") || t === "retry_linked" || t === "final_outcome") return "hermes";
+  if (t === "import_completed") return "memory";
+  return "memory";
+}
+
+function populateMemoryCampaignFilter(nodes) {
+  const el = document.getElementById("mem-filter-campaign");
+  if (!el) return;
+  const set = new Set(["all"]);
+  for (const n of (nodes || [])) {
+    const cid = String(n?.data?.campaign_id || "").trim();
+    if (cid) set.add(cid);
+  }
+  const list = [...set];
+  el.innerHTML = list.map((c) => `<option value="${c}">${c === "all" ? "All Campaigns" : c}</option>`).join("");
+  if (shotFilters.campaignId && set.has(shotFilters.campaignId)) {
+    el.value = shotFilters.campaignId;
+  }
+}
+
+function bindMemoryControls() {
+  const bindings = [
+    "mem-filter-campaign",
+    "mem-filter-fail",
+    "mem-filter-retry",
+    "mem-filter-audit",
+    "mem-filter-current",
+    "mem-filter-contribution",
+    "mem-view-heat",
+    "mem-view-lanes",
+  ];
+  bindings.forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el || el.dataset.bound === "1") return;
+    el.dataset.bound = "1";
+    el.addEventListener("change", memoryApplyFilters);
+  });
+
+  const slider = document.getElementById("mem-playback-range");
+  if (slider && slider.dataset.bound !== "1") {
+    slider.dataset.bound = "1";
+    slider.addEventListener("input", () => {
+      const r = document.getElementById("mem-playback-readout");
+      if (r) r.value = `${slider.value}%`;
+      memoryApplyFilters();
+    });
+  }
+}
+
+function buildMemoryFilteredGraph() {
+  const campaignSel = document.getElementById("mem-filter-campaign")?.value || "all";
+  const failOnly = !!document.getElementById("mem-filter-fail")?.checked;
+  const retryOnly = !!document.getElementById("mem-filter-retry")?.checked;
+  const auditOnly = !!document.getElementById("mem-filter-audit")?.checked;
+  const currentOnly = !!document.getElementById("mem-filter-current")?.checked;
+  const contribution = document.getElementById("mem-filter-contribution")?.value || "all";
+  const playbackPct = Math.max(0, Math.min(100, Number(document.getElementById("mem-playback-range")?.value || 100)));
+
+  const nodes = [...(memoryGraphRaw.nodes || [])];
+  const edges = [...(memoryGraphRaw.edges || [])];
+  const maxTs = Math.max(
+    ...nodes.map((n) => {
+      const t = Date.parse(String(n?.data?.timestamp || ""));
+      return Number.isFinite(t) ? t : 0;
+    }),
+    0
+  );
+  const minTs = Math.min(
+    ...nodes.map((n) => {
+      const t = Date.parse(String(n?.data?.timestamp || ""));
+      return Number.isFinite(t) ? t : maxTs;
+    }),
+    maxTs
+  );
+  const cutoff = minTs + ((maxTs - minTs) * (playbackPct / 100));
+  const activeCampaign = (shotFilters.campaignId || currentCampaignId || "").trim();
+
+  const keepNode = (n) => {
+    const d = n?.data || {};
+    const eventType = String(d.event_type || "");
+    const actor = mapMemoryActorFromEventType(eventType);
+    const ts = Date.parse(String(d.timestamp || ""));
+    if (Number.isFinite(ts) && ts > cutoff) return false;
+    const cid = String(d.campaign_id || "").trim();
+    if (campaignSel !== "all" && cid !== campaignSel) return false;
+    if (currentOnly && activeCampaign && cid !== activeCampaign) return false;
+    if (contribution !== "all" && actor !== contribution) return false;
+    if (failOnly) {
+      const success = d.success;
+      const fail = success === false || String(d.audit_status || "").toLowerCase() === "fail" || String(eventType).includes("fail");
+      if (!fail) return false;
+    }
+    if (retryOnly) {
+      const isRetry = String(d.retry_of || "").trim() || String(eventType) === "retry_linked" || String(d.shot_id || "").includes("__retry_");
+      if (!isRetry) return false;
+    }
+    if (auditOnly && !String(eventType).startsWith("audit_")) return false;
+    return true;
+  };
+
+  const keptNodes = nodes.filter(keepNode);
+  const keptIds = new Set(keptNodes.map((n) => n.id));
+  const keptEdges = edges.filter((e) => keptIds.has(e.source) && keptIds.has(e.target));
+  return { nodes: keptNodes, edges: keptEdges };
+}
+
 function initMemoryGraph(nodes, edges) {
   const el = document.getElementById('cy-canvas');
   if (!el || !window.cytoscape) return;
   if (window._memoryCy) { window._memoryCy.destroy(); }
+  const overlayNodes = Array.isArray(memoryNexusOverlay.nodes) ? memoryNexusOverlay.nodes : [];
+  const overlayEdges = Array.isArray(memoryNexusOverlay.edges) ? memoryNexusOverlay.edges : [];
+  const mergedNodes = [...(nodes || []), ...overlayNodes];
+  const mergedEdges = [...(edges || []), ...overlayEdges];
   const MAX_NODES = 220;
-  const useNodes = nodes.slice(-MAX_NODES);
+  const useNodes = mergedNodes.slice(-MAX_NODES);
   const allowedNodeIds = new Set(useNodes.map((n) => n.id));
-  const useEdges = edges.filter((e) => allowedNodeIds.has(e.source) && allowedNodeIds.has(e.target));
-  const cyNodes = (useNodes || []).map((n) => ({
-    data: {
-      id: n.id,
-      label: n.label || n.id,
-      type: n.type || "event",
-      size: n.size || 20,
-      ...(n.data || {}),
-    },
-  }));
+  const useEdges = mergedEdges.filter((e) => allowedNodeIds.has(e.source) && allowedNodeIds.has(e.target));
+  const cyNodes = (useNodes || []).map((n) => {
+    const cls = [];
+    if (n.layer === "nexus") cls.push("nexus-node");
+    if (n.type === "query") cls.push("nexus-root");
+    return {
+      data: {
+        id: n.id,
+        label: n.label || n.id,
+        type: n.type || "event",
+        size: n.size || 20,
+        ...(n.data || {}),
+      },
+      classes: cls.join(" "),
+    };
+  });
   const cyEdges = (useEdges || []).map((e) => ({
     data: {
       id: e.id || (e.source + "->" + e.target),
@@ -2591,7 +2846,9 @@ function initMemoryGraph(nodes, edges) {
       target: e.target,
       type: e.type || "link",
       label: e.label || "",
+      weight: Number(e.weight || 1),
     },
+    classes: e.layer === "nexus" ? "nexus-edge" : "",
   }));
   window._memoryCy = cytoscape({
     container: el,
@@ -2606,30 +2863,313 @@ function initMemoryGraph(nodes, edges) {
           'font-size': '9px',
           'text-valign': 'bottom',
           'text-halign': 'center',
-          'width': (n) => n.data('size') || (n.data('type') === 'session' ? 28 : 18),
-          'height': (n) => n.data('size') || (n.data('type') === 'session' ? 28 : 18),
+          'width': (n) => {
+            const base = Number(n.data('size') || (n.data('type') === 'session' ? 28 : 18));
+            const conf = Number(n.data('confidence') || 0.5);
+            const imp = Number(n.data('importance') || 1);
+            return Math.max(14, Math.min(56, base + (conf * 8) + (imp * 3)));
+          },
+          'height': (n) => {
+            const base = Number(n.data('size') || (n.data('type') === 'session' ? 28 : 18));
+            const conf = Number(n.data('confidence') || 0.5);
+            const imp = Number(n.data('importance') || 1);
+            return Math.max(14, Math.min(56, base + (conf * 8) + (imp * 3)));
+          },
           'shape': (n) => ({ session: 'diamond', insight: 'star', concept: 'rectangle' }[n.data('type')] || 'ellipse'),
+          'border-width': (n) => {
+            const et = String(n.data('event_type') || "");
+            if (et === "retry_linked" || String(n.data('retry_of') || "")) return 3;
+            if (n.data('success') === false) return 3;
+            if (n.data('success') === true) return 2;
+            return 1;
+          },
+          'border-color': (n) => {
+            const et = String(n.data('event_type') || "");
+            if (et === "retry_linked" || String(n.data('retry_of') || "")) return '#ab47bc';
+            if (n.data('success') === false) return '#d32f2f';
+            if (n.data('success') === true) return '#2e7d32';
+            return '#323232';
+          },
+        }
+      },
+      {
+        selector: '.nexus-node',
+        style: {
+          'background-color': '#00bcd4',
+          'border-color': '#80deea',
+          'border-width': 2,
+          'shape': 'round-rectangle',
+          'font-size': '10px',
+          'color': '#dffbff',
+        }
+      },
+      {
+        selector: '.nexus-root',
+        style: {
+          'background-color': '#7C4DFF',
+          'border-color': '#d1c4e9',
+          'shape': 'hexagon',
+          'color': '#f3ecff',
         }
       },
       {
         selector: 'edge',
         style: {
-          'line-color': '#2a2a2a', 'width': 1.5,
+          'line-color': '#2a2a2a',
+          'width': (e) => Math.min(7, 1 + Number(e.data('weight') || 1)),
           'target-arrow-color': '#333', 'target-arrow-shape': 'triangle',
           'curve-style': 'bezier',
         }
       },
+      {
+        selector: '.nexus-edge',
+        style: {
+          'line-color': '#26c6da',
+          'target-arrow-color': '#26c6da',
+          'line-style': 'dashed',
+          'opacity': 0.85,
+        }
+      },
       { selector: ':selected', style: { 'border-width': 2, 'border-color': '#fff' } },
+      { selector: '.memory-dim', style: { 'opacity': 0.12 } },
     ],
     layout: { name: 'cose', padding: 20, animate: false },
     userPanningEnabled: true,
     userZoomingEnabled: true,
   });
+  const lanesEnabled = !!document.getElementById("mem-view-lanes")?.checked;
+  if (lanesEnabled) applyMemoryLaneLayout();
+  attachMemorySelectionHandlers();
+  updateMemoryHeatOverlay();
 }
 
 function memoryCyLayout(name) {
   if (!window._memoryCy) return;
   window._memoryCy.layout({ name, padding: 20, animate: true, animationDuration: 400 }).run();
+}
+
+function flashEdges(edges) {
+  if (!edges || !edges.length) return;
+  edges.forEach((edge, i) => {
+    setTimeout(() => {
+      edge
+        .animate({ style: { 'line-color': '#ffffff', 'width': 4, 'target-arrow-color': '#ffffff' }, duration: 200 })
+        .animate({ style: { 'line-color': '#BD00FF', 'width': 1.5, 'target-arrow-color': '#BD00FF' }, duration: 400 })
+        .animate({ style: { 'line-color': '#2a2a2a', 'width': Math.min(7, 1 + Number(edge.data('weight') || 1)), 'target-arrow-color': '#333' }, duration: 220 });
+    }, i * 100);
+  });
+}
+
+function flashTargetNodes(edges) {
+  if (!edges || !edges.length) return;
+  const seen = new Set();
+  edges.forEach((edge, i) => {
+    const target = edge.target();
+    if (!target || seen.has(target.id())) return;
+    seen.add(target.id());
+    const baseBorder = target.style("border-color") || "#323232";
+    const baseWidth = Number(target.style("border-width") || 1);
+    setTimeout(() => {
+      target
+        .animate({ style: { 'border-color': '#ffffff', 'border-width': 4 }, duration: 180 })
+        .animate({ style: { 'border-color': '#00E5FF', 'border-width': 3 }, duration: 260 })
+        .animate({ style: { 'border-color': baseBorder, 'border-width': baseWidth }, duration: 240 });
+    }, 120 + (i * 100));
+  });
+}
+
+function flashLatestInsight() {
+  if (!window._memoryCy) return;
+  const insightNodes = window._memoryCy.nodes().filter((n) => String(n.data("event_type") || "") === "insight");
+  if (!insightNodes.length) return;
+  const newest = insightNodes.max((n) => Number(n.data("confirmations") || 0));
+  if (!newest) return;
+  const learnedEdges = newest.connectedEdges().filter((e) => String(e.data("type") || "") === "learned_from");
+  if (!learnedEdges.length) return;
+  newest.animate({ style: { 'background-color': '#ffffff', 'border-color': '#ffffff' }, duration: 180 })
+        .animate({ style: { 'background-color': '#7C4DFF', 'border-color': '#d1c4e9' }, duration: 350 });
+  flashEdges(learnedEdges);
+  flashTargetNodes(learnedEdges);
+}
+
+function applyMemoryLaneLayout() {
+  if (!window._memoryCy) return;
+  const phaseX = { kimi: 80, hermes: 320, spark: 560, audit: 800, memory: 1040 };
+  const nodes = window._memoryCy.nodes();
+  const sorted = [...nodes].sort((a, b) => {
+    const ta = Date.parse(String(a.data("timestamp") || "")) || 0;
+    const tb = Date.parse(String(b.data("timestamp") || "")) || 0;
+    return ta - tb;
+  });
+  const spacing = 38;
+  sorted.forEach((n, i) => {
+    const actor = mapMemoryActorFromEventType(n.data("event_type"));
+    const x = phaseX[actor] || 1120;
+    n.position({ x, y: 30 + (i * spacing) });
+  });
+  window._memoryCy.fit(window._memoryCy.elements(), 30);
+}
+
+function attachMemorySelectionHandlers() {
+  if (!window._memoryCy) return;
+  const target = document.getElementById("mem-selection-insights");
+  if (!target) return;
+  window._memoryCy.off("tap");
+  window._memoryCy.off("tap", "node");
+  window._memoryCy.on("tap", "node", (evt) => {
+    const n = evt.target;
+    const neighborhood = n.neighborhood().add(n);
+    window._memoryCy.elements().not(neighborhood).animate({ style: { opacity: 0.1 }, duration: 300 });
+    neighborhood.animate({ style: { opacity: 1 }, duration: 300 });
+  });
+  window._memoryCy.on("tap", (evt) => {
+    if (evt.target !== window._memoryCy) return;
+    window._memoryCy.elements().removeClass("memory-dim");
+    window._memoryCy.elements().animate({ style: { opacity: 1 }, duration: 300 });
+    if (target) target.innerHTML = '<span style="color:var(--text-secondary);font-size:12px;">Select a node to inspect lineage.</span>';
+  });
+
+  window._memoryCy.off("select");
+  window._memoryCy.on("select", "node", (evt) => {
+    const n = evt.target;
+    const d = n.data() || {};
+    const out = [];
+    out.push(`<div class="selection-line"><b>${d.label || d.id}</b></div>`);
+    out.push(`<div class="selection-line">Type: <small>${d.event_type || d.type || "unknown"}</small></div>`);
+    out.push(`<div class="selection-line">Actor: <small>${mapMemoryActorFromEventType(d.event_type)}</small></div>`);
+    out.push(`<div class="selection-line">Campaign: <small>${d.campaign_id || "n/a"}</small></div>`);
+    out.push(`<div class="selection-line">Workflow: <small>${d.workflow_id || "n/a"}</small></div>`);
+    out.push(`<div class="selection-line">Shot: <small>${d.shot_id || "n/a"}</small></div>`);
+    out.push(`<div class="selection-line">Result: <small>${d.success === true ? "pass" : d.success === false ? "fail" : "unknown"}</small></div>`);
+    out.push(`<div class="selection-line">Risk: <small>${d.error_category || "none"}</small></div>`);
+    out.push(`<div class="selection-line">Source: <small>${d.source || "n/a"}</small></div>`);
+    if (d.retry_of) out.push(`<div class="selection-line">Retry of: <small>${d.retry_of}</small></div>`);
+    target.innerHTML = out.join("");
+    highlightRetryLineage(d.shot_id);
+  });
+}
+
+function highlightRetryLineage(shotId) {
+  if (!window._memoryCy || !shotId) return;
+  window._memoryCy.elements().removeClass("memory-dim");
+  const nodes = window._memoryCy.nodes().filter((n) => {
+    const sid = String(n.data("shot_id") || "");
+    const ro = String(n.data("retry_of") || "");
+    return sid === shotId || ro === shotId || sid.includes(shotId) || shotId.includes(sid);
+  });
+  if (!nodes.length) return;
+  const neighborhood = nodes.union(nodes.connectedEdges()).union(nodes.connectedEdges().connectedNodes());
+  window._memoryCy.elements().difference(neighborhood).addClass("memory-dim");
+  window._memoryCy.fit(neighborhood, 40);
+}
+
+function updateMemoryHeatOverlay() {
+  const heat = document.getElementById("memory-heat-overlay");
+  if (!heat) return;
+  const on = !!document.getElementById("mem-view-heat")?.checked;
+  heat.style.display = on ? "block" : "none";
+}
+
+function memoryApplyFilters() {
+  if (!memoryGraphRaw.nodes.length) return;
+  document.querySelectorAll(".memory-chip input").forEach((inp) => {
+    const p = inp.parentElement;
+    if (!p) return;
+    p.classList.toggle("active", !!inp.checked);
+  });
+  const r = document.getElementById("mem-playback-readout");
+  const slider = document.getElementById("mem-playback-range");
+  if (r && slider) r.value = `${slider.value}%`;
+  const filtered = buildMemoryFilteredGraph();
+  initMemoryGraph(filtered.nodes, filtered.edges);
+  updateMemoryHeatOverlay();
+}
+
+async function runNexusQuery() {
+  const input = document.getElementById("nexus-query-input");
+  const status = document.getElementById("nexus-query-status");
+  if (!input || !status) return;
+  const query = String(input.value || "").trim();
+  if (!query) {
+    status.textContent = "Enter a question first.";
+    return;
+  }
+  status.textContent = "Querying Forge Nexus…";
+  try {
+    const resp = await fetch("/api/nexus/query", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query, top_n: 8, include_impact: true }),
+    });
+    const data = await resp.json();
+    if (!resp.ok || data.status !== "ok") {
+      const err = data.detail || data.error || resp.statusText || "query_failed";
+      status.textContent = "Nexus query failed: " + err;
+      return;
+    }
+    const ov = data.overlay || { nodes: [], edges: [] };
+    memoryNexusOverlay = {
+      nodes: (ov.nodes || []).map((n) => ({
+        id: "nexus::" + String(n.id || ""),
+        label: String(n.label || n.id || ""),
+        type: String(n.type || "asset"),
+        size: 22,
+        layer: "nexus",
+        data: {
+          event_type: "nexus_" + String(n.type || "asset"),
+          campaign_id: "",
+          workflow_id: "",
+          shot_id: "",
+          success: null,
+          source: "nexus",
+          confidence: Number(n.score || 0.5),
+          importance: n.type === "query" ? 3 : 2,
+        },
+      })),
+      edges: (ov.edges || []).map((e) => ({
+        id: "nexus::" + String(e.id || `${e.source}->${e.target}`),
+        source: "nexus::" + String(e.source || ""),
+        target: "nexus::" + String(e.target || ""),
+        type: String(e.type || "link"),
+        weight: Number(e.weight || 1),
+        layer: "nexus",
+      })),
+    };
+    memoryApplyFilters();
+    const first = (data.results || [])[0];
+    const top = first ? String(first.id || "") : "none";
+    status.textContent = `Nexus: ${data.count || 0} hits. Top asset: ${top}`;
+  } catch (e) {
+    status.textContent = "Nexus query error: " + (e?.message || e);
+  }
+}
+
+function toggleMemoryPlayback() {
+  const btn = event.currentTarget;
+  const slider = document.getElementById("mem-playback-range");
+  if (!slider) return;
+  if (memoryPlaybackRunning) {
+    memoryPlaybackRunning = false;
+    if (memoryPlaybackTimer) clearInterval(memoryPlaybackTimer);
+    memoryPlaybackTimer = null;
+    if (btn) btn.textContent = "Play";
+    return;
+  }
+  memoryPlaybackRunning = true;
+  if (btn) btn.textContent = "Stop";
+  if (Number(slider.value) >= 100) slider.value = "0";
+  memoryApplyFilters();
+  memoryPlaybackTimer = setInterval(() => {
+    const next = Math.min(100, Number(slider.value) + 2);
+    slider.value = String(next);
+    memoryApplyFilters();
+    if (next >= 100) {
+      memoryPlaybackRunning = false;
+      if (memoryPlaybackTimer) clearInterval(memoryPlaybackTimer);
+      memoryPlaybackTimer = null;
+      if (btn) btn.textContent = "Play";
+    }
+  }, 250);
 }
 
 async function triggerConsolidate() {
@@ -2639,7 +3179,8 @@ async function triggerConsolidate() {
   try { await fetch('/api/memory/consolidate', { method: 'POST' }); } catch(e) {}
   btn.textContent = '✓ Done';
   setTimeout(() => { btn.textContent = '⚡ Consolidate Memory'; btn.disabled = false; }, 2000);
-  loadMemoryTab();
+  await loadMemoryTab();
+  setTimeout(() => flashLatestInsight(), 250);
 }
 
 // Close lightbox on Escape key

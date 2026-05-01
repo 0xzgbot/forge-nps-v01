@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Forge NPS — Transition: Memory Consolidation</title>
+  <script>p5.disableFriendlyErrors = true;</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.3/p5.min.js"></script>
+  <style>html,body{margin:0;padding:0;overflow:hidden;background:#0A0E14;}canvas{display:block;}</style>
+</head>
+<body>
+<script>
+// ── Forge NPS — "Memory Consolidation" Logo Formation ─────────────────────
+// All nodes drift toward a central insight, leaving trails that form
+// the Forge NPS mark. Used as the closing transition.
+//
+// EXPORT: Press 'S' for PNG, 'R' to restart
+// ──────────────────────────────────────────────────────────────────────────
+
+const CONFIG = {
+  seed: 99,
+  nodeCount: 800,
+  convergeDuration: 240,  // frames (~8 sec)
+  holdDuration: 90,
+  bgColor: '#0A0E14',
+};
+
+const PALETTE = {
+  bg: [10, 14, 20],
+  cyan: [0, 255, 255],
+  green: [0, 255, 65],
+  purple: [189, 0, 255],
+  white: [255, 255, 255],
+};
+
+let nodes = [];
+let logoPoints = [];
+let frame = 0;
+
+function setup() {
+  createCanvas(1920, 1080);
+  pixelDensity(1);
+  randomSeed(CONFIG.seed);
+  noiseSeed(CONFIG.seed);
+  colorMode(RGB, 255, 255, 255, 100);
+  noLoop();
+  window._p5Ready = true;
+
+  initLogoPoints();
+  initNodes();
+}
+
+function initLogoPoints() {
+  // A stylized "F" + circuit pattern as the Forge NPS mark
+  logoPoints = [];
+
+  // Central "insight" orb
+  for (let i = 0; i < 60; i++) {
+    let angle = random(TWO_PI);
+    let r = random(10, 50);
+    logoPoints.push({
+      x: width / 2 + cos(angle) * r,
+      y: height / 2 + sin(angle) * r,
+      color: PALETTE.purple
+    });
+  }
+
+  // Radiating circuit lines
+  for (let i = 0; i < 12; i++) {
+    let angle = (TWO_PI / 12) * i;
+    for (let d = 60; d < 350; d += 12) {
+      logoPoints.push({
+        x: width / 2 + cos(angle) * d,
+        y: height / 2 + sin(angle) * d,
+        color: d < 200 ? PALETTE.cyan : PALETTE.green
+      });
+    }
+  }
+
+  // Outer ring
+  for (let i = 0; i < 80; i++) {
+    let angle = (TWO_PI / 80) * i;
+    let r = 380 + random(-10, 10);
+    logoPoints.push({
+      x: width / 2 + cos(angle) * r,
+      y: height / 2 + sin(angle) * r,
+      color: PALETTE.white
+    });
+  }
+}
+
+function initNodes() {
+  nodes = [];
+  for (let i = 0; i < CONFIG.nodeCount; i++) {
+    // Start scattered across the screen
+    let angle = random(TWO_PI);
+    let r = random(100, 900);
+    nodes.push({
+      x: width / 2 + cos(angle) * r,
+      y: height / 2 + sin(angle) * r,
+      vx: 0,
+      vy: 0,
+      size: random(1.5, 4),
+      color: random([PALETTE.cyan, PALETTE.green, PALETTE.purple, PALETTE.white]),
+      targetIdx: floor(random(logoPoints.length)),
+      trail: [],
+    });
+  }
+}
+
+function draw() {
+  // Persistent trails via low-opacity background
+  background(PALETTE.bg[0], PALETTE.bg[1], PALETTE.bg[2], 8);
+
+  let t = min(frame / CONFIG.convergeDuration, 1.0);
+  // Ease-out-expo for dramatic final snap
+  let ease = t === 1.0 ? 1.0 : 1 - pow(2, -10 * t);
+
+  for (let n of nodes) {
+    let target = logoPoints[n.targetIdx % logoPoints.length];
+
+    // Attraction force increases over time
+    let dx = target.x - n.x;
+    let dy = target.y - n.y;
+    let dist = sqrt(dx * dx + dy * dy);
+
+    let attraction = ease * 0.12;
+    n.vx = n.vx * 0.88 + dx * attraction;
+    n.vy = n.vy * 0.88 + dy * attraction;
+
+    // Orbital swirl before convergence
+    if (t < 0.6) {
+      let swirl = 0.03 * (1 - t);
+      n.vx += -dy * swirl;
+      n.vy += dx * swirl;
+    }
+
+    n.x += n.vx;
+    n.y += n.vy;
+
+    // Trail
+    n.trail.push({ x: n.x, y: n.y });
+    if (n.trail.length > 20) n.trail.shift();
+
+    // Draw trail
+    noFill();
+    for (let i = 1; i < n.trail.length; i++) {
+      let alpha = (i / n.trail.length) * ease * 15;
+      stroke(n.color[0], n.color[1], n.color[2], alpha);
+      strokeWeight(n.size * 0.3);
+      line(n.trail[i - 1].x, n.trail[i - 1].y, n.trail[i].x, n.trail[i].y);
+    }
+
+    // Draw node
+    noStroke();
+    let alpha = 20 + ease * 50;
+    fill(n.color[0], n.color[1], n.color[2], alpha);
+    ellipse(n.x, n.y, n.size, n.size);
+
+    // Glow at convergence
+    if (ease > 0.7 && dist < 50) {
+      fill(n.color[0], n.color[1], n.color[2], 5);
+      ellipse(n.x, n.y, n.size * 8, n.size * 8);
+    }
+  }
+
+  // Central insight pulse
+  let pulse = sin(frame * 0.05) * 0.5 + 0.5;
+  noStroke();
+  fill(PALETTE.purple[0], PALETTE.purple[1], PALETTE.purple[2], 8 + pulse * 10);
+  ellipse(width / 2, height / 2, 100 + pulse * 40, 100 + pulse * 40);
+
+  // Scanlines
+  stroke(0, 255, 255, 2);
+  for (let y = 0; y < height; y += 4) {
+    line(0, y, width, y);
+  }
+
+  frame++;
+
+  if (frame > CONFIG.convergeDuration + CONFIG.holdDuration) {
+    noLoop();
+    console.log('CONSOLIDATION_COMPLETE');
+  }
+}
+
+function keyPressed() {
+  if (key === 's' || key === 'S') saveCanvas('transition_memory_consolidation', 'png');
+  if (key === 'r' || key === 'R') { frame = 0; initNodes(); loop(); }
+  if (key === ' ') { isLooping() ? noLoop() : loop(); }
+}
+</script>
+</body>
+</html>

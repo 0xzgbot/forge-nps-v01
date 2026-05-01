@@ -6,6 +6,8 @@ from typing import Any, Awaitable, Callable, Dict, List, Optional
 from core.dispatch.comfy_client import ComfyUIClient
 from core.bridge.runtime_config import get_raw_config
 
+from .profile_cli import HermesProfileCLI
+from .role_skill_mapper import role_skill_scope
 from .state_machine import transition_shot
 
 
@@ -32,6 +34,7 @@ class HermesAuditService:
         self.workflow_file_for_id = workflow_file_for_id
         self.media_images = media_images
         self.get_hermes_bridge = get_hermes_bridge
+        self.profile_cli = HermesProfileCLI()
 
     async def reprocess(self, shot_ids: List[str]) -> Dict[str, Any]:
         requested = len(shot_ids)
@@ -47,7 +50,14 @@ class HermesAuditService:
                 results.append({"shot_id": shot_id, "status": "missing_image"})
                 continue
 
-            transition_shot(s, "audit_started")
+            try:
+                transition_shot(s, "audit_started")
+            except Exception:
+                # Re-audit can be requested for previously failed/final shots.
+                # Normalize back to rendered then enter audit_started.
+                s["state"] = "rendered"
+                s["status"] = "rendered"
+                transition_shot(s, "audit_started")
             self.record_event("audit_started", shot_id=shot_id, campaign_id=s.get("campaign_id", ""), workflow_id=s.get("workflow_id", ""), source=s.get("source", "campaign"))
             audit = await self.audit_render(str(image_path), s.get("compiled_prompt") or s.get("prompt", ""), s.get("campaign_id", "default"))
             score = float(audit.get("score", 0) or 0)
@@ -77,7 +87,13 @@ class HermesAuditService:
                 s["identity_status"] = "pass" if passed else "fail"
                 s["identity_score"] = score
                 s["identity_fail_reasons"] = [] if passed else detected_notes[:4]
-            transition_shot(s, "audited_pass" if passed else "audited_fail")
+            try:
+                transition_shot(s, "audited_pass" if passed else "audited_fail")
+            except Exception:
+                # If state drift occurred, force a consistent terminal audit state.
+                s["state"] = "audit_started"
+                s["status"] = "auditing"
+                transition_shot(s, "audited_pass" if passed else "audited_fail")
             self.record_event("audit_result", shot_id=shot_id, campaign_id=s.get("campaign_id", ""), workflow_id=s.get("workflow_id", ""), source=s.get("source", "campaign"), success=passed, extra={"audit_score": score})
             updated += 1
             results.append({
@@ -115,6 +131,21 @@ class HermesAuditService:
 
             remediation_reason = "; ".join(s.get("audit_issues", [])[:4]) or "audit_fail"
             diagnosis = None
+            remediator_scope = role_skill_scope("remediation_reprompter")
+            cli_diag = await self.profile_cli.run_json(
+                "remediator",
+                {
+                    "task": "remediate_failed_image_prompt",
+                    "campaign_id": s.get("campaign_id", ""),
+                    "shot_id": shot_id,
+                    "workflow_id": s.get("workflow_id", ""),
+                    "original_prompt": s.get("compiled_prompt") or s.get("prompt", ""),
+                    "audit_result": s.get("audit_raw_response", {}),
+                    "audit_issues": s.get("audit_issues", []),
+                    "remediation_reason": remediation_reason,
+                    "allowed_skill_patterns": remediator_scope.get("patterns", []),
+                },
+            )
             try:
                 diagnosis = await hermes.analyze_failure(
                     visual_audit_result=s.get("audit_raw_response", {}),
@@ -124,8 +155,13 @@ class HermesAuditService:
                 diagnosis = None
             remediated_prompt = ""
             remediation_model = "hermes_local"
+            if isinstance(cli_diag, dict):
+                remediated_prompt = str(cli_diag.get("fix_prompt") or cli_diag.get("compiled_prompt") or cli_diag.get("prompt") or "").strip()
+                if remediated_prompt:
+                    remediation_model = "remediator_profile_cli"
             if isinstance(diagnosis, dict):
-                remediated_prompt = str(diagnosis.get("fix_prompt") or "").strip()
+                if not remediated_prompt:
+                    remediated_prompt = str(diagnosis.get("fix_prompt") or "").strip()
             if not remediated_prompt:
                 remediated_prompt = (s.get("compiled_prompt") or s.get("prompt", "")) + f", corrective constraints: {remediation_reason}"
 
@@ -140,6 +176,13 @@ class HermesAuditService:
             retry_record["remediated_prompt"] = remediated_prompt
             retry_record["original_compiled_prompt"] = s.get("compiled_prompt", "")
             retry_record["remediation_model"] = remediation_model
+            retry_record["profile_used"] = "remediation_reprompter"
+            retry_record["profile_backend"] = "lmstudio" if remediation_model == "remediator_profile_cli" else "local"
+            retry_record["skills_scope_role"] = "remediation_reprompter"
+            retry_record["skills_scope_patterns"] = remediator_scope.get("patterns", [])
+            retry_record["skills_scope_version"] = remediator_scope.get("map_version", "unknown")
+            if isinstance(cli_diag, dict):
+                retry_record["skills_used"] = cli_diag.get("skills_used", retry_record.get("skills_used", []))
             retry_record["audit_status"] = ""
             transition_shot(retry_record, "retry_queued")
             self.shots_store.append(retry_record)

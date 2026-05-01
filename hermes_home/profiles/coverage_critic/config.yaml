@@ -1,0 +1,17 @@
+model:
+  default: moonshotai/kimi-k2-instruct
+  provider: nvidia
+  base_url: https://integrate.api.nvidia.com/v1/chat/completions
+providers: {}
+fallback_providers: []
+toolsets:
+- hermes-cli
+agent:
+  max_turns: 30
+  gateway_timeout: 1800
+terminal:
+  backend: local
+  modal_mode: auto
+  cwd: .
+  timeout: 180
+  auto_source_bashrc: true

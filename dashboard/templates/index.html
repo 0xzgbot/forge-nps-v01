@@ -22,8 +22,8 @@
 
         /* Sidebar */
         #sidebar {
-            width: 280px;
-            min-width: 280px;
+            width: 320px;
+            min-width: 320px;
             background: #1A1A1A;
             border-right: 1px solid #333;
             padding: 24px 16px;
@@ -269,6 +269,12 @@
         .log-row.user .log-bubble { background: #0f4acb; border-color: #4d7fff; }
         .log-row.system .log-bubble { background: #2c3f50; border-color: #4f6477; }
         .log-row.error .log-bubble { background: #6b1f1f; border-color: #c74646; }
+        .log-row.profile_director_kimi .log-bubble { background: #113a7a; border-color: #2c67c7; }
+        .log-row.profile_critic_kimi .log-bubble { background: #0c4f66; border-color: #1d8ab0; }
+        .log-row.profile_compiler_lmstudio .log-bubble { background: #5a2f1d; border-color: #b76a40; }
+        .log-row.profile_continuity_lmstudio .log-bubble { background: #3b2d6f; border-color: #7f62d9; }
+        .log-row.profile_remediation_lmstudio .log-bubble { background: #5f1f4f; border-color: #c64aa3; }
+        .log-row.profile_audit_kimi .log-bubble { background: #1e4c2a; border-color: #3ea85d; }
 
         /* Filmstrip / Gallery */
         #filmstrip {
@@ -461,6 +467,16 @@
             padding: 3px 6px;
         }
         .campaign-rename:hover { color: #fff; border-color: #666; }
+        .campaign-delete {
+            background: #3f1f1f;
+            border: 1px solid #7a2e2e;
+            color: #ff9a9a;
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+            padding: 3px 6px;
+        }
+        .campaign-delete:hover { color: #ffd2d2; border-color: #9a3e3e; }
 
         /* Settings page */
         #settings-view {
@@ -793,10 +809,71 @@
           --text-secondary: #888; --r-sm: 6px;
         }
         .memory-layout { display: grid; grid-template-columns: 1fr 360px; gap: 16px; height: 100%; }
-        .graph-wrap { position: relative; height: 580px; background: #0a0a0a; border-radius: var(--r-sm); border: 1px solid var(--border); }
+        .graph-wrap { position: relative; height: 580px; background: #0a0a0a; border-radius: var(--r-sm); border: 1px solid var(--border); overflow: hidden; }
         .graph-canvas { position: absolute; inset: 0; }
+        .graph-heat {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 1;
+            opacity: 0.35;
+            background:
+              radial-gradient(circle at 18% 28%, rgba(198, 40, 40, 0.45), transparent 42%),
+              radial-gradient(circle at 62% 56%, rgba(255, 152, 0, 0.28), transparent 46%),
+              radial-gradient(circle at 85% 78%, rgba(46, 125, 50, 0.22), transparent 50%);
+            display: none;
+        }
         .graph-toolbar { position: absolute; top: 10px; right: 10px; display: flex; gap: 6px; z-index: 10; }
         .graph-toolbar button { background: #1a1a1a; border: 1px solid var(--border); color: var(--text-primary); padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .graph-controls {
+            display: grid;
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+            gap: 8px;
+            align-items: end;
+            background: #0f0f0f;
+            border: 1px solid var(--border);
+            border-radius: var(--r-sm);
+            padding: 10px;
+        }
+        .memory-control-group { display:flex; flex-direction:column; gap:4px; }
+        .memory-control-group label {
+            color: var(--text-secondary);
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+        }
+        .memory-control-group select,
+        .memory-control-group input[type="range"] {
+            width: 100%;
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            color: var(--text-primary);
+            border-radius: 4px;
+            min-height: 30px;
+            padding: 4px 8px;
+        }
+        .memory-chip-row { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+        .memory-chip {
+            border: 1px solid #2b2b2b;
+            background: #141414;
+            color: #b9b9b9;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 11px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .memory-chip input { margin-right: 4px; }
+        .memory-chip.active { border-color: #3d5afe; color: #fff; }
+        .memory-inline-btn {
+            background: #1a1a1a;
+            color: #ddd;
+            border: 1px solid #2a2a2a;
+            border-radius: 4px;
+            padding: 6px 8px;
+            font-size: 12px;
+            cursor: pointer;
+        }
         .mem-side { display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
         .rulebook { background: #0f0f0f; border: 1px solid var(--border); border-radius: var(--r-sm); padding: 14px; }
         .rulebook h3 { margin: 0 0 10px; font-size: 13px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: .08em; }
@@ -809,6 +886,29 @@
         .tl-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 4px; flex-shrink: 0; }
         .tl-body { font-size: 12px; color: var(--text-primary); }
         .tl-time { font-size: 11px; color: var(--text-secondary); }
+        .selection-line {
+            font-size: 12px;
+            color: #d0d0d0;
+            padding: 4px 0;
+            border-bottom: 1px solid #151515;
+        }
+        .selection-line b { color: #fff; }
+        .selection-line small { color: #999; }
+        .nexus-query-row { display:flex; gap:8px; align-items:center; }
+        .nexus-query-row input {
+            flex: 1;
+            min-height: 32px;
+            background: #151515;
+            border: 1px solid #2a2a2a;
+            color: #e0e0e0;
+            border-radius: 4px;
+            padding: 6px 8px;
+            font-size: 12px;
+        }
+        .nexus-query-row button {
+            min-height: 32px;
+            padding: 6px 10px;
+        }
         .hero-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px; }
         .hero-card { background: #0f0f0f; border: 1px solid var(--border); border-radius: var(--r-sm); padding: 14px; text-align: center; }
         .hero-val { font-size: 28px; font-weight: 700; color: var(--cyan); }
@@ -1103,7 +1203,7 @@
         <div class="nav-tabs">
             <div class="nav-tab active" data-page="dashboard-view" onclick="switchPage('dashboard-view')">Dashboard</div>
             <div class="nav-tab" data-page="script-view" onclick="switchPage('script-view')">Script</div>
-            <div class="nav-tab" data-page="spark-view" onclick="switchPage('spark-view')">Media</div>
+            <div class="nav-tab" data-page="spark-view" onclick="switchPage('spark-view')">Video</div>
             <div class="nav-tab" data-page="identity-view" onclick="switchPage('identity-view'); loadIdentityTab()">Identity</div>
             <div class="nav-tab" data-page="memory-view" onclick="switchPage('memory-view'); loadMemoryTab()">Memory</div>
             <div class="nav-tab" data-page="settings-view" onclick="switchPage('settings-view')">Settings</div>
@@ -1145,7 +1245,7 @@
                 <label class="model-checkbox"><input type="checkbox" id="append-campaign" checked> Append To Selected Campaign</label>
                 <button class="btn btn-cancel" id="cancel-campaign-btn" onclick="cancelCampaign()" style="display:none;">✕ Cancel</button>
                 <label class="model-checkbox"><input type="checkbox" id="model-flux2" checked> Flux2.Dev</label>
-                <label class="model-checkbox"><input type="checkbox" id="model-zimage"> Flux2 Klein</label>
+                <label class="model-checkbox"><input type="checkbox" id="model-klein"> Flux2 Klein</label>
                 <label class="model-checkbox"><input type="checkbox" id="model-turbo"> Turbo</label>
                 <input type="text" id="bible-path" placeholder="Optional: /path/to/world_bible.md">
                 <input type="text" id="filter-campaign-id" placeholder="Campaign ID" style="width:130px;background:#222;border:1px solid #444;border-radius:4px;color:#ccc;padding:8px 10px;font-size:12px;">
@@ -1433,6 +1533,20 @@
                     <button class="btn" id="start-batch-btn" onclick="processSelectedVideos()">Process</button>
                 </div>
             </div>
+            <div class="toolbar-row">
+                <div class="toolbar-group">
+                    <label>Min Audit Score</label>
+                    <input type="number" id="video-min-audit-score" value="0.85" min="0" max="1" step="0.01">
+                </div>
+                <div class="toolbar-group">
+                    <label>Min Audit Confidence</label>
+                    <input type="number" id="video-min-audit-confidence" value="0.70" min="0" max="1" step="0.01">
+                </div>
+                <div class="toolbar-group" style="display:flex;align-items:flex-end;gap:8px;min-width:320px;">
+                    <label class="model-checkbox"><input type="checkbox" id="video-require-audit" checked> Require audit pass</label>
+                    <label class="model-checkbox"><input type="checkbox" id="video-allow-failed-override"> Allow failed override</label>
+                </div>
+            </div>
         </div>
 
         <!-- Status Bar -->
@@ -1580,7 +1694,56 @@
   </div>
   <div class="memory-layout" style="flex:1;min-height:0;">
     <div style="display:flex;flex-direction:column;gap:10px;">
+      <div class="graph-controls">
+        <div class="memory-control-group">
+          <label>Campaign</label>
+          <select id="mem-filter-campaign"></select>
+        </div>
+        <div class="memory-control-group">
+          <label>Playback</label>
+          <input id="mem-playback-range" type="range" min="0" max="100" value="100" />
+        </div>
+        <div class="memory-control-group">
+          <label>Progress</label>
+          <input id="mem-playback-readout" type="text" value="100%" readonly />
+        </div>
+        <div class="memory-control-group">
+          <label>Contribution</label>
+          <select id="mem-filter-contribution">
+            <option value="all">All</option>
+            <option value="kimi">Kimi</option>
+            <option value="hermes">Hermes</option>
+            <option value="spark">Spark</option>
+            <option value="audit">Audit</option>
+            <option value="memory">Memory</option>
+          </select>
+        </div>
+        <div class="memory-control-group">
+          <label>Playback</label>
+          <div class="memory-chip-row">
+            <button class="memory-inline-btn" onclick="toggleMemoryPlayback()">Play</button>
+            <button class="memory-inline-btn" onclick="memoryApplyFilters()">Apply</button>
+          </div>
+        </div>
+        <div class="memory-control-group">
+          <label>Views</label>
+          <div class="memory-chip-row">
+            <label class="memory-chip"><input id="mem-view-heat" type="checkbox" />Heat</label>
+            <label class="memory-chip"><input id="mem-view-lanes" type="checkbox" checked />Lanes</label>
+          </div>
+        </div>
+        <div class="memory-control-group" style="grid-column:1 / -1;">
+          <label>Filters</label>
+          <div class="memory-chip-row">
+            <label class="memory-chip"><input id="mem-filter-fail" type="checkbox" />Failed Only</label>
+            <label class="memory-chip"><input id="mem-filter-retry" type="checkbox" />Retry Chains</label>
+            <label class="memory-chip"><input id="mem-filter-audit" type="checkbox" />Audit Nodes</label>
+            <label class="memory-chip"><input id="mem-filter-current" type="checkbox" />Current Campaign</label>
+          </div>
+        </div>
+      </div>
       <div class="graph-wrap">
+        <div id="memory-heat-overlay" class="graph-heat"></div>
         <div id="cy-canvas" class="graph-canvas"></div>
         <div class="graph-toolbar">
           <button onclick="memoryCyLayout('cose')">Force</button>
@@ -1599,12 +1762,24 @@
     </div>
     <div class="mem-side">
       <div class="rulebook">
+        <h3>Forge Nexus</h3>
+        <div class="nexus-query-row">
+          <input id="nexus-query-input" type="text" placeholder="What workflows use Elena?" />
+          <button class="memory-inline-btn" onclick="runNexusQuery()">Query</button>
+        </div>
+        <div id="nexus-query-status" style="margin-top:8px;font-size:11px;color:#999;">Ready.</div>
+      </div>
+      <div class="rulebook">
         <h3>Learned Rules</h3>
         <div id="rulebook-list"><span style="color:var(--text-secondary);font-size:12px;">Loading…</span></div>
       </div>
       <div class="rulebook">
         <h3>Recent Timeline</h3>
         <div id="tl-list"></div>
+      </div>
+      <div class="rulebook">
+        <h3>Selection Insights</h3>
+        <div id="mem-selection-insights"><span style="color:var(--text-secondary);font-size:12px;">Select a node to inspect lineage.</span></div>
       </div>
       <button onclick="triggerConsolidate()" style="background:#1a1a1a;border:1px solid var(--purple);color:var(--purple);padding:8px;border-radius:var(--r-sm);cursor:pointer;font-size:13px;">⚡ Consolidate Memory</button>
     </div>
