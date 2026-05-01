@@ -11,11 +11,23 @@ class ConfigManager:
         from dotenv import load_dotenv
         load_dotenv(self.env_path)
 
+    def get_nous_endpoint(self) -> str:
+        return os.getenv("NOUS_ENDPOINT", "")
+
+    def get_nous_api_key(self) -> str:
+        return os.getenv("NOUS_API_KEY", "")
+
     def get_nim_endpoint(self) -> str:
         return os.getenv("NIM_ENDPOINT", "")
 
     def get_kimi_api_key(self) -> str:
         return os.getenv("KIMI_API_KEY", "")
+
+    def get_openrouter_api_key(self) -> str:
+        return os.getenv("OPENROUTER_API_KEY", "")
+
+    def get_openrouter_endpoint(self) -> str:
+        return os.getenv("OPENROUTER_ENDPOINT", "")
 
     def get_comfyui_primary(self) -> str:
         # Default to your established primary host from memory
@@ -31,10 +43,8 @@ class ConfigManager:
     def validate(self) -> list[str]:
         """Check for missing critical configurations."""
         missing = []
-        if not self.get_nim_endpoint():
-            missing.append("NIM_ENDPOINT")
-        if not self.get_kimi_api_key():
-            missing.append("KIMI_API_KEY")
+        if not self.get_nous_api_key() and not self.get_kimi_api_key():
+            missing.append("NOUS_API_KEY or KIMI_API_KEY")
         if not self.get_comfyui_primary():
             missing.append("COMFYUI_PRIMARY")
         return missing

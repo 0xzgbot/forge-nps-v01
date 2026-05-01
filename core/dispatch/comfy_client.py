@@ -402,26 +402,38 @@ class ComfyUIClient:
                     return []
 
                 outputs = history[job_id].get("outputs", {})
+                logger.info(f"download_outputs: job {job_id} output keys per node: " + ", ".join(f"{nid}={list(no.keys())}" for nid, no in outputs.items()))
+                media_keys = ("images", "gifs", "videos", "animated", "files")
                 for node_id, node_output in outputs.items():
-                    if "images" in node_output:
-                        for img_data in node_output["images"]:
-                            filename = img_data["filename"]
+                    for media_key in media_keys:
+                        items = node_output.get(media_key)
+                        if not items:
+                            continue
+                        for img_data in items:
+                            filename = img_data.get("filename")
+                            if not filename:
+                                continue
                             subfolder = img_data.get("subfolder", "")
-                            
-                            # URL for downloading
+                            file_type = img_data.get("type", "output")
+
                             download_url = f"{self.base_url}/view"
                             params = {
                                 "filename": filename,
-                                "type": "output",
-                                "subfolder": subfolder
+                                "type": file_type,
+                                "subfolder": subfolder,
                             }
 
-                            resp = await client.get(download_url, params=params, timeout=10.0)
+                            try:
+                                resp = await client.get(download_url, params=params, timeout=60.0)
+                            except Exception as e:
+                                logger.error(f"download_outputs: GET /view failed for {filename}: {e}")
+                                continue
                             if resp.status_code == 200:
                                 target_file = output_path / filename
                                 with open(target_file, "wb") as f:
                                     f.write(resp.content)
                                 saved_files.append(str(target_file))
+                                logger.info(f"download_outputs: saved {target_file}")
                             else:
                                 logger.error(f"Failed to download {filename}: Status {resp.status_code}")
 

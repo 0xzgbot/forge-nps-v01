@@ -528,7 +528,7 @@ class HermesCampaignService:
                         continue
                     score = float(audit.get("score", 0) or 0)
                     passed = bool(audit.get("passed", False))
-                    shot_record["audit_model"] = os.getenv("KIMI_VISUAL_MODEL", os.getenv("LMSTUDIO_VISION_MODEL", "vision"))
+                    shot_record["audit_model"] = os.getenv("KIMI_VISUAL_MODEL", os.getenv("LMSTUDIO_VISION_MODEL", "qwen3.6-35b-a3b"))
                     shot_record["audit_status"] = "pass" if passed else "fail"
                     shot_record["audit_score"] = score
                     shot_record["audit_issues"] = audit.get("issues", [])
