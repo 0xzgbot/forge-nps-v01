@@ -171,15 +171,15 @@
             max-width: 300px;
         }
 
-        /* Dashboard split panes */
-        .dashboard-workspace {
+        /* Dashboard & Video split panes */
+        .dashboard-workspace, .video-workspace {
             flex: 1;
             min-height: 0;
             display: flex;
             overflow: hidden;
             border-top: 1px solid #222;
         }
-        .dashboard-left-pane {
+        .dashboard-left-pane, .video-left-pane {
             width: 34%;
             min-width: 320px;
             max-width: 72%;
@@ -188,7 +188,7 @@
             min-height: 0;
             background: #0A0A0A;
         }
-        .dashboard-right-pane {
+        .dashboard-right-pane, .video-right-pane {
             flex: 1;
             min-width: 260px;
             display: flex;
@@ -1556,24 +1556,31 @@
             <span id="spark-progress"></span>
         </div>
 
-        <!-- Video Prompt Agent Chat -->
-        <div id="video-chat-panel" style="background:#0d0d0d;border:1px solid #2a2a2a;border-radius:6px;padding:12px;margin-bottom:12px;">
-            <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
-                <strong style="color:#c8f;font-size:13px;">🤖 LTX Prompt Agents</strong>
-                <span id="video-chat-status" style="color:#666;font-size:11px;">Ready — select images and click Generate Prompts</span>
+        <!-- Resizable Split: Chat Left, Photos Right -->
+        <div class="video-workspace">
+            <div id="video-left-pane" class="video-left-pane">
+                <!-- Video Prompt Agent Chat -->
+                <div id="video-chat-panel" style="flex:1;display:flex;flex-direction:column;min-height:0;padding:12px;">
+                    <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-shrink:0;">
+                        <strong style="color:#c8f;font-size:13px;">🤖 LTX Prompt Agents</strong>
+                        <span id="video-chat-status" style="color:#666;font-size:11px;">Ready</span>
+                    </div>
+                    <div id="video-chat-log" style="flex:1;overflow:auto;background:#0a0a0a;border:1px solid #1a1a1a;border-radius:4px;padding:8px;font-size:12px;color:#ccc;margin-bottom:8px;"></div>
+                    <div style="display:flex;gap:8px;flex-shrink:0;">
+                        <input type="text" id="video-chat-input" placeholder="Ask the video agents anything..." style="flex:1;background:#1a1a1a;border:1px solid #333;border-radius:4px;padding:8px 10px;color:#ccc;font-size:12px;" onkeydown="if(event.key==='Enter')sendVideoChat()">
+                        <button class="btn btn-secondary" style="font-size:12px;padding:8px 14px;" onclick="sendVideoChat()">Send</button>
+                    </div>
+                </div>
             </div>
-            <div id="video-chat-log" style="height:180px;overflow:auto;background:#0a0a0a;border:1px solid #1a1a1a;border-radius:4px;padding:8px;font-size:12px;color:#ccc;margin-bottom:8px;"></div>
-            <div style="display:flex;gap:8px;">
-                <input type="text" id="video-chat-input" placeholder="Ask the video agents anything..." style="flex:1;background:#1a1a1a;border:1px solid #333;border-radius:4px;padding:8px 10px;color:#ccc;font-size:12px;" onkeydown="if(event.key==='Enter')sendVideoChat()">
-                <button class="btn btn-secondary" style="font-size:12px;padding:8px 14px;" onclick="sendVideoChat()">Send</button>
-            </div>
-        </div>
-
-        <!-- Photo Grid -->
-        <div class="spark-grid" id="spark-grid">
-            <!-- Grid cells will be dynamically inserted here -->
-            <div class="grid-placeholder">
-                <p>Select photos and click <strong>Process</strong> to generate video files.</p>
+            <div id="video-divider" class="dashboard-divider" title="Drag to resize"></div>
+            <div class="video-right-pane">
+                <!-- Photo Grid -->
+                <div class="spark-grid" id="spark-grid" style="flex:1;min-height:0;overflow:auto;">
+                    <!-- Grid cells will be dynamically inserted here -->
+                    <div class="grid-placeholder">
+                        <p>Select photos and click <strong>Process</strong> to generate video files.</p>
+                    </div>
+                </div>
             </div>
         </div>
         </div>  <!-- /#spark-view -->
