@@ -1701,6 +1701,13 @@ class VideoProcessRequest(BaseModel):
     allow_failed_override: bool = False
 
 
+class VideoGeneratePromptsRequest(BaseModel):
+    shot_ids: List[str]
+    duration: int = 4
+    fps: int = 24
+    campaign_id: str = ""
+
+
 class NexusQueryRequest(BaseModel):
     query: str
     top_n: int = 8
@@ -1868,6 +1875,91 @@ async def api_video_process(req: VideoProcessRequest):
             raise HTTPException(status_code=404, detail=f"Workflow not found: {workflow_id}")
         raise HTTPException(status_code=500, detail=err)
     return result
+
+
+@app.post("/api/video/generate-prompts")
+async def api_video_generate_prompts(req: VideoGeneratePromptsRequest):
+    """Stream LTX video prompt generation via 3 LM Studio agents."""
+    from fastapi.responses import StreamingResponse
+    import asyncio
+
+    shot_ids = [str(x) for x in req.shot_ids]
+    duration = int(req.duration or 4)
+    fps = int(req.fps or 24)
+    campaign_id = (req.campaign_id or _ACTIVE_CAMPAIGN or "video_batch").strip()
+
+    # Resolve bible text if available
+    bible_text = ""
+    manifest_path = MEDIA_IMAGES / campaign_id / "_campaign.json"
+    if manifest_path.exists():
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            brief = manifest.get("brief", "")
+            if brief:
+                bible_text = brief
+        except Exception:
+            pass
+
+    service = HermesVideoService(
+        media_videos=MEDIA_VIDEOS,
+        active_campaign_getter=lambda: _ACTIVE_CAMPAIGN,
+        find_shot=_find_shot,
+        resolve_image_path=_resolve_image_path,
+        workflow_file_for_id=_workflow_file_for_id,
+    )
+
+    async def event_generator():
+        try:
+            yield json.dumps({"agent": "Image Analyst", "status": "thinking"}) + "\n"
+            result = await service.generate_prompts(
+                shot_ids=shot_ids,
+                duration=duration,
+                fps=fps,
+                bible_text=bible_text,
+            )
+
+            if result.get("status") == "error":
+                yield json.dumps({"agent": "Prompt Engineer", "error": result.get("error", "generation_failed")}) + "\n"
+                return
+
+            # Stream agent results (simplified: we get all at once from generate_prompts)
+            # In a more granular version, generate_prompts would yield intermediate results.
+            # For now, we emit the final prompts per shot.
+            prompts = result.get("prompts", {})
+            raw = result.get("raw", {})
+
+            for sid, pdata in raw.items():
+                if isinstance(pdata, dict):
+                    segments = pdata.get("segments", [])
+                    analysis = pdata.get("analysis", "")
+                    if analysis:
+                        yield json.dumps({"agent": "Image Analyst", "shot_id": sid, "result": analysis}) + "\n"
+                    if segments:
+                        seg_text = " | ".join([f"[{s.get('time_range', '')}] {s.get('prompt', '')}" for s in segments])
+                        yield json.dumps({"agent": "Prompt Engineer", "shot_id": sid, "result": seg_text}) + "\n"
+
+            # Save prompts to shot records
+            saved = 0
+            for sid, prompt_text in prompts.items():
+                shot = _find_shot(sid)
+                if shot:
+                    shot["video_prompt"] = prompt_text
+                    saved += 1
+
+            yield json.dumps({"agent": "Prompt Engineer", "done": True, "saved": saved, "prompts": prompts}) + "\n"
+
+        except Exception as e:
+            yield json.dumps({"agent": "System", "error": str(e)}) + "\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/plain",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 @app.post("/api/import/sienna-batch")

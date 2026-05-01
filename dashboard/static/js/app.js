@@ -2369,6 +2369,84 @@ async function remediateFailedSelected() {
     }
 }
 
+async function generateVideoPrompts() {
+    if (!videoSelection.size) {
+        alert("Select at least one image");
+        return;
+    }
+    const duration = parseInt(document.getElementById("video-duration")?.value || "4", 10);
+    const fps = parseInt(document.getElementById("video-fps")?.value || "24", 10);
+    const $chatLog = document.getElementById("video-chat-log");
+    const $chatStatus = document.getElementById("video-chat-status");
+    const $btn = document.getElementById("generate-prompts-btn");
+
+    $btn.disabled = true;
+    $btn.textContent = "Generating...";
+    $chatStatus.textContent = "Agents running...";
+    $chatLog.innerHTML = "";
+
+    function addChatEntry(agent, text) {
+        const row = document.createElement("div");
+        row.style.marginBottom = "6px";
+        const badge = document.createElement("span");
+        badge.style.color = agent === "Image Analyst" ? "#4fc" : agent === "Duration Planner" ? "#cf4" : agent === "Prompt Engineer" ? "#c8f" : "#aaa";
+        badge.style.fontWeight = "bold";
+        badge.textContent = "[" + agent + "] ";
+        row.appendChild(badge);
+        row.appendChild(document.createTextNode(text));
+        $chatLog.appendChild(row);
+        $chatLog.scrollTop = $chatLog.scrollHeight;
+    }
+
+    try {
+        const resp = await fetch("/api/video/generate-prompts", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({
+                shot_ids: Array.from(videoSelection),
+                duration,
+                fps,
+            }),
+        });
+        if (!resp.ok) throw new Error("HTTP " + resp.status);
+
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n");
+            buffer = lines.pop();
+            for (const line of lines) {
+                if (!line.trim()) continue;
+                try {
+                    const data = JSON.parse(line);
+                    if (data.error) {
+                        addChatEntry("Error", data.error);
+                    } else if (data.status === "thinking") {
+                        $chatStatus.textContent = data.agent + " is thinking...";
+                    } else if (data.result) {
+                        addChatEntry(data.agent, data.result);
+                    } else if (data.done) {
+                        $chatStatus.textContent = "Done — " + (data.saved || 0) + " prompts saved";
+                    }
+                } catch (e) {
+                    // skip malformed lines
+                }
+            }
+        }
+    } catch (e) {
+        $chatStatus.textContent = "Error: " + e.message;
+        addChatEntry("Error", e.message);
+    } finally {
+        $btn.disabled = false;
+        $btn.textContent = "Generate Prompts";
+    }
+}
+
 async function processSelectedVideos() {
     if (!videoSelection.size) {
         alert("Select at least one image");

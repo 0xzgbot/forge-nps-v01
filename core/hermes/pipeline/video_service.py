@@ -1,8 +1,11 @@
+import base64
+import json
 import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Callable
 
 from core.bridge.runtime_config import get_raw_config
+from core.bridge.lmstudio_client import LMStudioClient
 from core.dispatch.comfy_client import ComfyUIClient
 
 
@@ -93,7 +96,7 @@ class HermesVideoService:
                 continue
 
             prompt_text = (prompt or "").strip() or str(
-                shot.get("compiled_prompt") or shot.get("prompt") or shot.get("campaign_brief") or ""
+                shot.get("video_prompt") or shot.get("compiled_prompt") or shot.get("prompt") or shot.get("campaign_brief") or ""
             )
             if duration:
                 prompt_text = f"{prompt_text}\n\nvideo_duration_seconds={int(duration)}"
@@ -136,6 +139,160 @@ class HermesVideoService:
             "results": results,
             "output_dir": str(output_dir),
         }
+
+    async def generate_prompts(
+        self,
+        *,
+        shot_ids: List[str],
+        duration: int = 4,
+        fps: int = 24,
+        bible_text: str = "",
+    ) -> Dict[str, Any]:
+        """
+        Orchestrate 3 LM Studio agents to generate LTX video prompts.
+        Returns {"status": "ok", "prompts": {"SHOT_001": "...", ...}}
+        """
+        # Collect shot data and images
+        shots_data = []
+        for sid in shot_ids:
+            shot = self.find_shot(str(sid))
+            if not shot:
+                continue
+            image_path = ""
+            if shot.get("image_path"):
+                image_path = str(shot.get("image_path"))
+            elif shot.get("image_url"):
+                p = self.resolve_image_path(str(shot.get("image_url") or ""))
+                if p:
+                    image_path = str(p)
+            if not image_path or not Path(image_path).exists():
+                continue
+            with open(image_path, "rb") as f:
+                b64 = base64.b64encode(f.read()).decode("utf-8")
+            shots_data.append({
+                "shot_id": sid,
+                "image_b64": b64,
+                "visual_brief": str(shot.get("visual_brief", "")),
+                "camera_direction": str(shot.get("camera_direction", "")),
+                "lighting_direction": str(shot.get("lighting_direction", "")),
+                "characters": shot.get("characters", []),
+                "compiled_prompt": str(shot.get("compiled_prompt", "")),
+                "rationale": str(shot.get("rationale", "")),
+            })
+
+        if not shots_data:
+            return {"status": "error", "error": "no_valid_shots"}
+
+        client = LMStudioClient(timeout=120.0)
+        model = os.getenv("LMSTUDIO_CHAT_MODEL", "")
+        if not model:
+            models = client.list_models()
+            model = models[0] if models else ""
+
+        # Agent 1: Image Analyst
+        analysis_results = []
+        for s in shots_data:
+            messages = [
+                {"role": "system", "content": (
+                    "You are a Visual Analyst for an AI filmmaking pipeline. "
+                    "Analyze the provided rendered image. Extract: subject action, implied motion, "
+                    "camera movement cues, lighting mood, background elements, and composition. "
+                    "Be concise (2-3 sentences)."
+                )},
+                {"role": "user", "content": [
+                    {"type": "text", "text": f"Shot: {s['shot_id']} | Camera: {s['camera_direction']} | Lighting: {s['lighting_direction']}"},
+                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{s['image_b64']}"}},
+                ]},
+            ]
+            resp = await client.chat_async(messages=messages, model=model, temperature=0.3, max_tokens=512)
+            content = ""
+            try:
+                content = resp["choices"][0]["message"]["content"]
+            except Exception:
+                content = "Analysis unavailable"
+            analysis_results.append({
+                "shot_id": s["shot_id"],
+                "analysis": content,
+                "compiled_prompt": s["compiled_prompt"],
+                "camera_direction": s["camera_direction"],
+                "lighting_direction": s["lighting_direction"],
+                "characters": s["characters"],
+                "rationale": s["rationale"],
+            })
+
+        # Agent 2: Duration Planner
+        duration_payload = {
+            "target_total_duration_sec": duration,
+            "fps": fps,
+            "shots": [
+                {
+                    "shot_id": a["shot_id"],
+                    "analysis": a["analysis"],
+                    "compiled_prompt": a["compiled_prompt"],
+                }
+                for a in analysis_results
+            ],
+        }
+        duration_messages = [
+            {"role": "system", "content": (
+                "You are a Duration Planner for LTX-Video generation. "
+                "Given shot analyses and a target total duration, allocate seconds and frames per shot. "
+                "LTX-Video works at 24-25fps. Output ONLY a JSON object: "
+                '{"plan": [{"shot_id": "...", "duration_sec": N, "frames": N, "reasoning": "..."}]}'
+            )},
+            {"role": "user", "content": json.dumps(duration_payload)},
+        ]
+        duration_resp = await client.chat_async(messages=duration_messages, model=model, temperature=0.2, max_tokens=1024, json_mode=True)
+        duration_plan = ""
+        try:
+            duration_plan = duration_resp["choices"][0]["message"]["content"]
+        except Exception:
+            duration_plan = json.dumps({"plan": [{"shot_id": a["shot_id"], "duration_sec": max(1, duration // len(analysis_results)), "frames": max(1, duration // len(analysis_results)) * fps, "reasoning": "even split"} for a in analysis_results]})
+
+        # Agent 3: Prompt Engineer
+        prompt_payload = {
+            "lore_bible_excerpt": bible_text[:4000] if bible_text else "none",
+            "duration_plan": json.loads(duration_plan) if isinstance(duration_plan, str) else duration_plan,
+            "shots": analysis_results,
+            "fps": fps,
+        }
+        prompt_messages = [
+            {"role": "system", "content": (
+                "You are an LTX-Video Prompt Engineer. Write time-segmented video generation prompts. "
+                "Each prompt must break the shot into temporal segments (e.g., 0-1s, 1-2s, 2-3s) "
+                "with specific motion descriptors, camera moves, and transitions for each segment. "
+                "Output ONLY a JSON object: "
+                '{"prompts": {"SHOT_001": {"duration_sec": N, "fps": N, "segments": [{"time_range": "0-1s", "prompt": "..."}], "full_prompt": "..."}}}'
+            )},
+            {"role": "user", "content": json.dumps(prompt_payload)},
+        ]
+        prompt_resp = await client.chat_async(messages=prompt_messages, model=model, temperature=0.4, max_tokens=2048, json_mode=True)
+        prompts_data = {}
+        try:
+            raw = prompt_resp["choices"][0]["message"]["content"]
+            if isinstance(raw, str):
+                prompts_data = json.loads(raw).get("prompts", {})
+            else:
+                prompts_data = raw.get("prompts", {})
+        except Exception:
+            prompts_data = {}
+
+        # Flatten to simple video_prompt strings
+        flat_prompts = {}
+        for sid, pdata in prompts_data.items():
+            if isinstance(pdata, dict):
+                segments = pdata.get("segments", [])
+                full = pdata.get("full_prompt", "")
+                if segments:
+                    flat_prompts[sid] = " | ".join([f"[{s.get('time_range', '')}] {s.get('prompt', '')}" for s in segments])
+                elif full:
+                    flat_prompts[sid] = full
+                else:
+                    flat_prompts[sid] = str(pdata)
+            else:
+                flat_prompts[sid] = str(pdata)
+
+        return {"status": "ok", "prompts": flat_prompts, "raw": prompts_data}
 
     @staticmethod
     def _evaluate_video_eligibility(
