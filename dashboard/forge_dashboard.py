@@ -3432,9 +3432,6 @@ async def api_hermes_chat_stream(req: HermesChatRequest):
 
     async def event_generator():
         try:
-            # Emit initial event
-            yield f"data: {_json.dumps({'type': 'chat_start', 'profile': profile})}\n\n"
-
             # Try NousHermesBridge first (faster, local model)
             try:
                 from core.bridge.nous_hermes_bridge import NousHermesBridge
@@ -3447,16 +3444,16 @@ async def api_hermes_chat_stream(req: HermesChatRequest):
                     chunk_size = 20
                     for i in range(0, len(response), chunk_size):
                         chunk = response[i:i + chunk_size]
-                        yield f"data: {_json.dumps({'type': 'chat_chunk', 'content': chunk})}\n\n"
-                        await asyncio.sleep(0.02)  # Small delay for visual streaming
-                    yield f"data: {_json.dumps({'type': 'chat_complete', 'full_response': response})}\n\n"
+                        yield _json.dumps({"token": chunk}) + "\n"
+                        await asyncio.sleep(0.02)
+                    yield _json.dumps({"done": True}) + "\n"
                     return
             except Exception as e:
                 print(f"[FORGE] NousHermesBridge chat failed, falling back to CLI: {e}")
 
             # Fallback: use Hermes CLI launcher
             if not os.path.exists(FORGE_HERMES_LAUNCHER):
-                yield f"data: {_json.dumps({'type': 'chat_error', 'error': 'Hermes engine not found'})}\n\n"
+                yield _json.dumps({"error": "Hermes engine not found"}) + "\n"
                 return
 
             skills_list = []
@@ -3481,25 +3478,25 @@ async def api_hermes_chat_stream(req: HermesChatRequest):
                 output = stdout.decode("utf-8", errors="replace").strip()
                 if not output and stderr:
                     err = stderr.decode("utf-8", errors="replace").strip()
-                    yield f"data: {_json.dumps({'type': 'chat_error', 'error': err[:300]})}\n\n"
+                    yield _json.dumps({"error": err[:300]}) + "\n"
                     return
                 # Stream the output in chunks
                 chunk_size = 20
                 for i in range(0, len(output), chunk_size):
                     chunk = output[i:i + chunk_size]
-                    yield f"data: {_json.dumps({'type': 'chat_chunk', 'content': chunk})}\n\n"
+                    yield _json.dumps({"token": chunk}) + "\n"
                     await asyncio.sleep(0.02)
-                yield f"data: {_json.dumps({'type': 'chat_complete', 'full_response': output})}\n\n"
+                yield _json.dumps({"done": True}) + "\n"
             except asyncio.TimeoutError:
                 proc.kill()
-                yield f"data: {_json.dumps({'type': 'chat_error', 'error': 'Hermes response timed out'})}\n\n"
+                yield _json.dumps({"error": "Hermes response timed out"}) + "\n"
 
         except Exception as e:
-            yield f"data: {_json.dumps({'type': 'chat_error', 'error': str(e)})}\n\n"
+            yield _json.dumps({"error": str(e)}) + "\n"
 
     return StreamingResponse(
         event_generator(),
-        media_type="text/event-stream",
+        media_type="text/plain",
         headers={
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
