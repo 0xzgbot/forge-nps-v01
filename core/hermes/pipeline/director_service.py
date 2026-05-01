@@ -138,6 +138,7 @@ class KimiDirectorService:
             ],
             "temperature": 0.4,
             "response_format": {"type": "json_object"},
+            "max_tokens": 8192,
         }
         timeout_sec = float(os.getenv("FORGE_KIMI_TIMEOUT_SEC", "120"))
         # Scale timeout for larger plans (e.g., 20-image requests).
@@ -215,6 +216,7 @@ class KimiDirectorService:
             ],
             "temperature": 0.35,
             "response_format": {"type": "json_object"},
+            "max_tokens": 8192,
         }
         timeout_sec = float(os.getenv("FORGE_KIMI_TIMEOUT_SEC", "120"))
         if target_shots >= 20:
@@ -270,6 +272,7 @@ class KimiDirectorService:
             ],
             "temperature": 0.2,
             "response_format": {"type": "json_object"},
+            "max_tokens": 4096,
         }
         timeout_sec = float(os.getenv("FORGE_KIMI_SELF_CHECK_TIMEOUT_SEC", "90"))
         async with httpx.AsyncClient(timeout=timeout_sec) as client:
@@ -343,6 +346,7 @@ class KimiDirectorService:
             ],
             "temperature": 0.45,
             "response_format": {"type": "json_object"},
+            "max_tokens": 8192,
         }
         timeout_sec = float(os.getenv("FORGE_KIMI_TIMEOUT_SEC", "120"))
         if target_shots >= 20:
