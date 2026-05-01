@@ -317,6 +317,14 @@ class ComfyUIClient:
                     converted["inputs"]["control_after_generate"] = widget_values[vi]
                     vi += 1
 
+            # Some primitive nodes (PrimitiveInt/Float/Boolean/String) expose
+            # required input "value" but may not publish a named widget entry.
+            # In that case, fallback to first widget_values element.
+            if "value" not in widget_map and widget_values:
+                first_val = widget_values[0]
+                if not (isinstance(first_val, str) and first_val in control_tokens):
+                    widget_map["value"] = first_val
+
             # Connected inputs
             for inp in node.get("inputs", []) or []:
                 if not isinstance(inp, dict):

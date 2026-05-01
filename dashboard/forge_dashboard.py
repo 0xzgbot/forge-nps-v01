@@ -21,9 +21,11 @@ import io
 from core.bridge.kimi_vl_client import KimiVLClient
 from core.bridge.lmstudio_client import LMStudioClient
 from core.bridge.config_manager import ConfigManager
+from core.bridge.runtime_config import get_raw_config
 from core.hermes.memory.episodic_memory import EpisodicMemory
 from core.hermes.memory.semantic_memory import SemanticMemory
 from core.skills.skill_registry import SkillRegistry
+from forge_nexus.mcp.handlers import ForgeMCPHandlers
 import asyncio
 from pydantic import BaseModel
 
@@ -50,8 +52,10 @@ MEDIA_IDENTITY_ASSETS = MEDIA_ROOT / "identity_assets"
 MEDIA_IDENTITY_ASSETS.mkdir(parents=True, exist_ok=True)
 MEDIA_IDENTITY_TEMPLATES = MEDIA_ROOT / "identity_templates"
 MEDIA_IDENTITY_TEMPLATES.mkdir(parents=True, exist_ok=True)
+NEXUS_DB = REPO_ROOT / ".forge-nexus" / "forge.db"
 
 app = FastAPI()
+_NEXUS_HANDLERS: Optional[ForgeMCPHandlers] = None
 
 # --- Models & State Management ---
 
@@ -187,6 +191,106 @@ async def api_memory_search(q: str = Query(..., min_length=1)):
 @app.get("/api/memory/health")
 async def api_memory_health():
     return get_memory_health()
+
+
+@app.post("/api/nexus/query")
+async def api_nexus_query(req: NexusQueryRequest):
+    query = (req.query or "").strip()
+    if not query:
+        raise HTTPException(status_code=400, detail="query required")
+    if not NEXUS_DB.exists():
+        raise HTTPException(status_code=503, detail=f"Forge Nexus index missing at {NEXUS_DB}")
+
+    handlers = _get_nexus_handlers()
+    res = handlers.handle_forge_query({"query": query})
+    if "error" in res:
+        raise HTTPException(status_code=500, detail=str(res["error"]))
+
+    raw_results = res.get("results", []) if isinstance(res, dict) else []
+    top_n = max(1, min(int(req.top_n or 8), 30))
+    top = raw_results[:top_n] if isinstance(raw_results, list) else []
+    nodes: List[Dict[str, Any]] = []
+    edges: List[Dict[str, Any]] = []
+
+    root_id = f"nexus_q::{query[:120]}"
+    nodes.append({
+        "id": root_id,
+        "label": f"Nexus Query: {query}",
+        "type": "query",
+        "score": 1.0,
+    })
+
+    for r in top:
+        rid = str(r.get("id", "")).strip()
+        if not rid:
+            continue
+        score = float(r.get("score", 0.0) or 0.0)
+        rnode = {
+            "id": rid,
+            "label": rid,
+            "type": _nexus_type_from_id(rid),
+            "score": score,
+        }
+        if rnode not in nodes:
+            nodes.append(rnode)
+        edges.append({
+            "id": f"{root_id}->{rid}:query_match",
+            "source": root_id,
+            "target": rid,
+            "type": "query_match",
+            "weight": max(1.0, round(score * 5.0, 2)),
+        })
+
+        if req.include_impact:
+            impact = handlers.handle_forge_impact({"asset_id": rid})
+            impacted = impact.get("affected_entities", []) if isinstance(impact, dict) else []
+            if isinstance(impacted, list):
+                for dep in impacted[:40]:
+                    did = str(dep or "").strip()
+                    if not did:
+                        continue
+                    dtype = _nexus_type_from_id(did)
+                    dnode = {"id": did, "label": did, "type": dtype, "score": 0.5}
+                    if dnode not in nodes:
+                        nodes.append(dnode)
+                    edges.append({
+                        "id": f"{did}->{rid}:depends_on",
+                        "source": did,
+                        "target": rid,
+                        "type": "depends_on",
+                        "weight": 1.0,
+                    })
+
+    return {
+        "status": "ok",
+        "query": query,
+        "count": len(top),
+        "results": top,
+        "overlay": {
+            "nodes": nodes,
+            "edges": edges,
+        },
+    }
+
+
+@app.post("/api/nexus/impact")
+async def api_nexus_impact(req: NexusImpactRequest):
+    asset_id = (req.asset_id or "").strip()
+    if not asset_id:
+        raise HTTPException(status_code=400, detail="asset_id required")
+    if not NEXUS_DB.exists():
+        raise HTTPException(status_code=503, detail=f"Forge Nexus index missing at {NEXUS_DB}")
+    handlers = _get_nexus_handlers()
+    res = handlers.handle_forge_impact({"asset_id": asset_id})
+    if "error" in res:
+        raise HTTPException(status_code=500, detail=str(res["error"]))
+    affected = res.get("affected_entities", []) if isinstance(res, dict) else []
+    return {
+        "status": "ok",
+        "asset_id": asset_id,
+        "affected_entities": affected,
+        "count": len(affected) if isinstance(affected, list) else 0,
+    }
 
 @app.post("/api/memory/consolidate")
 async def api_memory_consolidate():
@@ -644,6 +748,9 @@ class RenameCampaignRequest(BaseModel):
     old_campaign_id: str
     new_campaign_name: str
 
+class DeleteCampaignRequest(BaseModel):
+    campaign_id: str
+
 
 class CampaignIdentityPack(BaseModel):
     type: str = ""  # "", "character", "product"
@@ -961,6 +1068,76 @@ async def api_rename_campaign(req: RenameCampaignRequest):
         "shot_updates": updated,
         "folders_renamed": renamed_folders,
     }
+
+
+@app.delete("/api/campaigns/{campaign_id}")
+async def api_delete_campaign(campaign_id: str):
+    global _ACTIVE_CAMPAIGN
+    cid = (campaign_id or "").strip()
+    if not cid:
+        raise HTTPException(status_code=400, detail="campaign_id is required")
+    safe_cid = _safe_campaign_name(cid)
+    candidate_ids = {cid}
+    if safe_cid:
+        candidate_ids.add(safe_cid)
+
+    before = len(_SHOTS_STORE)
+    _SHOTS_STORE[:] = [s for s in _SHOTS_STORE if str(s.get("campaign_id") or "") not in candidate_ids]
+    removed_shots = before - len(_SHOTS_STORE)
+
+    for k in list(_CAMPAIGNS.keys()):
+        if str(k or "") in candidate_ids:
+            _CAMPAIGNS.pop(k, None)
+    if _ACTIVE_CAMPAIGN in candidate_ids:
+        _ACTIVE_CAMPAIGN = None
+
+    removed_paths = []
+    roots = [
+        MEDIA_IMAGES,
+        REPO_ROOT / "data" / "renders" / "campaigns",
+        REPO_ROOT / "data" / "campaigns",
+        MEDIA_IDENTITY_ASSETS,
+    ]
+    targets: List[Path] = []
+    for name in candidate_ids:
+        targets.extend([root / name for root in roots])
+        targets.append(_identity_template_path(name))
+    # Also delete variant folders that normalize to same safe name.
+    for root in roots:
+        try:
+            if not root.exists():
+                continue
+            for d in root.iterdir():
+                if not d.is_dir():
+                    continue
+                dn = str(d.name or "")
+                if dn in candidate_ids or _safe_campaign_name(dn) == safe_cid:
+                    targets.append(d)
+        except Exception:
+            pass
+    for target in targets:
+        try:
+            if target.exists():
+                if target.is_dir():
+                    shutil.rmtree(target, ignore_errors=True)
+                else:
+                    target.unlink(missing_ok=True)
+                removed_paths.append(str(target))
+        except Exception:
+            pass
+
+    return {
+        "status": "ok",
+        "campaign_id": cid,
+        "safe_campaign_id": safe_cid,
+        "candidate_ids": sorted(candidate_ids),
+        "removed_shots": removed_shots,
+        "removed_paths": removed_paths,
+    }
+
+@app.post("/api/campaigns/delete")
+async def api_delete_campaign_body(req: DeleteCampaignRequest):
+    return await api_delete_campaign(req.campaign_id)
 
 
 @app.get("/api/campaigns/{campaign_id}/identity")
@@ -1518,6 +1695,20 @@ class VideoProcessRequest(BaseModel):
     fps: int = 24
     workflow_id: str = "02_ltx2.3_T2V_I2V_distilled"
     prompt: str = ""
+    min_audit_score: float = 0.85
+    min_audit_confidence: float = 0.70
+    require_audit_pass: bool = True
+    allow_failed_override: bool = False
+
+
+class NexusQueryRequest(BaseModel):
+    query: str
+    top_n: int = 8
+    include_impact: bool = True
+
+
+class NexusImpactRequest(BaseModel):
+    asset_id: str
 
 
 def _workflow_file_for_id(workflow_id: str) -> Optional[Path]:
@@ -1570,6 +1761,24 @@ def _make_audit_service() -> HermesAuditService:
     )
 
 
+def _get_nexus_handlers() -> ForgeMCPHandlers:
+    global _NEXUS_HANDLERS
+    if _NEXUS_HANDLERS is None:
+        _NEXUS_HANDLERS = ForgeMCPHandlers(REPO_ROOT)
+    return _NEXUS_HANDLERS
+
+
+def _nexus_type_from_id(asset_id: str) -> str:
+    aid = str(asset_id or "").lower()
+    if aid.startswith("char_"):
+        return "character"
+    if aid.startswith("prompt_"):
+        return "prompt"
+    if aid.startswith("wf_") or "workflow" in aid:
+        return "workflow"
+    return "asset"
+
+
 @app.post("/api/hermes/cancel")
 async def api_hermes_cancel():
     global _CANCEL_CAMPAIGN
@@ -1599,6 +1808,7 @@ async def api_hermes_run_campaign(req: RunCampaignRequest):
             is_cancelled=lambda: _CANCEL_CAMPAIGN,
             active_campaign_setter=_set_active,
             remediate_failed=lambda shot_ids: _make_audit_service().remediate(shot_ids, max_retries=1),
+            get_hermes_bridge=_get_hermes_bridge,
         )
         payload = CampaignRequest(
             brief=req.brief,
@@ -1643,6 +1853,10 @@ async def api_video_process(req: VideoProcessRequest):
         duration=int(req.duration or 0),
         fps=int(req.fps or 0),
         prompt=str(req.prompt or ""),
+        min_audit_score=float(req.min_audit_score),
+        min_audit_confidence=float(req.min_audit_confidence),
+        require_audit_pass=bool(req.require_audit_pass),
+        allow_failed_override=bool(req.allow_failed_override),
     )
     if result.get("status") == "error":
         err = str(result.get("error") or "video_process_error")
@@ -1980,6 +2194,8 @@ async def audit_render_with_kimi_vl(image_path: str, prompt: str = "", campaign:
     Returns audit result dict with score, passed, feedback.
     """
     from core.bridge.kimi_vl_client import KimiVLClient
+    from core.bridge.config_manager import ConfigManager
+    from core.bridge.lmstudio_client import LMStudioClient
 
     try:
         cfg = get_raw_config()
@@ -1989,7 +2205,11 @@ async def audit_render_with_kimi_vl(image_path: str, prompt: str = "", campaign:
         endpoint = api2 if active == "api2" and api2 else api1
         if not endpoint:
             endpoint = str(cfg.get("NIM_ENDPOINT", "") or "").strip()
-        client = KimiVLClient(endpoint_url=endpoint)
+        client = KimiVLClient(
+            endpoint_url=endpoint,
+            api_key=str(cfg.get("KIMI_API_KEY", "") or os.getenv("KIMI_API_KEY", "")),
+            config_manager=ConfigManager(),
+        )
         cinematic_system_prompt = (
             "You are an image quality auditor. "
             "Score cinematic composition, lighting quality, prompt adherence, and visible artifacts."
@@ -2042,24 +2262,113 @@ async def audit_render_with_kimi_vl(image_path: str, prompt: str = "", campaign:
         )
         return result
     except Exception as e:
-        print(f"[FORGE] [KIMI-VL] Audit failed: {e}")
-        return {
-            "score": 0,
-            "passed": False,
-            "feedback": f"Audit failed: {str(e)}",
-            "issues": [str(e)],
-            "overall_score": 0,
-            "model_score": 0,
-            "checks_score": 0,
-            "confidence": 0,
-            "model_passed": False,
-            "final_passed": False,
-            "checks": {k: False for k in _AUDIT_CHECK_KEYS},
-            "critical_failures": ["audit_execution_failure"],
-            "noncritical_issues": [],
-            "audit_decision_reasons": ["audit_execution_failure"],
-            "error": True,
-        }
+        kimi_error = str(e)
+        print(f"[FORGE] [KIMI-VL] Audit failed: {kimi_error}")
+
+        # Fallback: if LM Studio vision is loaded, use it before declaring execution failure.
+        try:
+            local = LMStudioClient(timeout=90.0)
+            lm_models = local.list_models()
+            configured_vision = str(
+                cfg.get("LMSTUDIO_VISION_MODEL", "")
+                or os.getenv("LMSTUDIO_VISION_MODEL", "")
+                or ""
+            ).strip()
+            vision_model = configured_vision or (lm_models[0] if lm_models else "")
+            if not vision_model:
+                raise RuntimeError("lmstudio_no_model_loaded")
+
+            with open(image_path, "rb") as f:
+                b64 = base64.b64encode(f.read()).decode("utf-8")
+            image_data_url = f"data:image/jpeg;base64,{b64}"
+
+            def _mk_msgs(system_text: str, user_text: str) -> List[Dict[str, Any]]:
+                return [
+                    {"role": "system", "content": system_text},
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": user_text},
+                            {"type": "image_url", "image_url": {"url": image_data_url}},
+                        ],
+                    },
+                ]
+
+            cine_system = (
+                "You are an image quality auditor. "
+                "Score cinematic composition, lighting quality, prompt adherence, and visible artifacts."
+            )
+            cine_user = (
+                f"Audit this full image for campaign '{campaign}'. "
+                f"Original prompt excerpt: {prompt[:240] if prompt else 'N/A'}. "
+                "Return strict JSON with: overall_score (0-100), model_passed (bool), confidence (0-1), "
+                "checks object booleans for hands_ok, limbs_ok, face_ok, reflection_ok, vehicle_geometry_ok, "
+                "text_artifacts_ok, prompt_adherence_ok, plus critical_failures (array), noncritical_issues (array), "
+                "feedback (string), issues (array)."
+            )
+            for_system = (
+                "You are a forensic visual consistency auditor. "
+                "Be strict on anatomy, reflections, and physical plausibility."
+            )
+            for_user = (
+                f"Inspect this full image for hard failures. Campaign '{campaign}'. "
+                "Verify hand/finger count, impossible limbs, reflection consistency, vehicle geometry, "
+                "face deformation, text/watermark artifacts. Return JSON in the exact same schema."
+            )
+
+            async def _lm_pass(system_text: str, user_text: str) -> Dict[str, Any]:
+                resp = await local.chat_async(
+                    messages=_mk_msgs(system_text, user_text),
+                    model=vision_model,
+                    temperature=0.1,
+                    max_tokens=900,
+                    json_mode=True,
+                )
+                if not isinstance(resp, dict) or "error" in resp:
+                    raise RuntimeError(f"lmstudio_chat_error:{resp.get('error', 'unknown') if isinstance(resp, dict) else 'unknown'}")
+                content = (
+                    (resp.get("choices") or [{}])[0]
+                    .get("message", {})
+                    .get("content", "")
+                )
+                if isinstance(content, dict):
+                    return content
+                if isinstance(content, str):
+                    return json.loads(content)
+                raise RuntimeError("lmstudio_invalid_response_content")
+
+            pass_a = await _lm_pass(cine_system, cine_user)
+            pass_b = await _lm_pass(for_system, for_user)
+            result = _aggregate_audit_results(pass_a, pass_b)
+            result["audit_backend"] = "lmstudio_fallback"
+            result["audit_fallback_from"] = "kimi_vl"
+            result["audit_fallback_reason"] = kimi_error
+            print(
+                "[FORGE] [LMSTUDIO] Audit fallback result: "
+                f"backend_score={result.get('score', 'N/A')}, "
+                f"final_passed={result.get('passed', 'N/A')}"
+            )
+            return result
+        except Exception as le:
+            local_error = str(le)
+            print(f"[FORGE] [LMSTUDIO] Audit fallback failed: {local_error}")
+            return {
+                "score": 0,
+                "passed": False,
+                "feedback": f"Audit failed (Kimi + LM Studio): Kimi={kimi_error} | LM Studio={local_error}",
+                "issues": [kimi_error, local_error],
+                "overall_score": 0,
+                "model_score": 0,
+                "checks_score": 0,
+                "confidence": 0,
+                "model_passed": False,
+                "final_passed": False,
+                "checks": {k: False for k in _AUDIT_CHECK_KEYS},
+                "critical_failures": ["audit_execution_failure"],
+                "noncritical_issues": [],
+                "audit_decision_reasons": [f"audit_execution_failure:kimi={kimi_error}", f"audit_execution_failure:lmstudio={local_error}"],
+                "error": True,
+            }
 
 
 async def write_audit_to_memory(audit_result: dict, image_path: str, prompt: str = "", campaign: str = "default"):

@@ -224,17 +224,26 @@ def get_graph_data() -> Dict[str, List[Dict[str, Any]]]:
             node["size"] = 20
         nodes.append(node)
 
+    edge_weight: Dict[str, int] = {}
+
     def add_edge(source: str, target: str, edge_type: str, label: str = ""):
         edge_id = f"{source}->{target}:{edge_type}"
         if edge_id in edge_ids:
+            edge_weight[edge_id] = edge_weight.get(edge_id, 1) + 1
+            for e in edges:
+                if e.get("id") == edge_id:
+                    e["weight"] = edge_weight[edge_id]
+                    break
             return
         edge_ids.add(edge_id)
+        edge_weight[edge_id] = 1
         edges.append({
             "id": edge_id,
             "source": source,
             "target": target,
             "type": edge_type,
             "label": label,
+            "weight": 1,
         })
 
     for e in events:
@@ -255,6 +264,7 @@ def get_graph_data() -> Dict[str, List[Dict[str, Any]]]:
         label = f"{etype[:12]}\n{concept}"
         add_node(eid, label, node_type, {
             "timestamp": e.get("timestamp", ""),
+            "event_type": etype,
             "session_id": session_id,
             "kernel_id": kernel_id,
             "shot_id": shot_id,
@@ -262,6 +272,11 @@ def get_graph_data() -> Dict[str, List[Dict[str, Any]]]:
             "error_category": e.get("error_category", ""),
             "audit_score": e.get("audit_score"),
             "source": e.get("source", "live"),
+            "campaign_id": e.get("campaign_id", ""),
+            "workflow_id": e.get("workflow_id", ""),
+            "pipeline_mode": e.get("pipeline_mode", ""),
+            "retry_of": (e.get("extra") or {}).get("retry_of", "") if isinstance(e.get("extra"), dict) else "",
+            "importance": 1 if etype not in {"audit_result", "remediation_result", "final_outcome"} else 2,
         })
 
         session_node_id = f"session_{session_id}"
@@ -283,6 +298,8 @@ def get_graph_data() -> Dict[str, List[Dict[str, Any]]]:
             "confidence": conf,
             "confirmations": confs,
             "applies_to": ins.get("applies_to", {}),
+            "event_type": "insight",
+            "importance": max(1, int(confs or 1)),
         })
 
         for src_evt in ins.get("source_events", []):

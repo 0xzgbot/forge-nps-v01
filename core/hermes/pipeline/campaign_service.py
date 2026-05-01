@@ -13,6 +13,8 @@ from core.prompts.prompt_compiler import compile_prompt_artifact
 from core.bridge.runtime_config import get_raw_config
 
 from .director_service import KimiDirectorService
+from .profile_cli import HermesProfileCLI
+from .role_skill_mapper import role_skill_scope
 from .state_machine import transition_shot
 
 
@@ -42,6 +44,7 @@ class HermesCampaignService:
         is_cancelled: Callable[[], bool],
         active_campaign_setter: Callable[[str], None],
         remediate_failed: Optional[Callable[[List[str]], Awaitable[Dict[str, Any]]]] = None,
+        get_hermes_bridge: Optional[Callable[[], Any]] = None,
     ) -> None:
         self.repo_root = repo_root
         self.media_images = media_images
@@ -54,7 +57,9 @@ class HermesCampaignService:
         self.is_cancelled = is_cancelled
         self.active_campaign_setter = active_campaign_setter
         self.remediate_failed = remediate_failed
+        self.get_hermes_bridge = get_hermes_bridge
         self.director = KimiDirectorService()
+        self.profile_cli = HermesProfileCLI()
 
     def _resolve_bible_text(self, bible_path: str) -> str:
         if not bible_path:
@@ -155,6 +160,12 @@ class HermesCampaignService:
                 "identity_pack": req.identity_pack or {},
             }
         self._write_campaign_manifest(campaign_id, req.brief, workflow_ids, req.identity_pack)
+        yield {"type": "profile", "profile_color_key": "profile_director_kimi", "text": "Director Planner (kimi) online"}
+        yield {"type": "profile", "profile_color_key": "profile_critic_kimi", "text": "Coverage Critic (kimi) online"}
+        yield {"type": "profile", "profile_color_key": "profile_compiler_lmstudio", "text": "Prompt Compiler (lmstudio) online"}
+        yield {"type": "profile", "profile_color_key": "profile_continuity_lmstudio", "text": "Continuity Guard (lmstudio) online"}
+        yield {"type": "profile", "profile_color_key": "profile_remediation_lmstudio", "text": "Remediation Reprompter (lmstudio) online"}
+        yield {"type": "profile", "profile_color_key": "profile_audit_kimi", "text": "Audit Judge (kimi) online"}
 
         # If appending to an existing campaign, continue shot numbering.
         shot_index_offset = 0
@@ -256,6 +267,7 @@ class HermesCampaignService:
         try:
             review = await self.director.self_check_plan(req.brief, campaign_id, kimi_shots)
             self.campaigns[campaign_id]["kimi_review"] = review
+            yield {"type": "profile", "profile_color_key": "profile_critic_kimi", "text": "Coverage Critic (kimi) completed review."}
             yield {
                 "type": "kimi_review",
                 "campaign_id": campaign_id,
@@ -346,6 +358,7 @@ class HermesCampaignService:
                 record_id = f"{campaign_id}__{effective_shot['shot_id']}__{workflow_id}"
                 yield {"type": "hermes", "shot_id": effective_shot["shot_id"], "text": f"Writing prompt for {effective_shot['shot_id']}..."}
 
+                compiler_scope = role_skill_scope("prompt_compiler")
                 artifact = compile_prompt_artifact(
                     raw_concept=req.brief,
                     workflow_id=workflow_id,
@@ -357,7 +370,34 @@ class HermesCampaignService:
                         "sequence": effective_shot["sequence"],
                         "identity_pack": req.identity_pack or {},
                     },
+                    role_key="prompt_compiler",
+                    allowed_skill_patterns=compiler_scope.get("patterns", []),
                 )
+                # Optional Hermes profile refinement step (CLI preferred; fallback to bridge).
+                refinement_task = {
+                    "task": "refine_compiled_prompt",
+                    "workflow_id": workflow_id,
+                    "campaign_id": campaign_id,
+                    "shot_id": effective_shot["shot_id"],
+                    "visual_brief": effective_shot.get("visual_brief", ""),
+                    "constraints": effective_shot.get("constraints", ""),
+                    "compiled_prompt": artifact.get("compiled_prompt", ""),
+                    "negative_prompt": artifact.get("negative_prompt", ""),
+                }
+                refined = await self.profile_cli.run_json("compiler", refinement_task)
+                if isinstance(refined, dict):
+                    refined_prompt = str(refined.get("compiled_prompt") or refined.get("prompt") or "").strip()
+                    if refined_prompt:
+                        artifact["compiled_prompt"] = refined_prompt
+                    refined_negative = str(refined.get("negative_prompt") or "").strip()
+                    if refined_negative:
+                        artifact["negative_prompt"] = refined_negative
+                    yield {
+                        "type": "profile",
+                        "profile_color_key": "profile_compiler_lmstudio",
+                        "shot_id": effective_shot["shot_id"],
+                        "text": f"Prompt Compiler (lmstudio) refined {effective_shot['shot_id']}.",
+                    }
                 yield {
                     "type": "compiler",
                     "shot_id": effective_shot["shot_id"],
@@ -369,7 +409,8 @@ class HermesCampaignService:
                     "text": (
                         f"profile={artifact.get('profile_name')} "
                         f"standard={artifact.get('model_standard_name')}@{artifact.get('model_standard_version')} "
-                        f"skills={','.join(artifact.get('skills_used', [])) or 'none'}"
+                        f"skills={','.join(artifact.get('skills_used', [])) or 'none'} "
+                        f"scope={','.join(compiler_scope.get('patterns', [])[:4]) or 'global'}"
                     ),
                 }
                 compiled_text = str(artifact.get("compiled_prompt", "") or "").strip()
@@ -399,6 +440,9 @@ class HermesCampaignService:
                     "negative_prompt": negative_prompt,
                     "workflow_profile": artifact.get("profile_name", ""),
                     "skills_used": artifact.get("skills_used", []),
+                    "skills_scope_role": "prompt_compiler",
+                    "skills_scope_patterns": compiler_scope.get("patterns", []),
+                    "skills_scope_version": compiler_scope.get("map_version", "unknown"),
                     "compiler_version": artifact.get("compiler_version", ""),
                     "model_standard_name": artifact.get("model_standard_name", ""),
                     "model_standard_version": artifact.get("model_standard_version", ""),
@@ -418,6 +462,8 @@ class HermesCampaignService:
                     "identity_fail_reasons": [],
                     "audit_status": "",
                     "source": source,
+                    "profile_used": "prompt_compiler",
+                    "profile_backend": "lmstudio",
                     "created_at": self.now_iso(),
                 }
                 self.shots_store.append(shot_record)

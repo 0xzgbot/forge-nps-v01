@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Forge NPS — Transition: The Audit Gate</title>
+  <script>p5.disableFriendlyErrors = true;</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.3/p5.min.js"></script>
+  <style>html,body{margin:0;padding:0;overflow:hidden;background:#0A0E14;}canvas{display:block;}</style>
+</head>
+<body>
+<script>
+// ── Forge NPS — "The Audit Gate" Kinetic Typography Transition ────────────
+// The words PASS / FAIL / RETRY form from swarming particles.
+// Used during the remediation sequence of the promo video.
+//
+// EXPORT: Press 'S' for PNG, 'R' to restart animation
+// ──────────────────────────────────────────────────────────────────────────
+
+const CONFIG = {
+  seed: 77,
+  particleCount: 2400,
+  wordDuration: 90,   // frames per word
+  pauseDuration: 30,  // frames between words
+  bgColor: '#0A0E14',
+};
+
+let particles = [];
+let words = ['PASS', 'FAIL', 'RETRY'];
+let wordColors = [
+  [0, 255, 65],    // green
+  [255, 51, 51],   // red
+  [189, 0, 255],   // purple
+];
+let currentWord = 0;
+let frameInWord = 0;
+let wordPoints = [];
+
+function setup() {
+  createCanvas(1920, 1080);
+  pixelDensity(1);
+  randomSeed(CONFIG.seed);
+  noiseSeed(CONFIG.seed);
+  colorMode(RGB, 255, 255, 255, 100);
+  noLoop();
+  window._p5Ready = true;
+
+  initParticles();
+  computeWordPoints(0);
+}
+
+function computeWordPoints(wordIdx) {
+  wordPoints = [];
+  let word = words[wordIdx];
+  let color = wordColors[wordIdx];
+
+  // Approximate letter shapes using a grid of points
+  let letterSpacing = 220;
+  let startX = width / 2 - (word.length * letterSpacing) / 2 + 80;
+  let startY = height / 2 - 120;
+  let scale = 2.8;
+
+  for (let li = 0; li < word.length; li++) {
+    let letter = word[li];
+    let lx = startX + li * letterSpacing;
+    let points = getLetterPoints(letter, lx, startY, scale);
+    for (let p of points) {
+      wordPoints.push({ x: p.x, y: p.y, color: color });
+    }
+  }
+}
+
+function getLetterPoints(letter, x, y, s) {
+  // Simple 5x7 grid representations
+  let grids = {
+    'P': [
+      '11110',
+      '10001',
+      '10001',
+      '11110',
+      '10000',
+      '10000',
+      '10000',
+    ],
+    'A': [
+      '01110',
+      '10001',
+      '10001',
+      '11111',
+      '10001',
+      '10001',
+      '10001',
+    ],
+    'S': [
+      '01111',
+      '10000',
+      '10000',
+      '01110',
+      '00001',
+      '00001',
+      '11110',
+    ],
+    'F': [
+      '11111',
+      '10000',
+      '10000',
+      '11110',
+      '10000',
+      '10000',
+      '10000',
+    ],
+    'I': [
+      '01110',
+      '00100',
+      '00100',
+      '00100',
+      '00100',
+      '00100',
+      '01110',
+    ],
+    'L': [
+      '10000',
+      '10000',
+      '10000',
+      '10000',
+      '10000',
+      '10000',
+      '11111',
+    ],
+    'R': [
+      '11110',
+      '10001',
+      '10001',
+      '11110',
+      '10100',
+      '10010',
+      '10001',
+    ],
+    'E': [
+      '11111',
+      '10000',
+      '10000',
+      '11110',
+      '10000',
+      '10000',
+      '11111',
+    ],
+    'T': [
+      '11111',
+      '00100',
+      '00100',
+      '00100',
+      '00100',
+      '00100',
+      '00100',
+    ],
+    'Y': [
+      '10001',
+      '10001',
+      '01010',
+      '00100',
+      '00100',
+      '00100',
+      '00100',
+    ],
+  };
+
+  let points = [];
+  let grid = grids[letter] || grids['P'];
+  let cellW = 14 * s;
+  let cellH = 18 * s;
+
+  for (let row = 0; row < grid.length; row++) {
+    for (let col = 0; col < grid[row].length; col++) {
+      if (grid[row][col] === '1') {
+        points.push({
+          x: x + col * cellW + random(-3, 3),
+          y: y + row * cellH + random(-3, 3)
+        });
+      }
+    }
+  }
+  return points;
+}
+
+function initParticles() {
+  particles = [];
+  for (let i = 0; i < CONFIG.particleCount; i++) {
+    particles.push({
+      x: random(width),
+      y: random(height),
+      vx: 0,
+      vy: 0,
+      size: random(2, 5),
+      noiseOffset: random(10000),
+      brightness: random(0.5, 1.0),
+      targetIdx: floor(random(1000)),
+    });
+  }
+}
+
+function draw() {
+  background(10, 14, 20, 18);
+
+  let t = frameInWord / CONFIG.wordDuration;
+  let ease = t < 0.5 ? 4 * t * t * t : 1 - pow(-2 * t + 2, 3) / 2;
+
+  for (let p of particles) {
+    let target = wordPoints[p.targetIdx % wordPoints.length];
+    if (!target) continue;
+
+    // Noise chaos
+    let nX = noise(p.noiseOffset + frameCount * 0.008, 0) - 0.5;
+    let nY = noise(0, p.noiseOffset + frameCount * 0.008) - 0.5;
+
+    // Attraction
+    let dx = target.x - p.x;
+    let dy = target.y - p.y;
+    let ax = dx * ease * 0.06;
+    let ay = dy * ease * 0.06;
+
+    p.vx = p.vx * 0.9 + ax + nX * (1 - ease) * 6;
+    p.vy = p.vy * 0.9 + ay + nY * (1 - ease) * 6;
+    p.x += p.vx;
+    p.y += p.vy;
+
+    // Color based on current word
+    let c = wordColors[currentWord];
+    let alpha = 25 + ease * 55;
+
+    noStroke();
+    fill(c[0], c[1], c[2], alpha * p.brightness);
+    ellipse(p.x, p.y, p.size, p.size);
+
+    // Glow when assembled
+    if (ease > 0.6) {
+      fill(c[0], c[1], c[2], alpha * 0.1);
+      ellipse(p.x, p.y, p.size * 5, p.size * 5);
+    }
+  }
+
+  // Scanlines
+  stroke(255, 255, 255, 2);
+  for (let y = 0; y < height; y += 3) {
+    line(0, y, width, y);
+  }
+
+  frameInWord++;
+
+  if (frameInWord >= CONFIG.wordDuration + CONFIG.pauseDuration) {
+    frameInWord = 0;
+    currentWord = (currentWord + 1) % words.length;
+    computeWordPoints(currentWord);
+  }
+
+  // Auto-stop after 2 full cycles for headless
+  if (frameCount > (CONFIG.wordDuration + CONFIG.pauseDuration) * words.length * 2) {
+    noLoop();
+    console.log('AUDIT_GATE_COMPLETE');
+  }
+}
+
+function keyPressed() {
+  if (key === 's' || key === 'S') saveCanvas('transition_audit_gate', 'png');
+  if (key === 'r' || key === 'R') { frameCount = 0; frameInWord = 0; currentWord = 0; computeWordPoints(0); loop(); }
+  if (key === ' ') { isLooping() ? noLoop() : loop(); }
+}
+</script>
+</body>
+</html>

@@ -30,6 +30,10 @@ class HermesVideoService:
         duration: int = 4,
         fps: int = 24,
         prompt: str = "",
+        min_audit_score: float = 0.85,
+        min_audit_confidence: float = 0.70,
+        require_audit_pass: bool = True,
+        allow_failed_override: bool = False,
     ) -> Dict[str, Any]:
         if not shot_ids:
             return {"status": "error", "error": "shot_ids_required"}
@@ -56,6 +60,25 @@ class HermesVideoService:
             shot = self.find_shot(str(sid))
             if not shot:
                 results.append({"shot_id": sid, "status": "error", "error": "shot_not_found"})
+                continue
+
+            verdict = self._evaluate_video_eligibility(
+                shot,
+                min_audit_score=min_audit_score,
+                min_audit_confidence=min_audit_confidence,
+                require_audit_pass=require_audit_pass,
+                allow_failed_override=allow_failed_override,
+            )
+            if not verdict["eligible"]:
+                results.append(
+                    {
+                        "shot_id": sid,
+                        "status": "blocked",
+                        "error": "blocked_for_video",
+                        "reasons": verdict["reasons"],
+                        "workflow_id": workflow_id,
+                    }
+                )
                 continue
 
             image_path = ""
@@ -113,3 +136,38 @@ class HermesVideoService:
             "results": results,
             "output_dir": str(output_dir),
         }
+
+    @staticmethod
+    def _evaluate_video_eligibility(
+        shot: Dict[str, Any],
+        *,
+        min_audit_score: float,
+        min_audit_confidence: float,
+        require_audit_pass: bool,
+        allow_failed_override: bool,
+    ) -> Dict[str, Any]:
+        reasons: List[str] = []
+        audit_status = str(shot.get("audit_status", "") or "").strip().lower()
+        score = float(shot.get("audit_score", 0) or 0)
+        confidence = float(shot.get("audit_confidence", 0) or 0)
+        issues = [str(x) for x in (shot.get("audit_issues") or [])]
+        critical = [str(x) for x in (shot.get("audit_critical_failures") or [])]
+        merged = " ".join([*issues, *critical]).lower()
+        hard_fail_terms = (
+            "extra fingers", "extra limbs", "deformed", "dog head", "broken face",
+            "identity mismatch", "wrong identity", "reflection contradiction", "mirror contradiction",
+        )
+        has_hard_fail = any(t in merged for t in hard_fail_terms)
+        if has_hard_fail:
+            reasons.append("hard_fail_visual")
+        if require_audit_pass and not audit_status:
+            reasons.append("audit_missing")
+        if require_audit_pass and audit_status != "pass":
+            reasons.append("audit_not_passed")
+        if score < min_audit_score:
+            reasons.append("score_below_threshold")
+        if confidence < min_audit_confidence:
+            reasons.append("confidence_below_threshold")
+        has_soft_failures = len(reasons) > 0 and not has_hard_fail
+        eligible = (len(reasons) == 0) or (bool(allow_failed_override) and has_soft_failures)
+        return {"eligible": eligible, "reasons": reasons, "has_hard_fail": has_hard_fail}

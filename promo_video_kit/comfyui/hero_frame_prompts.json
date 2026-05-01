@@ -1,0 +1,101 @@
+{
+  "prompts": [
+    {
+      "id": "hero_director",
+      "title": "The Director (Kimi)",
+      "description": "Cinematic portrait of an AI director planning shots",
+      "workflow": "wf_flux2_turbo_api",
+      "positive_prompt": "cinematic portrait of a holographic AI director figure composed of flowing cyan light and data streams, sitting in a dark command center surrounded by floating holographic shot cards and storyboards, each card glowing with structured JSON data, volumetric fog, dramatic rim lighting from screens, cyberpunk aesthetic, shallow depth of field, 8k render, photorealistic, moody atmosphere, neon accents, cinematic composition",
+      "negative_prompt": "blurry, low quality, deformed hands, extra fingers, mutated, ugly, duplicate, watermark, signature, text, logo, cropped, worst quality, low resolution, amateur, oversaturated",
+      "seed": -1,
+      "width": 1280,
+      "height": 720,
+      "steps": 20,
+      "cfg": 7.0
+    },
+    {
+      "id": "hero_engineer",
+      "title": "The Engineer (Hermes)",
+      "description": "Hands typing on a glowing keyboard with code floating in air",
+      "workflow": "wf_flux2_turbo_api",
+      "positive_prompt": "close-up of elegant hands typing on a translucent glowing holographic keyboard, streams of luminous code and prompt text floating upward from the keys like smoke made of light, dark cyberpunk workspace, purple and amber accent lighting, bokeh from background monitors, shallow depth of field, photorealistic, 8k, cinematic lighting, tech noir atmosphere, volumetric light rays",
+      "negative_prompt": "blurry, low quality, deformed hands, extra fingers, mutated, ugly, duplicate, watermark, signature, text, logo, cropped, worst quality, low resolution, amateur, oversaturated, extra limbs",
+      "seed": -1,
+      "width": 1280,
+      "height": 720,
+      "steps": 20,
+      "cfg": 7.0
+    },
+    {
+      "id": "hero_renderer",
+      "title": "The Renderer (Spark)",
+      "description": "Massive GPU cluster with light pouring from server racks",
+      "workflow": "wf_flux2_turbo_api",
+      "positive_prompt": "massive futuristic GPU server farm stretching into darkness, rows of black server racks with intense cyan and white light pouring from vents and gaps like liquid light, heat shimmer in the air, cables hanging like industrial art, photorealistic, 8k, cinematic wide shot, dramatic perspective, cyberpunk data center, volumetric god rays, dust particles in light, anamorphic lens flare",
+      "negative_prompt": "blurry, low quality, deformed, mutated, ugly, duplicate, watermark, signature, text, logo, cropped, worst quality, low resolution, amateur, oversaturated, cartoon, anime",
+      "seed": -1,
+      "width": 1280,
+      "height": 720,
+      "steps": 20,
+      "cfg": 7.0
+    },
+    {
+      "id": "hero_gate",
+      "title": "The Gate (Vision)",
+      "description": "All-seeing eye scanning images for flaws",
+      "workflow": "wf_flux2_turbo_api",
+      "positive_prompt": "massive glowing mechanical eye floating in darkness, iris made of concentric rings of scanning laser light in green and red, refracting light through crystalline lens, microscopic detail visible in iris mechanics, photorealistic, 8k, cinematic, dramatic rim lighting, cyberpunk surveillance aesthetic, dark background with subtle grid pattern, lens flare, subsurface scattering",
+      "negative_prompt": "blurry, low quality, deformed, mutated, ugly, duplicate, watermark, signature, text, logo, cropped, worst quality, low resolution, amateur, oversaturated, cartoon",
+      "seed": -1,
+      "width": 1280,
+      "height": 720,
+      "steps": 20,
+      "cfg": 7.0
+    },
+    {
+      "id": "hero_memory",
+      "title": "The Memory",
+      "description": "Crystalline structure with light traveling through glass neurons",
+      "workflow": "wf_flux2_turbo_api",
+      "positive_prompt": "beautiful crystalline neural network structure made of transparent glass and light, glowing nodes connected by fiber optic threads in cyan and purple, floating in dark void, light pulses traveling along connections like signals in a brain, caustics and refractions, photorealistic, 8k, macro photography style, shallow depth of field, cinematic lighting, ethereal atmosphere, subsurface scattering",
+      "negative_prompt": "blurry, low quality, deformed, mutated, ugly, duplicate, watermark, signature, text, logo, cropped, worst quality, low resolution, amateur, oversaturated, cartoon, plastic",
+      "seed": -1,
+      "width": 1280,
+      "height": 720,
+      "steps": 20,
+      "cfg": 7.0
+    },
+    {
+      "id": "hero_output",
+      "title": "The Output",
+      "description": "A single perfect frame emerging from digital chaos",
+      "workflow": "wf_flux2_turbo_api",
+      "positive_prompt": "a single pristine glowing rectangular frame of pure white light emerging from swirling digital chaos of fragmented pixels and data fragments, like a photograph developing in reverse, surrounding chaos in dark cyan and purple digital noise, the frame is perfectly sharp and clean while everything else dissolves into particles, photorealistic, 8k, cinematic, dramatic contrast, center composition, volumetric fog",
+      "negative_prompt": "blurry, low quality, deformed, mutated, ugly, duplicate, watermark, signature, text, logo, cropped, worst quality, low resolution, amateur, oversaturated, cartoon, frame within frame",
+      "seed": -1,
+      "width": 1280,
+      "height": 720,
+      "steps": 20,
+      "cfg": 7.0
+    },
+    {
+      "id": "hero_forge_logo",
+      "title": "Forge NPS Logo Concept",
+      "description": "Abstract mark for the brand — use as title card background",
+      "workflow": "wf_flux2_turbo_api",
+      "positive_prompt": "abstract minimal logo mark made of intersecting light beams forming an F shape, glowing cyan and white lines against pure black background, geometric precision, light trails, long exposure photography aesthetic, clean lines, modern tech branding, subtle purple accent glow at intersections, 8k, crisp, sharp, professional logo design",
+      "negative_prompt": "blurry, low quality, deformed, mutated, ugly, duplicate, watermark, signature, text letters, words, logo, cropped, worst quality, low resolution, amateur, oversaturated, noise, grain, texture, 3d render",
+      "seed": -1,
+      "width": 1280,
+      "height": 720,
+      "steps": 20,
+      "cfg": 7.0
+    }
+  ],
+  "notes": {
+    "workflow_selection": "Use wf_flux2_turbo_api for speed during production. Switch to wf_flux2_dev for final quality if time permits.",
+    "identity_pack": "Add these images to your Identity Pack with mode='Product' and name='Forge NPS Promo' to maintain visual consistency across frames.",
+    "batch_render": "Use your existing batch_flux2_turbo_hackathon.py script with these prompts injected.",
+    "render_tip": "Render at 1280x720 for video compatibility. Upscaling can be done later if needed."
+  }
+}
