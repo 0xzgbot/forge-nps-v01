@@ -7,6 +7,8 @@ from typing import Any, Dict, List, Optional, Callable
 from core.bridge.runtime_config import get_raw_config
 from core.bridge.lmstudio_client import LMStudioClient
 from core.dispatch.comfy_client import ComfyUIClient
+from .profile_cli import HermesProfileCLI
+from .role_skill_mapper import role_skill_scope
 
 
 class HermesVideoService:
@@ -24,6 +26,7 @@ class HermesVideoService:
         self.find_shot = find_shot
         self.resolve_image_path = resolve_image_path
         self.workflow_file_for_id = workflow_file_for_id
+        self.profile_cli = HermesProfileCLI()
 
     async def process(
         self,
@@ -48,12 +51,23 @@ class HermesVideoService:
             return {"status": "error", "error": f"workflow_missing:{workflow_id}"}
 
         cfg = get_raw_config()
-        host = (
-            os.getenv("COMFYUI_PRIMARY", "")
-            or str(cfg.get("COMFYUI_PRIMARY", ""))
-            or "http://localhost:8188"
-        ).rstrip("/")
+        primary = (os.getenv("COMFYUI_PRIMARY", "") or str(cfg.get("COMFYUI_PRIMARY", "")) or "").rstrip("/")
+        secondary = (os.getenv("COMFYUI_SECONDARY", "") or str(cfg.get("COMFYUI_SECONDARY", "")) or "").rstrip("/")
+        hosts = [h for h in [primary, secondary, "http://localhost:8188"] if h]
+        dedup_hosts: List[str] = []
+        for h in hosts:
+            if h not in dedup_hosts:
+                dedup_hosts.append(h)
+
+        host = dedup_hosts[0]
         client = ComfyUIClient(host)
+        for candidate in dedup_hosts:
+            probe = ComfyUIClient(candidate)
+            ok, _ = await probe.check_health()
+            if ok:
+                host = candidate
+                client = probe
+                break
         campaign_id = (self.active_campaign_getter() or "video_batch").strip() or "video_batch"
         output_dir = self.media_videos / campaign_id
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -152,12 +166,61 @@ class HermesVideoService:
         Orchestrate 3 LM Studio agents to generate LTX video prompts.
         Returns {"status": "ok", "prompts": {"SHOT_001": "...", ...}}
         """
+        def _is_reindex_text(text: str) -> bool:
+            t = str(text or "").strip().lower()
+            return t.startswith("reindexed media:") or t.startswith("imported media:")
+
+        def _manifest_brief_for_shot(shot: Dict[str, Any]) -> str:
+            try:
+                image_path = str(shot.get("image_path") or "")
+                if image_path:
+                    p = Path(image_path)
+                    for parent in [p.parent, p.parent.parent]:
+                        manifest = parent / "_campaign.json"
+                        if manifest.exists():
+                            data = json.loads(manifest.read_text(encoding="utf-8"))
+                            brief = str(data.get("brief") or "").strip()
+                            if brief:
+                                return brief
+            except Exception:
+                pass
+            return ""
+
+        def _best_source_prompt(shot: Dict[str, Any]) -> tuple[str, str]:
+            ordered = [
+                ("compiled_prompt", shot.get("compiled_prompt")),
+                ("raw_kimi_prompt", shot.get("raw_kimi_prompt")),
+                ("visual_brief", shot.get("visual_brief")),
+                ("prompt", shot.get("prompt")),
+                ("campaign_brief", shot.get("campaign_brief")),
+            ]
+            for key, val in ordered:
+                txt = str(val or "").strip()
+                if not txt:
+                    continue
+                if _is_reindex_text(txt):
+                    continue
+                return txt, key
+            manifest_brief = _manifest_brief_for_shot(shot)
+            if manifest_brief:
+                return manifest_brief, "campaign_manifest_brief"
+            fname = str(shot.get("image_name") or Path(str(shot.get("image_path") or shot.get("image_url") or "")).name)
+            clean = fname.replace("_", " ").replace("-", " ").strip()
+            if clean:
+                return f"Cinematic continuation of: {clean}", "image_filename"
+            return "Cinematic continuation with coherent motion and stable identity.", "fallback_default"
+
         # Collect shot data and images
+        selected_shot_id_set = set(str(x) for x in shot_ids)
+        selected_by_short_id: Dict[str, str] = {}
         shots_data = []
         for sid in shot_ids:
             shot = self.find_shot(str(sid))
             if not shot:
                 continue
+            short_id = str(shot.get("shot_id") or "").strip()
+            if short_id and short_id not in selected_by_short_id:
+                selected_by_short_id[short_id] = str(sid)
             image_path = ""
             if shot.get("image_path"):
                 image_path = str(shot.get("image_path"))
@@ -169,6 +232,7 @@ class HermesVideoService:
                 continue
             with open(image_path, "rb") as f:
                 b64 = base64.b64encode(f.read()).decode("utf-8")
+            best_prompt, prompt_source = _best_source_prompt(shot)
             shots_data.append({
                 "shot_id": sid,
                 "image_b64": b64,
@@ -177,7 +241,12 @@ class HermesVideoService:
                 "lighting_direction": str(shot.get("lighting_direction", "")),
                 "characters": shot.get("characters", []),
                 "compiled_prompt": str(shot.get("compiled_prompt", "")),
+                "raw_kimi_prompt": str(shot.get("raw_kimi_prompt", "")),
+                "prompt": str(shot.get("prompt", "")),
+                "campaign_brief": str(shot.get("campaign_brief", "")),
                 "rationale": str(shot.get("rationale", "")),
+                "best_source_prompt": best_prompt,
+                "best_source_field": prompt_source,
             })
 
         if not shots_data:
@@ -189,38 +258,82 @@ class HermesVideoService:
             models = client.list_models()
             model = models[0] if models else ""
 
-        # Agent 1: Image Analyst
+        # Agent 1: Image Analyst (profile-first, vision fallback).
         analysis_results = []
+        continuity_scope = role_skill_scope("continuity_guard")
         for s in shots_data:
-            messages = [
-                {"role": "system", "content": (
-                    "You are a Visual Analyst for an AI filmmaking pipeline. "
-                    "Analyze the provided rendered image. Extract: subject action, implied motion, "
-                    "camera movement cues, lighting mood, background elements, and composition. "
-                    "Be concise (2-3 sentences)."
-                )},
-                {"role": "user", "content": [
-                    {"type": "text", "text": f"Shot: {s['shot_id']} | Camera: {s['camera_direction']} | Lighting: {s['lighting_direction']}"},
-                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{s['image_b64']}"}},
-                ]},
-            ]
-            resp = await client.chat_async(messages=messages, model=model, temperature=0.3, max_tokens=512)
             content = ""
-            try:
-                content = resp["choices"][0]["message"]["content"]
-            except Exception:
-                content = "Analysis unavailable"
+            # 1) Hermes profile pass
+            profile_task = {
+                "task": "video_image_analysis",
+                "shot_id": s["shot_id"],
+                "camera_direction": s["camera_direction"],
+                "lighting_direction": s["lighting_direction"],
+                "characters": s["characters"],
+                "best_source_prompt": s["best_source_prompt"],
+                "best_source_field": s["best_source_field"],
+                "compiled_prompt": s["compiled_prompt"],
+                "raw_kimi_prompt": s["raw_kimi_prompt"],
+                "rationale": s["rationale"],
+                "allowed_skill_patterns": continuity_scope.get("patterns", []),
+                "instructions": (
+                    "Generate concise motion-oriented image analysis for LTX 2.3 video continuation. "
+                    "Output JSON only with keys: subject_action, implied_motion, camera_motion, lighting_mood, "
+                    "environmental_motion, continuity_risks, motion_do, motion_avoid."
+                ),
+            }
+            profile_out = await self.profile_cli.run_json("continuity", profile_task)
+            if isinstance(profile_out, dict) and profile_out:
+                try:
+                    content = json.dumps(profile_out, ensure_ascii=False)
+                except Exception:
+                    content = str(profile_out)
+
+            # 2) LMStudio vision fallback
+            if not content:
+                messages = [
+                    {"role": "system", "content": (
+                        "You are a Visual Analyst for an AI filmmaking pipeline. "
+                        "Analyze the provided rendered image. Extract: subject action, implied motion, "
+                        "camera movement cues, lighting mood, background elements, and composition. "
+                        "Be concise (2-3 sentences)."
+                    )},
+                    {"role": "user", "content": [
+                        {"type": "text", "text": f"Shot: {s['shot_id']} | Camera: {s['camera_direction']} | Lighting: {s['lighting_direction']}"},
+                        {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{s['image_b64']}"}},
+                    ]},
+                ]
+                resp = await client.chat_async(messages=messages, model=model, temperature=0.3, max_tokens=512)
+                try:
+                    content = resp["choices"][0]["message"]["content"]
+                except Exception:
+                    content = ""
+
+            # 3) deterministic fallback
+            if not content:
+                content = (
+                    f"subject={s['best_source_prompt'][:220]}; "
+                    f"camera={s['camera_direction'] or 'stable framing'}; "
+                    f"lighting={s['lighting_direction'] or 'motivated natural/scene light'}; "
+                    "motion=gentle parallax + micro subject movement; "
+                    "avoid=identity drift, anatomy drift, hard morphs."
+                )
             analysis_results.append({
                 "shot_id": s["shot_id"],
                 "analysis": content,
                 "compiled_prompt": s["compiled_prompt"],
+                "raw_kimi_prompt": s["raw_kimi_prompt"],
+                "prompt": s["prompt"],
+                "campaign_brief": s["campaign_brief"],
                 "camera_direction": s["camera_direction"],
                 "lighting_direction": s["lighting_direction"],
                 "characters": s["characters"],
                 "rationale": s["rationale"],
+                "best_source_prompt": s["best_source_prompt"],
+                "best_source_field": s["best_source_field"],
             })
 
-        # Agent 2: Duration Planner
+        # Agent 2: Duration Planner (profile-first, LM fallback)
         duration_payload = {
             "target_total_duration_sec": duration,
             "fps": fps,
@@ -233,49 +346,88 @@ class HermesVideoService:
                 for a in analysis_results
             ],
         }
-        duration_messages = [
-            {"role": "system", "content": (
-                "You are a Duration Planner for LTX-Video generation. "
-                "Given shot analyses and a target total duration, allocate seconds and frames per shot. "
-                "LTX-Video works at 24-25fps. Output ONLY a JSON object: "
-                '{"plan": [{"shot_id": "...", "duration_sec": N, "frames": N, "reasoning": "..."}]}'
-            )},
-            {"role": "user", "content": json.dumps(duration_payload)},
-        ]
-        duration_resp = await client.chat_async(messages=duration_messages, model=model, temperature=0.2, max_tokens=1024, json_mode=True)
         duration_plan = ""
-        try:
-            duration_plan = duration_resp["choices"][0]["message"]["content"]
-        except Exception:
+        planner_task = {
+            "task": "video_duration_plan",
+            "target_total_duration_sec": duration,
+            "fps": fps,
+            "shots": duration_payload["shots"],
+            "instructions": (
+                "Allocate duration/frames per shot for LTX2.3 with coherent pacing. "
+                "Output JSON only: {\"plan\":[{\"shot_id\":\"...\",\"duration_sec\":N,\"frames\":N,\"reasoning\":\"...\"}]}"
+            ),
+        }
+        planner_out = await self.profile_cli.run_json("critic", planner_task)
+        if isinstance(planner_out, dict) and planner_out.get("plan"):
+            duration_plan = json.dumps({"plan": planner_out.get("plan", [])})
+        if not duration_plan:
+            duration_messages = [
+                {"role": "system", "content": (
+                    "You are a Duration Planner for LTX-Video generation. "
+                    "Given shot analyses and a target total duration, allocate seconds and frames per shot. "
+                    "LTX-Video works at 24-25fps. Output ONLY a JSON object: "
+                    '{"plan": [{"shot_id": "...", "duration_sec": N, "frames": N, "reasoning": "..."}]}'
+                )},
+                {"role": "user", "content": json.dumps(duration_payload)},
+            ]
+            duration_resp = await client.chat_async(messages=duration_messages, model=model, temperature=0.2, max_tokens=1024, json_mode=True)
+            try:
+                duration_plan = duration_resp["choices"][0]["message"]["content"]
+            except Exception:
+                duration_plan = ""
+        if not duration_plan:
             duration_plan = json.dumps({"plan": [{"shot_id": a["shot_id"], "duration_sec": max(1, duration // len(analysis_results)), "frames": max(1, duration // len(analysis_results)) * fps, "reasoning": "even split"} for a in analysis_results]})
 
-        # Agent 3: Prompt Engineer
+        # Agent 3: Prompt Engineer (profile-first, strict LTX2.3 schema)
         prompt_payload = {
             "lore_bible_excerpt": bible_text[:4000] if bible_text else "none",
             "duration_plan": json.loads(duration_plan) if isinstance(duration_plan, str) else duration_plan,
             "shots": analysis_results,
             "fps": fps,
         }
-        prompt_messages = [
-            {"role": "system", "content": (
-                "You are an LTX-Video Prompt Engineer. Write time-segmented video generation prompts. "
-                "Each prompt must break the shot into temporal segments (e.g., 0-1s, 1-2s, 2-3s) "
-                "with specific motion descriptors, camera moves, and transitions for each segment. "
-                "Output ONLY a JSON object: "
-                '{"prompts": {"SHOT_001": {"duration_sec": N, "fps": N, "segments": [{"time_range": "0-1s", "prompt": "..."}], "full_prompt": "..."}}}'
-            )},
-            {"role": "user", "content": json.dumps(prompt_payload)},
-        ]
-        prompt_resp = await client.chat_async(messages=prompt_messages, model=model, temperature=0.4, max_tokens=2048, json_mode=True)
         prompts_data = {}
-        try:
-            raw = prompt_resp["choices"][0]["message"]["content"]
-            if isinstance(raw, str):
-                prompts_data = json.loads(raw).get("prompts", {})
-            else:
-                prompts_data = raw.get("prompts", {})
-        except Exception:
-            prompts_data = {}
+        prompt_raw_text = ""
+        compiler_scope = role_skill_scope("prompt_compiler")
+        compiler_task = {
+            "task": "ltx23_video_prompt_compile",
+            "standard": "ltx23-prompting-workflow",
+            "shots": analysis_results,
+            "duration_plan": prompt_payload["duration_plan"],
+            "fps": fps,
+            "allowed_skill_patterns": compiler_scope.get("patterns", []),
+            "instructions": (
+                "Return strict JSON only with shape: "
+                "{\"prompts\": {\"SHOT_001\": {\"duration_sec\": N, \"fps\": N, "
+                "\"segments\": [{\"time_range\": \"0-1s\", \"prompt\": \"...\"}], "
+                "\"full_prompt\": \"...\", \"negative\": \"...\"}}}. "
+                "Prompts must be model-specific for LTX2.3 image-to-video continuity."
+            ),
+        }
+        compiler_out = await self.profile_cli.run_json("compiler", compiler_task)
+        if isinstance(compiler_out, dict):
+            prompt_raw_text = json.dumps(compiler_out, ensure_ascii=False)[:2000]
+            prompts_data = compiler_out.get("prompts", {}) if isinstance(compiler_out.get("prompts"), dict) else {}
+        if not prompts_data:
+            prompt_messages = [
+                {"role": "system", "content": (
+                    "You are an LTX-Video Prompt Engineer. Write time-segmented video generation prompts. "
+                    "Each prompt must break the shot into temporal segments (e.g., 0-1s, 1-2s, 2-3s) "
+                    "with specific motion descriptors, camera moves, and transitions for each segment. "
+                    "Output ONLY a JSON object: "
+                    '{"prompts": {"SHOT_001": {"duration_sec": N, "fps": N, "segments": [{"time_range": "0-1s", "prompt": "..."}], "full_prompt": "..."}}}'
+                )},
+                {"role": "user", "content": json.dumps(prompt_payload)},
+            ]
+            prompt_resp = await client.chat_async(messages=prompt_messages, model=model, temperature=0.4, max_tokens=2048, json_mode=True)
+            try:
+                raw = prompt_resp["choices"][0]["message"]["content"]
+                prompt_raw_text = raw if isinstance(raw, str) else json.dumps(raw)
+                if isinstance(raw, str):
+                    prompts_data = json.loads(raw).get("prompts", {})
+                else:
+                    prompts_data = raw.get("prompts", {})
+            except Exception:
+                prompts_data = {}
 
         # Flatten to simple video_prompt strings
         flat_prompts = {}
@@ -292,7 +444,105 @@ class HermesVideoService:
             else:
                 flat_prompts[sid] = str(pdata)
 
-        return {"status": "ok", "prompts": flat_prompts, "raw": prompts_data}
+        # If model output is empty/invalid, build deterministic fallback prompts
+        # so UI can still save prompts and video pipeline can proceed.
+        if not isinstance(prompts_data, dict) or not prompts_data:
+            even_sec = max(1, int(duration / max(1, len(analysis_results))))
+            for a in analysis_results:
+                sid = str(a.get("shot_id") or "")
+                if not sid:
+                    continue
+                base = str(
+                    a.get("best_source_prompt")
+                    or a.get("compiled_prompt")
+                    or a.get("raw_kimi_prompt")
+                    or a.get("prompt")
+                    or a.get("campaign_brief")
+                    or a.get("analysis")
+                    or "cinematic scene with motivated camera motion"
+                ).strip()
+                prompts_data[sid] = {
+                    "duration_sec": even_sec,
+                    "fps": int(fps),
+                    "segments": [
+                        {
+                            "time_range": f"0-{even_sec//2 if even_sec > 1 else 1}s",
+                            "prompt": (
+                                f"{base}. Establishing motion beat: preserve exact subject identity, wardrobe, and geometry; "
+                                "introduce slight camera push-in with natural parallax; maintain original lighting direction and color separation."
+                            ),
+                        },
+                        {
+                            "time_range": f"{even_sec//2 if even_sec > 1 else 1}-{even_sec}s",
+                            "prompt": (
+                                f"{base}. Continuation beat: add controlled secondary subject motion and environmental micro-motion; "
+                                "hold facial structure and hand anatomy consistency; avoid flicker, warping, and morph artifacts."
+                            ),
+                        },
+                    ],
+                    "full_prompt": (
+                        f"{base}. LTX2.3 first-frame-to-video continuation with cinematic continuity. "
+                        "Keep identity lock, material consistency, and perspective coherence across frames; "
+                        "motion style should be physically plausible and production-safe."
+                    ),
+                }
+            # Rebuild flattened prompts from fallback payload.
+            flat_prompts = {}
+            for sid, pdata in prompts_data.items():
+                if isinstance(pdata, dict):
+                    segments = pdata.get("segments", [])
+                    full = pdata.get("full_prompt", "")
+                    if segments:
+                        flat_prompts[sid] = " | ".join([f"[{s.get('time_range', '')}] {s.get('prompt', '')}" for s in segments])
+                    elif full:
+                        flat_prompts[sid] = full
+                    else:
+                        flat_prompts[sid] = str(pdata)
+                else:
+                    flat_prompts[sid] = str(pdata)
+
+        # Normalize prompt keys back to selected internal shot IDs.
+        # Models often return SHOT_001-style keys instead of full internal IDs.
+        normalized_prompts: Dict[str, str] = {}
+        unmapped_keys: List[str] = []
+        for key, val in flat_prompts.items():
+            k = str(key)
+            target_id: Optional[str] = None
+            if k in selected_shot_id_set:
+                target_id = k
+            elif k in selected_by_short_id:
+                target_id = selected_by_short_id[k]
+            else:
+                # Last chance: check if any selected shot's internal id ends with "__{short_id}__workflow"
+                # and prompt key is short shot id.
+                for selected_id in selected_shot_id_set:
+                    if f"__{k}__" in selected_id:
+                        target_id = selected_id
+                        break
+            if target_id:
+                normalized_prompts[target_id] = val
+            else:
+                unmapped_keys.append(k)
+
+        # Final deterministic assignment by order if key mapping still failed.
+        if not normalized_prompts and flat_prompts and shots_data:
+            ordered_vals = list(flat_prompts.values())
+            for idx, shot in enumerate(shots_data):
+                if idx >= len(ordered_vals):
+                    break
+                normalized_prompts[str(shot.get("shot_id"))] = str(ordered_vals[idx])
+
+        return {
+            "status": "ok",
+            "prompts": normalized_prompts,
+            "raw": prompts_data,
+            "analysis_results": analysis_results,
+            "duration_plan": duration_plan,
+            "unmapped_prompt_keys": unmapped_keys,
+            "selected_count": len(selected_shot_id_set),
+            "prompt_raw_text": prompt_raw_text[:2000],
+            "video_prompt_backend": "profile_cli" if compiler_out else "lmstudio_fallback",
+        }
 
     @staticmethod
     def _evaluate_video_eligibility(
