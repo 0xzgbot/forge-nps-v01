@@ -95,6 +95,7 @@ window.addEventListener("DOMContentLoaded", () => {
     mediaSort = { key: "time", reverse: true };
     syncInlineMediaSortControls();
     initDashboardResizer();
+    initVideoResizer();
     ["identity-type","identity-name","identity-tokens","identity-negatives"].forEach((k) => {
         const el = id(k);
         if (el) el.addEventListener("input", updateIdentityPreview);
@@ -548,6 +549,40 @@ function initDashboardResizer() {
     };
 
     $dashboardDivider.addEventListener("mousedown", (event) => {
+        event.preventDefault();
+        dragging = true;
+        document.body.classList.add("dashboard-resizing");
+        window.addEventListener("mousemove", onMouseMove);
+        window.addEventListener("mouseup", onMouseUp);
+    });
+}
+
+function initVideoResizer() {
+    const $divider = document.getElementById("video-divider");
+    const $leftPane = document.getElementById("video-left-pane");
+    if (!$divider || !$leftPane) return;
+    let dragging = false;
+
+    const onMouseMove = (event) => {
+        if (!dragging) return;
+        const workspace = $divider.parentElement;
+        if (!workspace) return;
+        const rect = workspace.getBoundingClientRect();
+        const offsetX = event.clientX - rect.left;
+        const percent = (offsetX / rect.width) * 100;
+        const clamped = Math.max(28, Math.min(72, percent));
+        $leftPane.style.width = clamped + "%";
+    };
+
+    const onMouseUp = () => {
+        if (!dragging) return;
+        dragging = false;
+        document.body.classList.remove("dashboard-resizing");
+        window.removeEventListener("mousemove", onMouseMove);
+        window.removeEventListener("mouseup", onMouseUp);
+    };
+
+    $divider.addEventListener("mousedown", (event) => {
         event.preventDefault();
         dragging = true;
         document.body.classList.add("dashboard-resizing");
