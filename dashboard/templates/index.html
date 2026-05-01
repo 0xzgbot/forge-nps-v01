@@ -1530,6 +1530,7 @@
                 </div>
                 <div class="toolbar-group">
                     <label>Action</label>
+                    <button class="btn btn-secondary" id="generate-prompts-btn" onclick="generateVideoPrompts()">Generate Prompts</button>
                     <button class="btn" id="start-batch-btn" onclick="processSelectedVideos()">Process</button>
                 </div>
             </div>
@@ -1561,6 +1562,15 @@
             <div class="grid-placeholder">
                 <p>Select photos and click <strong>Process</strong> to generate video files.</p>
             </div>
+        </div>
+
+        <!-- Video Prompt Agent Chat -->
+        <div id="video-chat-panel" style="margin-top:12px;border-top:1px solid #333;padding-top:12px;">
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
+                <strong style="color:#aaa;font-size:12px;">LTX Prompt Agents</strong>
+                <span id="video-chat-status" style="color:#666;font-size:11px;">Ready</span>
+            </div>
+            <div id="video-chat-log" style="max-height:240px;overflow:auto;background:#111;border:1px solid #222;border-radius:4px;padding:8px;font-size:12px;color:#ccc;"></div>
         </div>
         </div>  <!-- /#spark-view -->
 
