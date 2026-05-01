@@ -173,6 +173,12 @@ class HermesAuditService:
             retry_record["parent_shot_id"] = shot_id
             retry_record["prompt"] = remediated_prompt
             retry_record["compiled_prompt"] = remediated_prompt
+            retry_record["video_prompt"] = (
+                f"{remediated_prompt}. "
+                "LTX2.3 image-to-video continuation: preserve corrected identity/anatomy and scene geometry; "
+                "add controlled motion with stable lighting continuity; avoid anatomy drift, face morphing, "
+                "extra limbs/fingers, texture flicker, and warped reflections."
+            )
             retry_record["remediation_reason"] = remediation_reason
             retry_record["remediated_prompt"] = remediated_prompt
             retry_record["original_compiled_prompt"] = s.get("compiled_prompt", "")

@@ -17,6 +17,12 @@ import httpx
 from PIL import Image
 import io
 
+# Load .env file at import time
+from dotenv import load_dotenv
+env_path = Path(__file__).resolve().parent.parent / ".env"
+if env_path.exists():
+    load_dotenv(env_path)
+
 # ... (existing imports from top of file)
 from core.bridge.kimi_vl_client import KimiVLClient
 from core.bridge.lmstudio_client import LMStudioClient
@@ -696,7 +702,7 @@ def _now_iso() -> str:
 
 def _find_shot(shot_id: str) -> Optional[Dict[str, Any]]:
     for s in _SHOTS_STORE:
-        if s.get("id") == shot_id:
+        if s.get("id") == shot_id or s.get("shot_id") == shot_id:
             return s
     return None
 
@@ -842,6 +848,7 @@ async def api_reindex_shots_from_storage():
                 "seed": None,
                 "prompt": f"Reindexed media: {stem}",
                 "compiled_prompt": f"Reindexed media: {stem}",
+                "video_prompt": _default_video_prompt_from_first_frame(f"Reindexed media: {stem}"),
                 "negative_prompt": "",
                 "workflow_profile": "reindexed",
                 "skills_used": [],
@@ -1754,6 +1761,16 @@ def _resolve_image_path(image_url: str) -> Optional[Path]:
     return None
 
 
+def _default_video_prompt_from_first_frame(source_prompt: str) -> str:
+    base = str(source_prompt or "").strip() or "cinematic first frame"
+    return (
+        f"{base}. "
+        "LTX2.3 image-to-video continuation: preserve subject identity, wardrobe, and scene geometry; "
+        "introduce subtle natural motion and gentle camera parallax; maintain lighting continuity; "
+        "avoid face morphs, anatomy drift, extra limbs/fingers, texture flicker, and background warping."
+    )
+
+
 def _make_audit_service() -> HermesAuditService:
     return HermesAuditService(
         shots_store=_SHOTS_STORE,
@@ -1910,7 +1927,6 @@ async def api_video_generate_prompts(req: VideoGeneratePromptsRequest):
 
     async def event_generator():
         try:
-            yield json.dumps({"agent": "Image Analyst", "status": "thinking"}) + "\n"
             result = await service.generate_prompts(
                 shot_ids=shot_ids,
                 duration=duration,
@@ -1919,34 +1935,82 @@ async def api_video_generate_prompts(req: VideoGeneratePromptsRequest):
             )
 
             if result.get("status") == "error":
-                yield json.dumps({"agent": "Prompt Engineer", "error": result.get("error", "generation_failed")}) + "\n"
+                yield json.dumps({"agent": "System", "error": result.get("error", "generation_failed")}) + "\n"
                 return
 
-            # Stream agent results (simplified: we get all at once from generate_prompts)
-            # In a more granular version, generate_prompts would yield intermediate results.
-            # For now, we emit the final prompts per shot.
+            analysis_results = result.get("analysis_results", [])
+            duration_plan = result.get("duration_plan", "")
             prompts = result.get("prompts", {})
             raw = result.get("raw", {})
 
+            # Agent 1: Image Analyst
+            yield json.dumps({"agent": "Image Analyst", "status": "thinking"}) + "\n"
+            for a in analysis_results:
+                yield json.dumps({
+                    "agent": "Image Analyst",
+                    "shot_id": a.get("shot_id", ""),
+                    "result": a.get("analysis", ""),
+                }) + "\n"
+
+            # Agent 2: Duration Planner
+            yield json.dumps({"agent": "Duration Planner", "status": "thinking"}) + "\n"
+            try:
+                dp = json.loads(duration_plan) if isinstance(duration_plan, str) else duration_plan
+                plan_items = dp.get("plan", []) if isinstance(dp, dict) else []
+                for item in plan_items:
+                    yield json.dumps({
+                        "agent": "Duration Planner",
+                        "shot_id": item.get("shot_id", ""),
+                        "result": f"{item.get('duration_sec', 0)}s ({item.get('frames', 0)} frames) — {item.get('reasoning', '')}",
+                    }) + "\n"
+            except Exception:
+                yield json.dumps({"agent": "Duration Planner", "result": str(duration_plan)[:500]}) + "\n"
+
+            # Agent 3: Prompt Engineer
+            yield json.dumps({"agent": "Prompt Engineer", "status": "thinking"}) + "\n"
             for sid, pdata in raw.items():
                 if isinstance(pdata, dict):
                     segments = pdata.get("segments", [])
-                    analysis = pdata.get("analysis", "")
-                    if analysis:
-                        yield json.dumps({"agent": "Image Analyst", "shot_id": sid, "result": analysis}) + "\n"
                     if segments:
-                        seg_text = " | ".join([f"[{s.get('time_range', '')}] {s.get('prompt', '')}" for s in segments])
-                        yield json.dumps({"agent": "Prompt Engineer", "shot_id": sid, "result": seg_text}) + "\n"
+                        for seg in segments:
+                            yield json.dumps({
+                                "agent": "Prompt Engineer",
+                                "shot_id": sid,
+                                "result": f"[{seg.get('time_range', '')}] {seg.get('prompt', '')}",
+                            }) + "\n"
+                    else:
+                        yield json.dumps({"agent": "Prompt Engineer", "shot_id": sid, "result": str(pdata)}) + "\n"
+                else:
+                    yield json.dumps({"agent": "Prompt Engineer", "shot_id": sid, "result": str(pdata)}) + "\n"
 
             # Save prompts to shot records
             saved = 0
+            save_misses = []
             for sid, prompt_text in prompts.items():
                 shot = _find_shot(sid)
+                if not shot:
+                    # Fallback: model may return short ids (e.g. SHOT_001)
+                    shot = next((s for s in _SHOTS_STORE if str(s.get("shot_id", "")) == str(sid)), None)
                 if shot:
                     shot["video_prompt"] = prompt_text
                     saved += 1
+                else:
+                    save_misses.append(sid)
 
-            yield json.dumps({"agent": "Prompt Engineer", "done": True, "saved": saved, "prompts": prompts}) + "\n"
+            if save_misses:
+                yield json.dumps({
+                    "agent": "System",
+                    "error": f"Prompt save miss for {len(save_misses)} key(s): {', '.join(save_misses[:5])}"
+                }) + "\n"
+
+            yield json.dumps({
+                "agent": "Prompt Engineer",
+                "done": True,
+                "saved": saved,
+                "prompts": prompts,
+                "selected": result.get("selected_count", len(shot_ids)),
+                "unmapped_prompt_keys": result.get("unmapped_prompt_keys", []),
+            }) + "\n"
 
         except Exception as e:
             yield json.dumps({"agent": "System", "error": str(e)}) + "\n"
@@ -1999,6 +2063,7 @@ async def api_import_sienna_batch(req: ImportBatchRequest):
             "seed": None,
             "prompt": f"Imported media: {stem}",
             "compiled_prompt": f"Imported media: {stem}",
+            "video_prompt": _default_video_prompt_from_first_frame(f"Imported media: {stem}"),
             "negative_prompt": "",
             "workflow_profile": "import",
             "skills_used": [],

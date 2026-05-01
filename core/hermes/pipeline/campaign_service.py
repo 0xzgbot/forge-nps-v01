@@ -61,6 +61,45 @@ class HermesCampaignService:
         self.director = KimiDirectorService()
         self.profile_cli = HermesProfileCLI()
 
+    async def _build_auto_video_prompt(self, shot_record: Dict[str, Any]) -> str:
+        """
+        Build an LTX-oriented video prompt from the first-frame prompt/context.
+        Profile CLI (compiler) is preferred; deterministic fallback is always available.
+        """
+        compiled = str(shot_record.get("compiled_prompt") or shot_record.get("prompt") or "").strip()
+        visual = str(shot_record.get("raw_kimi_prompt") or "").strip()
+        rationale = str(shot_record.get("kimi_rationale") or "").strip()
+        base = compiled or visual or "cinematic first frame with coherent motion"
+
+        task = {
+            "task": "ltx23_first_frame_to_video_prompt",
+            "standard": "ltx23-prompting-workflow",
+            "shot_id": shot_record.get("shot_id", ""),
+            "workflow_id": shot_record.get("workflow_id", ""),
+            "first_frame_prompt": base,
+            "visual_brief": visual,
+            "rationale": rationale,
+            "skills_used": shot_record.get("skills_used", []),
+            "instructions": (
+                "Return JSON only with key 'video_prompt'. "
+                "Prompt must be LTX2.3-oriented, preserve identity/geometry, "
+                "and include temporal motion guidance for a 4-6s clip."
+            ),
+        }
+        out = await self.profile_cli.run_json("compiler", task)
+        if isinstance(out, dict):
+            vp = str(out.get("video_prompt") or out.get("prompt") or "").strip()
+            if vp:
+                return vp
+
+        return (
+            f"{base}. "
+            "LTX2.3 image-to-video continuation: preserve exact subject identity, outfit, and scene geometry; "
+            "camera motion: gentle push-in with subtle parallax; subject motion: natural micro-movements only; "
+            "lighting continuity: keep same direction/intensity/color temperature; "
+            "avoid anatomy drift, face morphing, limb duplication, texture flicker, and background warping."
+        )
+
     def _resolve_bible_text(self, bible_path: str) -> str:
         if not bible_path:
             return ""
@@ -466,6 +505,8 @@ class HermesCampaignService:
                     "profile_backend": "lmstudio",
                     "created_at": self.now_iso(),
                 }
+                if os.getenv("FORGE_AUTO_VIDEO_PROMPT", "true").lower() == "true":
+                    shot_record["video_prompt"] = await self._build_auto_video_prompt(shot_record)
                 self.shots_store.append(shot_record)
                 self.record_event("shot_planned", shot_id=record_id, campaign_id=campaign_id, workflow_id=workflow_id, source=source)
 

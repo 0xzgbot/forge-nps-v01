@@ -2045,6 +2045,18 @@ async function loadShots() {
                 badge.textContent = audit.toUpperCase();
                 label.appendChild(badge);
             }
+            if (s.video_prompt) {
+                const vb = document.createElement("span");
+                vb.className = "shot-badge vprompt";
+                vb.textContent = "V_PROMPT";
+                vb.title = String(s.video_prompt || "").substring(0, 200);
+                label.appendChild(vb);
+
+                const dot = document.createElement("span");
+                dot.className = "video-prompt-dot";
+                dot.title = "Video prompt attached";
+                item.appendChild(dot);
+            }
             if (s.identity_type && s.identity_status) {
                 const idb = document.createElement("span");
                 idb.className = "shot-badge " + (s.identity_status === "pass" ? "pass" : "fail");
@@ -2259,21 +2271,26 @@ async function loadVideoLibrary() {
                 b2.textContent = "RETRY";
                 label.appendChild(b2);
             }
-            if (s.video_prompt) {
-                const vp = document.createElement("span");
-                vp.className = "audit-badge";
-                vp.style.background = "#6a0dad";
-                vp.style.color = "#fff";
-                vp.textContent = "VP";
-                vp.title = s.video_prompt.substring(0, 120) + (s.video_prompt.length > 120 ? "..." : "");
-                label.appendChild(vp);
-            }
-            const verdict = evaluateShotForVideo(s, getVideoEligibilitySettings());
+            const verdict = evaluateShotForVideo(s);
             const vBadge = document.createElement("span");
             vBadge.className = "audit-badge " + (verdict.eligible ? "pass" : "fail");
             vBadge.textContent = verdict.eligible ? "VIDEO_OK" : "BLOCKED";
             if (!verdict.eligible) vBadge.title = verdict.reasons.join(", ");
             label.appendChild(vBadge);
+            if (s.video_prompt) {
+                const vp = document.createElement("span");
+                vp.className = "audit-badge vprompt";
+                vp.textContent = "V_PROMPT";
+                vp.title = s.video_prompt.substring(0, 160) + (s.video_prompt.length > 160 ? "..." : "");
+                label.appendChild(vp);
+            }
+
+            if (s.video_prompt) {
+                const dot = document.createElement("span");
+                dot.className = "video-prompt-dot";
+                dot.title = "Video prompt attached";
+                cell.appendChild(dot);
+            }
 
             cell.appendChild(img);
             cell.appendChild(label);
@@ -2333,54 +2350,23 @@ function clearVideoSelection() {
     document.querySelectorAll('#spark-grid .grid-cell input[type="checkbox"]').forEach(el => el.checked = false);
 }
 
-function getVideoEligibilitySettings() {
-    return {
-        minScore: Number(document.getElementById("video-min-audit-score")?.value || 0.85),
-        minConfidence: Number(document.getElementById("video-min-audit-confidence")?.value || 0.70),
-        requireAudit: !!document.getElementById("video-require-audit")?.checked,
-        allowFailedOverride: !!document.getElementById("video-allow-failed-override")?.checked,
-    };
-}
-
-function evaluateShotForVideo(shot, settings) {
+function evaluateShotForVideo(shot) {
     const reasons = [];
     if (!shot) return { eligible: false, reasons: ["shot_missing"] };
-    const auditStatus = String(shot.audit_status || "").toLowerCase();
-    const score = Number(shot.audit_score ?? 0);
-    const confidence = Number(shot.audit_confidence ?? 0);
-    const critical = Array.isArray(shot.audit_critical_failures) ? shot.audit_critical_failures.map(String) : [];
-    const issues = Array.isArray(shot.audit_issues) ? shot.audit_issues.map(String) : [];
-    const combined = [...critical, ...issues].join(" ").toLowerCase();
-    const hardFailTerms = [
-        "extra fingers", "extra limbs", "deformed", "dog head", "wrong identity",
-        "identity mismatch", "anatomy", "broken face", "mirror contradiction", "reflection contradiction"
-    ];
-    const hasHardFail = hardFailTerms.some((t) => combined.includes(t));
-    if (hasHardFail) reasons.push("hard_fail_visual");
-    if (settings.requireAudit && !auditStatus) reasons.push("audit_missing");
-    if (settings.requireAudit && auditStatus !== "pass") reasons.push("audit_not_passed");
-    if (score < settings.minScore) reasons.push("score_below_threshold");
-    if (confidence < settings.minConfidence) reasons.push("confidence_below_threshold");
     if (!shot.image_path && !shot.image_url) reasons.push("image_missing");
-    const hasSoftFailures = reasons.length > 0 && !hasHardFail;
-    const eligible = (reasons.length === 0) || (settings.allowFailedOverride && hasSoftFailures);
-    return { eligible, reasons, hasHardFail };
+    return { eligible: reasons.length === 0, reasons };
 }
 
 function updateVideoSelectionUI() {
     if ($videoSelectedCount) {
-        let failedCount = 0;
         let blockedCount = 0;
-        const settings = getVideoEligibilitySettings();
         videoSelection.forEach(id => {
             const s = videoShotsById[id];
-            if (s && s.audit_status === "fail") failedCount += 1;
-            const verdict = evaluateShotForVideo(s, settings);
+            const verdict = evaluateShotForVideo(s);
             if (!verdict.eligible) blockedCount += 1;
         });
         $videoSelectedCount.value = videoSelection.size + " selected" +
-            (failedCount ? (" (" + failedCount + " failed)") : "") +
-            (blockedCount ? (" (" + blockedCount + " blocked for video)") : "");
+            (blockedCount ? (" (" + blockedCount + " missing images)") : "");
     }
 }
 
@@ -2423,15 +2409,38 @@ async function sendVideoChat() {
     const $chatStatus = document.getElementById("video-chat-status");
 
     function addEntry(agent, text) {
-        const row = document.createElement("div");
-        row.style.marginBottom = "6px";
-        const badge = document.createElement("span");
-        badge.style.color = agent === "You" ? "#fff" : "#c8f";
-        badge.style.fontWeight = "bold";
-        badge.textContent = "[" + agent + "] ";
-        row.appendChild(badge);
-        row.appendChild(document.createTextNode(text));
-        $chatLog.appendChild(row);
+        const wrapper = document.createElement("div");
+        wrapper.style.marginBottom = "10px";
+        wrapper.style.display = "flex";
+        wrapper.style.flexDirection = "column";
+        wrapper.style.alignItems = agent === "You" ? "flex-end" : "flex-start";
+
+        const label = document.createElement("div");
+        label.style.fontSize = "10px";
+        label.style.color = "#888";
+        label.style.marginBottom = "2px";
+        label.textContent = agent;
+        wrapper.appendChild(label);
+
+        const bubble = document.createElement("div");
+        bubble.style.maxWidth = "90%";
+        bubble.style.padding = "10px 14px";
+        bubble.style.borderRadius = agent === "You" ? "14px 14px 4px 14px" : "14px 14px 14px 4px";
+        bubble.style.fontSize = "12px";
+        bubble.style.lineHeight = "1.5";
+        bubble.style.wordBreak = "break-word";
+        const colors = {
+            "You": { bg: "#1e1e1e", border: "#333", text: "#ddd" },
+            "Hermes": { bg: "#1a1a2e", border: "#2a2a4e", text: "#c8c8f0" },
+            "Error": { bg: "#2b0d0d", border: "#4d1a1a", text: "#f0a8a8" },
+        };
+        const c = colors[agent] || { bg: "#151515", border: "#2a2a2a", text: "#ccc" };
+        bubble.style.background = c.bg;
+        bubble.style.border = "1px solid " + c.border;
+        bubble.style.color = c.text;
+        bubble.textContent = text;
+        wrapper.appendChild(bubble);
+        $chatLog.appendChild(wrapper);
         $chatLog.scrollTop = $chatLog.scrollHeight;
     }
 
@@ -2492,16 +2501,51 @@ async function generateVideoPrompts() {
     $chatStatus.textContent = "Agents running...";
     $chatLog.innerHTML = "";
 
-    function addChatEntry(agent, text) {
-        const row = document.createElement("div");
-        row.style.marginBottom = "6px";
-        const badge = document.createElement("span");
-        badge.style.color = agent === "Image Analyst" ? "#4fc" : agent === "Duration Planner" ? "#cf4" : agent === "Prompt Engineer" ? "#c8f" : "#aaa";
-        badge.style.fontWeight = "bold";
-        badge.textContent = "[" + agent + "] ";
-        row.appendChild(badge);
-        row.appendChild(document.createTextNode(text));
-        $chatLog.appendChild(row);
+    function addChatBubble(agent, text, isStatus) {
+        const wrapper = document.createElement("div");
+        wrapper.style.marginBottom = "10px";
+        wrapper.style.display = "flex";
+        wrapper.style.flexDirection = "column";
+        wrapper.style.alignItems = agent === "You" ? "flex-end" : "flex-start";
+
+        const label = document.createElement("div");
+        label.style.fontSize = "10px";
+        label.style.color = "#888";
+        label.style.marginBottom = "2px";
+        label.style.paddingLeft = agent === "You" ? "0" : "6px";
+        label.style.paddingRight = agent === "You" ? "6px" : "0";
+        label.textContent = agent;
+        wrapper.appendChild(label);
+
+        const bubble = document.createElement("div");
+        bubble.style.maxWidth = "90%";
+        bubble.style.padding = isStatus ? "6px 10px" : "10px 14px";
+        bubble.style.borderRadius = agent === "You" ? "14px 14px 4px 14px" : "14px 14px 14px 4px";
+        bubble.style.fontSize = "12px";
+        bubble.style.lineHeight = "1.5";
+        bubble.style.wordBreak = "break-word";
+
+        const colors = {
+            "Image Analyst": { bg: "#0d2b25", border: "#1a4d3e", text: "#a8f0d8" },
+            "Duration Planner": { bg: "#2b250d", border: "#4d3e1a", text: "#f0e6a8" },
+            "Prompt Engineer": { bg: "#1a0d2b", border: "#3e1a4d", text: "#d8a8f0" },
+            "Hermes": { bg: "#1a1a2e", border: "#2a2a4e", text: "#c8c8f0" },
+            "Error": { bg: "#2b0d0d", border: "#4d1a1a", text: "#f0a8a8" },
+            "You": { bg: "#1e1e1e", border: "#333", text: "#ddd" },
+        };
+        const c = colors[agent] || { bg: "#151515", border: "#2a2a2a", text: "#ccc" };
+        bubble.style.background = c.bg;
+        bubble.style.border = "1px solid " + c.border;
+        bubble.style.color = c.text;
+
+        if (isStatus) {
+            bubble.style.fontStyle = "italic";
+            bubble.style.opacity = "0.7";
+        }
+
+        bubble.textContent = text;
+        wrapper.appendChild(bubble);
+        $chatLog.appendChild(wrapper);
         $chatLog.scrollTop = $chatLog.scrollHeight;
     }
 
@@ -2532,13 +2576,20 @@ async function generateVideoPrompts() {
                 try {
                     const data = JSON.parse(line);
                     if (data.error) {
-                        addChatEntry("Error", data.error);
+                        addChatBubble("Error", data.error, false);
                     } else if (data.status === "thinking") {
-                        $chatStatus.textContent = data.agent + " is thinking...";
+                        $chatStatus.textContent = data.agent + " is analyzing...";
+                        addChatBubble(data.agent, "💭 Thinking...", true);
                     } else if (data.result) {
-                        addChatEntry(data.agent, data.result);
+                        addChatBubble(data.agent, data.result, false);
                     } else if (data.done) {
-                        $chatStatus.textContent = "Done — " + (data.saved || 0) + " prompts saved";
+                        const saved = Number(data.saved || 0);
+                        const selected = Number(data.selected || 0);
+                        $chatStatus.textContent = "✅ Done — " + saved + " prompts saved" + (selected ? (" / " + selected + " selected") : "");
+                        if (Array.isArray(data.unmapped_prompt_keys) && data.unmapped_prompt_keys.length) {
+                            addChatBubble("Error", "Unmapped prompt keys: " + data.unmapped_prompt_keys.join(", "), false);
+                        }
+                        addChatBubble("Prompt Engineer", "All prompts generated and saved.", true);
                         if (data.prompts) {
                             Object.entries(data.prompts).forEach(([sid, prompt]) => {
                                 if (videoShotsById[sid]) videoShotsById[sid].video_prompt = prompt;
@@ -2569,7 +2620,6 @@ async function processSelectedVideos() {
     const fps = parseInt($videoFps?.value || "24", 10);
     const workflowId = getSelectedVideoWorkflow();
     const videoPrompt = ($videoPrompt?.value || "").trim();
-    const gate = getVideoEligibilitySettings();
     $startBatchBtn.disabled = true;
     $startBatchBtn.textContent = "Processing...";
     $sparkStatusText.textContent = "Processing " + videoSelection.size + " image(s) into videos via " + workflowId + "...";
@@ -2583,10 +2633,10 @@ async function processSelectedVideos() {
                 fps,
                 workflow_id: workflowId,
                 prompt: videoPrompt,
-                min_audit_score: gate.minScore,
-                min_audit_confidence: gate.minConfidence,
-                require_audit_pass: gate.requireAudit,
-                allow_failed_override: gate.allowFailedOverride,
+                min_audit_score: 0,
+                min_audit_confidence: 0,
+                require_audit_pass: false,
+                allow_failed_override: true,
             }),
         });
         const data = await resp.json();

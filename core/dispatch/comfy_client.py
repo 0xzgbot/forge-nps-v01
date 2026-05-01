@@ -132,12 +132,33 @@ class ComfyUIClient:
     @staticmethod
     def _ensure_output_node(nodes: dict, filename_prefix: str = "render") -> None:
         """Ensure workflow has at least one output node; add SaveImage if needed."""
-        output_types = {"SaveImage", "PreviewImage", "VHS_VideoCombine", "SaveAnimatedWEBP"}
+        output_types = {"SaveImage", "PreviewImage", "VHS_VideoCombine", "SaveAnimatedWEBP", "SaveVideo"}
         has_output = any(
             isinstance(node, dict) and node.get("class_type") in output_types
             for node in nodes.values()
         )
         if has_output:
+            return
+
+        # Video workflow fallback: if a VIDEO stream exists, add SaveVideo.
+        video_source_id = None
+        for node_id, node in nodes.items():
+            if not isinstance(node, dict):
+                continue
+            if node.get("class_type") in ("CreateVideo", "VHS_VideoCombine"):
+                video_source_id = str(node_id)
+                break
+        if video_source_id is not None:
+            numeric_ids = [int(k) for k in nodes.keys() if str(k).isdigit()]
+            next_id = str(max(numeric_ids) + 1) if numeric_ids else "9999"
+            nodes[next_id] = {
+                "inputs": {
+                    "filename_prefix": filename_prefix,
+                    "video": [video_source_id, 0],
+                },
+                "class_type": "SaveVideo",
+                "_meta": {"title": "Save Video (auto)"},
+            }
             return
 
         image_source_id = None
@@ -257,13 +278,29 @@ class ComfyUIClient:
         if not isinstance(nodes, list):
             return {}
 
+        top_nodes = nodes
+        top_links = links if isinstance(links, list) else []
+        wrapper_input_slot_sources: dict[int, tuple[str, int]] = {}
+        external_origin_ids: set[str] = set()
+
         # Handle wrapper graph with nested subgraph definitions.
         subgraphs = workflow.get("definitions", {}).get("subgraphs")
         if isinstance(subgraphs, list):
             subgraph_by_id = {sg.get("id"): sg for sg in subgraphs if isinstance(sg, dict) and sg.get("id")}
             top_wrappers = [n for n in nodes if isinstance(n, dict) and n.get("type") in subgraph_by_id]
             if top_wrappers:
-                sg = subgraph_by_id[top_wrappers[0]["type"]]
+                wrapper = top_wrappers[0]
+                wrapper_id = wrapper.get("id")
+                # Capture top-level links feeding wrapper inputs, so we can map
+                # subgraph interface links (-10 origins) back to real nodes.
+                for l in top_links:
+                    if isinstance(l, list) and len(l) >= 5 and l[3] == wrapper_id:
+                        src_id = str(l[1])
+                        src_slot = int(l[2]) if str(l[2]).isdigit() else 0
+                        dst_slot = int(l[4]) if str(l[4]).isdigit() else 0
+                        wrapper_input_slot_sources[dst_slot] = (src_id, src_slot)
+                        external_origin_ids.add(src_id)
+                sg = subgraph_by_id[wrapper["type"]]
                 nodes = sg.get("nodes", [])
                 links = sg.get("links", [])
 
@@ -279,7 +316,36 @@ class ComfyUIClient:
                 link_map[item["id"]] = (item["origin_id"], item["origin_slot"], item["target_id"], item["target_slot"])
 
         prompt_nodes: dict = {}
-        known_types = set(object_info.keys())
+        node_by_id = {
+            str(n.get("id")): n
+            for n in nodes
+            if isinstance(n, dict) and n.get("id") is not None
+        }
+
+        def _resolve_origin(origin_id: object, origin_slot: object) -> tuple[str, int] | None:
+            # Reroute nodes are editor plumbing and should be flattened to their real source.
+            visited: set[str] = set()
+            cur_id = str(origin_id)
+            cur_slot = int(origin_slot) if str(origin_slot).isdigit() else 0
+            while True:
+                if cur_id in visited:
+                    return None
+                visited.add(cur_id)
+                src_node = node_by_id.get(cur_id)
+                if not isinstance(src_node, dict):
+                    return None
+                if src_node.get("type") != "Reroute":
+                    return cur_id, cur_slot
+                reroute_inputs = src_node.get("inputs") or []
+                if not reroute_inputs:
+                    return None
+                reroute_link = reroute_inputs[0].get("link") if isinstance(reroute_inputs[0], dict) else None
+                if reroute_link not in link_map:
+                    return None
+                prev_origin_id, prev_origin_slot, _, _ = link_map[reroute_link]
+                cur_id = str(prev_origin_id)
+                cur_slot = int(prev_origin_slot) if str(prev_origin_slot).isdigit() else 0
+
         for node in nodes:
             if not isinstance(node, dict):
                 continue
@@ -289,8 +355,6 @@ class ComfyUIClient:
                 continue
             # Skip annotation/wrapper nodes and unknown aliases.
             if class_type in ("MarkdownNote", "Note", "Reroute"):
-                continue
-            if known_types and class_type not in known_types:
                 continue
 
             converted = {"class_type": class_type, "inputs": {}}
@@ -336,10 +400,20 @@ class ComfyUIClient:
                     # These are not real runtime nodes in Comfy API payloads.
                     try:
                         if int(origin_id) < 0:
+                            if int(origin_id) == -10:
+                                slot_index = int(origin_slot) if str(origin_slot).isdigit() else 0
+                                mapped = wrapper_input_slot_sources.get(slot_index)
+                                if mapped:
+                                    mapped_id, mapped_slot = mapped
+                                    converted["inputs"][name] = [mapped_id, mapped_slot]
                             continue
                     except Exception:
                         pass
-                    converted["inputs"][name] = [str(origin_id), int(origin_slot)]
+                    resolved = _resolve_origin(origin_id, origin_slot)
+                    if resolved is None:
+                        continue
+                    resolved_id, resolved_slot = resolved
+                    converted["inputs"][name] = [resolved_id, resolved_slot]
 
             # Widget/default inputs from schema order
             schema = object_info.get(class_type, {}).get("input", {})
@@ -353,6 +427,33 @@ class ComfyUIClient:
                     converted["inputs"][key] = widget_map[key]
 
             prompt_nodes[str(node_id)] = converted
+
+        # Include any top-level source nodes that feed subgraph interface inputs
+        # (commonly LoadImage for i2v workflows).
+        if external_origin_ids:
+            for node in top_nodes:
+                if not isinstance(node, dict):
+                    continue
+                node_id = node.get("id")
+                class_type = node.get("type")
+                if node_id is None or not class_type:
+                    continue
+                node_id_str = str(node_id)
+                if node_id_str in prompt_nodes or node_id_str not in external_origin_ids:
+                    continue
+                if class_type in ("MarkdownNote", "Note", "Reroute"):
+                    continue
+                converted = {"class_type": class_type, "inputs": {}}
+                widget_values = list(node.get("widgets_values", []) or [])
+                widget_names = [
+                    inp.get("name")
+                    for inp in (node.get("inputs", []) or [])
+                    if isinstance(inp, dict) and isinstance(inp.get("widget"), dict) and inp.get("name")
+                ]
+                for idx, key in enumerate(widget_names):
+                    if idx < len(widget_values):
+                        converted["inputs"][key] = widget_values[idx]
+                prompt_nodes[node_id_str] = converted
 
         return prompt_nodes
 
@@ -477,6 +578,7 @@ class ComfyUIClient:
         nodes = self._convert_webui_workflow_to_api(workflow, object_info)
         if not isinstance(nodes, dict) or not nodes:
             return {"status": "error", "error": "Workflow is not ComfyUI API format"}
+        self._ensure_output_node(nodes, filename_prefix=shot_id or "render")
         self._hydrate_workflow_placeholders(nodes, prompt, object_info)
 
         uploaded_name = None
@@ -510,7 +612,7 @@ class ComfyUIClient:
                 inputs["seed"] = chosen_seed
             if class_type in ("RandomNoise", "FluxNoise") and "noise_seed" in inputs:
                 inputs["noise_seed"] = chosen_seed
-            if class_type == "SaveImage" and shot_id:
+            if class_type in ("SaveImage", "SaveVideo", "VHS_VideoCombine") and shot_id:
                 inputs["filename_prefix"] = shot_id
 
         if uploaded_name and load_image_slots:
@@ -520,7 +622,6 @@ class ComfyUIClient:
             if len(load_image_slots) > 1:
                 load_image_slots[1]["image"] = uploaded_name
 
-        self._ensure_output_node(nodes, filename_prefix=shot_id or "render")
         submit_result = await self.submit_prompt(nodes)
         if not submit_result.get("ok"):
             return {
