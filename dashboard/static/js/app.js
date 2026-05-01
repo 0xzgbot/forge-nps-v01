@@ -2224,6 +2224,15 @@ async function loadVideoLibrary() {
                 b2.textContent = "RETRY";
                 label.appendChild(b2);
             }
+            if (s.video_prompt) {
+                const vp = document.createElement("span");
+                vp.className = "audit-badge";
+                vp.style.background = "#6a0dad";
+                vp.style.color = "#fff";
+                vp.textContent = "VP";
+                vp.title = s.video_prompt.substring(0, 120) + (s.video_prompt.length > 120 ? "..." : "");
+                label.appendChild(vp);
+            }
             const verdict = evaluateShotForVideo(s, getVideoEligibilitySettings());
             const vBadge = document.createElement("span");
             vBadge.className = "audit-badge " + (verdict.eligible ? "pass" : "fail");
@@ -2258,6 +2267,7 @@ async function loadVideoLibrary() {
                     audit_score: s.audit_score ?? "",
                     audit_issues: s.audit_issues || [],
                     retry_of: s.retry_of || s.parent_shot_id || "",
+                    video_prompt: s.video_prompt || "",
                     variant: "-",
                 });
             });
@@ -2432,6 +2442,12 @@ async function generateVideoPrompts() {
                         addChatEntry(data.agent, data.result);
                     } else if (data.done) {
                         $chatStatus.textContent = "Done — " + (data.saved || 0) + " prompts saved";
+                        if (data.prompts) {
+                            Object.entries(data.prompts).forEach(([sid, prompt]) => {
+                                if (videoShotsById[sid]) videoShotsById[sid].video_prompt = prompt;
+                            });
+                            loadVideoLibrary();
+                        }
                     }
                 } catch (e) {
                     // skip malformed lines
