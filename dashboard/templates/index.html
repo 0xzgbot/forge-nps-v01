@@ -1298,33 +1298,33 @@
         <div id="settings-toast" class="test-result" style="position:fixed;top:16px;right:16px;z-index:999;"></div>
         <div class="settings-grid">
 
-            <!-- Kimi / NIM + Model Selection (combined) -->
+            <!-- AI Inference Provider -->
             <div class="settings-card" style="grid-column: span 2;">
-                <h3><span class="card-icon">&#128271;</span> Kimi / NVIDIA NIM</h3>
+                <h3><span class="card-icon">&#128271;</span> AI Provider (Nous / Kimi / OpenRouter)</h3>
                 <div class="settings-subgrid-2x2">
                     <div class="settings-subcard">
                         <h4>Access</h4>
-                        <p class="card-desc">Shared credentials and base endpoint.</p>
+                        <p class="card-desc">Nous Research, Kimi, OpenRouter, or any OpenAI-compatible API.</p>
                         <div class="form-row">
                             <label>API Key</label>
-                            <input type="password" id="cfg-kimi-api-key" placeholder="nvapi-..." onchange="markDirty('kimi.api_key')">
+                            <input type="password" id="cfg-kimi-api-key" placeholder="Bearer token..." onchange="markDirty('kimi.api_key')">
                         </div>
                         <div class="form-row">
-                            <label>NIM Endpoint</label>
-                            <input type="text" id="cfg-kimi-endpoint" placeholder="https://integrate.api.nvidia.com/v1/chat/completions" onchange="markDirty('kimi.endpoint')">
+                            <label>Endpoint</label>
+                            <input type="text" id="cfg-kimi-endpoint" placeholder="https://inference-api.nousresearch.com/v1/chat/completions" onchange="markDirty('kimi.endpoint')">
                         </div>
                         <div class="card-actions">
-                            <button class="btn btn-secondary" onclick="testKimi()">Test Connection</button>
+                            <button class="btn btn-secondary" onclick="testProvider()">Test Connection</button>
                         </div>
                         <div id="kimi-test-result" class="test-result"></div>
                     </div>
 
                     <div class="settings-subcard">
                         <h4>Director</h4>
-                        <p class="card-desc">Planning model and service endpoints.</p>
+                        <p class="card-desc">Planning model (e.g. Hermes-4-405B, moonshotai/kimi-k2).</p>
                         <div class="form-row">
                             <label>Director Model</label>
-                            <input type="text" id="cfg-director-model" placeholder="moonshotai/kimi-k2-instruct" onchange="markDirty('models.director_kimi.model_name')">
+                            <input type="text" id="cfg-director-model" placeholder="Hermes-4-405B" onchange="markDirty('models.director_kimi.model_name')">
                         </div>
                         <div class="form-row">
                             <label>Director Endpoint API 1</label>
@@ -1341,8 +1341,8 @@
                         <h4>Thinking</h4>
                         <p class="card-desc">Reasoning model and address selection.</p>
                         <div class="form-row">
-                            <label>Thinking Model (Kimi VL)</label>
-                            <input type="text" id="cfg-thinking-model" placeholder="kimi-v2-vision" onchange="markDirty('models.kimi_vl.model_name')">
+                            <label>Thinking Model</label>
+                            <input type="text" id="cfg-thinking-model" placeholder="Hermes-4-70B" onchange="markDirty('models.kimi_vl.model_name')">
                         </div>
                         <div class="form-row">
                             <label>Thinking Endpoint (Active)</label>
@@ -1355,7 +1355,7 @@
                         <p class="card-desc">Vision endpoint addresses and model name.</p>
                         <div class="form-row">
                             <label>Visual Model</label>
-                            <input type="text" id="cfg-visual-model" placeholder="kimi-v2-vision" onchange="markDirty('models.kimi_vl.model_name')">
+                            <input type="text" id="cfg-visual-model" placeholder="qwen3.6-35b-a3b (LM Studio)" onchange="markDirty('models.kimi_vl.model_name')">
                         </div>
                         <div class="form-row">
                             <label>Vision Address API 1</label>

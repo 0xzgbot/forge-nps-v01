@@ -254,7 +254,7 @@ async def run_demo(script_path: str, mock: bool, dashboard: bool, idea: Optional
         cfg = ConfigManager()
         endpoint = cfg.get_nim_endpoint() or "https://integrate.api.nvidia.com/v1/chat/completions"
         api_key = cfg.get_kimi_api_key()
-        if not api_key or api_key == "your_nvapi_key_here":
+        if not api_key or api_key == "your_nvapi_key_here" or api_key == "your_api_key_here":
             logger.error("No valid KIMI_API_KEY found in .env. Aborting.")
             sys.exit(1)
         kimi_bridge = KimiBridge(endpoint_url=endpoint, api_key=api_key, config_manager=cfg)

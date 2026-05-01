@@ -16,6 +16,11 @@ ENV_PATH = REPO_ROOT / ".env"
 
 # All keys that Settings page can read/write
 CONFIGURABLE_KEYS = [
+    "NOUS_API_KEY",
+    "NOUS_ENDPOINT",
+    "DIRECTOR_MODEL",
+    "THINKING_MODEL",
+    "VISION_MODEL",
     "KIMI_API_KEY",
     "NIM_ENDPOINT",
     "KIMI_INSTRUCT_MODEL",
@@ -27,11 +32,14 @@ CONFIGURABLE_KEYS = [
     "KIMI_VISUAL_ENDPOINT_API1",
     "KIMI_VISUAL_ENDPOINT_API2",
     "KIMI_VISUAL_ENDPOINT_ACTIVE",
+    "OPENROUTER_API_KEY",
+    "OPENROUTER_ENDPOINT",
     "COMFYUI_PRIMARY",
     "COMFYUI_SECONDARY",
     "LMSTUDIO_HOST",
     "LMSTUDIO_EMBED_MODEL",
     "LMSTUDIO_CHAT_MODEL",
+    "LMSTUDIO_VISION_MODEL",
     "USE_LOCAL_MODELS",
     "DASHBOARD_PORT",
     "MOCK_MODE",
@@ -39,10 +47,17 @@ CONFIGURABLE_KEYS = [
 
 # Frontend/UI alias keys -> canonical env/config keys
 KEY_ALIASES = {
+    "nous_api_key": "NOUS_API_KEY",
+    "nous_endpoint": "NOUS_ENDPOINT",
+    "director_model": "DIRECTOR_MODEL",
+    "thinking_model": "THINKING_MODEL",
+    "vision_model": "VISION_MODEL",
     "kimi_api": "KIMI_API_KEY",
     "kimi_api_key": "KIMI_API_KEY",
     "nim_url": "NIM_ENDPOINT",
     "nim_endpoint": "NIM_ENDPOINT",
+    "openrouter_api_key": "OPENROUTER_API_KEY",
+    "openrouter_endpoint": "OPENROUTER_ENDPOINT",
     "director_endpoint_api1": "KIMI_DIRECTOR_ENDPOINT_API1",
     "director_endpoint_api2": "KIMI_DIRECTOR_ENDPOINT_API2",
     "director_endpoint_active": "KIMI_DIRECTOR_ENDPOINT_ACTIVE",
@@ -55,6 +70,7 @@ KEY_ALIASES = {
     "lmstudio_host": "LMSTUDIO_HOST",
     "lmstudio_chat_model": "LMSTUDIO_CHAT_MODEL",
     "lmstudio_embed_model": "LMSTUDIO_EMBED_MODEL",
+    "lmstudio_vision_model": "LMSTUDIO_VISION_MODEL",
 }
 
 

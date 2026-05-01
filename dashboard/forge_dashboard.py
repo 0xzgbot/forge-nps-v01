@@ -2737,7 +2737,7 @@ async def api_config():
     comfy_secondary = str(cfg.get("COMFYUI_SECONDARY", "") or "")
     lm_host = str(cfg.get("LMSTUDIO_HOST", "") or "")
     lm_model = str(cfg.get("LMSTUDIO_CHAT_MODEL", "") or "")
-    vision_model = str(cfg.get("KIMI_VISUAL_MODEL", "") or os.getenv("LMSTUDIO_VISION_MODEL", ""))
+    vision_model = str(cfg.get("KIMI_VISUAL_MODEL", "") or os.getenv("LMSTUDIO_VISION_MODEL", "qwen3.6-35b-a3b"))
     director_api1 = str(cfg.get("KIMI_DIRECTOR_ENDPOINT_API1", "") or endpoint or "")
     director_api2 = str(cfg.get("KIMI_DIRECTOR_ENDPOINT_API2", "") or "")
     director_active = str(cfg.get("KIMI_DIRECTOR_ENDPOINT_ACTIVE", "") or "api1")
@@ -2818,15 +2818,20 @@ async def api_config_save(req: FlatConfigUpdateRequest):
 
     mapped: Dict[str, Any] = {}
     key_map = {
+        "nous.api_key": "NOUS_API_KEY",
+        "nous.endpoint": "NOUS_ENDPOINT",
+        "director_model": "DIRECTOR_MODEL",
+        "thinking_model": "THINKING_MODEL",
+        "vision_model": "VISION_MODEL",
         "kimi.api_key": "KIMI_API_KEY",
         "kimi.endpoint": "NIM_ENDPOINT",
-        "models.director_kimi.model_name": "KIMI_INSTRUCT_MODEL",
-        "models.director_kimi.endpoint": "NIM_ENDPOINT",
+        "models.director_kimi.model_name": "DIRECTOR_MODEL",
+        "models.director_kimi.endpoint": "NOUS_ENDPOINT",
         "models.director_kimi.endpoint_api1": "KIMI_DIRECTOR_ENDPOINT_API1",
         "models.director_kimi.endpoint_api2": "KIMI_DIRECTOR_ENDPOINT_API2",
         "models.director_kimi.endpoint_active": "KIMI_DIRECTOR_ENDPOINT_ACTIVE",
-        "models.kimi_vl.model_name": "KIMI_VISUAL_MODEL",
-        "models.kimi_vl.endpoint": "NIM_ENDPOINT",
+        "models.kimi_vl.model_name": "VISION_MODEL",
+        "models.kimi_vl.endpoint": "NOUS_ENDPOINT",
         "models.kimi_vl.endpoint_api1": "KIMI_VISUAL_ENDPOINT_API1",
         "models.kimi_vl.endpoint_api2": "KIMI_VISUAL_ENDPOINT_API2",
         "models.kimi_vl.endpoint_active": "KIMI_VISUAL_ENDPOINT_ACTIVE",
@@ -2849,8 +2854,9 @@ class KimiTestRequest(BaseModel):
     endpoint: str
 
 
-@app.post("/api/test/kimi")
-async def api_test_kimi(req: KimiTestRequest):
+@app.post("/api/test/nous")
+async def api_test_nous(req: KimiTestRequest):
+    """Test connection to Nous Research Portal (or any OpenAI-compatible endpoint)."""
     endpoint = (req.endpoint or "").strip().rstrip("/")
     if endpoint and not endpoint.endswith("/chat/completions"):
         endpoint = endpoint + "/chat/completions"
@@ -2897,8 +2903,9 @@ async def api_test_lmstudio(host: str = "http://127.0.0.1", port: int = 1234):
 
 @app.get("/api/test/nim")
 async def api_test_nim():
+    """Legacy NIM test — redirects to Nous endpoint if configured."""
     cm = ConfigManager()
-    endpoint = (cm.get("NIM_ENDPOINT", "") or cm.get_nim_endpoint() or "").strip().rstrip("/")
+    endpoint = (cm.get("NOUS_ENDPOINT", "") or cm.get("NIM_ENDPOINT", "") or cm.get_nim_endpoint() or "").strip().rstrip("/")
     if endpoint and not endpoint.endswith("/chat/completions"):
         endpoint = endpoint + "/chat/completions"
     api_key = cm.get_kimi_api_key()

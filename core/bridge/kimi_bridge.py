@@ -52,7 +52,9 @@ class StrictSchemaGuard:
 
 class KimiBridge:
     """
-    Handles high-context communication with Kimi K2.6 via NVIDIA NIM endpoints.
+    Handles high-context communication with AI inference endpoints.
+    Supports Nous Research Portal, NVIDIA NIM, Moonshot AI, OpenRouter,
+    and any other OpenAI-compatible API.
     Designed for 'Directing' workflows requiring massive context and structured JSON.
     """
     def __init__(self, endpoint_url: str = "", api_key: str = "", config_manager: Any = None):
@@ -61,15 +63,22 @@ class KimiBridge:
         self.config_manager = config_manager
         if not endpoint_url:
             endpoint_url = (
-                os.getenv("NIM_ENDPOINT")
+                os.getenv("NOUS_ENDPOINT")
+                or os.getenv("NIM_ENDPOINT")
                 or os.getenv("KIMI_ENDPOINT")
+                or os.getenv("OPENROUTER_ENDPOINT")
                 or "https://integrate.api.nvidia.com/v1/chat/completions"
             )
         endpoint_url = endpoint_url.rstrip("/")
         if not endpoint_url.endswith("/chat/completions"):
             endpoint_url = endpoint_url + "/chat/completions"
         if not api_key:
-            api_key = os.getenv("KIMI_API_KEY", "")
+            api_key = (
+                os.getenv("NOUS_API_KEY")
+                or os.getenv("KIMI_API_KEY")
+                or os.getenv("OPENROUTER_API_KEY")
+                or ""
+            )
 
         self.endpoint_url = endpoint_url
         self.api_key = api_key

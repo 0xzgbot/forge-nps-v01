@@ -24,22 +24,38 @@ def _extract_json_block(text: str) -> Any:
 class KimiDirectorService:
     def __init__(self) -> None:
         cfg = get_raw_config()
-        raw_key = (os.getenv("KIMI_API_KEY", "") or str(cfg.get("KIMI_API_KEY", ""))).strip()
+        raw_key = (
+            os.getenv("NOUS_API_KEY", "")
+            or os.getenv("KIMI_API_KEY", "")
+            or os.getenv("OPENROUTER_API_KEY", "")
+            or str(cfg.get("NOUS_API_KEY", ""))
+            or str(cfg.get("KIMI_API_KEY", ""))
+        ).strip()
         self.api_key = self._sanitize_api_key(raw_key)
         active = (os.getenv("KIMI_DIRECTOR_ENDPOINT_ACTIVE", "") or str(cfg.get("KIMI_DIRECTOR_ENDPOINT_ACTIVE", "api1"))).strip().lower()
         api1 = (os.getenv("KIMI_DIRECTOR_ENDPOINT_API1", "") or str(cfg.get("KIMI_DIRECTOR_ENDPOINT_API1", ""))).strip()
         api2 = (os.getenv("KIMI_DIRECTOR_ENDPOINT_API2", "") or str(cfg.get("KIMI_DIRECTOR_ENDPOINT_API2", ""))).strip()
         endpoint = api2 if active == "api2" and api2 else api1
         if not endpoint:
-            endpoint = (os.getenv("NIM_ENDPOINT", "") or str(cfg.get("NIM_ENDPOINT", ""))).strip()
+            endpoint = (
+                os.getenv("NOUS_ENDPOINT", "")
+                or os.getenv("NIM_ENDPOINT", "")
+                or os.getenv("KIMI_ENDPOINT", "")
+                or os.getenv("OPENROUTER_ENDPOINT", "")
+                or str(cfg.get("NOUS_ENDPOINT", ""))
+                or str(cfg.get("NIM_ENDPOINT", ""))
+            ).strip()
         if not endpoint:
-            endpoint = "https://integrate.api.nvidia.com/v1/chat/completions"
+            endpoint = "https://inference-api.nousresearch.com/v1/chat/completions"
         endpoint = endpoint.rstrip("/")
         if not endpoint.endswith("/chat/completions"):
             endpoint += "/chat/completions"
         self.endpoint = endpoint
         self.model_name = (
-            os.getenv("KIMI_INSTRUCT_MODEL", "") or str(cfg.get("KIMI_INSTRUCT_MODEL", "moonshotai/kimi-k2"))
+            os.getenv("DIRECTOR_MODEL", "")
+            or os.getenv("KIMI_INSTRUCT_MODEL", "")
+            or str(cfg.get("DIRECTOR_MODEL", ""))
+            or str(cfg.get("KIMI_INSTRUCT_MODEL", "Hermes-4-405B"))
         ).strip()
 
     @staticmethod
@@ -83,8 +99,6 @@ class KimiDirectorService:
     ) -> Dict[str, Any]:
         if not self.api_key:
             raise RuntimeError("missing_kimi_api_key")
-        if not self.api_key.startswith("nvapi-"):
-            raise RuntimeError("invalid_kimi_api_key_format")
 
         target = int(target_shots or self.requested_shot_count(brief, length))
         schema_hint = {
@@ -159,8 +173,6 @@ class KimiDirectorService:
     ) -> Dict[str, Any]:
         if not self.api_key:
             raise RuntimeError("missing_kimi_api_key")
-        if not self.api_key.startswith("nvapi-"):
-            raise RuntimeError("invalid_kimi_api_key_format")
 
         have = len(existing_shots or [])
         if have >= target_shots:
@@ -231,8 +243,6 @@ class KimiDirectorService:
     ) -> Dict[str, Any]:
         if not self.api_key:
             raise RuntimeError("missing_kimi_api_key")
-        if not self.api_key.startswith("nvapi-"):
-            raise RuntimeError("invalid_kimi_api_key_format")
         # Judge-facing: require Kimi second pass critique for coverage/coherence risk.
         system_prompt = (
             "You are Kimi Quality Director. "
@@ -291,8 +301,6 @@ class KimiDirectorService:
     ) -> Dict[str, Any]:
         if not self.api_key:
             raise RuntimeError("missing_kimi_api_key")
-        if not self.api_key.startswith("nvapi-"):
-            raise RuntimeError("invalid_kimi_api_key_format")
 
         system_prompt = (
             "You are Kimi Director Revision pass. "

@@ -811,11 +811,11 @@ async function loadConfig() {
         document.getElementById("cfg-backend-mode").checked = backendMode === "remote";
         _updateBackendLabels(backendMode === "remote");
 
-        // Kimi / NIM
+        // AI Provider (Nous / Kimi / OpenRouter)
         const kimi = currentConfig.kimi || {};
         const keyField = document.getElementById("cfg-kimi-api-key");
         keyField.value = "";
-        keyField.placeholder = kimi.api_key_set ? "••••••••  (key saved — paste to replace)" : "nvapi-...";
+        keyField.placeholder = kimi.api_key_set ? "••••••••  (key saved — paste to replace)" : "Bearer token...";
         document.getElementById("cfg-kimi-endpoint").value = kimi.endpoint || "";
 
         // Models
@@ -984,7 +984,7 @@ function showToast(msg, type) {
 // ---------------------------------------------------------------------------
 // Settings: Test Kimi
 // ---------------------------------------------------------------------------
-async function testKimi() {
+async function testProvider() {
     const $result = document.getElementById("kimi-test-result");
     const apiKey = document.getElementById("cfg-kimi-api-key").value;
     const endpoint = document.getElementById("cfg-kimi-endpoint").value;
@@ -999,7 +999,7 @@ async function testKimi() {
     $result.className = "test-result loading";
 
     try {
-        const resp = await fetch("/api/test/kimi", {
+        const resp = await fetch("/api/test/nous", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ api_key: apiKey, endpoint: endpoint }),

@@ -1,4 +1,5 @@
 import os
+import random
 import uuid
 from pathlib import Path
 from typing import Any, Awaitable, Callable, Dict, List, Optional
@@ -62,7 +63,7 @@ class HermesAuditService:
             audit = await self.audit_render(str(image_path), s.get("compiled_prompt") or s.get("prompt", ""), s.get("campaign_id", "default"))
             score = float(audit.get("score", 0) or 0)
             passed = bool(audit.get("passed", False))
-            s["audit_model"] = os.getenv("KIMI_VISUAL_MODEL", os.getenv("LMSTUDIO_VISION_MODEL", "vision"))
+            s["audit_model"] = os.getenv("KIMI_VISUAL_MODEL", os.getenv("LMSTUDIO_VISION_MODEL", "qwen3.6-35b-a3b"))
             s["audit_status"] = "pass" if passed else "fail"
             s["audit_score"] = score
             s["audit_issues"] = audit.get("issues", [])
@@ -184,6 +185,7 @@ class HermesAuditService:
             if isinstance(cli_diag, dict):
                 retry_record["skills_used"] = cli_diag.get("skills_used", retry_record.get("skills_used", []))
             retry_record["audit_status"] = ""
+            retry_record["seed"] = random.randint(1, 2**31 - 1)
             transition_shot(retry_record, "retry_queued")
             self.shots_store.append(retry_record)
 
@@ -231,7 +233,7 @@ class HermesAuditService:
                 audit = await self.audit_render(image_path, remediated_prompt, s.get("campaign_id", "remediation"))
                 score = float(audit.get("score", 0) or 0)
                 passed = bool(audit.get("passed", False))
-                retry_record["audit_model"] = os.getenv("KIMI_VISUAL_MODEL", os.getenv("LMSTUDIO_VISION_MODEL", "vision"))
+                retry_record["audit_model"] = os.getenv("KIMI_VISUAL_MODEL", os.getenv("LMSTUDIO_VISION_MODEL", "qwen3.6-35b-a3b"))
                 retry_record["audit_status"] = "pass" if passed else "fail"
                 retry_record["audit_score"] = score
                 retry_record["audit_issues"] = audit.get("issues", [])
