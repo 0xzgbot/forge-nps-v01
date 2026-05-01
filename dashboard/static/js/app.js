@@ -2379,6 +2379,68 @@ async function remediateFailedSelected() {
     }
 }
 
+async function sendVideoChat() {
+    const input = document.getElementById("video-chat-input");
+    const msg = (input?.value || "").trim();
+    if (!msg) return;
+    input.value = "";
+    const $chatLog = document.getElementById("video-chat-log");
+    const $chatStatus = document.getElementById("video-chat-status");
+
+    function addEntry(agent, text) {
+        const row = document.createElement("div");
+        row.style.marginBottom = "6px";
+        const badge = document.createElement("span");
+        badge.style.color = agent === "You" ? "#fff" : "#c8f";
+        badge.style.fontWeight = "bold";
+        badge.textContent = "[" + agent + "] ";
+        row.appendChild(badge);
+        row.appendChild(document.createTextNode(text));
+        $chatLog.appendChild(row);
+        $chatLog.scrollTop = $chatLog.scrollHeight;
+    }
+
+    addEntry("You", msg);
+    $chatStatus.textContent = "Hermes is thinking...";
+
+    try {
+        const resp = await fetch("/api/hermes/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message: msg, history: [], session_id: "video_tab" }),
+        });
+        if (!resp.ok) throw new Error("HTTP " + resp.status);
+
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let fullResponse = "";
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n");
+            buffer = lines.pop();
+            for (const line of lines) {
+                if (!line.trim()) continue;
+                try {
+                    const data = JSON.parse(line);
+                    if (data.token) fullResponse += data.token;
+                    if (data.done) {
+                        addEntry("Hermes", fullResponse);
+                        $chatStatus.textContent = "Ready";
+                    }
+                    if (data.error) addEntry("Error", data.error);
+                } catch (e) {}
+            }
+        }
+    } catch (e) {
+        addEntry("Error", e.message);
+        $chatStatus.textContent = "Error";
+    }
+}
+
 async function generateVideoPrompts() {
     if (!videoSelection.size) {
         alert("Select at least one image");

@@ -1556,21 +1556,25 @@
             <span id="spark-progress"></span>
         </div>
 
+        <!-- Video Prompt Agent Chat -->
+        <div id="video-chat-panel" style="background:#0d0d0d;border:1px solid #2a2a2a;border-radius:6px;padding:12px;margin-bottom:12px;">
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
+                <strong style="color:#c8f;font-size:13px;">🤖 LTX Prompt Agents</strong>
+                <span id="video-chat-status" style="color:#666;font-size:11px;">Ready — select images and click Generate Prompts</span>
+            </div>
+            <div id="video-chat-log" style="height:180px;overflow:auto;background:#0a0a0a;border:1px solid #1a1a1a;border-radius:4px;padding:8px;font-size:12px;color:#ccc;margin-bottom:8px;"></div>
+            <div style="display:flex;gap:8px;">
+                <input type="text" id="video-chat-input" placeholder="Ask the video agents anything..." style="flex:1;background:#1a1a1a;border:1px solid #333;border-radius:4px;padding:8px 10px;color:#ccc;font-size:12px;" onkeydown="if(event.key==='Enter')sendVideoChat()">
+                <button class="btn btn-secondary" style="font-size:12px;padding:8px 14px;" onclick="sendVideoChat()">Send</button>
+            </div>
+        </div>
+
         <!-- Photo Grid -->
         <div class="spark-grid" id="spark-grid">
             <!-- Grid cells will be dynamically inserted here -->
             <div class="grid-placeholder">
                 <p>Select photos and click <strong>Process</strong> to generate video files.</p>
             </div>
-        </div>
-
-        <!-- Video Prompt Agent Chat -->
-        <div id="video-chat-panel" style="margin-top:12px;border-top:1px solid #333;padding-top:12px;">
-            <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
-                <strong style="color:#aaa;font-size:12px;">LTX Prompt Agents</strong>
-                <span id="video-chat-status" style="color:#666;font-size:11px;">Ready</span>
-            </div>
-            <div id="video-chat-log" style="max-height:240px;overflow:auto;background:#111;border:1px solid #222;border-radius:4px;padding:8px;font-size:12px;color:#ccc;"></div>
         </div>
         </div>  <!-- /#spark-view -->
 
