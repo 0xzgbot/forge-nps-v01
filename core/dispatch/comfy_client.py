@@ -115,14 +115,15 @@ class ComfyUIClient:
                 node["inputs"]["text"] = prompt_text
                 return workflow
 
-        negative_markers = ("blurry", "low quality", "worst quality", "deformed", "watermark")
+        negative_markers = ("blurry", "low quality", "worst quality", "deformed", "watermark", "ugly", "bad anatomy", "bad hands", "negative", "nsfw")
+        text_encode_types = ("CLIPTextEncode", "GemmaAPITextEncode", "CLIPTextEncodeFlux", "T5TextEncode")
         for node in prompt_block.values():
             if not isinstance(node, dict):
                 continue
-            if node.get("class_type") != "CLIPTextEncode":
+            if node.get("class_type") not in text_encode_types:
                 continue
             text = str(node.get("inputs", {}).get("text", "")).lower()
-            is_negative = sum(1 for m in negative_markers if m in text) >= 2
+            is_negative = sum(1 for m in negative_markers if m in text) >= 1
             if not is_negative:
                 node.setdefault("inputs", {})["text"] = prompt_text
                 break
@@ -232,9 +233,7 @@ class ComfyUIClient:
                         inputs[field] = choice
 
             # Fill empty prompt text nodes
-            if class_type == "CLIPTextEncode":
-                # Ensure text field exists even when the workflow converter did not
-                # attach a widget/default (common with subgraph exports).
+            if class_type in ("CLIPTextEncode", "GemmaAPITextEncode", "CLIPTextEncodeFlux", "T5TextEncode"):
                 if "text" not in inputs:
                     inputs["text"] = ""
                 title = str(node.get("_meta", {}).get("title", "")).lower()
@@ -489,7 +488,7 @@ class ComfyUIClient:
                 logger.warning("Image upload failed for %s: %s", image_path, up.get("error"))
 
         chosen_seed = seed if seed is not None else random.randint(1, 2**32 - 1)
-        negative_markers = ("blurry", "low quality", "worst quality", "deformed", "watermark")
+        negative_markers = ("blurry", "low quality", "worst quality", "deformed", "watermark", "ugly", "bad anatomy", "bad hands", "negative", "nsfw")
 
         load_image_slots = []
         for node in nodes.values():
@@ -500,9 +499,10 @@ class ComfyUIClient:
                 continue
 
             class_type = node.get("class_type", "")
-            if class_type == "CLIPTextEncode" and "text" in inputs:
+            if class_type in ("CLIPTextEncode", "GemmaAPITextEncode", "CLIPTextEncodeFlux", "T5TextEncode") and "text" in inputs:
                 existing = str(inputs.get("text", "")).lower()
-                if not any(marker in existing for marker in negative_markers):
+                is_negative = sum(1 for m in negative_markers if m in existing) >= 1
+                if not is_negative:
                     inputs["text"] = prompt
             if uploaded_name and class_type in ("LoadImage", "LoadImageMask", "VHS_LoadImagePath"):
                 load_image_slots.append(inputs)
