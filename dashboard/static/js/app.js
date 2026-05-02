@@ -2251,14 +2251,14 @@ async function loadVideoLibrary() {
         const resp = await fetch("/api/shots");
         const data = await resp.json();
         const allShots = Array.isArray(data) ? data : (data.shots || []);
-        let shots = _sortShots(allShots.filter(s => !!s.image_url).filter(shotMatchesFilters));
+        let shots = _sortShots(allShots.filter(s => !!s.image_url || !!s.video_url).filter(shotMatchesFilters));
         const totalBeforeCap = shots.length;
         if (shots.length > MAX_VIDEO_THUMBS) shots = shots.slice(-MAX_VIDEO_THUMBS);
         videoShotsById = {};
         shots.forEach(s => { videoShotsById[s.id] = s; });
         if (!shots.length) {
-            gridEl.innerHTML = '<div class="grid-placeholder"><p>No photos available yet.</p></div>';
-            if (statusEl) statusEl.textContent = "Ready — no photos found in /api/shots";
+            gridEl.innerHTML = '<div class="grid-placeholder"><p>No media available yet.</p></div>';
+            if (statusEl) statusEl.textContent = "Ready — no media found in /api/shots";
             return;
         }
         gridEl.innerHTML = "";
@@ -2276,11 +2276,21 @@ async function loadVideoLibrary() {
             cell.className = cls.join(" ");
             cell.dataset.shotId = s.id;
 
-            const img = document.createElement("img");
-            img.src = s.image_url;
-            img.alt = s.id;
-            img.loading = "lazy";
-            img.decoding = "async";
+            const mediaEl = s.image_url ? document.createElement("img") : document.createElement("video");
+            if (s.image_url) {
+                mediaEl.src = s.image_url;
+                mediaEl.alt = s.id;
+                mediaEl.loading = "lazy";
+                mediaEl.decoding = "async";
+            } else {
+                mediaEl.src = s.video_url;
+                mediaEl.muted = true;
+                mediaEl.controls = true;
+                mediaEl.preload = "metadata";
+                mediaEl.playsInline = true;
+                mediaEl.title = s.id;
+                mediaEl.addEventListener("click", (event) => event.stopPropagation());
+            }
 
             const label = document.createElement("div");
             label.className = "cell-label";
@@ -2299,6 +2309,12 @@ async function loadVideoLibrary() {
                 st.className = "audit-badge";
                 st.textContent = String(s.state).toUpperCase();
                 label.appendChild(st);
+            }
+            if (s.video_url) {
+                const vb = document.createElement("span");
+                vb.className = "audit-badge pass";
+                vb.textContent = "VIDEO";
+                label.appendChild(vb);
             }
             if (auditStatus === "pass" || auditStatus === "fail") {
                 const b = document.createElement("span");
@@ -2348,11 +2364,15 @@ async function loadVideoLibrary() {
                 cell.appendChild(dot);
             }
 
-            cell.appendChild(img);
+            cell.appendChild(mediaEl);
             cell.appendChild(label);
             cell.addEventListener("click", () => toggleVideoSelect(s.id));
             cell.addEventListener("dblclick", (event) => {
                 event.preventDefault();
+                if (!s.image_url && s.video_url) {
+                    window.open(s.video_url, "_blank", "noopener");
+                    return;
+                }
                 openLightbox({
                     image_url: s.image_url,
                     status: s.status || "complete",
@@ -2389,13 +2409,15 @@ async function loadVideoLibrary() {
         });
         if (statusEl) {
             const withPrompts = shots.filter(s => !!s.video_prompt).length;
-            statusEl.textContent = "Ready — loaded " + shots.length + " photo(s)" +
+            const videos = shots.filter(s => !!s.video_url).length;
+            statusEl.textContent = "Ready — loaded " + shots.length + " media item(s)" +
+                (videos ? (" · " + videos + " video(s)") : "") +
                 (withPrompts ? (" · " + withPrompts + " with video prompts") : " · 0 with video prompts") +
                 (totalBeforeCap > MAX_VIDEO_THUMBS ? (" (latest " + MAX_VIDEO_THUMBS + " of " + totalBeforeCap + ")") : "");
         }
         updateVideoSelectionUI();
     } catch (e) {
-        if (statusEl) statusEl.textContent = "Failed to load photos: " + e.message;
+        if (statusEl) statusEl.textContent = "Failed to load media: " + e.message;
     }
 }
 

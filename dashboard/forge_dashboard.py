@@ -473,6 +473,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
 
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 app.mount("/external-renders", StaticFiles(directory=str(MEDIA_IMAGES)), name="external-renders")
+app.mount("/media-assets", StaticFiles(directory=str(MEDIA_ROOT)), name="media-assets")
 app.mount("/identity-assets", StaticFiles(directory=str(MEDIA_IDENTITY_ASSETS)), name="identity-assets")
 
 _data_renders_dir = Path(__file__).parent.parent / "data" / "renders"
@@ -863,63 +864,72 @@ def _reindex_shots_from_storage() -> Dict[str, Any]:
     appear again in Dashboard/Video after server restarts or store drift.
     """
     roots = [
-        ("external", MEDIA_IMAGES, "/external-renders", "campaign"),
-        ("campaigns", REPO_ROOT / "data" / "campaigns", "/campaigns", "campaign"),
-        ("renders_campaigns", REPO_ROOT / "data" / "renders" / "campaigns", "/renders/campaigns", "campaign"),
+        ("external", MEDIA_IMAGES, "/external-renders", "campaign", "legacy"),
+        ("media_imports", MEDIA_ROOT / "imports", "/media-assets/imports", "imported", "imports"),
+        ("media_legacy", MEDIA_ROOT / "legacy", "/media-assets/legacy", "legacy", "legacy"),
+        ("media_campaigns", MEDIA_ROOT / "campaigns", "/media-assets/campaigns", "campaign", "campaign"),
+        ("media_videos", MEDIA_VIDEOS, "/media-assets/videos", "video", "videos"),
+        ("campaigns", REPO_ROOT / "data" / "campaigns", "/campaigns", "campaign", "campaign"),
+        ("renders_campaigns", REPO_ROOT / "data" / "renders" / "campaigns", "/renders/campaigns", "campaign", "campaign"),
     ]
 
     image_exts = {".png", ".jpg", ".jpeg", ".webp"}
+    video_exts = {".mp4", ".mov", ".webm", ".m4v"}
     rebuilt: List[Dict[str, Any]] = []
     seen_ids = set()
 
-    def _guess_campaign_and_shot(stem: str, rel_parts: List[str]) -> tuple[str, str]:
-        campaign = ""
+    def _guess_campaign_and_shot(stem: str, rel_parts: List[str], default_campaign: str) -> tuple[str, str]:
+        campaign = default_campaign
         shot = ""
         if rel_parts:
             campaign = rel_parts[0]
+            if rel_parts[0] in {"campaigns", "videos"} and len(rel_parts) > 1:
+                campaign = rel_parts[1]
         # Common id pattern: <campaign>__SHOT_001__workflow
         if "__SHOT_" in stem:
             parts = stem.split("__")
-            if not campaign and parts:
+            if (not campaign or campaign in {"legacy", "imports", "videos"}) and parts:
                 campaign = parts[0]
             for p in parts:
                 if p.startswith("SHOT_"):
                     shot = p
                     break
         if not campaign:
-            campaign = "legacy"
+            campaign = default_campaign or "legacy"
         if not shot:
             shot = stem[:40]
         return campaign, shot
 
-    for mount_name, root, url_prefix, source in roots:
+    for mount_name, root, url_prefix, source, default_campaign in roots:
         if not root.exists():
             continue
         for f in sorted(root.rglob("*")):
-            if not f.is_file() or f.suffix.lower() not in image_exts:
+            suffix = f.suffix.lower()
+            if not f.is_file() or suffix not in image_exts | video_exts:
                 continue
             stem = f.stem
             rel = f.relative_to(root)
             rel_parts = list(rel.parts[:-1])
-            campaign_id, shot_id = _guess_campaign_and_shot(stem, rel_parts)
-            record_id = stem
+            campaign_id, shot_id = _guess_campaign_and_shot(stem, rel_parts, default_campaign)
+            is_video = suffix in video_exts
+            record_id = f"{stem}__video" if is_video else stem
             if record_id in seen_ids:
                 continue
             seen_ids.add(record_id)
-            image_url = f"{url_prefix}/{rel.as_posix()}" if mount_name != "external" else f"{url_prefix}/{rel.as_posix()}"
+            media_url = f"{url_prefix}/{rel.as_posix()}"
             record = {
                 "id": record_id,
                 "campaign_id": campaign_id,
                 "shot_id": shot_id,
                 "sequence": 0,
-                "workflow_id": "reindexed_media",
+                "workflow_id": "reindexed_video" if is_video else "reindexed_media",
                 "status": "complete",
-                "state": "rendered",
+                "state": "video_rendered" if is_video else "rendered",
                 "seed": None,
-                "prompt": f"Reindexed media: {stem}",
-                "compiled_prompt": f"Reindexed media: {stem}",
-                "video_prompt": _default_video_prompt_from_first_frame(f"Reindexed media: {stem}"),
-                "video_prompt_source": "auto_default",
+                "prompt": f"Reindexed {'video' if is_video else 'media'}: {stem}",
+                "compiled_prompt": f"Reindexed {'video' if is_video else 'media'}: {stem}",
+                "video_prompt": "",
+                "video_prompt_source": "",
                 "negative_prompt": "",
                 "workflow_profile": "reindexed",
                 "skills_used": [],
@@ -930,18 +940,21 @@ def _reindex_shots_from_storage() -> Dict[str, Any]:
                 "model_standard_rules": [],
                 "sections": {},
                 "source": source,
-                "image_path": str(f),
-                "image_url": image_url,
+                "image_path": "" if is_video else str(f),
+                "image_url": "" if is_video else media_url,
+                "video_path": str(f) if is_video else "",
+                "video_url": media_url if is_video else "",
                 "created_at": _now_iso(),
             }
-            stored_metadata = _metadata_for_media_file(f)
-            for key in MEDIA_SHOT_METADATA_FIELDS:
-                if key in stored_metadata:
-                    record[key] = stored_metadata[key]
+            if not is_video:
+                stored_metadata = _metadata_for_media_file(f)
+                for key in MEDIA_SHOT_METADATA_FIELDS:
+                    if key in stored_metadata:
+                        record[key] = stored_metadata[key]
             rebuilt.append(record)
 
     # Preserve any existing non-media script shots, but prioritize media records.
-    non_media = [s for s in _SHOTS_STORE if not s.get("image_url")]
+    non_media = [s for s in _SHOTS_STORE if not s.get("image_url") and not s.get("video_url")]
     _SHOTS_STORE.clear()
     _SHOTS_STORE.extend(rebuilt + non_media)
 
@@ -1881,6 +1894,11 @@ def _resolve_image_path(image_url: str) -> Optional[Path]:
     if image_url.startswith("/external-renders/"):
         rel = image_url.replace("/external-renders/", "", 1).lstrip("/")
         ex = MEDIA_IMAGES / rel
+        if ex.exists():
+            return ex
+    if image_url.startswith("/media-assets/"):
+        rel = image_url.replace("/media-assets/", "", 1).lstrip("/")
+        ex = MEDIA_ROOT / rel
         if ex.exists():
             return ex
     c2 = MEDIA_IMAGES / Path(image_url).name
