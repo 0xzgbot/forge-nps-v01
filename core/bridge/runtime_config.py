@@ -42,6 +42,10 @@ CONFIGURABLE_KEYS = [
     "LMSTUDIO_EMBED_MODEL",
     "LMSTUDIO_CHAT_MODEL",
     "LMSTUDIO_VISION_MODEL",
+    "LMSTUDIO_CONTEXT_LENGTH",
+    "LMSTUDIO_EVAL_BATCH_SIZE",
+    "LMSTUDIO_FLASH_ATTENTION",
+    "LMSTUDIO_OFFLOAD_KV_CACHE_TO_GPU",
     "USE_LOCAL_MODELS",
     "DASHBOARD_PORT",
     "MOCK_MODE",
@@ -80,6 +84,10 @@ KEY_ALIASES = {
     "lmstudio_chat_model": "LMSTUDIO_CHAT_MODEL",
     "lmstudio_embed_model": "LMSTUDIO_EMBED_MODEL",
     "lmstudio_vision_model": "LMSTUDIO_VISION_MODEL",
+    "lmstudio_context_length": "LMSTUDIO_CONTEXT_LENGTH",
+    "lmstudio_eval_batch_size": "LMSTUDIO_EVAL_BATCH_SIZE",
+    "lmstudio_flash_attention": "LMSTUDIO_FLASH_ATTENTION",
+    "lmstudio_offload_kv_cache_to_gpu": "LMSTUDIO_OFFLOAD_KV_CACHE_TO_GPU",
 }
 
 
@@ -145,6 +153,12 @@ def _normalize_overrides(raw: Dict[str, Any]) -> Dict[str, Any]:
             put_legacy(hermes, "host", "LMSTUDIO_HOST")
             put_legacy(hermes, "port", "LMSTUDIO_PORT")
             put_legacy(hermes, "model_name", "LMSTUDIO_CHAT_MODEL")
+            load_config = hermes.get("load_config")
+            if isinstance(load_config, dict):
+                put_legacy(load_config, "context_length", "LMSTUDIO_CONTEXT_LENGTH")
+                put_legacy(load_config, "eval_batch_size", "LMSTUDIO_EVAL_BATCH_SIZE")
+                put_legacy(load_config, "flash_attention", "LMSTUDIO_FLASH_ATTENTION")
+                put_legacy(load_config, "offload_kv_cache_to_gpu", "LMSTUDIO_OFFLOAD_KV_CACHE_TO_GPU")
 
     comfy = raw.get("comfyui")
     if isinstance(comfy, dict):

@@ -1866,6 +1866,16 @@ class VideoGeneratePromptsRequest(BaseModel):
     campaign_id: str = ""
 
 
+class LMStudioLoadRequest(BaseModel):
+    host: str = ""
+    port: int = 0
+    model: str = ""
+    context_length: int = 8192
+    eval_batch_size: int = 1024
+    flash_attention: bool = True
+    offload_kv_cache_to_gpu: bool = True
+
+
 def _workflow_file_for_id(workflow_id: str) -> Optional[Path]:
     candidates = [
         REPO_ROOT / "workflows" / f"{workflow_id}.json",
@@ -2234,6 +2244,7 @@ async def api_import_sienna_batch(req: ImportBatchRequest):
     imported = 0
     updated_existing = 0
     imported_videos = 0
+    imported_images = 0
     for f in files:
         stem = f.stem
         is_video = f.suffix.lower() in video_exts
@@ -2288,17 +2299,20 @@ async def api_import_sienna_batch(req: ImportBatchRequest):
             imported += 1
         if is_video:
             imported_videos += 1
+        else:
+            imported_images += 1
 
     _record_pipeline_event(
         "import_completed",
         campaign_id="import",
         source="import",
-        extra={"imported": imported, "updated_existing": updated_existing, "videos": imported_videos, "report_path": str(report_path)},
+        extra={"imported": imported, "updated_existing": updated_existing, "images": imported_images, "videos": imported_videos, "report_path": str(report_path)},
     )
     return {
         "status": "ok",
         "imported": imported,
         "updated_existing": updated_existing,
+        "images": imported_images,
         "videos": imported_videos,
         "report": str(report_path),
     }
@@ -3128,6 +3142,10 @@ async def api_config():
     lm_host = str(cfg.get("LMSTUDIO_HOST", "") or "")
     lm_port = str(cfg.get("LMSTUDIO_PORT", "") or "")
     lm_model = str(cfg.get("LMSTUDIO_CHAT_MODEL", "") or "")
+    lm_context_length = str(cfg.get("LMSTUDIO_CONTEXT_LENGTH", "") or "8192")
+    lm_eval_batch_size = str(cfg.get("LMSTUDIO_EVAL_BATCH_SIZE", "") or "1024")
+    lm_flash_attention = str(cfg.get("LMSTUDIO_FLASH_ATTENTION", "") or "true").lower() != "false"
+    lm_offload_kv = str(cfg.get("LMSTUDIO_OFFLOAD_KV_CACHE_TO_GPU", "") or "true").lower() != "false"
     vision_model = str(cfg.get("KIMI_VISUAL_MODEL", "") or cfg.get("LMSTUDIO_VISION_MODEL", "") or "")
     director_api1 = str(cfg.get("KIMI_DIRECTOR_ENDPOINT_API1", "") or endpoint or "")
     director_api2 = str(cfg.get("KIMI_DIRECTOR_ENDPOINT_API2", "") or "")
@@ -3166,6 +3184,12 @@ async def api_config():
                 "host": lm_host,
                 "port": lm_port_value,
                 "model_name": lm_model,
+                "load_config": {
+                    "context_length": int(lm_context_length) if lm_context_length.isdigit() else 8192,
+                    "eval_batch_size": int(lm_eval_batch_size) if lm_eval_batch_size.isdigit() else 1024,
+                    "flash_attention": lm_flash_attention,
+                    "offload_kv_cache_to_gpu": lm_offload_kv,
+                },
             },
         },
         "comfyui": {"primary": comfy_primary, "secondary": comfy_secondary},
@@ -3233,6 +3257,10 @@ async def api_config_save(req: FlatConfigUpdateRequest):
         "models.hermes_3.host": "LMSTUDIO_HOST",
         "models.hermes_3.port": "LMSTUDIO_PORT",
         "models.hermes_3.model_name": "LMSTUDIO_CHAT_MODEL",
+        "models.hermes_3.load_config.context_length": "LMSTUDIO_CONTEXT_LENGTH",
+        "models.hermes_3.load_config.eval_batch_size": "LMSTUDIO_EVAL_BATCH_SIZE",
+        "models.hermes_3.load_config.flash_attention": "LMSTUDIO_FLASH_ATTENTION",
+        "models.hermes_3.load_config.offload_kv_cache_to_gpu": "LMSTUDIO_OFFLOAD_KV_CACHE_TO_GPU",
         "comfyui.primary": "COMFYUI_PRIMARY",
         "comfyui.secondary": "COMFYUI_SECONDARY",
         "spark.primary": "COMFYUI_PRIMARY",
@@ -3456,6 +3484,94 @@ async def api_test_lmstudio(host: str = "", port: int = 0):
         return {"status": "ok", "models": models, "latency_ms": int((time.time() - t0) * 1000), "message": f"{len(models)} model(s)"}
     except Exception as e:
         return {"status": "error", "error": str(e), "models": []}
+
+
+@app.get("/api/lmstudio/status")
+async def api_lmstudio_status(host: str = "", port: int = 0):
+    base = _normalize_lmstudio_base_url(host, port)
+    t0 = time.time()
+    try:
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            loaded_resp = await client.get(f"{base}/v1/models")
+            available_resp = await client.get(f"{base}/api/v1/models")
+        if loaded_resp.status_code >= 400:
+            return {"status": "error", "error": f"http {loaded_resp.status_code}: {loaded_resp.text[:200]}", "base_url": base}
+        loaded_data = loaded_resp.json()
+        loaded = [m.get("id") for m in loaded_data.get("data", []) if isinstance(m, dict) and m.get("id")]
+        available: List[Dict[str, Any]] = []
+        if available_resp.status_code < 400:
+            available_data = available_resp.json()
+            available = [
+                {
+                    "key": m.get("key"),
+                    "display_name": m.get("display_name"),
+                    "type": m.get("type"),
+                    "vision": bool((m.get("capabilities") or {}).get("vision")),
+                    "loaded_instances": m.get("loaded_instances") or [],
+                }
+                for m in available_data.get("models", [])
+                if isinstance(m, dict) and m.get("key")
+            ]
+        return {
+            "status": "ok",
+            "base_url": base,
+            "loaded_models": loaded,
+            "available_models": available,
+            "loaded_count": len(loaded),
+            "available_count": len(available),
+            "hermes_usable": bool(loaded),
+            "vision_usable": bool(loaded),
+            "latency_ms": int((time.time() - t0) * 1000),
+        }
+    except Exception as e:
+        return {"status": "error", "error": str(e), "base_url": base}
+
+
+@app.post("/api/lmstudio/load")
+async def api_lmstudio_load(req: LMStudioLoadRequest):
+    from core.bridge.runtime_config import set_config, apply_to_environment
+
+    cfg = get_raw_config()
+    model = (req.model or str(cfg.get("LMSTUDIO_CHAT_MODEL", "") or "")).strip()
+    if not model:
+        raise HTTPException(status_code=400, detail="LM Studio model is required")
+    base = _normalize_lmstudio_base_url(req.host, req.port)
+    payload = {
+        "model": model,
+        "context_length": max(512, int(req.context_length or 8192)),
+        "eval_batch_size": max(1, int(req.eval_batch_size or 1024)),
+        "flash_attention": bool(req.flash_attention),
+        "offload_kv_cache_to_gpu": bool(req.offload_kv_cache_to_gpu),
+        "echo_load_config": True,
+    }
+    t0 = time.time()
+    async with httpx.AsyncClient(timeout=180.0) as client:
+        resp = await client.post(f"{base}/api/v1/models/load", headers={"Content-Type": "application/json"}, json=payload)
+    if resp.status_code >= 400:
+        return {"status": "error", "error": f"http {resp.status_code}: {resp.text[:500]}", "base_url": base, "model": model}
+    data = resp.json()
+    updates = {
+        "LMSTUDIO_HOST": req.host or str(cfg.get("LMSTUDIO_HOST", "") or ""),
+        "LMSTUDIO_PORT": str(req.port or cfg.get("LMSTUDIO_PORT", "") or "1234"),
+        "LMSTUDIO_CHAT_MODEL": model,
+        "LMSTUDIO_VISION_MODEL": model,
+        "KIMI_VISUAL_MODEL": model,
+        "LMSTUDIO_CONTEXT_LENGTH": str(payload["context_length"]),
+        "LMSTUDIO_EVAL_BATCH_SIZE": str(payload["eval_batch_size"]),
+        "LMSTUDIO_FLASH_ATTENTION": "true" if payload["flash_attention"] else "false",
+        "LMSTUDIO_OFFLOAD_KV_CACHE_TO_GPU": "true" if payload["offload_kv_cache_to_gpu"] else "false",
+    }
+    set_config(updates)
+    apply_to_environment()
+    return {
+        "status": "ok",
+        "base_url": base,
+        "model": model,
+        "load_time_seconds": data.get("load_time_seconds"),
+        "elapsed_ms": int((time.time() - t0) * 1000),
+        "lmstudio_response": data,
+        "saved": sorted(updates.keys()),
+    }
 
 
 @app.get("/api/test/nim")

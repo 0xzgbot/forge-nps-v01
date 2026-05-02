@@ -1397,8 +1397,24 @@
                     <label>Chat Model</label>
                     <input type="text" id="cfg-lmstudio-model" placeholder="qwen3.6-35b-a3b" onchange="markDirty('models.hermes_3.model_name')">
                 </div>
+                <div class="form-inline">
+                    <div class="form-row small">
+                        <label>Context</label>
+                        <input type="number" id="cfg-lmstudio-context" value="8192" min="512" onchange="markDirty('models.hermes_3.load_config.context_length')">
+                    </div>
+                    <div class="form-row small">
+                        <label>Batch</label>
+                        <input type="number" id="cfg-lmstudio-batch" value="1024" min="1" onchange="markDirty('models.hermes_3.load_config.eval_batch_size')">
+                    </div>
+                </div>
+                <div class="form-row" style="display:flex;gap:14px;align-items:center;flex-direction:row;">
+                    <label class="model-checkbox"><input type="checkbox" id="cfg-lmstudio-flash" onchange="markDirty('models.hermes_3.load_config.flash_attention')"> Flash Attention</label>
+                    <label class="model-checkbox"><input type="checkbox" id="cfg-lmstudio-kv" onchange="markDirty('models.hermes_3.load_config.offload_kv_cache_to_gpu')"> KV Cache GPU</label>
+                </div>
                 <div class="card-actions">
                     <button class="btn btn-secondary" onclick="testLMStudio()">Test &amp; Detect Models</button>
+                    <button class="btn btn-secondary" onclick="loadLMStudioModel()">Load Model</button>
+                    <button class="btn" onclick="reloadHermesVision()">Reload Hermes/Vision</button>
                 </div>
                 <div id="lmstudio-test-result" class="test-result"></div>
                 <div id="lmstudio-models-list" style="display:none;">
@@ -1520,10 +1536,24 @@
                     <input type="text" id="video-prompt" placeholder="Optional: override prompt for selected images (used for video generation)">
                 </div>
             </div>
-            <div class="toolbar-row">
-                <div class="toolbar-group">
-                    <label>Selected Photos</label>
-                    <input type="text" id="video-selected-count" value="0 selected" readonly>
+                <div class="toolbar-row">
+                    <div class="toolbar-group" style="flex:1;min-width:260px;">
+                        <label>Import Folder / Report</label>
+                        <input type="text" id="video-import-path" placeholder="/Users/zgbot/Desktop/FORGE_NPS_MEDIA/imports">
+                    </div>
+                    <div class="toolbar-group">
+                        <label>Import</label>
+                        <button class="btn btn-secondary" onclick="importRenderedMedia()">Import Media</button>
+                    </div>
+                    <div class="toolbar-group" style="min-width:220px;">
+                        <label>Import Result</label>
+                        <input type="text" id="video-import-status" value="Ready" readonly>
+                    </div>
+                </div>
+                <div class="toolbar-row">
+                    <div class="toolbar-group">
+                        <label>Selected Media</label>
+                        <input type="text" id="video-selected-count" value="0 selected" readonly>
                 </div>
                 <div class="toolbar-group">
                     <label>Duration (sec)</label>
