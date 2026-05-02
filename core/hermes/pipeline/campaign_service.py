@@ -199,12 +199,12 @@ class HermesCampaignService:
                 "identity_pack": req.identity_pack or {},
             }
         self._write_campaign_manifest(campaign_id, req.brief, workflow_ids, req.identity_pack)
-        yield {"type": "profile", "profile_color_key": "profile_director_kimi", "text": "Director Planner (kimi) online"}
-        yield {"type": "profile", "profile_color_key": "profile_critic_kimi", "text": "Coverage Critic (kimi) online"}
-        yield {"type": "profile", "profile_color_key": "profile_compiler_lmstudio", "text": "Prompt Compiler (lmstudio) online"}
-        yield {"type": "profile", "profile_color_key": "profile_continuity_lmstudio", "text": "Continuity Guard (lmstudio) online"}
-        yield {"type": "profile", "profile_color_key": "profile_remediation_lmstudio", "text": "Remediation Reprompter (lmstudio) online"}
-        yield {"type": "profile", "profile_color_key": "profile_audit_kimi", "text": "Audit Judge (kimi) online"}
+        yield {"type": "profile", "profile_color_key": "profile_director_kimi", "text": "Kimi / Director Planner online"}
+        yield {"type": "profile", "profile_color_key": "profile_critic_kimi", "text": "Kimi / Coverage Critic online"}
+        yield {"type": "profile", "profile_color_key": "profile_compiler_lmstudio", "text": "Hermes / Prompt Compiler online"}
+        yield {"type": "profile", "profile_color_key": "profile_continuity_lmstudio", "text": "Hermes / Continuity Guard online"}
+        yield {"type": "profile", "profile_color_key": "profile_remediation_lmstudio", "text": "Hermes / Remediation Reprompter online"}
+        yield {"type": "profile", "profile_color_key": "profile_audit_kimi", "text": "Kimi / Audit Judge online"}
 
         # If appending to an existing campaign, continue shot numbering.
         shot_index_offset = 0
@@ -306,7 +306,7 @@ class HermesCampaignService:
         try:
             review = await self.director.self_check_plan(req.brief, campaign_id, kimi_shots)
             self.campaigns[campaign_id]["kimi_review"] = review
-            yield {"type": "profile", "profile_color_key": "profile_critic_kimi", "text": "Coverage Critic (kimi) completed review."}
+            yield {"type": "profile", "profile_color_key": "profile_critic_kimi", "text": "Kimi / Coverage Critic completed review."}
             yield {
                 "type": "kimi_review",
                 "campaign_id": campaign_id,
@@ -438,7 +438,7 @@ class HermesCampaignService:
                         "type": "profile",
                         "profile_color_key": "profile_compiler_lmstudio",
                         "shot_id": effective_shot["shot_id"],
-                        "text": f"Prompt Compiler (lmstudio) refined {effective_shot['shot_id']}.",
+                        "text": f"Hermes / Prompt Compiler refined {effective_shot['shot_id']}.",
                     }
                 yield {
                     "type": "compiler",
