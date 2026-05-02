@@ -3,13 +3,15 @@ import json
 import os
 from typing import Any, Dict, Optional
 
+import httpx
+
 from core.bridge.runtime_config import get_raw_config
 
 
 class HermesProfileCLI:
     """
-    Best-effort CLI profile runner.
-    Falls back gracefully when profile CLI is unavailable.
+    Hermes profile runner.
+    Uses direct OpenAI-compatible HTTP by default to avoid CLI startup latency.
     """
 
     def __init__(self) -> None:
@@ -23,6 +25,22 @@ class HermesProfileCLI:
             "continuity": os.getenv("FORGE_PROFILE_CONTINUITY", "continuity_guard"),
             "audit": os.getenv("FORGE_PROFILE_AUDIT", "audit_judge"),
         }
+
+    @staticmethod
+    def _profile_system_prompt(profile: str) -> str:
+        prompts = {
+            "compiler": (
+                "You are Hermes / Prompt Compiler for FORGE NPS. Return JSON only. "
+                "For image prompt tasks, output compiled_prompt and negative_prompt. "
+                "For LTX2.3 video prompt tasks, output the exact requested JSON schema."
+            ),
+            "remediator": "You are Hermes / Remediation Reprompter. Return JSON only with corrected prompt fields.",
+            "director": "You are Hermes / Campaign Intake Director. Return JSON only in the requested schema.",
+            "critic": "You are Hermes / Coverage Critic. Return JSON only in the requested schema.",
+            "continuity": "You are Hermes / Continuity Guard. Return JSON only.",
+            "audit": "You are Hermes / Audit Judge. Return JSON only.",
+        }
+        return prompts.get(profile, "You are Hermes. Return JSON only in the requested schema.")
 
     @staticmethod
     def _parse_json_text(text: str) -> Optional[Dict[str, Any]]:
@@ -89,7 +107,63 @@ class HermesProfileCLI:
         }
         return args, env, debug
 
+    async def _run_direct_json(self, profile: str, task: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        _args, env, runtime_debug = self._runtime_args_and_env()
+        model = str(runtime_debug.get("model") or "").strip()
+        base_url = str(runtime_debug.get("base_url") or "").strip().rstrip("/")
+        if not model or not base_url:
+            return None
+        endpoint = base_url if base_url.endswith("/chat/completions") else f"{base_url}/chat/completions"
+        target_profile = self.profile_map.get(profile, profile)
+        payload = {
+            "model": model,
+            "messages": [
+                {"role": "system", "content": self._profile_system_prompt(profile)},
+                {"role": "user", "content": json.dumps(task, ensure_ascii=True)},
+            ],
+            "temperature": 0.2,
+            "max_tokens": int(os.getenv("FORGE_PROFILE_MAX_TOKENS", "8192")),
+            "response_format": {"type": "json_object"},
+            "chat_template_kwargs": {"thinking": False},
+        }
+        headers = {"Content-Type": "application/json"}
+        api_key = env.get("OPENAI_API_KEY") or env.get("CUSTOM_API_KEY") or "not-needed"
+        if api_key:
+            headers["Authorization"] = f"Bearer {api_key}"
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout_sec) as client:
+                resp = await client.post(endpoint, headers=headers, json=payload)
+            if resp.status_code >= 400:
+                return None
+            data = resp.json()
+            text = (
+                (data.get("choices") or [{}])[0]
+                .get("message", {})
+                .get("content", "")
+            )
+            parsed = text if isinstance(text, dict) else self._parse_json_text(str(text))
+            if parsed is None:
+                return None
+            parsed["__exchange"] = {
+                "stage": f"hermes_profile_{target_profile}",
+                "transport": "openai_chat_completions",
+                "profile": target_profile,
+                "provider": runtime_debug.get("provider", ""),
+                "model": model,
+                "base_url": base_url,
+                "request": payload,
+                "response": {
+                    "content": text,
+                },
+            }
+            return parsed
+        except Exception:
+            return None
+
     async def run_json(self, profile: str, task: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        if os.getenv("FORGE_PROFILE_USE_CLI", "false").lower() != "true":
+            return await self._run_direct_json(profile, task)
+
         prompt = json.dumps(task, ensure_ascii=True)
         target_profile = self.profile_map.get(profile, profile)
         # Use explicit profile switch + oneshot mode for deterministic stdout.

@@ -919,51 +919,79 @@ function onBackendModeToggle() {
 // ---------------------------------------------------------------------------
 function markDirty(dotKey) {
     // Read the current value from the corresponding field
+    const fieldValue = (id) => {
+        const el = document.getElementById(id);
+        return el ? el.value : null;
+    };
     const fieldMap = {
-        'backend_mode': () => document.getElementById("cfg-backend-mode").checked ? "remote" : "local",
-        'kimi.api_key': () => document.getElementById("cfg-kimi-api-key").value,
-        'kimi.endpoint': () => document.getElementById("cfg-kimi-endpoint").value,
-        'models.director_kimi.model_name': () => document.getElementById("cfg-director-model").value,
-        'models.director_kimi.endpoint': () => document.getElementById("cfg-director-endpoint")?.value || "",
-        'models.director_kimi.endpoint_api1': () => document.getElementById("cfg-director-endpoint-api1")?.value || "",
-        'models.kimi_vl.model_name': () => document.getElementById("cfg-visual-model").value,
-        'models.kimi_vl.endpoint': () => document.getElementById("cfg-vision-endpoint-api1")?.value || "",
-        'models.kimi_vl.endpoint_api1': () => document.getElementById("cfg-vision-endpoint-api1")?.value || "",
-        'models.hermes_3.host': () => document.getElementById("cfg-lmstudio-host").value,
-        'models.hermes_3.port': () => parseInt(document.getElementById("cfg-lmstudio-port").value) || 0,
-        'models.hermes_3.model_name': () => document.getElementById("cfg-lmstudio-model").value,
-        'comfyui.primary': () => document.getElementById("cfg-comfyui-primary")?.value || "",
-        'comfyui.secondary': () => document.getElementById("cfg-comfyui-secondary")?.value || "",
-        'spark.primary': () => document.getElementById("cfg-spark-primary")?.value || "",
-        'spark.secondary': () => document.getElementById("cfg-spark-secondary")?.value || "",
-        'spark.workflow_file': () => document.getElementById("cfg-spark-workflow")?.value || "",
+        'backend_mode': () => document.getElementById("cfg-backend-mode")?.checked ? "remote" : "local",
+        'kimi.api_key': () => fieldValue("cfg-kimi-api-key"),
+        'kimi.endpoint': () => fieldValue("cfg-kimi-endpoint"),
+        'models.director_kimi.model_name': () => fieldValue("cfg-director-model"),
+        'models.director_kimi.endpoint_api1': () => fieldValue("cfg-director-endpoint-api1"),
+        'models.kimi_vl.model_name': () => fieldValue("cfg-visual-model"),
+        'models.kimi_vl.endpoint_api1': () => fieldValue("cfg-vision-endpoint-api1"),
+        'models.hermes_3.host': () => fieldValue("cfg-lmstudio-host"),
+        'models.hermes_3.port': () => {
+            const value = fieldValue("cfg-lmstudio-port");
+            return value === null ? null : (parseInt(value) || 0);
+        },
+        'models.hermes_3.model_name': () => fieldValue("cfg-lmstudio-model"),
+        'comfyui.primary': () => fieldValue("cfg-comfyui-primary"),
+        'comfyui.secondary': () => fieldValue("cfg-comfyui-secondary"),
+        'spark.primary': () => fieldValue("cfg-spark-primary"),
+        'spark.secondary': () => fieldValue("cfg-spark-secondary"),
+        'spark.workflow_file': () => fieldValue("cfg-spark-workflow"),
     };
 
     if (fieldMap[dotKey]) {
-        configDirty[dotKey] = fieldMap[dotKey]();
+        const value = fieldMap[dotKey]();
+        if (value !== null) configDirty[dotKey] = value;
     }
+}
+
+function collectAllSettings() {
+    const keys = [
+        'backend_mode',
+        'kimi.api_key',
+        'kimi.endpoint',
+        'models.director_kimi.model_name',
+        'models.director_kimi.endpoint_api1',
+        'models.kimi_vl.model_name',
+        'models.kimi_vl.endpoint_api1',
+        'models.hermes_3.host',
+        'models.hermes_3.port',
+        'models.hermes_3.model_name',
+        'comfyui.primary',
+        'comfyui.secondary',
+        'spark.primary',
+        'spark.secondary',
+        'spark.workflow_file',
+    ];
+    const previous = { ...configDirty };
+    configDirty = {};
+    keys.forEach(markDirty);
+    configDirty = { ...configDirty, ...previous };
+    return { ...configDirty };
 }
 
 // ---------------------------------------------------------------------------
 // Settings: Save All
 // ---------------------------------------------------------------------------
 async function saveAllSettings() {
-    if (Object.keys(configDirty).length === 0) {
-        showToast("No changes to save", "loading");
-        return;
-    }
+    const updates = collectAllSettings();
 
     try {
         const resp = await fetch("/api/config/save", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ updates: configDirty }),
+            body: JSON.stringify({ updates }),
         });
         const result = await resp.json();
 
         if (result.status === "success") {
             // Update current config
-            for (const [key, value] of Object.entries(configDirty)) {
+            for (const [key, value] of Object.entries(updates)) {
                 const parts = key.split(".");
                 let obj = currentConfig;
                 for (const part of parts.slice(0, -1)) {
@@ -1038,7 +1066,15 @@ async function testDirector() {
     $result.textContent = "Testing Director...";
     $result.className = "test-result loading";
     try {
-        const resp = await fetch("/api/test/director");
+        const resp = await fetch("/api/test/director", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                endpoint: document.getElementById("cfg-director-endpoint-api1")?.value || "",
+                model: document.getElementById("cfg-director-model")?.value || "",
+                api_key: document.getElementById("cfg-kimi-api-key")?.value || "",
+            }),
+        });
         const data = await resp.json();
         if (data.status === "ok") {
             $result.textContent = "Director OK: " + data.model + " (" + data.latency_ms + "ms)";
@@ -1058,7 +1094,15 @@ async function testVision() {
     $result.textContent = "Testing Vision...";
     $result.className = "test-result loading";
     try {
-        const resp = await fetch("/api/test/vision");
+        const resp = await fetch("/api/test/vision", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                endpoint: document.getElementById("cfg-vision-endpoint-api1")?.value || "",
+                model: document.getElementById("cfg-visual-model")?.value || "",
+                api_key: document.getElementById("cfg-kimi-api-key")?.value || "",
+            }),
+        });
         const data = await resp.json();
         if (data.status === "ok") {
             $result.textContent = "Vision OK: " + data.model + " (" + data.latency_ms + "ms)";

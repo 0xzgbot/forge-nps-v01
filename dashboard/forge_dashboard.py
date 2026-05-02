@@ -1907,16 +1907,6 @@ def _resolve_image_path(image_url: str) -> Optional[Path]:
     return None
 
 
-def _default_video_prompt_from_first_frame(source_prompt: str) -> str:
-    base = str(source_prompt or "").strip() or "cinematic first frame"
-    return (
-        f"{base}. "
-        "LTX2.3 image-to-video continuation: preserve subject identity, wardrobe, and scene geometry; "
-        "introduce subtle natural motion and gentle camera parallax; maintain lighting continuity; "
-        "avoid face morphs, anatomy drift, extra limbs/fingers, texture flicker, and background warping."
-    )
-
-
 def _make_audit_service() -> HermesAuditService:
     return HermesAuditService(
         shots_store=_SHOTS_STORE,
@@ -2212,8 +2202,8 @@ async def api_import_sienna_batch(req: ImportBatchRequest):
             "seed": None,
             "prompt": f"Imported media: {stem}",
             "compiled_prompt": f"Imported media: {stem}",
-            "video_prompt": _default_video_prompt_from_first_frame(f"Imported media: {stem}"),
-            "video_prompt_source": "auto_default",
+            "video_prompt": "",
+            "video_prompt_source": "",
             "negative_prompt": "",
             "workflow_profile": "import",
             "skills_used": [],
@@ -2533,6 +2523,15 @@ def _extract_json_response(text: str) -> Dict[str, Any]:
         return parsed
 
 
+def _image_mime_type(image_path: str) -> str:
+    suffix = Path(image_path).suffix.lower()
+    if suffix in {".jpg", ".jpeg"}:
+        return "image/jpeg"
+    if suffix == ".webp":
+        return "image/webp"
+    return "image/png"
+
+
 async def _run_vision_audit_pass(
     *,
     endpoint: str,
@@ -2548,6 +2547,7 @@ async def _run_vision_audit_pass(
         endpoint = f"{endpoint}/chat/completions"
     with open(image_path, "rb") as f:
         image_b64 = base64.b64encode(f.read()).decode("utf-8")
+    mime_type = _image_mime_type(image_path)
     payload = {
         "model": model,
         "messages": [
@@ -2564,12 +2564,13 @@ async def _run_vision_audit_pass(
                             "Do not leave the final answer only in reasoning_content. Keep the JSON compact."
                         ),
                     },
-                    {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{image_b64}"}},
+                    {"type": "image_url", "image_url": {"url": f"data:{mime_type};base64,{image_b64}"}},
                 ],
             },
         ],
         "temperature": 0,
-        "max_tokens": int(os.getenv("FORGE_VISION_AUDIT_MAX_TOKENS", "8192")),
+        "max_tokens": int(os.getenv("FORGE_VISION_AUDIT_MAX_TOKENS", "16384")),
+        "chat_template_kwargs": {"thinking": False},
     }
     headers = {"Content-Type": "application/json"}
     if api_key and endpoint.startswith("https://"):
@@ -3169,6 +3170,10 @@ async def api_config_save(req: FlatConfigUpdateRequest):
     }
     for k, v in (updates or {}).items():
         mapped[key_map.get(k, k)] = v
+    current_cfg = get_raw_config()
+    for secret_key in ["NOUS_API_KEY", "KIMI_API_KEY", "OPENROUTER_API_KEY"]:
+        if secret_key in mapped and not str(mapped.get(secret_key) or "").strip() and str(current_cfg.get(secret_key, "") or "").strip():
+            mapped.pop(secret_key, None)
     updated = set_config(mapped)
     apply_to_environment()
     return {"status": "success", "saved": list(mapped.keys()), "config": updated}
@@ -3203,6 +3208,7 @@ async def api_config_effective():
 class KimiTestRequest(BaseModel):
     api_key: str = ""
     endpoint: str = ""
+    model: str = ""
 
 
 async def _test_chat_completion(endpoint: str, api_key: str, model: str) -> Dict[str, Any]:
@@ -3219,6 +3225,7 @@ async def _test_chat_completion(endpoint: str, api_key: str, model: str) -> Dict
         "model": model,
         "messages": [{"role": "user", "content": "ping"}],
         "max_tokens": 8,
+        "chat_template_kwargs": {"thinking": False},
     }
     headers = {"Content-Type": "application/json"}
     if api_key:
@@ -3229,6 +3236,65 @@ async def _test_chat_completion(endpoint: str, api_key: str, model: str) -> Dict
             r = await client.post(endpoint, headers=headers, json=payload)
         if r.status_code >= 400:
             return {"status": "error", "error": f"http {r.status_code}: {r.text[:200]}", "endpoint": endpoint, "model": model}
+        return {"status": "ok", "latency_ms": int((time.time() - t0) * 1000), "endpoint": endpoint, "model": model}
+    except Exception as e:
+        reason = str(e).strip() or e.__class__.__name__
+        return {"status": "error", "error": reason, "endpoint": endpoint, "model": model}
+
+
+async def _test_vision_completion(endpoint: str, api_key: str, model: str) -> Dict[str, Any]:
+    endpoint = (endpoint or "").strip().rstrip("/")
+    api_key = (api_key or "").strip()
+    model = (model or "").strip()
+    if endpoint and not endpoint.endswith("/chat/completions"):
+        endpoint = endpoint + "/chat/completions"
+    if not endpoint:
+        return {"status": "error", "error": "missing endpoint"}
+    if not model:
+        return {"status": "error", "error": "missing model"}
+    image_b64 = ""
+    mime_type = "image/png"
+    for root in [MEDIA_IMAGES, MEDIA_ROOT / "imports", MEDIA_ROOT / "legacy"]:
+        try:
+            candidate = next(
+                f for f in sorted(root.rglob("*"))
+                if f.is_file() and f.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"}
+            )
+            image_b64 = base64.b64encode(candidate.read_bytes()).decode("utf-8")
+            mime_type = _image_mime_type(str(candidate))
+            break
+        except StopIteration:
+            continue
+        except Exception:
+            continue
+    if not image_b64:
+        image_b64 = (
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII="
+        )
+    payload = {
+        "model": model,
+        "messages": [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": "/no_think\nReturn JSON only: {\"ok\":true}."},
+                    {"type": "image_url", "image_url": {"url": f"data:{mime_type};base64,{image_b64}"}},
+                ],
+            }
+        ],
+        "temperature": 0,
+        "max_tokens": 64,
+        "chat_template_kwargs": {"thinking": False},
+    }
+    headers = {"Content-Type": "application/json"}
+    if api_key and endpoint.startswith("https://"):
+        headers["Authorization"] = f"Bearer {api_key}"
+    t0 = time.time()
+    try:
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            r = await client.post(endpoint, headers=headers, json=payload)
+        if r.status_code >= 400:
+            return {"status": "error", "error": f"http {r.status_code}: {r.text[:300]}", "endpoint": endpoint, "model": model}
         return {"status": "ok", "latency_ms": int((time.time() - t0) * 1000), "endpoint": endpoint, "model": model}
     except Exception as e:
         reason = str(e).strip() or e.__class__.__name__
@@ -3247,7 +3313,7 @@ async def api_test_nous(req: KimiTestRequest):
     if endpoint and not endpoint.endswith("/chat/completions"):
         endpoint = endpoint + "/chat/completions"
     api_key = (req.api_key or str(cfg.get("KIMI_API_KEY", "") or "")).strip()
-    model = str(cfg.get("KIMI_INSTRUCT_MODEL", "") or cfg.get("DIRECTOR_MODEL", "") or "").strip()
+    model = str(req.model or cfg.get("KIMI_INSTRUCT_MODEL", "") or cfg.get("DIRECTOR_MODEL", "") or "").strip()
     if not endpoint:
         return {"status": "error", "error": "missing endpoint"}
     if not api_key:
@@ -3269,6 +3335,17 @@ async def api_test_director():
     return await _test_chat_completion(endpoint, api_key, model)
 
 
+@app.post("/api/test/director")
+async def api_test_director_post(req: KimiTestRequest):
+    cfg = get_raw_config()
+    endpoint = (req.endpoint or str(cfg.get("KIMI_DIRECTOR_ENDPOINT_API1", "") or cfg.get("NIM_ENDPOINT", "") or "")).strip()
+    api_key = (req.api_key or str(cfg.get("KIMI_API_KEY", "") or "")).strip()
+    model = (req.model or str(cfg.get("KIMI_INSTRUCT_MODEL", "") or "")).strip()
+    if endpoint.startswith("https://") and not api_key:
+        return {"status": "error", "error": "missing api key"}
+    return await _test_chat_completion(endpoint, api_key, model)
+
+
 @app.get("/api/test/vision")
 async def api_test_vision():
     cfg = get_raw_config()
@@ -3280,13 +3357,25 @@ async def api_test_vision():
     model = str(cfg.get("KIMI_VISUAL_MODEL", "") or "").strip()
     if endpoint.startswith("https://") and not api_key:
         return {"status": "error", "error": "missing api key"}
-    return await _test_chat_completion(endpoint, api_key, model)
+    return await _test_vision_completion(endpoint, api_key, model)
+
+
+@app.post("/api/test/vision")
+async def api_test_vision_post(req: KimiTestRequest):
+    cfg = get_raw_config()
+    endpoint = (req.endpoint or str(cfg.get("KIMI_VISUAL_ENDPOINT_API1", "") or cfg.get("NIM_ENDPOINT", "") or "")).strip()
+    api_key = (req.api_key or str(cfg.get("KIMI_API_KEY", "") or "")).strip()
+    model = (req.model or str(cfg.get("KIMI_VISUAL_MODEL", "") or cfg.get("LMSTUDIO_VISION_MODEL", "") or "")).strip()
+    if endpoint.startswith("https://") and not api_key:
+        return {"status": "error", "error": "missing api key"}
+    return await _test_vision_completion(endpoint, api_key, model)
 
 
 @app.get("/api/test/lmstudio")
 async def api_test_lmstudio(host: str = "", port: int = 0):
     base = _normalize_lmstudio_base_url(host, port)
     url = f"{base}/v1/models"
+    t0 = time.time()
     try:
         async with httpx.AsyncClient(timeout=8.0) as client:
             r = await client.get(url)
@@ -3294,7 +3383,7 @@ async def api_test_lmstudio(host: str = "", port: int = 0):
             return {"status": "error", "error": f"http {r.status_code}: {r.text[:200]}", "models": []}
         data = r.json()
         models = [m.get("id") for m in data.get("data", []) if isinstance(m, dict) and m.get("id")]
-        return {"status": "ok", "models": models}
+        return {"status": "ok", "models": models, "latency_ms": int((time.time() - t0) * 1000), "message": f"{len(models)} model(s)"}
     except Exception as e:
         return {"status": "error", "error": str(e), "models": []}
 
