@@ -47,7 +47,7 @@ class HermesProfileCLI:
                 return None
         return parsed if isinstance(parsed, dict) else None
 
-    def _runtime_args_and_env(self) -> tuple[list[str], Dict[str, str]]:
+    def _runtime_args_and_env(self) -> tuple[list[str], Dict[str, str], Dict[str, str]]:
         cfg = get_raw_config()
         provider = os.getenv("FORGE_PROFILE_PROVIDER", "custom").strip() or "custom"
         model = (
@@ -82,13 +82,18 @@ class HermesProfileCLI:
             env["OPENAI_BASE_URL"] = base_url
             env["CUSTOM_BASE_URL"] = base_url
         env.setdefault("OPENAI_API_KEY", "not-needed")
-        return args, env
+        debug = {
+            "provider": provider,
+            "model": model,
+            "base_url": base_url,
+        }
+        return args, env, debug
 
     async def run_json(self, profile: str, task: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         prompt = json.dumps(task, ensure_ascii=True)
         target_profile = self.profile_map.get(profile, profile)
         # Use explicit profile switch + oneshot mode for deterministic stdout.
-        runtime_args, env = self._runtime_args_and_env()
+        runtime_args, env, runtime_debug = self._runtime_args_and_env()
         cmd = [self.runner, *runtime_args, "--profile", target_profile, "-z", prompt]
         try:
             proc = await asyncio.create_subprocess_exec(
@@ -105,7 +110,35 @@ class HermesProfileCLI:
                 return None
             parsed = self._parse_json_text(text)
             if parsed is not None:
+                parsed["__exchange"] = {
+                    "stage": f"hermes_profile_{target_profile}",
+                    "transport": "forgehermes_oneshot",
+                    "runner": self.runner,
+                    "profile": target_profile,
+                    "provider": runtime_debug.get("provider", ""),
+                    "model": runtime_debug.get("model", ""),
+                    "base_url": runtime_debug.get("base_url", ""),
+                    "request": task,
+                    "response": {
+                        "stdout": text,
+                    },
+                }
                 return parsed
-            return {"text": text}
+            return {
+                "text": text,
+                "__exchange": {
+                    "stage": f"hermes_profile_{target_profile}",
+                    "transport": "forgehermes_oneshot",
+                    "runner": self.runner,
+                    "profile": target_profile,
+                    "provider": runtime_debug.get("provider", ""),
+                    "model": runtime_debug.get("model", ""),
+                    "base_url": runtime_debug.get("base_url", ""),
+                    "request": task,
+                    "response": {
+                        "stdout": text,
+                    },
+                },
+            }
         except Exception:
             return None

@@ -22,6 +22,29 @@ def _extract_json_block(text: str) -> Any:
     return json.loads(raw.strip())
 
 
+def _with_exchange_debug(
+    parsed: Dict[str, Any],
+    *,
+    stage: str,
+    endpoint: str,
+    model: str,
+    payload: Dict[str, Any],
+    raw_content: str,
+) -> Dict[str, Any]:
+    parsed["__raw_content"] = raw_content
+    parsed["__exchange"] = {
+        "stage": stage,
+        "transport": "openai_chat_completions",
+        "endpoint": endpoint,
+        "model": model,
+        "request": payload,
+        "response": {
+            "content": raw_content,
+        },
+    }
+    return parsed
+
+
 class KimiDirectorService:
     def __init__(self) -> None:
         cfg = get_raw_config()
@@ -160,8 +183,14 @@ class KimiDirectorService:
             parsed = _extract_json_block(content)
             if not isinstance(parsed, dict):
                 raise RuntimeError("kimi_invalid_json_shape")
-            parsed["__raw_content"] = content
-            return parsed
+            return _with_exchange_debug(
+                parsed,
+                stage="kimi_director_plan",
+                endpoint=self.endpoint,
+                model=self.model_name,
+                payload=payload,
+                raw_content=content,
+            )
 
     async def request_missing_shots(
         self,
@@ -235,8 +264,14 @@ class KimiDirectorService:
             parsed = _extract_json_block(content)
             if not isinstance(parsed, dict):
                 raise RuntimeError("kimi_invalid_json_shape")
-            parsed["__raw_content"] = content
-            return parsed
+            return _with_exchange_debug(
+                parsed,
+                stage="kimi_director_top_up",
+                endpoint=self.endpoint,
+                model=self.model_name,
+                payload=payload,
+                raw_content=content,
+            )
 
     async def self_check_plan(
         self,
@@ -297,8 +332,14 @@ class KimiDirectorService:
                     parsed = _extract_json_block(content)
                     if not isinstance(parsed, dict):
                         raise RuntimeError("self_check_invalid_json_shape")
-                    parsed["__raw_content"] = content
-                    return parsed
+                    return _with_exchange_debug(
+                        parsed,
+                        stage="kimi_director_self_check",
+                        endpoint=self.endpoint,
+                        model=self.model_name,
+                        payload=payload,
+                        raw_content=content,
+                    )
                 except (httpx.TimeoutException, httpx.TransportError) as e:
                     last_error = f"self_check_transport_error {e.__class__.__name__}: {str(e).strip()}"
                     if attempt < retries:
@@ -380,8 +421,14 @@ class KimiDirectorService:
             parsed = _extract_json_block(content)
             if not isinstance(parsed, dict):
                 raise RuntimeError("kimi_invalid_revision_shape")
-            parsed["__raw_content"] = content
-            return parsed
+            return _with_exchange_debug(
+                parsed,
+                stage="kimi_director_revision",
+                endpoint=self.endpoint,
+                model=self.model_name,
+                payload=payload,
+                raw_content=content,
+            )
 
     def build_dev_fallback_plan(self, brief: str, campaign_id: str) -> Dict[str, Any]:
         shots = []

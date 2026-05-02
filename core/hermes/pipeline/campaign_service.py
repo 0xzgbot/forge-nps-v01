@@ -61,6 +61,29 @@ class HermesCampaignService:
         self.director = KimiDirectorService()
         self.profile_cli = HermesProfileCLI()
 
+    def _exchange_path(self, campaign_id: str) -> Path:
+        return self.media_images / campaign_id / "_agent_exchanges.json"
+
+    def _record_agent_exchange(self, campaign_id: str, exchange: Optional[Dict[str, Any]]) -> None:
+        if not isinstance(exchange, dict) or not campaign_id:
+            return
+        entry = dict(exchange)
+        entry["timestamp"] = self.now_iso()
+        entry["campaign_id"] = campaign_id
+        self.campaigns.setdefault(campaign_id, {}).setdefault("agent_exchanges", []).append(entry)
+        path = self._exchange_path(campaign_id)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            existing = json.loads(path.read_text(encoding="utf-8")) if path.exists() else []
+            if not isinstance(existing, list):
+                existing = []
+        except Exception:
+            existing = []
+        existing.append(entry)
+        tmp = path.parent / f".{path.name}.tmp"
+        tmp.write_text(json.dumps(existing, ensure_ascii=True, indent=2), encoding="utf-8")
+        tmp.replace(path)
+
     async def _build_auto_video_prompt(self, shot_record: Dict[str, Any]) -> str:
         """
         Build an LTX-oriented video prompt from the first-frame prompt/context.
@@ -252,6 +275,7 @@ class HermesCampaignService:
 
         raw_content = plan.get("__raw_content", "")
         self.campaigns[campaign_id]["kimi_raw_response"] = raw_content
+        self._record_agent_exchange(campaign_id, plan.get("__exchange"))
         yield {"type": "kimi_raw", "campaign_id": campaign_id, "text": raw_content[:800]}
 
         try:
@@ -274,6 +298,7 @@ class HermesCampaignService:
                     length=req.length,
                 )
                 top_up_raw = top_up.get("__raw_content", "")
+                self._record_agent_exchange(campaign_id, top_up.get("__exchange"))
                 if top_up_raw:
                     raw_content = f"{raw_content}\n\n---TOP_UP---\n{top_up_raw}"
                     self.campaigns[campaign_id]["kimi_raw_response"] = raw_content
@@ -306,6 +331,7 @@ class HermesCampaignService:
         try:
             review = await self.director.self_check_plan(req.brief, campaign_id, kimi_shots)
             self.campaigns[campaign_id]["kimi_review"] = review
+            self._record_agent_exchange(campaign_id, review.get("__exchange"))
             yield {"type": "profile", "profile_color_key": "profile_critic_kimi", "text": "Kimi / Coverage Critic completed review."}
             yield {
                 "type": "kimi_review",
@@ -344,6 +370,7 @@ class HermesCampaignService:
                         length=req.length,
                     )
                     revised_raw = revised.get("__raw_content", "")
+                    self._record_agent_exchange(campaign_id, revised.get("__exchange"))
                     if revised_raw:
                         self.campaigns[campaign_id]["kimi_revision_raw_response"] = revised_raw
                         yield {"type": "kimi_raw", "campaign_id": campaign_id, "text": revised_raw[:800]}
@@ -428,6 +455,7 @@ class HermesCampaignService:
                 }
                 refined = await self.profile_cli.run_json("compiler", refinement_task)
                 if isinstance(refined, dict):
+                    self._record_agent_exchange(campaign_id, refined.get("__exchange"))
                     refined_prompt = str(refined.get("compiled_prompt") or refined.get("prompt") or "").strip()
                     if refined_prompt:
                         artifact["compiled_prompt"] = refined_prompt

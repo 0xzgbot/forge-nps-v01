@@ -1784,7 +1784,7 @@ function handleCampaignEvent(event) {
             break;
 
         case "kimi_raw":
-            addLogEntry("kimi", "Raw: " + text);
+            addLogEntry("kimi", "Raw preview: " + text + (event.campaign_id ? " — full exchange: /api/campaigns/" + event.campaign_id + "/agent-exchanges" : ""));
             break;
 
         case "kimi_plan":

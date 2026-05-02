@@ -61,6 +61,7 @@ hermes_home/state.db
 hermes_home/state.db-shm
 hermes_home/state.db-wal
 hermes_home/sessions/
+hermes_home/campaigns/
 hermes_home/profiles/*/sessions/
 hermes_home/profiles/*/request_dump_*.json
 hermes_home/bin/
