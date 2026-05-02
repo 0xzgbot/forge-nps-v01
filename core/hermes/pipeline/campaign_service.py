@@ -510,6 +510,7 @@ class HermesCampaignService:
                 }
                 if os.getenv("FORGE_AUTO_VIDEO_PROMPT", "true").lower() == "true":
                     shot_record["video_prompt"] = await self._build_auto_video_prompt(shot_record)
+                    shot_record["video_prompt_source"] = "auto_compiler"
                 self.shots_store.append(shot_record)
                 self.record_event("shot_planned", shot_id=record_id, campaign_id=campaign_id, workflow_id=workflow_id, source=source)
 
