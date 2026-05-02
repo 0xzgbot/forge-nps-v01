@@ -144,6 +144,11 @@ class ClearQueueRequest(BaseModel):
 class ComfyUITestRequest(BaseModel):
     host: str
 
+class ComfyRecoverPromptRequest(BaseModel):
+    prompt_id: str
+    campaign_id: str = ""
+    host: str = ""
+
 
 @app.post("/api/renders/audit-batch")
 async def api_renders_audit_batch(request: Request):
@@ -984,6 +989,66 @@ async def api_reindex_shots_from_storage():
     return _reindex_shots_from_storage()
 
 
+def _campaign_from_comfy_history_outputs(history_entry: Dict[str, Any]) -> str:
+    outputs = history_entry.get("outputs", {}) if isinstance(history_entry, dict) else {}
+    for node_output in outputs.values():
+        if not isinstance(node_output, dict):
+            continue
+        for media_key in ("images", "gifs", "videos", "animated", "files"):
+            items = node_output.get(media_key)
+            if not isinstance(items, list):
+                continue
+            for item in items:
+                filename = str((item or {}).get("filename", "") or "")
+                stem = Path(filename).stem
+                if "__SHOT_" in stem:
+                    return _safe_campaign_name(stem.split("__SHOT_", 1)[0])
+    return "imports"
+
+
+@app.post("/api/comfy/recover-prompt")
+async def api_recover_comfy_prompt(req: ComfyRecoverPromptRequest):
+    prompt_id = (req.prompt_id or "").strip()
+    if not prompt_id:
+        raise HTTPException(status_code=400, detail="prompt_id is required")
+
+    cfg = get_raw_config()
+    host = (
+        req.host.strip()
+        or os.getenv("COMFYUI_PRIMARY", "")
+        or str(cfg.get("COMFYUI_PRIMARY", ""))
+    ).rstrip("/")
+    if not host:
+        raise HTTPException(status_code=400, detail="COMFYUI_PRIMARY is not configured")
+
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        resp = await client.get(f"{host}/history/{prompt_id}")
+    if resp.status_code != 200:
+        raise HTTPException(status_code=502, detail=f"Comfy history failed: HTTP {resp.status_code}")
+    history = resp.json()
+    entry = history.get(prompt_id)
+    if not isinstance(entry, dict):
+        raise HTTPException(status_code=404, detail=f"Prompt not found in Comfy history: {prompt_id}")
+    status = entry.get("status", {}) if isinstance(entry.get("status"), dict) else {}
+    if status.get("status_str") == "error":
+        raise HTTPException(status_code=409, detail=f"Prompt failed in Comfy: {prompt_id}")
+
+    campaign_id = _safe_campaign_name(req.campaign_id) if req.campaign_id else _campaign_from_comfy_history_outputs(entry)
+    output_dir = MEDIA_IMAGES / campaign_id
+    client = ComfyUIClient(host)
+    saved = await client.download_outputs(prompt_id, str(output_dir))
+    if not saved:
+        raise HTTPException(status_code=404, detail=f"No downloadable outputs for prompt: {prompt_id}")
+    reindex = _reindex_shots_from_storage()
+    return {
+        "status": "ok",
+        "prompt_id": prompt_id,
+        "campaign_id": campaign_id,
+        "saved_files": saved,
+        "reindex": reindex,
+    }
+
+
 @app.get("/api/campaigns")
 async def api_get_campaigns():
     ids = set()
@@ -1113,7 +1178,7 @@ async def api_get_campaign_agent_exchanges(campaign_id: str):
 def _safe_campaign_name(raw: str) -> str:
     # Keep this filesystem-safe and UI-friendly.
     name = re.sub(r"[^A-Za-z0-9._-]+", "_", (raw or "").strip())
-    name = re.sub(r"_+", "_", name).strip("._-")
+    name = name.strip("._-")
     return name[:80]
 
 
