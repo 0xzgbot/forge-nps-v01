@@ -21,6 +21,26 @@ On startup:
 
 ---
 
+## LM Studio Settings
+
+The LM Studio card has two different kinds of controls:
+
+- **Test & Detect Models** calls status/model-list endpoints. It does not load or reload a model.
+- **Load Model** and **Reload Hermes/Vision** call `POST /api/lmstudio/load` and pass the load settings below to LM Studio.
+
+Load settings:
+
+| UI Field | API Field | Effect |
+|----------|-----------|--------|
+| Context | `context_length` | Max context window for the loaded model. Higher supports longer prompts/history and uses more VRAM. |
+| Batch | `eval_batch_size` | Prompt prefill/eval batch size. Higher can improve throughput and uses more VRAM. |
+| Flash Attention | `flash_attention` | Enables optimized attention when supported by LM Studio/model runtime. |
+| KV Cache GPU | `offload_kv_cache_to_gpu` | Keeps KV cache on GPU for faster generation at higher VRAM cost. |
+
+These values are persisted to `data/config.json`, but they only affect the active LM Studio process after a model load/reload. They do not affect ComfyUI render settings, video quality, or NVIDIA/Kimi cloud calls.
+
+---
+
 ## API Endpoints
 
 | Method | Path | Purpose |
