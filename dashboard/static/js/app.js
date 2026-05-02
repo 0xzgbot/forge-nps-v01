@@ -878,15 +878,6 @@ async function loadConfig() {
         document.getElementById("cfg-lmstudio-host").value = hermes.host || "";
         document.getElementById("cfg-lmstudio-port").value = hermes.port || "";
         document.getElementById("cfg-lmstudio-model").value = hermes.model_name || "";
-        const loadConfig = hermes.load_config || {};
-        const contextEl = document.getElementById("cfg-lmstudio-context");
-        if (contextEl) contextEl.value = loadConfig.context_length || 8192;
-        const batchEl = document.getElementById("cfg-lmstudio-batch");
-        if (batchEl) batchEl.value = loadConfig.eval_batch_size || 1024;
-        const flashEl = document.getElementById("cfg-lmstudio-flash");
-        if (flashEl) flashEl.checked = loadConfig.flash_attention !== false;
-        const kvEl = document.getElementById("cfg-lmstudio-kv");
-        if (kvEl) kvEl.checked = loadConfig.offload_kv_cache_to_gpu !== false;
 
         // ComfyUI
         const comfyui = currentConfig.comfyui || {};
@@ -946,22 +937,6 @@ function markDirty(dotKey) {
             return value === null ? null : (parseInt(value) || 0);
         },
         'models.hermes_3.model_name': () => fieldValue("cfg-lmstudio-model"),
-        'models.hermes_3.load_config.context_length': () => {
-            const value = fieldValue("cfg-lmstudio-context");
-            return value === null ? null : (parseInt(value) || 8192);
-        },
-        'models.hermes_3.load_config.eval_batch_size': () => {
-            const value = fieldValue("cfg-lmstudio-batch");
-            return value === null ? null : (parseInt(value) || 1024);
-        },
-        'models.hermes_3.load_config.flash_attention': () => {
-            const el = document.getElementById("cfg-lmstudio-flash");
-            return el ? el.checked : null;
-        },
-        'models.hermes_3.load_config.offload_kv_cache_to_gpu': () => {
-            const el = document.getElementById("cfg-lmstudio-kv");
-            return el ? el.checked : null;
-        },
         'comfyui.primary': () => fieldValue("cfg-comfyui-primary"),
         'comfyui.secondary': () => fieldValue("cfg-comfyui-secondary"),
         'spark.primary': () => fieldValue("cfg-spark-primary"),
@@ -987,10 +962,6 @@ function collectAllSettings() {
         'models.hermes_3.host',
         'models.hermes_3.port',
         'models.hermes_3.model_name',
-        'models.hermes_3.load_config.context_length',
-        'models.hermes_3.load_config.eval_batch_size',
-        'models.hermes_3.load_config.flash_attention',
-        'models.hermes_3.load_config.offload_kv_cache_to_gpu',
         'comfyui.primary',
         'comfyui.secondary',
         'spark.primary',
@@ -1195,10 +1166,6 @@ function getLMStudioLoadPayload() {
         host: document.getElementById("cfg-lmstudio-host")?.value || "",
         port: parseInt(document.getElementById("cfg-lmstudio-port")?.value || "0") || 0,
         model: document.getElementById("cfg-lmstudio-model")?.value || "",
-        context_length: parseInt(document.getElementById("cfg-lmstudio-context")?.value || "8192") || 8192,
-        eval_batch_size: parseInt(document.getElementById("cfg-lmstudio-batch")?.value || "1024") || 1024,
-        flash_attention: !!document.getElementById("cfg-lmstudio-flash")?.checked,
-        offload_kv_cache_to_gpu: !!document.getElementById("cfg-lmstudio-kv")?.checked,
     };
 }
 

@@ -63,15 +63,10 @@ LMSTUDIO_HOST=http://localhost:1234
 FORGE_MEDIA_ROOT=~/Desktop/FORGE_NPS_MEDIA
 ```
 
-## LM Studio Load Controls
-The Settings page LM Studio controls are real model-load controls. They are sent to LM Studio only when **Load Model** or **Reload Hermes/Vision** calls `POST /api/lmstudio/load`.
+## LM Studio Loading
+The Settings page only selects the LM Studio host, port, and model. **Load Model** and **Reload Hermes/Vision** call `POST /api/lmstudio/load` with the model name and let LM Studio apply its default load settings for that model.
 
-- `Context`: LM Studio `context_length`; larger values allow longer prompts/history and use more VRAM.
-- `Batch`: LM Studio `eval_batch_size`; larger values can improve prompt prefill throughput and use more VRAM.
-- `Flash Attention`: LM Studio `flash_attention`; enables the server-side optimized attention path when the loaded model/runtime supports it.
-- `KV Cache GPU`: LM Studio `offload_kv_cache_to_gpu`; keeps KV cache on GPU for faster generation at higher VRAM cost.
-
-Changing these fields and saving config does not modify an already-loaded model. Reload the model for changes to take effect. These settings do not change ComfyUI image/video quality and do not affect NVIDIA/Kimi cloud requests.
+Forge does not override LM Studio context length, eval batch size, flash attention, or KV-cache placement.
 
 Optional hard gates:
 ```bash
