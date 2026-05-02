@@ -146,6 +146,7 @@ class LMStudioClient:
 
         try:
             import urllib.request
+            import urllib.error
             req = urllib.request.Request(
                 f"{self.base_url}/v1/chat/completions",
                 data=json.dumps(payload).encode("utf-8"),
@@ -155,6 +156,12 @@ class LMStudioClient:
             with urllib.request.urlopen(req, timeout=self.timeout) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
                 return data
+        except urllib.error.HTTPError as e:
+            try:
+                body = e.read().decode("utf-8", errors="replace")
+            except Exception:
+                body = ""
+            return {"error": f"HTTP {e.code}: {body[:500] or e.reason}"}
         except Exception as e:
             return {"error": str(e)}
 
