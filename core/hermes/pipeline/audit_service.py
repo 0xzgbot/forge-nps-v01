@@ -1,3 +1,4 @@
+import json
 import os
 import random
 import uuid
@@ -36,6 +37,86 @@ class HermesAuditService:
         self.media_images = media_images
         self.get_hermes_bridge = get_hermes_bridge
         self.profile_cli = HermesProfileCLI()
+
+    def _persist_media_shot_metadata(self, shot: Dict[str, Any]) -> None:
+        image_path = str(shot.get("image_path") or "").strip()
+        if not image_path:
+            resolved = self.resolve_image_path(str(shot.get("image_url") or ""))
+            image_path = str(resolved) if resolved else ""
+        if not image_path:
+            return
+        path = Path(image_path)
+        if not path.exists():
+            return
+        fields = {
+            "audit_status",
+            "audit_score",
+            "audit_issues",
+            "audit_model_score",
+            "audit_checks_score",
+            "audit_confidence",
+            "audit_model_passed",
+            "audit_final_passed",
+            "audit_checks",
+            "audit_critical_failures",
+            "audit_noncritical_issues",
+            "audit_decision_reasons",
+            "audit_raw_response",
+            "audit_timestamp",
+            "audit_model",
+            "retry_of",
+            "parent_shot_id",
+            "remediation_reason",
+            "remediated_prompt",
+            "original_compiled_prompt",
+            "remediation_model",
+            "profile_used",
+            "profile_backend",
+            "skills_scope_role",
+            "skills_scope_patterns",
+            "skills_scope_version",
+            "video_prompt",
+            "video_prompt_source",
+            "negative_prompt",
+            "workflow_profile",
+            "model_standard_name",
+            "model_standard_version",
+            "model_standard_source",
+            "model_standard_rules",
+            "sections",
+            "kimi_plan",
+            "kimi_rationale",
+        }
+        metadata_path = path.parent / "_shot_metadata.json"
+        try:
+            metadata = json.loads(metadata_path.read_text(encoding="utf-8")) if metadata_path.exists() else {}
+            if not isinstance(metadata, dict):
+                metadata = {}
+        except Exception:
+            metadata = {}
+        existing = metadata.get(path.stem)
+        if not isinstance(existing, dict):
+            existing = {}
+        for key in fields:
+            if key in shot:
+                existing[key] = shot.get(key)
+        existing["updated_at"] = self.now_iso()
+        metadata[path.stem] = existing
+        tmp = path.parent / "._shot_metadata.json.tmp"
+        tmp.write_text(json.dumps(metadata, ensure_ascii=True, indent=2), encoding="utf-8")
+        tmp.replace(metadata_path)
+
+    @staticmethod
+    def _audit_event_extra(shot: Dict[str, Any], score: float) -> Dict[str, Any]:
+        return {
+            "audit_score": score,
+            "audit_model_score": shot.get("audit_model_score"),
+            "audit_checks_score": shot.get("audit_checks_score"),
+            "audit_issues": shot.get("audit_issues") or [],
+            "audit_critical_failures": shot.get("audit_critical_failures") or [],
+            "audit_noncritical_issues": shot.get("audit_noncritical_issues") or [],
+            "audit_decision_reasons": shot.get("audit_decision_reasons") or [],
+        }
 
     async def reprocess(self, shot_ids: List[str]) -> Dict[str, Any]:
         requested = len(shot_ids)
@@ -95,7 +176,8 @@ class HermesAuditService:
                 s["state"] = "audit_started"
                 s["status"] = "auditing"
                 transition_shot(s, "audited_pass" if passed else "audited_fail")
-            self.record_event("audit_result", shot_id=shot_id, campaign_id=s.get("campaign_id", ""), workflow_id=s.get("workflow_id", ""), source=s.get("source", "campaign"), success=passed, extra={"audit_score": score})
+            self._persist_media_shot_metadata(s)
+            self.record_event("audit_result", shot_id=shot_id, campaign_id=s.get("campaign_id", ""), workflow_id=s.get("workflow_id", ""), source=s.get("source", "campaign"), success=passed, extra=self._audit_event_extra(s, score))
             updated += 1
             results.append({
                 "shot_id": shot_id,
@@ -241,7 +323,19 @@ class HermesAuditService:
             if image_path:
                 transition_shot(retry_record, "audit_started")
                 self.record_event("audit_started", shot_id=retry_shot_id, campaign_id=s.get("campaign_id", ""), workflow_id=s.get("workflow_id", ""), source=s.get("source", "campaign"))
-                audit = await self.audit_render(image_path, remediated_prompt, s.get("campaign_id", "remediation"))
+                try:
+                    audit = await self.audit_render(image_path, remediated_prompt, s.get("campaign_id", "remediation"))
+                except Exception as e:
+                    transition_shot(retry_record, "final_fail")
+                    retry_record["audit_status"] = "error"
+                    retry_record["audit_error"] = f"audit_exception:{e}"
+                    retry_record["audit_timestamp"] = self.now_iso()
+                    self._persist_media_shot_metadata(retry_record)
+                    self.record_event("audit_result", shot_id=retry_shot_id, campaign_id=s.get("campaign_id", ""), workflow_id=s.get("workflow_id", ""), source=s.get("source", "campaign"), success=False, extra={"reason": retry_record["audit_error"]})
+                    self.record_event("remediation_result", shot_id=retry_shot_id, campaign_id=s.get("campaign_id", ""), workflow_id=s.get("workflow_id", ""), source=s.get("source", "campaign"), success=False, extra={"reason": retry_record["audit_error"]})
+                    self.record_event("final_outcome", shot_id=retry_shot_id, campaign_id=s.get("campaign_id", ""), workflow_id=s.get("workflow_id", ""), source=s.get("source", "campaign"), success=False)
+                    results.append({"shot_id": shot_id, "status": "error", "reason": retry_record["audit_error"], "retry_shot_id": retry_shot_id})
+                    continue
                 score = float(audit.get("score", 0) or 0)
                 passed = bool(audit.get("passed", False))
                 retry_record["audit_model"] = os.getenv("KIMI_VISUAL_MODEL", os.getenv("LMSTUDIO_VISION_MODEL", "qwen3.6-35b-a3b"))
@@ -270,8 +364,10 @@ class HermesAuditService:
                     retry_record["identity_score"] = score
                     retry_record["identity_fail_reasons"] = [] if passed else detected_notes[:4]
                 transition_shot(retry_record, "final_pass" if passed else "final_fail")
-                self.record_event("audit_result", shot_id=retry_shot_id, campaign_id=s.get("campaign_id", ""), workflow_id=s.get("workflow_id", ""), source=s.get("source", "campaign"), success=passed, extra={"audit_score": score})
-                self.record_event("remediation_result", shot_id=retry_shot_id, campaign_id=s.get("campaign_id", ""), workflow_id=s.get("workflow_id", ""), source=s.get("source", "campaign"), success=passed)
+                self._persist_media_shot_metadata(retry_record)
+                audit_extra = self._audit_event_extra(retry_record, score)
+                self.record_event("audit_result", shot_id=retry_shot_id, campaign_id=s.get("campaign_id", ""), workflow_id=s.get("workflow_id", ""), source=s.get("source", "campaign"), success=passed, extra=audit_extra)
+                self.record_event("remediation_result", shot_id=retry_shot_id, campaign_id=s.get("campaign_id", ""), workflow_id=s.get("workflow_id", ""), source=s.get("source", "campaign"), success=passed, extra=audit_extra)
                 self.record_event("final_outcome", shot_id=retry_shot_id, campaign_id=s.get("campaign_id", ""), workflow_id=s.get("workflow_id", ""), source=s.get("source", "campaign"), success=passed)
                 results.append({
                     "shot_id": shot_id,

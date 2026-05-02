@@ -1,3 +1,4 @@
+import asyncio
 import hashlib
 import json
 import os
@@ -60,6 +61,7 @@ class HermesCampaignService:
         self.get_hermes_bridge = get_hermes_bridge
         self.director = KimiDirectorService()
         self.profile_cli = HermesProfileCLI()
+        self._detached_tasks: set[asyncio.Task[Any]] = set()
 
     def _exchange_path(self, campaign_id: str) -> Path:
         return self.media_images / campaign_id / "_agent_exchanges.json"
@@ -206,6 +208,18 @@ class HermesCampaignService:
             "audit_raw_response",
             "audit_timestamp",
             "audit_model",
+            "audit_error",
+            "retry_of",
+            "parent_shot_id",
+            "remediation_reason",
+            "remediated_prompt",
+            "original_compiled_prompt",
+            "remediation_model",
+            "profile_used",
+            "profile_backend",
+            "skills_scope_role",
+            "skills_scope_patterns",
+            "skills_scope_version",
             "video_prompt",
             "video_prompt_source",
             "negative_prompt",
@@ -747,7 +761,22 @@ class HermesCampaignService:
                         if auto_remediate and self.remediate_failed:
                             yield {"type": "hermes", "shot_id": effective_shot["shot_id"], "text": f"Auto-remediation queued for {effective_shot['shot_id']}..."}
                             try:
-                                rem = await self.remediate_failed([record_id])
+                                rem_task = asyncio.create_task(self.remediate_failed([record_id]))
+                                self._detached_tasks.add(rem_task)
+                                rem_task.add_done_callback(self._detached_tasks.discard)
+                                try:
+                                    rem = await asyncio.shield(rem_task)
+                                except asyncio.CancelledError:
+                                    self.record_event(
+                                        "remediation_detached",
+                                        shot_id=record_id,
+                                        campaign_id=campaign_id,
+                                        workflow_id=workflow_id,
+                                        source=source,
+                                        success=True,
+                                        extra={"reason": "stream_cancelled_task_continues"},
+                                    )
+                                    raise
                                 rlist = rem.get("results", []) if isinstance(rem, dict) else []
                                 if rlist:
                                     r0 = rlist[0] or {}
