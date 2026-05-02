@@ -8,6 +8,8 @@
 // ---------------------------------------------------------------------------
 let chatHistory = [];
 let sessionId = "session_" + Date.now();
+let scriptChatHistory = [];
+let scriptSessionId = "script_" + Date.now();
 let campaignActive = false;
 let campaignAbortController = null;
 let campaignRecoveryTimer = null;
@@ -51,6 +53,10 @@ const $log = document.getElementById("log-panel");
 const $filmstrip = document.getElementById("filmstrip");
 const $chatInput = document.getElementById("chat-input");
 const $chatStatus = document.getElementById("chat-status");
+const $scriptChatInput = document.getElementById("script-chat-input");
+const $scriptChatStatus = document.getElementById("script-chat-status");
+const $scriptChatLog = document.getElementById("script-chat-log");
+const $scriptChatSendBtn = document.getElementById("script-chat-send-btn");
 const $briefInput = document.getElementById("brief-input");
 const $biblePath = document.getElementById("bible-path");
 const $runBtn = document.getElementById("run-campaign-btn");
@@ -2103,6 +2109,106 @@ async function sendChat() {
     } catch (e) {
         addLogEntry("error", "Chat failed: " + e.message);
         $chatStatus.textContent = "Error: " + e.message;
+    }
+}
+
+function addScriptChatEntry(agent, text) {
+    if (!$scriptChatLog) return null;
+    const row = document.createElement("div");
+    const kind = agent === "You" ? "user" : (agent === "Error" ? "error" : "hermes");
+    row.className = "script-chat-row " + kind;
+
+    const label = document.createElement("div");
+    label.className = "script-chat-agent";
+    label.textContent = agent;
+    row.appendChild(label);
+
+    const bubble = document.createElement("div");
+    bubble.className = "script-chat-bubble";
+    bubble.textContent = text || "";
+    row.appendChild(bubble);
+
+    $scriptChatLog.appendChild(row);
+    $scriptChatLog.scrollTop = $scriptChatLog.scrollHeight;
+    return bubble;
+}
+
+async function sendScriptChat() {
+    const msg = ($scriptChatInput?.value || "").trim();
+    if (!msg) return;
+
+    $scriptChatInput.value = "";
+    if ($scriptChatStatus) $scriptChatStatus.textContent = "Hermes is thinking...";
+    if ($scriptChatSendBtn) $scriptChatSendBtn.disabled = true;
+
+    addScriptChatEntry("You", msg);
+    const hermesBubble = addScriptChatEntry("Hermes", "");
+
+    try {
+        const resp = await fetch("/api/hermes/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                message: msg,
+                history: scriptChatHistory,
+                session_id: scriptSessionId,
+            }),
+        });
+
+        if (!resp.ok) {
+            const body = await resp.text();
+            throw new Error("HTTP " + resp.status + (body ? ": " + body : ""));
+        }
+
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let fullResponse = "";
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n");
+            buffer = lines.pop();
+
+            for (const line of lines) {
+                if (!line.trim()) continue;
+                try {
+                    const data = JSON.parse(line);
+                    if (data.token) {
+                        fullResponse += data.token;
+                        if (hermesBubble) hermesBubble.textContent = fullResponse;
+                        if ($scriptChatStatus) $scriptChatStatus.textContent = "Hermes streaming...";
+                        if ($scriptChatLog) $scriptChatLog.scrollTop = $scriptChatLog.scrollHeight;
+                    }
+                    if (data.done) {
+                        scriptChatHistory.push({ role: "user", content: msg });
+                        scriptChatHistory.push({ role: "assistant", content: fullResponse });
+                        if (scriptChatHistory.length > 20) scriptChatHistory = scriptChatHistory.slice(-20);
+                    }
+                    if (data.error) {
+                        throw new Error(data.error);
+                    }
+                } catch (e) {
+                    if (e instanceof SyntaxError) continue;
+                    throw e;
+                }
+            }
+        }
+
+        if (!fullResponse) {
+            throw new Error("empty_chat_response");
+        }
+        if ($scriptChatStatus) $scriptChatStatus.textContent = "Ready";
+    } catch (e) {
+        if (hermesBubble && !hermesBubble.textContent) hermesBubble.parentElement?.remove();
+        addScriptChatEntry("Error", e.message);
+        if ($scriptChatStatus) $scriptChatStatus.textContent = "Error";
+    } finally {
+        if ($scriptChatSendBtn) $scriptChatSendBtn.disabled = false;
+        $scriptChatInput?.focus();
     }
 }
 
