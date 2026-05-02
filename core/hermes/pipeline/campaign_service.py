@@ -89,7 +89,7 @@ class HermesCampaignService:
     async def _build_auto_video_prompt(self, shot_record: Dict[str, Any]) -> str:
         """
         Build an LTX-oriented video prompt from the first-frame prompt/context.
-        Profile CLI (compiler) is preferred; deterministic fallback is always available.
+        Profile CLI (compiler) is required. No production placeholder prompt is emitted.
         """
         compiled = str(shot_record.get("compiled_prompt") or shot_record.get("prompt") or "").strip()
         visual = str(shot_record.get("raw_kimi_prompt") or "").strip()
@@ -117,13 +117,7 @@ class HermesCampaignService:
             if vp:
                 return vp
 
-        return (
-            f"{base}. "
-            "LTX2.3 image-to-video continuation: preserve exact subject identity, outfit, and scene geometry; "
-            "camera motion: gentle push-in with subtle parallax; subject motion: natural micro-movements only; "
-            "lighting continuity: keep same direction/intensity/color temperature; "
-            "avoid anatomy drift, face morphing, limb duplication, texture flicker, and background warping."
-        )
+        return ""
 
     def _resolve_bible_text(self, bible_path: str) -> str:
         if not bible_path:
@@ -398,7 +392,7 @@ class HermesCampaignService:
             "elapsed_ms": elapsed_ms(),
             "duration_ms": int((time.perf_counter() - kimi_plan_t0) * 1000),
         }
-        yield {"type": "kimi_raw", "campaign_id": campaign_id, "text": raw_content[:800]}
+        yield {"type": "kimi_raw", "campaign_id": campaign_id, "text": raw_content}
 
         try:
             kimi_shots = self.director.normalize_shots(plan, campaign_id)
@@ -424,7 +418,7 @@ class HermesCampaignService:
                 if top_up_raw:
                     raw_content = f"{raw_content}\n\n---TOP_UP---\n{top_up_raw}"
                     self.campaigns[campaign_id]["kimi_raw_response"] = raw_content
-                    yield {"type": "kimi_raw", "campaign_id": campaign_id, "text": top_up_raw[:800]}
+                    yield {"type": "kimi_raw", "campaign_id": campaign_id, "text": top_up_raw}
                 top_up_shots = self.director.normalize_shots(top_up, campaign_id)
                 existing_ids = {s["shot_id"] for s in kimi_shots}
                 existing_seq = {int(s["sequence"]) for s in kimi_shots}
@@ -509,7 +503,7 @@ class HermesCampaignService:
                     self._record_agent_exchange(campaign_id, revised.get("__exchange"))
                     if revised_raw:
                         self.campaigns[campaign_id]["kimi_revision_raw_response"] = revised_raw
-                        yield {"type": "kimi_raw", "campaign_id": campaign_id, "text": revised_raw[:800]}
+                        yield {"type": "kimi_raw", "campaign_id": campaign_id, "text": revised_raw}
                     revised_shots = self.director.normalize_shots(revised, campaign_id)
                     if len(revised_shots) >= len(kimi_shots):
                         kimi_shots = revised_shots
@@ -578,7 +572,7 @@ class HermesCampaignService:
                     role_key="prompt_compiler",
                     allowed_skill_patterns=compiler_scope.get("patterns", []),
                 )
-                # Optional Hermes profile refinement step (CLI preferred; fallback to bridge).
+                # Hermes Prompt Compiler is required in production; no hidden local fallback.
                 refinement_task = {
                     "task": "refine_compiled_prompt",
                     "workflow_id": workflow_id,
@@ -590,20 +584,26 @@ class HermesCampaignService:
                     "negative_prompt": artifact.get("negative_prompt", ""),
                 }
                 refined = await self.profile_cli.run_json("compiler", refinement_task)
-                if isinstance(refined, dict):
-                    self._record_agent_exchange(campaign_id, refined.get("__exchange"))
-                    refined_prompt = str(refined.get("compiled_prompt") or refined.get("prompt") or "").strip()
-                    if refined_prompt:
-                        artifact["compiled_prompt"] = refined_prompt
-                    refined_negative = str(refined.get("negative_prompt") or "").strip()
-                    if refined_negative:
-                        artifact["negative_prompt"] = refined_negative
-                    yield {
-                        "type": "profile",
-                        "profile_color_key": "profile_compiler_lmstudio",
-                        "shot_id": effective_shot["shot_id"],
-                        "text": f"Hermes / Prompt Compiler refined {effective_shot['shot_id']}.",
-                    }
+                if not isinstance(refined, dict):
+                    yield {"type": "error", "shot_id": effective_shot["shot_id"], "text": "Campaign stopped: Hermes / Prompt Compiler unavailable."}
+                    yield {"type": "done", "text": "Campaign stopped before Spark dispatch."}
+                    return
+                self._record_agent_exchange(campaign_id, refined.get("__exchange"))
+                refined_prompt = str(refined.get("compiled_prompt") or refined.get("prompt") or "").strip()
+                if not refined_prompt:
+                    yield {"type": "error", "shot_id": effective_shot["shot_id"], "text": "Campaign stopped: Hermes / Prompt Compiler returned no compiled_prompt."}
+                    yield {"type": "done", "text": "Campaign stopped before Spark dispatch."}
+                    return
+                artifact["compiled_prompt"] = refined_prompt
+                refined_negative = str(refined.get("negative_prompt") or "").strip()
+                if refined_negative:
+                    artifact["negative_prompt"] = refined_negative
+                yield {
+                    "type": "profile",
+                    "profile_color_key": "profile_compiler_lmstudio",
+                    "shot_id": effective_shot["shot_id"],
+                    "text": f"Hermes / Prompt Compiler refined {effective_shot['shot_id']}.",
+                }
                 yield {
                     "type": "compiler",
                     "shot_id": effective_shot["shot_id"],
@@ -673,8 +673,13 @@ class HermesCampaignService:
                     "created_at": self.now_iso(),
                 }
                 if os.getenv("FORGE_AUTO_VIDEO_PROMPT", "true").lower() == "true":
-                    shot_record["video_prompt"] = await self._build_auto_video_prompt(shot_record)
-                    shot_record["video_prompt_source"] = "auto_compiler"
+                    video_prompt = await self._build_auto_video_prompt(shot_record)
+                    if video_prompt:
+                        shot_record["video_prompt"] = video_prompt
+                        shot_record["video_prompt_source"] = "auto_compiler"
+                    else:
+                        shot_record["video_prompt"] = ""
+                        shot_record["video_prompt_source"] = ""
                 self.shots_store.append(shot_record)
                 self.record_event("shot_planned", shot_id=record_id, campaign_id=campaign_id, workflow_id=workflow_id, source=source)
 

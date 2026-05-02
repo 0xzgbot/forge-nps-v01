@@ -81,6 +81,11 @@ class KimiDirectorService:
             or os.getenv("DIRECTOR_MODEL", "")
             or str(cfg.get("DIRECTOR_MODEL", "Hermes-4-405B"))
         ).strip()
+        self.thinking_model_name = (
+            os.getenv("KIMI_THINKING_MODEL", "")
+            or str(cfg.get("KIMI_THINKING_MODEL", ""))
+            or self.model_name
+        ).strip()
 
     @staticmethod
     def _sanitize_api_key(raw_key: str) -> str:
@@ -301,7 +306,7 @@ class KimiDirectorService:
             },
         }
         payload = {
-            "model": self.model_name,
+            "model": self.thinking_model_name,
             "messages": [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": json.dumps(prompt)},
@@ -336,7 +341,7 @@ class KimiDirectorService:
                         parsed,
                         stage="kimi_director_self_check",
                         endpoint=self.endpoint,
-                        model=self.model_name,
+                        model=self.thinking_model_name,
                         payload=payload,
                         raw_content=content,
                     )
@@ -368,7 +373,7 @@ class KimiDirectorService:
             "Return only JSON for a full replacement plan."
         )
         payload = {
-            "model": self.model_name,
+            "model": self.thinking_model_name,
             "messages": [
                 {"role": "system", "content": system_prompt},
                 {
@@ -425,7 +430,7 @@ class KimiDirectorService:
                 parsed,
                 stage="kimi_director_revision",
                 endpoint=self.endpoint,
-                model=self.model_name,
+                model=self.thinking_model_name,
                 payload=payload,
                 raw_content=content,
             )
