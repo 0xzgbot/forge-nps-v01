@@ -179,6 +179,27 @@ class HermesCampaignService:
             # Non-fatal metadata write.
             return
 
+    def _campaign_exists(self, campaign_id: str) -> bool:
+        if not campaign_id:
+            return False
+        if campaign_id in self.campaigns:
+            return True
+        if (self.media_images / campaign_id).exists():
+            return True
+        return any(str(s.get("campaign_id") or "") == campaign_id for s in self.shots_store)
+
+    def _load_campaign_manifest(self, campaign_id: str) -> Dict[str, Any]:
+        if not campaign_id:
+            return {}
+        path = self.media_images / campaign_id / "_campaign.json"
+        try:
+            if path.exists():
+                data = json.loads(path.read_text(encoding="utf-8"))
+                return data if isinstance(data, dict) else {}
+        except Exception:
+            return {}
+        return {}
+
     def _persist_media_shot_metadata(self, shot_record: Dict[str, Any]) -> None:
         image_path = str(shot_record.get("image_path") or "").strip()
         if not image_path:
@@ -259,21 +280,34 @@ class HermesCampaignService:
 
     async def stream_campaign(self, req: CampaignRequest) -> AsyncIterator[Dict[str, Any]]:
         requested_id = (req.campaign_id or "").strip()
-        can_append = bool(req.append_to_campaign and requested_id and requested_id in self.campaigns)
+        append_requested = bool(req.append_to_campaign)
+        if append_requested and not requested_id:
+            yield {"type": "error", "text": "Append requested but no campaign_id was selected."}
+            yield {"type": "done", "text": "Campaign stopped: append target missing."}
+            return
+        if append_requested and not self._campaign_exists(requested_id):
+            yield {"type": "error", "text": f"Append target not found: {requested_id}"}
+            yield {"type": "done", "text": "Campaign stopped: append target missing."}
+            return
+
+        can_append = bool(append_requested and requested_id)
         campaign_id = requested_id if can_append else self._build_campaign_id(req.brief)
         self.active_campaign_setter(campaign_id)
         workflow_ids = req.workflow_ids or ["01_flux2_text_to_image"]
         if can_append:
             existing = self.campaigns.get(campaign_id, {}) if isinstance(self.campaigns.get(campaign_id, {}), dict) else {}
+            manifest = self._load_campaign_manifest(campaign_id)
             existing_workflows = existing.get("workflow_ids", []) if isinstance(existing.get("workflow_ids", []), list) else []
+            if not existing_workflows and isinstance(manifest.get("workflow_ids"), list):
+                existing_workflows = manifest.get("workflow_ids", [])
             merged_workflows = list(dict.fromkeys([*existing_workflows, *workflow_ids]))
             self.campaigns[campaign_id] = {
                 **existing,
-                "brief": req.brief or str(existing.get("brief", "") or ""),
-                "started_at": str(existing.get("started_at", "") or self.now_iso()),
+                "brief": req.brief or str(existing.get("brief", "") or manifest.get("brief", "") or ""),
+                "started_at": str(existing.get("started_at", "") or manifest.get("started_at", "") or self.now_iso()),
                 "updated_at": self.now_iso(),
                 "workflow_ids": merged_workflows,
-                "identity_pack": req.identity_pack or existing.get("identity_pack", {}) or {},
+                "identity_pack": req.identity_pack or existing.get("identity_pack", {}) or manifest.get("identity_pack", {}) or {},
             }
             workflow_ids = merged_workflows
         else:
@@ -731,7 +765,28 @@ class HermesCampaignService:
                         shot_record["image_url"] = f"/external-renders/{rel.as_posix()}"
                     except Exception:
                         shot_record["image_url"] = f"/external-renders/{Path(image_path).name}"
-                yield {"type": "spark", "shot_id": effective_shot["shot_id"], "status": "queued", "prompt_id": prompt_id, "text": f"Queued {effective_shot['shot_id']} ({workflow_id})"}
+                    try:
+                        self._persist_media_shot_metadata(shot_record)
+                    except Exception as e:
+                        self.record_event(
+                            "render_metadata_persist_failed",
+                            shot_id=record_id,
+                            campaign_id=campaign_id,
+                            workflow_id=workflow_id,
+                            source=source,
+                            success=False,
+                            extra={"reason": str(e)},
+                        )
+                yield {
+                    "type": "spark",
+                    "campaign_id": campaign_id,
+                    "id": record_id,
+                    "shot_id": effective_shot["shot_id"],
+                    "status": "rendered" if image_path else "queued",
+                    "prompt_id": prompt_id,
+                    "image_url": shot_record.get("image_url", ""),
+                    "text": f"{'Rendered and stored' if image_path else 'Queued'} {effective_shot['shot_id']} ({workflow_id})",
+                }
                 self.record_event("render_result", shot_id=record_id, campaign_id=campaign_id, workflow_id=workflow_id, source=source, success=True, extra={"prompt_id": prompt_id})
 
                 if image_path:

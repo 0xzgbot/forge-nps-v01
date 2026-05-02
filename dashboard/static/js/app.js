@@ -13,6 +13,7 @@ let scriptSessionId = "script_" + Date.now();
 let campaignActive = false;
 let campaignAbortController = null;
 let campaignRecoveryTimer = null;
+let campaignMediaRefreshTimer = null;
 let configDirty = {}; // dot_key -> new_value
 let currentConfig = {};
 
@@ -541,6 +542,16 @@ async function refreshShotViews() {
     await loadShots();
     await loadVideoLibrary();
     await loadCampaignFolders();
+}
+
+function scheduleCampaignMediaRefresh() {
+    if (campaignMediaRefreshTimer) clearTimeout(campaignMediaRefreshTimer);
+    campaignMediaRefreshTimer = setTimeout(async () => {
+        campaignMediaRefreshTimer = null;
+        await loadShots();
+        await loadVideoLibrary();
+        await loadCampaignFolders();
+    }, 250);
 }
 
 function initDashboardResizer() {
@@ -1971,6 +1982,9 @@ function handleCampaignEvent(event) {
     setCampaignStatus(statusParts[0], statusParts[1], statusParts[2], statusParts[3]);
     if (event.campaign_id) {
         currentCampaignId = event.campaign_id;
+        const filter = document.getElementById("filter-campaign-id");
+        if (filter && filter.value !== event.campaign_id) filter.value = event.campaign_id;
+        shotFilters.campaignId = event.campaign_id;
         loadCampaignFolders();
     }
 
@@ -2010,8 +2024,11 @@ function handleCampaignEvent(event) {
 
         case "spark":
             addLogEntry("spark", text);
-            if (event.status === "queued" && event.prompt_id) {
+            if (event.prompt_id) {
                 addLogEntry("memory", "Shot " + shotId + " stored (prompt_id: " + event.prompt_id + ")");
+            }
+            if (event.status === "rendered" || event.image_url) {
+                scheduleCampaignMediaRefresh();
             }
             break;
 
@@ -2048,7 +2065,7 @@ function handleCampaignEvent(event) {
 
         case "done":
             addLogEntry("system", text);
-            loadShots();
+            refreshShotViews();
             break;
 
         default:
