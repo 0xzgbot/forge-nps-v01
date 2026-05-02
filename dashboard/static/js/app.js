@@ -2036,6 +2036,11 @@ async function loadShots() {
                         audit_status: s.audit_status || "",
                         audit_score: s.audit_score ?? "",
                         audit_issues: s.audit_issues || [],
+                        audit_critical_failures: s.audit_critical_failures || [],
+                        audit_noncritical_issues: s.audit_noncritical_issues || [],
+                        audit_decision_reasons: s.audit_decision_reasons || [],
+                        audit_model_score: s.audit_model_score ?? "",
+                        audit_checks_score: s.audit_checks_score ?? "",
                         retry_of: s.retry_of || s.parent_shot_id || "",
                         video_prompt: s.video_prompt || "",
                         video_prompt_source: s.video_prompt_source || "",
@@ -2361,6 +2366,11 @@ async function loadVideoLibrary() {
                     audit_status: s.audit_status || "",
                     audit_score: s.audit_score ?? "",
                     audit_issues: s.audit_issues || [],
+                    audit_critical_failures: s.audit_critical_failures || [],
+                    audit_noncritical_issues: s.audit_noncritical_issues || [],
+                    audit_decision_reasons: s.audit_decision_reasons || [],
+                    audit_model_score: s.audit_model_score ?? "",
+                    audit_checks_score: s.audit_checks_score ?? "",
                     retry_of: s.retry_of || s.parent_shot_id || "",
                     video_prompt: s.video_prompt || "",
                     video_prompt_source: s.video_prompt_source || "",
@@ -2844,6 +2854,15 @@ function videoPromptBadgeTitle(shot) {
 }
 
 // Lightbox
+function formatLightboxList(value) {
+    if (Array.isArray(value)) {
+        const clean = value.map(v => String(v || "").trim()).filter(Boolean);
+        return clean.length ? clean.join("; ") : "-";
+    }
+    const text = String(value || "").trim();
+    return text || "-";
+}
+
 function openLightbox(result) {
     if (!result) return;
 
@@ -2883,7 +2902,21 @@ function openLightbox(result) {
     const audit = result.audit_status
         ? (String(result.audit_status).toUpperCase() + (result.audit_score !== undefined && result.audit_score !== "" ? " (" + result.audit_score + ")" : ""))
         : "-";
+    const auditParts = [];
+    if (result.audit_model_score !== undefined && result.audit_model_score !== "") auditParts.push("model " + result.audit_model_score);
+    if (result.audit_checks_score !== undefined && result.audit_checks_score !== "") auditParts.push("checks " + result.audit_checks_score);
     document.getElementById("lightbox-audit").textContent = audit;
+    const auditReasonEl = document.getElementById("lightbox-audit-reasons");
+    if (auditReasonEl) auditReasonEl.textContent = formatLightboxList(result.audit_decision_reasons);
+    const auditCriticalEl = document.getElementById("lightbox-audit-critical");
+    if (auditCriticalEl) auditCriticalEl.textContent = formatLightboxList(result.audit_critical_failures);
+    const auditIssuesEl = document.getElementById("lightbox-audit-issues");
+    if (auditIssuesEl) {
+        const issuesText = formatLightboxList(result.audit_issues);
+        auditIssuesEl.textContent = auditParts.length && issuesText !== "-"
+            ? (issuesText + "; " + auditParts.join("; "))
+            : (issuesText !== "-" ? issuesText : (auditParts.length ? auditParts.join("; ") : "-"));
+    }
     document.getElementById("lightbox-retry-of").textContent = result.retry_of || "-";
 
     $lightboxModal.classList.add("active");
