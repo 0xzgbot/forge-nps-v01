@@ -8,6 +8,7 @@ Forge NPS is the hackathon pipeline where:
 5. Memory captures what happened.
 
 ## Canonical Docs
+- `/Users/zgbot/Desktop/forge_nps_v01/INSTALLATION_AGENT_GUIDE.md`
 - `/Users/zgbot/Desktop/forge_nps_v01/DEMO_SCRIPT.md`
 - `/Users/zgbot/Desktop/forge_nps_v01/STABILITY_CHECKLIST.md`
 - `/Users/zgbot/Desktop/forge_nps_v01/PIPELINE_CONTRACT_SUMMARY.md`
