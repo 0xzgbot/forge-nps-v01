@@ -1842,6 +1842,14 @@ function handleCampaignEvent(event) {
             addQueuedProfileLogEntry(event.profile_color_key || "profile_compiler_lmstudio", text || "Profile event");
             break;
 
+        case "pipeline_timing": {
+            const stage = event.stage || "stage";
+            const elapsed = event.elapsed_ms !== undefined ? String(event.elapsed_ms) + "ms" : "n/a";
+            const duration = event.duration_ms !== undefined ? (" · took " + String(event.duration_ms) + "ms") : "";
+            addLogEntry("system", "[timing] " + stage + " at " + elapsed + duration);
+            break;
+        }
+
         case "done":
             addLogEntry("system", text);
             loadShots();
