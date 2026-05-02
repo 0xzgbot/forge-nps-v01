@@ -1412,7 +1412,10 @@ async function generateShotList() {
             body: JSON.stringify({ brief: brief }),
         });
 
-        if (!resp.ok) throw new Error("HTTP " + resp.status);
+        if (!resp.ok) {
+            const body = await resp.text();
+            throw new Error("HTTP " + resp.status + (body ? ": " + body : ""));
+        }
 
         const reader = resp.body.getReader();
         const decoder = new TextDecoder();
@@ -1459,6 +1462,7 @@ function handleDirectorEvent(event) {
         case "shot":
             $shotListPlaceholder.style.display = "none";
             $shotList.style.display = "flex";
+            director_shots[event.shot.id] = event.shot;
             renderShotCard(event.shot, event.index, event.total);
             $scriptProgress.textContent = event.index + "/" + event.total;
             break;
