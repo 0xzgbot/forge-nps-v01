@@ -849,6 +849,7 @@ async def api_reindex_shots_from_storage():
                 "prompt": f"Reindexed media: {stem}",
                 "compiled_prompt": f"Reindexed media: {stem}",
                 "video_prompt": _default_video_prompt_from_first_frame(f"Reindexed media: {stem}"),
+                "video_prompt_source": "auto_default",
                 "negative_prompt": "",
                 "workflow_profile": "reindexed",
                 "skills_used": [],
@@ -1993,6 +1994,7 @@ async def api_video_generate_prompts(req: VideoGeneratePromptsRequest):
                     shot = next((s for s in _SHOTS_STORE if str(s.get("shot_id", "")) == str(sid)), None)
                 if shot:
                     shot["video_prompt"] = prompt_text
+                    shot["video_prompt_source"] = "prompt_agent"
                     saved += 1
                 else:
                     save_misses.append(sid)
@@ -2064,6 +2066,7 @@ async def api_import_sienna_batch(req: ImportBatchRequest):
             "prompt": f"Imported media: {stem}",
             "compiled_prompt": f"Imported media: {stem}",
             "video_prompt": _default_video_prompt_from_first_frame(f"Imported media: {stem}"),
+            "video_prompt_source": "auto_default",
             "negative_prompt": "",
             "workflow_profile": "import",
             "skills_used": [],

@@ -2037,6 +2037,8 @@ async function loadShots() {
                         audit_score: s.audit_score ?? "",
                         audit_issues: s.audit_issues || [],
                         retry_of: s.retry_of || s.parent_shot_id || "",
+                        video_prompt: s.video_prompt || "",
+                        video_prompt_source: s.video_prompt_source || "",
                         variant: "-",
                     });
                 });
@@ -2080,8 +2082,8 @@ async function loadShots() {
             if (s.video_prompt) {
                 const vb = document.createElement("span");
                 vb.className = "shot-badge vprompt";
-                vb.textContent = "V_PROMPT";
-                vb.title = String(s.video_prompt || "").substring(0, 200);
+                vb.textContent = videoPromptBadgeLabel(s);
+                vb.title = videoPromptBadgeTitle(s);
                 label.appendChild(vb);
 
                 const dot = document.createElement("span");
@@ -2312,8 +2314,8 @@ async function loadVideoLibrary() {
             if (s.video_prompt) {
                 const vp = document.createElement("span");
                 vp.className = "audit-badge vprompt";
-                vp.textContent = "V_PROMPT";
-                vp.title = s.video_prompt.substring(0, 160) + (s.video_prompt.length > 160 ? "..." : "");
+                vp.textContent = videoPromptBadgeLabel(s);
+                vp.title = videoPromptBadgeTitle(s);
                 label.appendChild(vp);
             }
 
@@ -2352,6 +2354,7 @@ async function loadVideoLibrary() {
                     audit_issues: s.audit_issues || [],
                     retry_of: s.retry_of || s.parent_shot_id || "",
                     video_prompt: s.video_prompt || "",
+                    video_prompt_source: s.video_prompt_source || "",
                     variant: "-",
                 });
             });
@@ -2810,6 +2813,21 @@ async function clearComfyUIQueue() {
     }
 }
 
+function videoPromptBadgeLabel(shot) {
+    const source = String(shot?.video_prompt_source || "").trim();
+    if (source === "auto_default") return "V_DEFAULT";
+    if (source === "prompt_agent") return "V_AGENT";
+    if (source === "auto_compiler") return "V_COMPILER";
+    return "V_PROMPT";
+}
+
+function videoPromptBadgeTitle(shot) {
+    const prompt = String(shot?.video_prompt || "");
+    const source = String(shot?.video_prompt_source || "").trim() || "unknown";
+    const preview = prompt.substring(0, 180) + (prompt.length > 180 ? "..." : "");
+    return `Source: ${source}\n${preview}`;
+}
+
 // Lightbox
 function openLightbox(result) {
     if (!result) return;
@@ -2820,6 +2838,10 @@ function openLightbox(result) {
     document.getElementById("lightbox-workflow").textContent = result.workflow || "-";
     document.getElementById("lightbox-status").textContent = result.status || "-";
     document.getElementById("lightbox-prompt").textContent = result.prompt || "-";
+    const videoPromptEl = document.getElementById("lightbox-video-prompt");
+    if (videoPromptEl) videoPromptEl.textContent = result.video_prompt || "-";
+    const videoPromptSourceEl = document.getElementById("lightbox-video-prompt-source");
+    if (videoPromptSourceEl) videoPromptSourceEl.textContent = result.video_prompt_source || "-";
     document.getElementById("lightbox-negative-prompt").textContent = result.negative_prompt || "-";
     document.getElementById("lightbox-kimi-plan").textContent = result.kimi_plan ? JSON.stringify(result.kimi_plan) : "-";
     document.getElementById("lightbox-kimi-rationale").textContent = result.kimi_rationale || "-";
