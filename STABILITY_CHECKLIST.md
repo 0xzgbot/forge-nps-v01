@@ -23,8 +23,7 @@ Run before each demo pass.
 - Confirm host/model in Settings.
 - Confirm vision model exists if using local vision audit.
 - Use **Test & Detect Models** to verify the LM Studio server is reachable.
-- If changing `Context`, `Batch`, `Flash Attention`, or `KV Cache GPU`, click **Load Model** or **Reload Hermes/Vision**. Saving the fields alone does not change the already-loaded model.
-- Expected default load profile for the current demo box: context `8192`, batch `1024`, Flash Attention on, KV Cache GPU on.
+- Use **Load Model** or **Reload Hermes/Vision** only to load the selected model. Forge does not override LM Studio load tuning; LM Studio uses its model defaults.
 
 ## 4) Media Path
 - Confirm media root exists and is writable:
