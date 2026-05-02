@@ -141,6 +141,48 @@
         }
         #brief-input:focus { outline: none; border-color: #3D5AFE; }
         #brief-actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+        #campaign-status-box {
+            display: grid;
+            grid-template-columns: minmax(120px, auto) 1fr auto;
+            gap: 10px;
+            align-items: center;
+            min-height: 34px;
+            padding: 8px 10px;
+            border: 1px solid #333;
+            border-radius: 4px;
+            background: #111;
+            color: #9aa0aa;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+        }
+        #campaign-status-box .status-role {
+            color: #d7d7d7;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+        #campaign-status-box .status-message {
+            color: #b9c0cc;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        #campaign-status-box .status-meta {
+            color: #6f7785;
+            white-space: nowrap;
+        }
+        #campaign-status-box.running {
+            border-color: #3D5AFE;
+            background: #0d1020;
+        }
+        #campaign-status-box.error {
+            border-color: #7a2d2d;
+            background: #1a0f0f;
+        }
+        #campaign-status-box.done {
+            border-color: #2f6f42;
+            background: #0f1a12;
+        }
         .model-checkbox {
             display: flex; align-items: center; gap: 6px;
             font-size: 12px; color: #aaa; cursor: pointer;
@@ -1273,6 +1315,11 @@
                 <label class="model-checkbox"><input type="checkbox" id="model-turbo"> Turbo</label>
                 <input type="text" id="bible-path" placeholder="Optional: /path/to/world_bible.md">
                 <input type="text" id="filter-campaign-id" placeholder="Campaign ID" style="width:130px;background:#222;border:1px solid #444;border-radius:4px;color:#ccc;padding:8px 10px;font-size:12px;">
+            </div>
+            <div id="campaign-status-box">
+                <span class="status-role">Pipeline</span>
+                <span class="status-message">Ready.</span>
+                <span class="status-meta">idle</span>
             </div>
         </div>
 

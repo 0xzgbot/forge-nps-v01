@@ -54,6 +54,7 @@ const $chatStatus = document.getElementById("chat-status");
 const $briefInput = document.getElementById("brief-input");
 const $biblePath = document.getElementById("bible-path");
 const $runBtn = document.getElementById("run-campaign-btn");
+const $campaignStatusBox = document.getElementById("campaign-status-box");
 const $charList = document.getElementById("char-list");
 const $lengthSelect = document.getElementById("length-select"); // may be null if removed
 const $campaignList = document.getElementById("campaign-list");
@@ -1729,6 +1730,58 @@ function escapeHtml(str) {
     return div.innerHTML;
 }
 
+function setCampaignStatus(role, message, meta, state) {
+    if (!$campaignStatusBox) return;
+    const roleEl = $campaignStatusBox.querySelector(".status-role");
+    const messageEl = $campaignStatusBox.querySelector(".status-message");
+    const metaEl = $campaignStatusBox.querySelector(".status-meta");
+    if (roleEl) roleEl.textContent = role || "Pipeline";
+    if (messageEl) messageEl.textContent = message || "Ready.";
+    if (metaEl) metaEl.textContent = meta || "";
+    $campaignStatusBox.classList.remove("running", "error", "done");
+    if (state) $campaignStatusBox.classList.add(state);
+}
+
+function campaignStatusFromEvent(event) {
+    const type = event.type || "";
+    const text = event.text || "";
+    const shotId = event.shot_id || "";
+    const elapsed = event.elapsed_ms !== undefined ? String(event.elapsed_ms) + "ms" : "";
+    switch (type) {
+        case "profile":
+            return ["Agent", text || "Profile online", elapsed || "profile", "running"];
+        case "pipeline_timing":
+            return ["Timing", event.stage || "pipeline", elapsed, "running"];
+        case "kimi":
+            return ["Kimi", text || "Planning...", shotId || "director", "running"];
+        case "kimi_raw":
+            return ["Kimi", "Director plan received.", event.campaign_id || "raw", "running"];
+        case "kimi_plan":
+            return ["Kimi", text || ("Structured plan received (" + (event.count || 0) + " shots)"), "plan", "running"];
+        case "kimi_review":
+            return ["Kimi", "Coverage review score " + (event.score !== undefined ? event.score : "n/a"), event.status || "review", "running"];
+        case "hermes":
+            return ["Hermes", text || "Working...", shotId || "brain", "running"];
+        case "compiler":
+            return ["Hermes", text || "Compiling prompt...", shotId || "compiler", "running"];
+        case "spark":
+            return ["Spark", text || "Rendering...", event.prompt_id || event.status || "render", "running"];
+        case "audit":
+        case "memory":
+            return ["Memory", text || "Writing result...", shotId || "audit", "running"];
+        case "remediation":
+            return ["Hermes", text || "Remediating...", shotId || "retry", "running"];
+        case "warning":
+            return ["Warning", text || "Warning", elapsed, "running"];
+        case "error":
+            return ["Error", text || "Pipeline error", shotId || "failed", "error"];
+        case "done":
+            return ["Pipeline", text || "Done.", event.shots ? String(event.shots.length) + " shots" : "done", "done"];
+        default:
+            return ["Pipeline", text || type || "Working...", elapsed, "running"];
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Campaign Runner (NDJSON streaming)
 // ---------------------------------------------------------------------------
@@ -1791,6 +1844,7 @@ async function runCampaign() {
     if ($cancelBtn) $cancelBtn.style.display = "inline-flex";
 
     addLogEntry("system", "Campaign started: " + brief);
+    setCampaignStatus("Pipeline", "Campaign started.", "opening stream", "running");
 
     try {
         const resp = await fetch("/api/hermes/run-campaign", {
@@ -1850,6 +1904,7 @@ async function runCampaign() {
     } catch (e) {
         if (e.name !== "AbortError") {
             addLogEntry("warning", "Campaign stream disconnected: " + e.message);
+            setCampaignStatus("Warning", "Campaign stream disconnected: " + e.message, "recovering", "error");
             addLogEntry("system", "Backend may still be processing. Auto-refreshing media for 45s.");
             if (campaignRecoveryTimer) clearInterval(campaignRecoveryTimer);
             let ticks = 0;
@@ -1860,8 +1915,11 @@ async function runCampaign() {
                     clearInterval(campaignRecoveryTimer);
                     campaignRecoveryTimer = null;
                     addLogEntry("system", "Recovery refresh complete.");
+                    setCampaignStatus("Pipeline", "Recovery refresh complete.", "done", "done");
                 }
             }, 5000);
+        } else {
+            setCampaignStatus("Pipeline", "Campaign cancelled.", "cancelled", "done");
         }
     } finally {
         $runBtn.disabled = false;
@@ -1877,6 +1935,8 @@ function handleCampaignEvent(event) {
     const type = event.type;
     const text = event.text || "";
     const shotId = event.shot_id || "";
+    const statusParts = campaignStatusFromEvent(event);
+    setCampaignStatus(statusParts[0], statusParts[1], statusParts[2], statusParts[3]);
     if (event.campaign_id) {
         currentCampaignId = event.campaign_id;
         loadCampaignFolders();
