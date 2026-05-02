@@ -1,22 +1,15 @@
 {
+  "KIMI_API_KEY": "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",
+  "NIM_ENDPOINT": "https://integrate.api.nvidia.com/v1/chat/completions",
+  "LMSTUDIO_CHAT_MODEL": "qwen3.6-35b-a3b@q6_k",
   "LMSTUDIO_HOST": "http://100.74.164.1",
-  "KIMI_VISUAL_MODEL": "moonshotai/kimi-VL",
+  "KIMI_VISUAL_MODEL": "qwen3.6-35b-a3b@q6_k",
   "KIMI_THINKING_MODEL": "moonshotai/kimi-k2.6",
   "COMFYUI_PRIMARY": "http://100.112.87.8:8188",
   "COMFYUI_SECONDARY": "http://100.74.164.1:8189",
   "LMSTUDIO_EMBED_MODEL": "qwen3.6-27b",
-  "LMSTUDIO_CHAT_MODEL": "gemma-4-26b-a4b-it",
   "KIMI_INSTRUCT_MODEL": "moonshotai/kimi-k2-instruct",
-  "nous_hermes_model": "Hermes-3-Llama-3.2-3B",
-  "KIMI_API_KEY": "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",
-  "NIM_ENDPOINT": "https://integrate.api.nvidia.com/v1/chat/completions",
-  "models": {
-    "hermes_3": {
-      "model_name": "qwen3.6-27b"
-    }
-  },
-  "kimi": {
-    "api_key": "set_in_env_only",
-    "endpoint": "https://integrate.api.nvidia.com/v1/chat/completions"
-  }
+  "KIMI_VISUAL_ENDPOINT_API1": "http://100.74.164.1:1234/v1",
+  "VISION_MODEL": "",
+  "LMSTUDIO_VISION_MODEL": "qwen3.6-35b-a3b@q6_k"
 }

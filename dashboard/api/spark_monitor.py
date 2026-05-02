@@ -17,7 +17,7 @@ import requests
 from core.bridge.runtime_config import get_raw_config
 
 REPO_ROOT = Path(__file__).parent.parent.parent.resolve()
-SPARK_HOST = "http://100.112.87.8:8188"
+SPARK_HOST = ""
 POLL_INTERVAL = 2.0
 
 
@@ -99,6 +99,9 @@ class SparkMonitor:
         try:
             # Refresh host each poll in case settings changed at runtime.
             self.host = self._resolve_host(self.host).rstrip("/")
+            if not self.host:
+                self.spark_alive = False
+                return
             # 1. Queue state
             resp = requests.get(f"{self.host}/queue", timeout=5)
             resp.raise_for_status()

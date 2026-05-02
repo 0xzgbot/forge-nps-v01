@@ -21,11 +21,17 @@ venv/
 
 # Logs & outputs
 logs/
+dashboard.log
+data/config.json.bak
 data/outputs/
 data/sessions/
 data/reasoning_logs/
 data/renders/campaigns/
 data/renders/videos/
+hermes_outputs/
+remediation*.json
+remediated_prompt*.json
+prompts/*_refined.json
 
 # Claude worktrees
 .claude/worktrees/
@@ -65,6 +71,10 @@ hermes_home/profiles/*/state.db-shm
 hermes_home/profiles/*/state.db-wal
 hermes_home/profiles/*/logs/
 hermes_home/profiles/*/cache/
+hermes_home/profiles/*/campaigns/
+hermes_home/profiles/*/memories/
+hermes_home/profiles/*/outputs/
+hermes_home/profiles/*/results/
 hermes_home/profiles/*/bin/
 hermes_home/profiles/*/.hermes_history
 hermes_home/profiles/*/.skills_prompt_snapshot.json

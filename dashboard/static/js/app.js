@@ -859,36 +859,18 @@ async function loadConfig() {
         // Director
         const director = models.director_kimi || {};
         document.getElementById("cfg-director-model").value = director.model_name || "";
-        document.getElementById("cfg-director-endpoint").value = director.endpoint || "";
+        const directorEndpointEl = document.getElementById("cfg-director-endpoint");
+        if (directorEndpointEl) directorEndpointEl.value = director.endpoint || "";
         const dApi1 = director.endpoint_api1 || director.endpoint || "";
-        const dApi2 = director.endpoint_api2 || "";
-        const dActive = (director.endpoint_active || "api1").toLowerCase();
         const dApi1El = document.getElementById("cfg-director-endpoint-api1");
-        const dApi2El = document.getElementById("cfg-director-endpoint-api2");
         if (dApi1El) dApi1El.value = dApi1;
-        if (dApi2El) dApi2El.value = dApi2;
-        const dA1 = document.getElementById("cfg-director-api-active-1");
-        const dA2 = document.getElementById("cfg-director-api-active-2");
-        if (dA1) dA1.checked = dActive !== "api2";
-        if (dA2) dA2.checked = dActive === "api2";
 
-        // Thinking (Kimi VL)
+        // Vision / audit model
         const kimiVl = models.kimi_vl || {};
-        document.getElementById("cfg-thinking-model").value = kimiVl.model_name || "";
-        document.getElementById("cfg-thinking-endpoint").value = kimiVl.endpoint || "";
         const vApi1 = kimiVl.endpoint_api1 || kimiVl.endpoint || "";
-        const vApi2 = kimiVl.endpoint_api2 || "";
-        const vActive = (kimiVl.endpoint_active || "api1").toLowerCase();
-        const vApi1El = document.getElementById("cfg-thinking-endpoint-api1");
-        const vApi2El = document.getElementById("cfg-thinking-endpoint-api2");
+        const vApi1El = document.getElementById("cfg-vision-endpoint-api1");
         if (vApi1El) vApi1El.value = vApi1;
-        if (vApi2El) vApi2El.value = vApi2;
-        const vA1 = document.getElementById("cfg-thinking-api-active-1");
-        const vA2 = document.getElementById("cfg-thinking-api-active-2");
-        if (vA1) vA1.checked = vActive !== "api2";
-        if (vA2) vA2.checked = vActive === "api2";
 
-        // Visual (same as kimi_vl for now, can be separate)
         document.getElementById("cfg-visual-model").value = kimiVl.model_name || "";
 
         // LM Studio (Hermes 3)
@@ -942,15 +924,11 @@ function markDirty(dotKey) {
         'kimi.api_key': () => document.getElementById("cfg-kimi-api-key").value,
         'kimi.endpoint': () => document.getElementById("cfg-kimi-endpoint").value,
         'models.director_kimi.model_name': () => document.getElementById("cfg-director-model").value,
-        'models.director_kimi.endpoint': () => document.getElementById("cfg-director-endpoint").value,
+        'models.director_kimi.endpoint': () => document.getElementById("cfg-director-endpoint")?.value || "",
         'models.director_kimi.endpoint_api1': () => document.getElementById("cfg-director-endpoint-api1")?.value || "",
-        'models.director_kimi.endpoint_api2': () => document.getElementById("cfg-director-endpoint-api2")?.value || "",
-        'models.director_kimi.endpoint_active': () => document.getElementById("cfg-director-api-active-2")?.checked ? "api2" : "api1",
-        'models.kimi_vl.model_name': () => document.getElementById("cfg-thinking-model").value,
-        'models.kimi_vl.endpoint': () => document.getElementById("cfg-thinking-endpoint").value,
-        'models.kimi_vl.endpoint_api1': () => document.getElementById("cfg-thinking-endpoint-api1")?.value || "",
-        'models.kimi_vl.endpoint_api2': () => document.getElementById("cfg-thinking-endpoint-api2")?.value || "",
-        'models.kimi_vl.endpoint_active': () => document.getElementById("cfg-thinking-api-active-2")?.checked ? "api2" : "api1",
+        'models.kimi_vl.model_name': () => document.getElementById("cfg-visual-model").value,
+        'models.kimi_vl.endpoint': () => document.getElementById("cfg-vision-endpoint-api1")?.value || "",
+        'models.kimi_vl.endpoint_api1': () => document.getElementById("cfg-vision-endpoint-api1")?.value || "",
         'models.hermes_3.host': () => document.getElementById("cfg-lmstudio-host").value,
         'models.hermes_3.port': () => parseInt(document.getElementById("cfg-lmstudio-port").value) || 0,
         'models.hermes_3.model_name': () => document.getElementById("cfg-lmstudio-model").value,
@@ -1023,9 +1001,10 @@ async function testProvider() {
     const $result = document.getElementById("kimi-test-result");
     const apiKey = document.getElementById("cfg-kimi-api-key").value;
     const endpoint = document.getElementById("cfg-kimi-endpoint").value;
+    const hasSavedKey = !!(currentConfig && currentConfig.kimi && currentConfig.kimi.api_key_set);
 
-    if (!apiKey || !endpoint) {
-        $result.textContent = "Please fill in API key and endpoint";
+    if ((!apiKey && !hasSavedKey) || !endpoint) {
+        $result.textContent = "Please fill in endpoint and API key, or save an API key first";
         $result.className = "test-result err";
         return;
     }
@@ -1050,6 +1029,46 @@ async function testProvider() {
         }
     } catch (e) {
         $result.textContent = "Error: " + e.message;
+        $result.className = "test-result err";
+    }
+}
+
+async function testDirector() {
+    const $result = document.getElementById("director-test-result");
+    $result.textContent = "Testing Director...";
+    $result.className = "test-result loading";
+    try {
+        const resp = await fetch("/api/test/director");
+        const data = await resp.json();
+        if (data.status === "ok") {
+            $result.textContent = "Director OK: " + data.model + " (" + data.latency_ms + "ms)";
+            $result.className = "test-result ok";
+        } else {
+            $result.textContent = "Director failed: " + (data.error || "unknown error");
+            $result.className = "test-result err";
+        }
+    } catch (e) {
+        $result.textContent = "Director error: " + e.message;
+        $result.className = "test-result err";
+    }
+}
+
+async function testVision() {
+    const $result = document.getElementById("vision-test-result");
+    $result.textContent = "Testing Vision...";
+    $result.className = "test-result loading";
+    try {
+        const resp = await fetch("/api/test/vision");
+        const data = await resp.json();
+        if (data.status === "ok") {
+            $result.textContent = "Vision OK: " + data.model + " (" + data.latency_ms + "ms)";
+            $result.className = "test-result ok";
+        } else {
+            $result.textContent = "Vision failed: " + (data.error || "unknown error");
+            $result.className = "test-result err";
+        }
+    } catch (e) {
+        $result.textContent = "Vision error: " + e.message;
         $result.className = "test-result err";
     }
 }
@@ -1543,6 +1562,8 @@ function clearShotList() {
 // ---------------------------------------------------------------------------
 let __systemLogSideRight = false;
 let __lastLogSpeaker = null;
+let __profileLogQueueDelayMs = 0;
+let __profileLogQueueTimer = null;
 function addLogEntry(type, text) {
     const ts = new Date().toLocaleTimeString("en-US", { hour12: false });
     const row = document.createElement("div");
@@ -1579,6 +1600,17 @@ function addLogEntry(type, text) {
 
     $log.appendChild(row);
     $log.scrollTop = $log.scrollHeight;
+}
+
+function addQueuedProfileLogEntry(type, text) {
+    const delay = __profileLogQueueDelayMs;
+    __profileLogQueueDelayMs += 220;
+    setTimeout(() => addLogEntry(type, text), delay);
+    if (__profileLogQueueTimer) clearTimeout(__profileLogQueueTimer);
+    __profileLogQueueTimer = setTimeout(() => {
+        __profileLogQueueDelayMs = 0;
+        __profileLogQueueTimer = null;
+    }, __profileLogQueueDelayMs + 50);
 }
 
 function clearLog() {
@@ -1807,7 +1839,7 @@ function handleCampaignEvent(event) {
             addLogEntry("system", "Warning: " + text);
             break;
         case "profile":
-            addLogEntry(event.profile_color_key || "profile_compiler_lmstudio", text || "Profile event");
+            addQueuedProfileLogEntry(event.profile_color_key || "profile_compiler_lmstudio", text || "Profile event");
             break;
 
         case "done":

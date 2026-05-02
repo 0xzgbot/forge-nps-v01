@@ -16,7 +16,13 @@
 ```
 promo_video_kit/
 ├── touchdesigner/
-│   └── build_memory_graph.py      # Builds TD network via MCP + GLSL shader
+│   ├── build_memory_graph_v2.py        # Enhanced living memory graph
+│   ├── build_pipeline_flow.py          # 5-model orbital pipeline
+│   ├── build_audit_gate.py             # Dramatic PASS/FAIL portal
+│   ├── build_command_center.py         # HUD dashboard visualization
+│   ├── build_provenance_web.py         # 3D retry lineage web
+│   ├── assemble_all_td.py              # Build all scenes at once
+│   └── build_memory_graph.py           # Original (legacy)
 ├── p5js/
 │   ├── transition_data_to_light.html       # Particles → "FORGE" text
 │   ├── transition_audit_gate.html          # PASS/FAIL/RETRY kinetic type
@@ -32,16 +38,13 @@ promo_video_kit/
 
 ---
 
-## ✅ YOUR SETUP CHECKLIST (Things You Need To Do)
-
-These are the **prerequisites on your machine** that I cannot set up remotely.
-Check them off as you go:
+## ✅ YOUR SETUP CHECKLIST
 
 ### Required Software
 
 - [ ] **TouchDesigner** installed (Non-Commercial is FREE)
   - Download: https://derivative.ca/download
-  - Non-Commercial caps resolution at 1280×1280 — we use 1280×720, so you're fine
+  - Non-Commercial caps resolution at 1280×1280 — we use 1280×720
 
 - [ ] **twozero MCP plugin** installed in TouchDesigner
   ```bash
@@ -54,75 +57,80 @@ Check them off as you go:
   brew install ffmpeg
   ```
 
-- [ ] **p5.js export capability** — just a modern browser + Node.js for headless:
+- [ ] **p5.js export capability** — modern browser + optional Node.js:
   ```bash
-  # For headless frame capture (optional but recommended)
-  npm install -g puppeteer  # or use the bundled scripts/export-frames.js
+  npm install -g puppeteer
   ```
 
-- [ ] **AudioCraft** or access to music generation (optional — can use royalty-free music instead)
+- [ ] **AudioCraft** or royalty-free music alternative
 
 ### Required Data
 
-- [ ] **Forge NPS events.jsonl** exists and has data:
+- [ ] **Forge NPS events.jsonl** exists:
   ```bash
   ls ~/Desktop/forge_nps_v01/data/hermes_memory/episodic/events.jsonl
   ```
-  If empty, the TD script generates demo events automatically.
+  If empty, scripts generate demo events automatically.
 
-- [ ] **Dashboard recording** — YOU need to screen-record the Forge NPS dashboard
-  running a campaign (use QuickTime Player or OBS).
+- [ ] **Dashboard recording** — screen-record the Forge NPS dashboard
+  running a campaign (QuickTime Player or OBS).
 
 - [ ] **ComfyUI is running** and accessible for hero frame generation.
 
 ---
 
-## 🚀 Production Workflow (Step by Step)
+## 🚀 Production Workflow
 
-### Phase 1: TouchDesigner Memory Graph (30–45 min)
+### Phase 1: Build All TouchDesigner Scenes (45–60 min)
 
-This creates the **"living brain"** visualization — the biggest wow factor.
+Build all 5 scenes with one command:
 
 ```bash
 cd ~/Desktop/forge_nps_v01/promo_video_kit/touchdesigner
-python3 build_memory_graph.py
+python3 assemble_all_td.py
 ```
 
-**What happens:**
-- Reads your `events.jsonl`
-- Creates a TD network with GLSL shader, feedback trails, bloom, glow
-- Outputs `/tmp/forge_memory_visualizer.toe`
+Then record each scene (15–30 seconds each):
 
-**Then you do:**
-1. Open TouchDesigner
-2. File → Open → `/tmp/forge_memory_visualizer.toe`
-3. (Optional but recommended) Add an **Audio File In CHOP** and wire it:
-   ```
-   AudioFileIn CHOP → AudioSpectrum CHOP → Math CHOP (gain=10)
-   → CHOP to TOP → connect to `memory_graph` second input
-   ```
-4. Press **F1** to enter Perform Mode
-5. Click the `recorder` TOP, set **Record** to ON
-6. Let it run for 30–60 seconds
-7. Set **Record** to OFF
-8. Video saved to: `/tmp/forge_memory_graph_output.mov`
+```bash
+# 1. Memory Graph V2
+open /tmp/forge_memory_graph_v2.toe
+# F1 → click recorder TOP → Record ON → 20s → Record OFF
 
-> 💡 **Pro tip:** Use your AudioCraft-generated soundtrack as the audio input.
-> The visuals will pulse to the beat.
+# 2. Pipeline Flow
+open /tmp/forge_pipeline_flow.toe
+# F1 → click recorder TOP → Record ON → 15s → Record OFF
+
+# 3. Audit Gate
+open /tmp/forge_audit_gate.toe
+# F1 → click recorder TOP → Record ON → 15s → Record OFF
+
+# 4. Command Center
+open /tmp/forge_command_center.toe
+# F1 → click recorder TOP → Record ON → 15s → Record OFF
+
+# 5. Provenance Web
+open /tmp/forge_provenance_web.toe
+# F1 → click recorder TOP → Record ON → 15s → Record OFF
+```
+
+> 💡 **Pro tip:** Add an **Audio File In CHOP** → **AudioSpectrum CHOP** → **Math CHOP** (gain=10)
+> → **CHOP to TOP** → connect to each scene's audio_input for audio-reactive visuals.
 
 ---
 
 ### Phase 2: p5js Transitions (20–30 min)
 
-These are the **visual glue** between scenes.
-
-#### Transition 1: "Data to Light"
 ```bash
-# Open in browser
+# Transition 1: "Data to Light"
 open ~/Desktop/forge_nps_v01/promo_video_kit/p5js/transition_data_to_light.html
+# Press 'R' to start, 'S' to save stills
 
-# Press 'R' to start animation
-# Press 'S' to save a PNG still
+# Transition 2: "The Audit Gate"
+open transition_audit_gate.html
+
+# Transition 3: "Memory Consolidation"
+open transition_memory_consolidation.html
 ```
 
 For video export (headless):
@@ -132,20 +140,7 @@ node scripts/export-frames.js transition_data_to_light.html --frames 360
 ffmpeg -framerate 30 -i frame_%06d.png -c:v prores -profile:v 3 transition1.mov
 ```
 
-#### Transition 2: "The Audit Gate"
-```bash
-open transition_audit_gate.html
-# Press 'R' to run
-```
-
-#### Transition 3: "Memory Consolidation"
-```bash
-open transition_memory_consolidation.html
-# Press 'R' to run
-```
-
-> 💡 **Quick path:** If headless rendering is too much trouble, just screen-record
-> each transition playing in the browser. 5 seconds of each is enough.
+> 💡 **Quick path:** Screen-record each transition in the browser. 5 seconds each is enough.
 
 ---
 
@@ -153,47 +148,35 @@ open transition_memory_consolidation.html
 
 Generate 6–7 stunning hero images using your existing ComfyUI setup.
 
-The prompts are in:
+```bash
+# Load wf_flux2_turbo_api in your dashboard
+# Copy-paste each prompt from hero_frame_prompts.json
+# Render at 1280×720
+# Save to promo_video_kit/assets/
 ```
-~/Desktop/forge_nps_v01/promo_video_kit/comfyui/hero_frame_prompts.json
-```
-
-**Quick method:** Use your existing `batch_flux2_turbo_hackathon.py` script and
-inject these prompts. Or run one at a time through the Forge NPS dashboard.
-
-**Recommended workflow:**
-1. Load `wf_flux2_turbo_api` in your dashboard
-2. Copy-paste each prompt from the JSON
-3. Render at 1280×720
-4. Save to `promo_video_kit/assets/`
 
 ---
 
 ### Phase 4: Soundtrack (10–20 min, or skip)
 
-Generate a custom soundtrack using AudioCraft, or use a royalty-free track.
+Generate a custom soundtrack using AudioCraft, or use royalty-free music.
 
-See:
-```
-~/Desktop/forge_nps_v01/promo_video_kit/audiocraft/soundtrack_prompts.md
-```
+See: `audiocraft/soundtrack_prompts.md`
 
-**Alternative:** Use a track from https://freemusicarchive.org or Epidemic Sound.
-Cyberpunk ambient / synthwave genres work best.
+**Alternative:** Cyberpunk ambient / synthwave from freemusicarchive.org or Epidemic Sound.
 
 ---
 
 ### Phase 5: Dashboard Recording (10 min)
 
-**You must do this.** Record yourself:
+Record yourself:
 1. Opening Forge NPS dashboard
 2. Entering a brief
 3. Clicking **Run Campaign**
 4. Showing the event stream
 5. Opening a shot lightbox
 
-Use **QuickTime Player** → File → New Screen Recording.
-Record 10–15 seconds. Save to `promo_video_kit/assets/dashboard.mov`.
+Save to `promo_video_kit/assets/dashboard.mov`.
 
 ---
 
@@ -205,12 +188,9 @@ chmod +x assemble_promo.sh
 ./assemble_promo.sh
 ```
 
-This produces:
-```
-/tmp/forge_nps_promo_final.mov
-```
+Output: `/tmp/forge_nps_promo_final.mov`
 
-Review it. If good, convert to MP4 for sharing:
+Convert to MP4 for sharing:
 ```bash
 ffmpeg -i /tmp/forge_nps_promo_final.mov \
   -c:v libx264 -crf 18 -preset slow \
@@ -222,34 +202,51 @@ ffmpeg -i /tmp/forge_nps_promo_final.mov \
 
 ## 🎯 The 90-Second Structure
 
-| Time | Scene | Source |
-|------|-------|--------|
-| 0:00–0:05 | Opening title: "Every pixel has an origin" | Generated by script |
-| 0:05–0:15 | Dashboard: brief → Run Campaign → event stream | Your screen recording |
-| 0:15–0:35 | TouchDesigner: living memory graph visualization | `build_memory_graph.py` output |
-| 0:35–0:40 | p5js Transition: Data to Light | Browser/headless render |
-| 0:40–0:50 | Hero frames: Director, Engineer, Renderer | ComfyUI renders |
-| 0:50–0:55 | p5js Transition: The Audit Gate | Browser/headless render |
-| 0:55–1:05 | Hero frames: Gate, Memory, Output + provenance overlay | ComfyUI + dashboard lightbox |
-| 1:05–1:20 | Remediation: failed shot → retry → success | Dashboard recording + TD visual |
-| 1:20–1:25 | p5js Transition: Memory Consolidation | Browser/headless render |
-| 1:25–1:30 | Closing title: "Forge NPS. Every shot, accounted for." | Generated by script |
+| Time | Scene | Source | Duration |
+|------|-------|--------|----------|
+| 0:00–0:05 | Opening title: "Every pixel has an origin" | Generated by script | 5s |
+| 0:05–0:15 | Dashboard: brief → Run Campaign → event stream | Screen recording | 10s |
+| 0:15–0:25 | **Pipeline Flow** — 5 roles in orbital motion | TouchDesigner | 10s |
+| 0:25–0:30 | p5js Transition: Data to Light | Browser | 5s |
+| 0:30–0:40 | **Command Center** — HUD dashboard visualization | TouchDesigner | 10s |
+| 0:40–0:50 | Hero frames: Director, Engineer, Renderer | ComfyUI renders | 10s |
+| 0:50–0:55 | p5js Transition: The Audit Gate | Browser | 5s |
+| 0:55–1:05 | **Audit Gate** — PASS/FAIL portal with particles | TouchDesigner | 10s |
+| 1:05–1:15 | Hero frames: Gate, Memory, Output + provenance | ComfyUI + dashboard | 10s |
+| 1:15–1:25 | **Provenance Web** — retry lineage in 3D | TouchDesigner | 10s |
+| 1:25–1:35 | **Memory Graph V2** — living brain visualization | TouchDesigner | 10s |
+| 1:35–1:40 | p5js Transition: Memory Consolidation | Browser | 5s |
+| 1:40–1:45 | Closing title: "Forge NPS. Every shot, accounted for." | Generated by script | 5s |
 
 ---
 
-## 🔥 Why This Has No Competition
+## 🔥 TouchDesigner Scenes Reference
 
-| Other Entries | Forge NPS Promo |
-|--------------|-----------------|
-| Screen recording + stock music | **Recursive pipeline** — the app creates its own promo |
-| Static screenshots | **TouchDesigner real-time visuals** of the memory graph as living art |
-| Generic transitions | **p5js generative particle transitions** between scenes |
-| Boring voiceover | **AudioCraft-generated soundtrack** that drives the visuals |
-| Talk about features | **Show provenance** — every frame has an audit trail |
+### Scene 1: Memory Graph V2
+- **File:** `build_memory_graph_v2.py`
+- **What:** Enhanced living memory graph with perlin noise drift, multi-layer feedback trails, RGB-separated bloom, film grain, and chromatic aberration
+- **Colors:** Cyan (attempt), Green (success), Red (fail), Purple (insight), White (remediation)
+- **Record:** 20 seconds
 
-You're using NousResearch features that were **literally released today** (v0.12.0,
-April 30). Nobody else will have TouchDesigner-MCP + p5js + ComfyUI + their own
-app in a recursive creative loop.
+### Scene 2: Pipeline Flow
+- **File:** `build_pipeline_flow.py`
+- **What:** 5 orbital nodes (KIMI → HERMES → SPARK → VISION → MEMORY) with particle streams flowing between them, holographic rings, and rotating arcs
+- **Record:** 15 seconds
+
+### Scene 3: Audit Gate
+- **File:** `build_audit_gate.py`
+- **What:** Dramatic sci-fi portal with rotating hexagons, scan-line sweep, data packets entering from left, green PASS burst with particle explosion, red FAIL burst with glitch distortion
+- **Record:** 15 seconds
+
+### Scene 4: Command Center
+- **File:** `build_command_center.py`
+- **What:** Futuristic HUD with floating data panels, matrix rain event stream, progress rings, waveform visualization, and corner brackets
+- **Record:** 15 seconds
+
+### Scene 5: Provenance Web
+- **File:** `build_provenance_web.py`
+- **What:** 3D retry lineage visualization with parent/child shot nodes, bezier connection curves, data packet travel animation, and audit score rings
+- **Record:** 15 seconds
 
 ---
 
@@ -265,46 +262,48 @@ If not running:
 3. Click the twozero icon → Settings → MCP → "Auto Start MCP" → Yes
 
 ### p5js transitions won't export frames
-Just **screen-record them** in the browser. QuickTime Player works fine.
+Screen-record them in the browser. QuickTime Player works fine.
 
 ### ffmpeg not found
 ```bash
 brew install ffmpeg
 ```
 
-### ComfyUI prompts too long for your workflow
-The prompts are optimized for Flux2. If using a different model, trim to the
-first sentence of each prompt — that's usually enough.
+### ComfyUI prompts too long
+Trim to the first sentence of each prompt.
 
 ### The whole thing feels overwhelming
 **Minimum viable promo:**
 1. Record 10 seconds of dashboard
-2. Run the TouchDesigner script for 20 seconds
-3. Assemble with the script (it auto-fills placeholders)
-4. Add any music
-5. Done — you have a 30-second promo that's still better than 90% of entries.
+2. Run `build_pipeline_flow.py` and record 15 seconds
+3. Run `build_audit_gate.py` and record 10 seconds
+4. Assemble with the script
+5. Add any music
+6. Done — 30 seconds that's still better than 90% of entries.
 
 ---
 
-## 📁 Asset Organization (Recommended)
-
-As you produce assets, organize them like this:
+## 📁 Asset Organization
 
 ```
 promo_video_kit/
 ├── assets/
-│   ├── dashboard.mov              # YOUR screen recording
-│   ├── td_output.mov              # TouchDesigner recording
-│   ├── transition1.mov            # p5js Data to Light
-│   ├── transition2.mov            # p5js Audit Gate
-│   ├── transition3.mov            # p5js Memory Consolidation
-│   ├── hero_director.png          # ComfyUI render
-│   ├── hero_engineer.png          # ComfyUI render
-│   ├── hero_renderer.png          # ComfyUI render
-│   ├── hero_gate.png              # ComfyUI render
-│   ├── hero_memory.png            # ComfyUI render
-│   ├── hero_output.png            # ComfyUI render
-│   └── soundtrack.wav             # AudioCraft or royalty-free
+│   ├── dashboard.mov                  # YOUR screen recording
+│   ├── td_memory_graph_v2.mov         # TouchDesigner
+│   ├── td_pipeline_flow.mov           # TouchDesigner
+│   ├── td_audit_gate.mov              # TouchDesigner
+│   ├── td_command_center.mov          # TouchDesigner
+│   ├── td_provenance_web.mov          # TouchDesigner
+│   ├── transition1.mov                # p5js Data to Light
+│   ├── transition2.mov                # p5js Audit Gate
+│   ├── transition3.mov                # p5js Memory Consolidation
+│   ├── hero_director.png              # ComfyUI render
+│   ├── hero_engineer.png              # ComfyUI render
+│   ├── hero_renderer.png              # ComfyUI render
+│   ├── hero_gate.png                  # ComfyUI render
+│   ├── hero_memory.png                # ComfyUI render
+│   ├── hero_output.png                # ComfyUI render
+│   └── soundtrack.wav                 # AudioCraft or royalty-free
 ```
 
 Then update the paths in `scripts/assemble_promo.sh` and run it.
@@ -318,12 +317,11 @@ Then update the paths in `scripts/assemble_promo.sh` and run it.
 - [ ] Video shows the 5 model roles (Kimi, Hermes, Spark, Vision, Memory)
 - [ ] Video includes at least one TouchDesigner visual
 - [ ] Video includes provenance concept (retry lineage, audit scores)
-- [ ] Writeup mentions TouchDesigner-MCP and p5js skills (proves you used new features)
+- [ ] Writeup mentions TouchDesigner-MCP and p5js skills
 - [ ] Tweet/writeup frames it as "the pipeline that promotes itself"
 
 ---
 
-**Questions?** While you're working on the main app, I'm here to debug any of
-these components, refine prompts, or adjust the assembly. Just ask.
+**Questions?** Just ask.
 
 **Now go make something incredible.** 🚀
