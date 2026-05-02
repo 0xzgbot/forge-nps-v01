@@ -17,6 +17,7 @@ class HermesProfileCLI:
     def __init__(self) -> None:
         self.runner = os.getenv("FORGE_PROFILE_CLI_RUNNER", "forgehermes").strip() or "forgehermes"
         self.timeout_sec = float(os.getenv("FORGE_PROFILE_CLI_TIMEOUT_SEC", "120"))
+        self.last_error = ""
         self.profile_map = {
             "compiler": os.getenv("FORGE_PROFILE_COMPILER", "compiler"),
             "remediator": os.getenv("FORGE_PROFILE_REMEDIATOR", "remediator"),
@@ -108,22 +109,29 @@ class HermesProfileCLI:
         return args, env, debug
 
     async def _run_direct_json(self, profile: str, task: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        self.last_error = ""
         _args, env, runtime_debug = self._runtime_args_and_env()
         model = str(runtime_debug.get("model") or "").strip()
         base_url = str(runtime_debug.get("base_url") or "").strip().rstrip("/")
         if not model or not base_url:
+            self.last_error = f"profile_runtime_missing model={bool(model)} base_url={bool(base_url)}"
             return None
         endpoint = base_url if base_url.endswith("/chat/completions") else f"{base_url}/chat/completions"
         target_profile = self.profile_map.get(profile, profile)
         payload = {
             "model": model,
             "messages": [
-                {"role": "system", "content": self._profile_system_prompt(profile)},
-                {"role": "user", "content": json.dumps(task, ensure_ascii=True)},
+                {"role": "system", "content": "/no_think\n" + self._profile_system_prompt(profile)},
+                {
+                    "role": "user",
+                    "content": (
+                        json.dumps(task, ensure_ascii=True)
+                        + "\n/no_think\nReturn only compact JSON in assistant content."
+                    ),
+                },
             ],
             "temperature": 0.2,
             "max_tokens": int(os.getenv("FORGE_PROFILE_MAX_TOKENS", "8192")),
-            "response_format": {"type": "json_object"},
             "chat_template_kwargs": {"thinking": False, "enable_thinking": False},
         }
         headers = {"Content-Type": "application/json"}
@@ -134,15 +142,20 @@ class HermesProfileCLI:
             async with httpx.AsyncClient(timeout=self.timeout_sec) as client:
                 resp = await client.post(endpoint, headers=headers, json=payload)
             if resp.status_code >= 400:
+                self.last_error = f"http_{resp.status_code}:{resp.text[:500]}"
                 return None
             data = resp.json()
-            text = (
-                (data.get("choices") or [{}])[0]
-                .get("message", {})
-                .get("content", "")
-            )
+            choice = (data.get("choices") or [{}])[0]
+            message = choice.get("message", {}) if isinstance(choice, dict) else {}
+            text = message.get("content", "")
             parsed = text if isinstance(text, dict) else self._parse_json_text(str(text))
             if parsed is None:
+                reasoning = str(message.get("reasoning_content") or "")
+                finish_reason = str(choice.get("finish_reason") or "unknown") if isinstance(choice, dict) else "unknown"
+                if not str(text or "").strip() and reasoning.strip():
+                    self.last_error = f"empty_content_reasoning_only finish_reason={finish_reason}"
+                else:
+                    self.last_error = f"json_parse_failed finish_reason={finish_reason} content={str(text)[:300]}"
                 return None
             parsed["__exchange"] = {
                 "stage": f"hermes_profile_{target_profile}",
@@ -154,13 +167,17 @@ class HermesProfileCLI:
                 "request": payload,
                 "response": {
                     "content": text,
+                    "finish_reason": choice.get("finish_reason") if isinstance(choice, dict) else "",
+                    "usage": data.get("usage", {}),
                 },
             }
             return parsed
-        except Exception:
+        except Exception as e:
+            self.last_error = str(e) or e.__class__.__name__
             return None
 
     async def run_json(self, profile: str, task: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        self.last_error = ""
         if os.getenv("FORGE_PROFILE_USE_CLI", "false").lower() != "true":
             return await self._run_direct_json(profile, task)
 
@@ -178,9 +195,11 @@ class HermesProfileCLI:
             )
             out, _err = await asyncio.wait_for(proc.communicate(), timeout=self.timeout_sec)
             if proc.returncode != 0:
+                self.last_error = f"cli_exit_{proc.returncode}:{(_err or b'').decode('utf-8', errors='ignore')[:500]}"
                 return None
             text = (out or b"").decode("utf-8", errors="ignore").strip()
             if not text:
+                self.last_error = "cli_empty_stdout"
                 return None
             parsed = self._parse_json_text(text)
             if parsed is not None:
@@ -214,5 +233,6 @@ class HermesProfileCLI:
                     },
                 },
             }
-        except Exception:
+        except Exception as e:
+            self.last_error = str(e) or e.__class__.__name__
             return None

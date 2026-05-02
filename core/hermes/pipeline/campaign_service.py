@@ -342,7 +342,11 @@ class HermesCampaignService:
         yield {"type": "profile", "profile_color_key": "profile_compiler_lmstudio", "text": "Hermes / Campaign Intake starting."}
         hermes_intake = await self.profile_cli.run_json("director", intake_task)
         if not isinstance(hermes_intake, dict):
-            yield {"type": "error", "text": "Campaign stopped: Hermes campaign intake failed before Kimi planning."}
+            detail = str(getattr(self.profile_cli, "last_error", "") or "unknown").strip()
+            yield {
+                "type": "error",
+                "text": f"Campaign stopped: Hermes campaign intake failed before Kimi planning. detail={detail[:500]}",
+            }
             yield {"type": "done", "text": "Campaign stopped: Hermes intake unavailable."}
             return
         self._record_agent_exchange(campaign_id, hermes_intake.get("__exchange"))
