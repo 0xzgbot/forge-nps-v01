@@ -222,6 +222,30 @@ class ComfyUIClient:
                 if current not in ("", None):
                     continue
                 if isinstance(spec, list) and spec:
+                    # Dynamic combo inputs must be sent as the selected key plus
+                    # flattened sub-inputs, not as the object_info schema object.
+                    if len(spec) > 1 and spec[0] == "COMFY_DYNAMICCOMBO_V3" and isinstance(spec[1], dict):
+                        options = spec[1].get("options")
+                        if isinstance(options, list) and options:
+                            option = options[0]
+                            if isinstance(option, dict):
+                                selected = option.get("key")
+                                if selected:
+                                    inputs[key] = selected
+                                    nested = option.get("inputs", {}).get("required", {})
+                                    if isinstance(nested, dict):
+                                        for nested_key, nested_spec in nested.items():
+                                            flat_key = f"{key}.{nested_key}"
+                                            if flat_key in inputs and inputs[flat_key] not in ("", None):
+                                                continue
+                                            if (
+                                                isinstance(nested_spec, list)
+                                                and len(nested_spec) > 1
+                                                and isinstance(nested_spec[1], dict)
+                                                and "default" in nested_spec[1]
+                                            ):
+                                                inputs[flat_key] = nested_spec[1]["default"]
+                                    continue
                     # COMBO fields in object_info often look like:
                     # ["COMBO", {"options": [...]}]
                     if (
@@ -420,11 +444,55 @@ class ComfyUIClient:
             required = list((schema.get("required") or {}).keys())
             optional = list((schema.get("optional") or {}).keys())
             ordered_keys = required + optional
+            if not widget_names and widget_values and ordered_keys:
+                unconnected_keys = [key for key in ordered_keys if key not in converted["inputs"]]
+                for idx, key in enumerate(unconnected_keys):
+                    if idx >= len(widget_values):
+                        break
+                    widget_map.setdefault(key, widget_values[idx])
             for key in ordered_keys:
                 if key in converted["inputs"]:
                     continue
                 if key in widget_map:
                     converted["inputs"][key] = widget_map[key]
+
+            # Comfy dynamic widgets are exported as a compact widgets_values
+            # list, not named node inputs. Preserve the actual selected runtime
+            # values for ResizeImageMaskNode instead of letting object_info
+            # hydration inject the schema object.
+            if class_type == "ResizeImageMaskNode" and widget_values:
+                resize_type = str(widget_values[0] or "").strip()
+                if resize_type:
+                    converted["inputs"]["resize_type"] = resize_type
+                    if resize_type == "scale dimensions":
+                        if len(widget_values) > 1:
+                            converted["inputs"]["resize_type.width"] = widget_values[1]
+                        if len(widget_values) > 2:
+                            converted["inputs"]["resize_type.height"] = widget_values[2]
+                        if len(widget_values) > 3:
+                            converted["inputs"]["resize_type.crop"] = widget_values[3]
+                        if len(widget_values) > 4:
+                            converted["inputs"]["scale_method"] = widget_values[4]
+                    elif resize_type == "scale longer dimension":
+                        if len(widget_values) > 1:
+                            converted["inputs"]["resize_type.longer_size"] = widget_values[1]
+                        if len(widget_values) > 2:
+                            converted["inputs"]["scale_method"] = widget_values[2]
+                    elif resize_type == "scale shorter dimension":
+                        if len(widget_values) > 1:
+                            converted["inputs"]["resize_type.shorter_size"] = widget_values[1]
+                        if len(widget_values) > 2:
+                            converted["inputs"]["scale_method"] = widget_values[2]
+                    elif resize_type == "scale width":
+                        if len(widget_values) > 1:
+                            converted["inputs"]["resize_type.width"] = widget_values[1]
+                        if len(widget_values) > 2:
+                            converted["inputs"]["scale_method"] = widget_values[2]
+                    elif resize_type == "scale height":
+                        if len(widget_values) > 1:
+                            converted["inputs"]["resize_type.height"] = widget_values[1]
+                        if len(widget_values) > 2:
+                            converted["inputs"]["scale_method"] = widget_values[2]
 
             prompt_nodes[str(node_id)] = converted
 
