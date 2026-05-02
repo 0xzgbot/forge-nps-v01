@@ -373,7 +373,7 @@ class KimiBridge:
                 {"role": "user", "content": user_input}
             ],
             "temperature": temp_override if temp_override is not None else (0.2 if tier != ModelTier.INSTRUCT else 0.7),
-            "chat_template_kwargs": {"thinking": False}
+            "chat_template_kwargs": {"thinking": False, "enable_thinking": False}
         }
         
         # Only enforce JSON output when a schema is provided

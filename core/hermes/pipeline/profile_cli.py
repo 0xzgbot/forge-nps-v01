@@ -124,7 +124,7 @@ class HermesProfileCLI:
             "temperature": 0.2,
             "max_tokens": int(os.getenv("FORGE_PROFILE_MAX_TOKENS", "8192")),
             "response_format": {"type": "json_object"},
-            "chat_template_kwargs": {"thinking": False},
+            "chat_template_kwargs": {"thinking": False, "enable_thinking": False},
         }
         headers = {"Content-Type": "application/json"}
         api_key = env.get("OPENAI_API_KEY") or env.get("CUSTOM_API_KEY") or "not-needed"

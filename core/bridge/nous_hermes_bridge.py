@@ -215,12 +215,18 @@ class NousHermesBridge:
         # Prepend system message if not already present
         if not messages or messages[0].get("role") != "system":
             messages = [{"role": "system", "content": HERMES_SYSTEM}] + messages
+        messages = [dict(message) for message in messages]
+        messages[0]["content"] = "/no_think\n" + str(messages[0].get("content") or "")
+        for i in range(len(messages) - 1, -1, -1):
+            if messages[i].get("role") == "user":
+                messages[i]["content"] = str(messages[i].get("content") or "") + "\n/no_think"
+                break
         try:
             resp = await self.client.chat_async(
                 messages=messages,
                 model=self.model,
                 temperature=0.8,
-                max_tokens=500,
+                max_tokens=2048,
             )
             if isinstance(resp, dict) and resp.get("error"):
                 return f"[Hermes offline] {resp.get('error')}"
@@ -228,9 +234,26 @@ class NousHermesBridge:
             if not choices:
                 detail = json.dumps(resp, ensure_ascii=False)[:500] if isinstance(resp, dict) else str(resp)[:500]
                 return f"[Hermes offline] invalid_chat_response: {detail}"
-            content = (choices[0].get("message", {}).get("content") or "").strip()
+            choice = choices[0] if isinstance(choices[0], dict) else {}
+            message = choice.get("message", {}) if isinstance(choice, dict) else {}
+            content = (message.get("content") or "").strip()
             if not content:
-                return "[Hermes offline] empty_chat_response"
+                reasoning = (message.get("reasoning_content") or "").strip()
+                finish_reason = choice.get("finish_reason") or "unknown"
+                usage = resp.get("usage", {}) if isinstance(resp, dict) else {}
+                reasoning_tokens = (
+                    usage.get("completion_tokens_details", {}).get("reasoning_tokens")
+                    if isinstance(usage, dict)
+                    else None
+                )
+                if reasoning:
+                    token_detail = f" reasoning_tokens={reasoning_tokens}" if reasoning_tokens is not None else ""
+                    return (
+                        "[Hermes offline] model_returned_reasoning_only "
+                        f"finish_reason={finish_reason}{token_detail}; "
+                        "LM Studio did not emit final assistant content."
+                    )
+                return f"[Hermes offline] empty_chat_response finish_reason={finish_reason}"
             return content
         except Exception as e:
             logger.warning(f"[HERMES] chat failed: {e}")

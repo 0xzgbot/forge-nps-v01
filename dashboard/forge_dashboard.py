@@ -140,6 +140,10 @@ class ClearQueueRequest(BaseModel):
     comfy_url: str
 
 
+class ComfyUITestRequest(BaseModel):
+    host: str
+
+
 @app.post("/api/renders/audit-batch")
 async def api_renders_audit_batch(request: Request):
     """
@@ -2654,7 +2658,7 @@ async def _run_vision_audit_pass(
         ],
         "temperature": 0,
         "max_tokens": int(os.getenv("FORGE_VISION_AUDIT_MAX_TOKENS", "16384")),
-        "chat_template_kwargs": {"thinking": False},
+        "chat_template_kwargs": {"thinking": False, "enable_thinking": False},
     }
     headers = {"Content-Type": "application/json"}
     if api_key and endpoint.startswith("https://"):
@@ -2836,6 +2840,34 @@ async def api_spark_test(url: str):
     if not ok:
         raise HTTPException(status_code=503, detail=info.get("error", "Unreachable"))
     return {"url": url, "healthy": True, "info": info}
+
+
+@app.post("/api/test/comfyui")
+async def api_test_comfyui(req: ComfyUITestRequest):
+    """Settings-page ComfyUI connection test."""
+    host = (req.host or "").strip().rstrip("/")
+    if not host:
+        return {"status": "error", "error": "missing host"}
+    if not host.startswith(("http://", "https://")):
+        host = "http://" + host
+    t0 = time.time()
+    client = ComfyUIClient(host)
+    ok, info = await client.check_health()
+    latency_ms = int((time.time() - t0) * 1000)
+    if not ok:
+        return {
+            "status": "error",
+            "error": info.get("error", "unreachable"),
+            "host": host,
+            "latency_ms": latency_ms,
+        }
+    return {
+        "status": "ok",
+        "host": host,
+        "latency_ms": latency_ms,
+        "info": info,
+    }
+
 
 @app.get("/api/spark/state")
 async def api_spark_state():
@@ -3323,7 +3355,7 @@ async def _test_chat_completion(endpoint: str, api_key: str, model: str) -> Dict
         "model": model,
         "messages": [{"role": "user", "content": "ping"}],
         "max_tokens": 8,
-        "chat_template_kwargs": {"thinking": False},
+        "chat_template_kwargs": {"thinking": False, "enable_thinking": False},
     }
     headers = {"Content-Type": "application/json"}
     if api_key:
@@ -3382,7 +3414,7 @@ async def _test_vision_completion(endpoint: str, api_key: str, model: str) -> Di
         ],
         "temperature": 0,
         "max_tokens": 64,
-        "chat_template_kwargs": {"thinking": False},
+        "chat_template_kwargs": {"thinking": False, "enable_thinking": False},
     }
     headers = {"Content-Type": "application/json"}
     if api_key and endpoint.startswith("https://"):
@@ -4094,68 +4126,23 @@ async def api_hermes_chat_stream(req: HermesChatRequest):
     from fastapi.responses import StreamingResponse
     import json as _json
 
-    profile = req.profile if req.profile in HERMES_PROFILES else "live"
-
     async def event_generator():
         try:
-            # Try NousHermesBridge first (faster, local model)
-            try:
-                from core.bridge.nous_hermes_bridge import NousHermesBridge
-                hermes_brain = NousHermesBridge()
-                if hermes_brain.is_available:
-                    response = await hermes_brain.chat([
-                        {"role": "user", "content": req.message}
-                    ])
-                    # Stream in chunks for visual effect
-                    chunk_size = 20
-                    for i in range(0, len(response), chunk_size):
-                        chunk = response[i:i + chunk_size]
-                        yield _json.dumps({"token": chunk}) + "\n"
-                        await asyncio.sleep(0.02)
-                    yield _json.dumps({"done": True}) + "\n"
-                    return
-            except Exception as e:
-                print(f"[FORGE] NousHermesBridge chat failed, falling back to CLI: {e}")
+            from core.bridge.nous_hermes_bridge import NousHermesBridge
 
-            # Fallback: use Hermes CLI launcher
-            if not os.path.exists(FORGE_HERMES_LAUNCHER):
-                yield _json.dumps({"error": "Hermes engine not found"}) + "\n"
+            hermes_brain = NousHermesBridge()
+            if not hermes_brain.is_available:
+                yield _json.dumps({"error": "Hermes LM Studio endpoint unavailable"}) + "\n"
                 return
-
-            skills_list = []
-            if profile == 'live': skills_list = ['forge-nps-evolution-plan', 'cinematic_consistency_protocol']
-            elif profile == 'character': skills_list = ['character-dna-standardization']
-            elif profile == 'script': skills_list = ['narrative-beat-synthesis']
-            elif profile == 'product': skills_list = ['material-physics-engine']
-
-            cmd_args = [HERMES_BIN, FORGE_HERMES_LAUNCHER, "-p", profile]
-            if skills_list:
-                cmd_args.extend(["--skills", ",".join(skills_list)])
-            cmd_args.extend(["chat", "-Q", "-q", req.message])
-
-            proc = await asyncio.create_subprocess_exec(
-                *cmd_args,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-                env={**os.environ, "HERMES_HOME": FORGE_HERMES_HOME, "HERMES_QUIET": "1", "NO_COLOR": "1"},
-            )
-            try:
-                stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=120.0)
-                output = stdout.decode("utf-8", errors="replace").strip()
-                if not output and stderr:
-                    err = stderr.decode("utf-8", errors="replace").strip()
-                    yield _json.dumps({"error": err[:300]}) + "\n"
-                    return
-                # Stream the output in chunks
-                chunk_size = 20
-                for i in range(0, len(output), chunk_size):
-                    chunk = output[i:i + chunk_size]
-                    yield _json.dumps({"token": chunk}) + "\n"
-                    await asyncio.sleep(0.02)
-                yield _json.dumps({"done": True}) + "\n"
-            except asyncio.TimeoutError:
-                proc.kill()
-                yield _json.dumps({"error": "Hermes response timed out"}) + "\n"
+            response = await hermes_brain.chat([
+                {"role": "user", "content": req.message}
+            ])
+            chunk_size = 20
+            for i in range(0, len(response), chunk_size):
+                chunk = response[i:i + chunk_size]
+                yield _json.dumps({"token": chunk}) + "\n"
+                await asyncio.sleep(0.02)
+            yield _json.dumps({"done": True}) + "\n"
 
         except Exception as e:
             yield _json.dumps({"error": str(e)}) + "\n"

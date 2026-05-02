@@ -127,7 +127,7 @@ class HermesVideoService:
             ],
             "temperature": 0.1,
             "max_tokens": 2048,
-            "chat_template_kwargs": {"thinking": False},
+            "chat_template_kwargs": {"thinking": False, "enable_thinking": False},
         }
         headers = {"Content-Type": "application/json"}
         if api_key and endpoint.startswith("https://"):

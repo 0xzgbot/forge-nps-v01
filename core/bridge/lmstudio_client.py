@@ -140,6 +140,10 @@ class LMStudioClient:
             "messages": messages,
             "temperature": temperature,
             "max_tokens": max_tokens,
+            "chat_template_kwargs": {
+                "thinking": False,
+                "enable_thinking": False,
+            },
         }
         if json_mode:
             payload["response_format"] = {"type": "json_object"}
