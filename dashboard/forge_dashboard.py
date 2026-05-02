@@ -788,6 +788,21 @@ async def api_get_shots():
 
 MEDIA_SHOT_METADATA_FILE = "_shot_metadata.json"
 MEDIA_SHOT_METADATA_FIELDS = {
+    "audit_status",
+    "audit_score",
+    "audit_issues",
+    "audit_model_score",
+    "audit_checks_score",
+    "audit_confidence",
+    "audit_model_passed",
+    "audit_final_passed",
+    "audit_checks",
+    "audit_critical_failures",
+    "audit_noncritical_issues",
+    "audit_decision_reasons",
+    "audit_raw_response",
+    "audit_timestamp",
+    "audit_model",
     "video_prompt",
     "video_prompt_source",
     "negative_prompt",

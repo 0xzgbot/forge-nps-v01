@@ -183,6 +183,60 @@ class HermesCampaignService:
             # Non-fatal metadata write.
             return
 
+    def _persist_media_shot_metadata(self, shot_record: Dict[str, Any]) -> None:
+        image_path = str(shot_record.get("image_path") or "").strip()
+        if not image_path:
+            return
+        path = Path(image_path)
+        if not path.exists():
+            return
+        fields = {
+            "audit_status",
+            "audit_score",
+            "audit_issues",
+            "audit_model_score",
+            "audit_checks_score",
+            "audit_confidence",
+            "audit_model_passed",
+            "audit_final_passed",
+            "audit_checks",
+            "audit_critical_failures",
+            "audit_noncritical_issues",
+            "audit_decision_reasons",
+            "audit_raw_response",
+            "audit_timestamp",
+            "audit_model",
+            "video_prompt",
+            "video_prompt_source",
+            "negative_prompt",
+            "workflow_profile",
+            "model_standard_name",
+            "model_standard_version",
+            "model_standard_source",
+            "model_standard_rules",
+            "sections",
+            "kimi_plan",
+            "kimi_rationale",
+        }
+        metadata_path = path.parent / "_shot_metadata.json"
+        try:
+            metadata = json.loads(metadata_path.read_text(encoding="utf-8")) if metadata_path.exists() else {}
+            if not isinstance(metadata, dict):
+                metadata = {}
+        except Exception:
+            metadata = {}
+        existing = metadata.get(path.stem)
+        if not isinstance(existing, dict):
+            existing = {}
+        for key in fields:
+            if key in shot_record:
+                existing[key] = shot_record.get(key)
+        existing["updated_at"] = self.now_iso()
+        metadata[path.stem] = existing
+        tmp = path.parent / "._shot_metadata.json.tmp"
+        tmp.write_text(json.dumps(metadata, ensure_ascii=True, indent=2), encoding="utf-8")
+        tmp.replace(metadata_path)
+
     @staticmethod
     def _exc_reason(e: Exception) -> str:
         msg = str(e).strip()
@@ -627,7 +681,40 @@ class HermesCampaignService:
                         shot_record["identity_score"] = score
                         shot_record["identity_fail_reasons"] = [] if passed else detected_notes[:4]
                     transition_shot(shot_record, "audited_pass" if passed else "audited_fail")
-                    self.record_event("audit_result", shot_id=record_id, campaign_id=campaign_id, workflow_id=workflow_id, source=source, success=passed, extra={"audit_score": score})
+                    try:
+                        self._persist_media_shot_metadata(shot_record)
+                    except Exception as e:
+                        self.record_event(
+                            "audit_metadata_persist_failed",
+                            shot_id=record_id,
+                            campaign_id=campaign_id,
+                            workflow_id=workflow_id,
+                            source=source,
+                            success=False,
+                            extra={"reason": str(e)},
+                        )
+                        yield {
+                            "type": "error",
+                            "shot_id": effective_shot["shot_id"],
+                            "text": f"Audit metadata persist failed for {effective_shot['shot_id']}: {e}",
+                        }
+                    self.record_event(
+                        "audit_result",
+                        shot_id=record_id,
+                        campaign_id=campaign_id,
+                        workflow_id=workflow_id,
+                        source=source,
+                        success=passed,
+                        extra={
+                            "audit_score": score,
+                            "audit_model_score": shot_record.get("audit_model_score"),
+                            "audit_checks_score": shot_record.get("audit_checks_score"),
+                            "audit_issues": shot_record.get("audit_issues") or [],
+                            "audit_critical_failures": shot_record.get("audit_critical_failures") or [],
+                            "audit_noncritical_issues": shot_record.get("audit_noncritical_issues") or [],
+                            "audit_decision_reasons": shot_record.get("audit_decision_reasons") or [],
+                        },
+                    )
                     if passed:
                         yield {"type": "memory", "shot_id": effective_shot["shot_id"], "text": f"Audit pass ({score:.1f})"}
                     else:
