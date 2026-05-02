@@ -289,6 +289,7 @@ class HermesVideoService:
         shot_ids: List[str],
         duration: int = 4,
         fps: int = 24,
+        workflow_id: str = "04_ltx2.3_image_to_video",
         bible_text: str = "",
     ) -> Dict[str, Any]:
         """
@@ -472,6 +473,7 @@ class HermesVideoService:
             "duration_plan": json.loads(duration_plan) if isinstance(duration_plan, str) else duration_plan,
             "shots": analysis_results,
             "fps": fps,
+            "workflow_id": workflow_id,
         }
         prompts_data = {}
         prompt_raw_text = ""
@@ -482,13 +484,14 @@ class HermesVideoService:
             "shots": analysis_results,
             "duration_plan": prompt_payload["duration_plan"],
             "fps": fps,
+            "workflow_id": workflow_id,
             "allowed_skill_patterns": compiler_scope.get("patterns", []),
             "instructions": (
                 "Return strict JSON only with shape: "
                 "{\"prompts\": {\"SHOT_001\": {\"duration_sec\": N, \"fps\": N, "
                 "\"segments\": [{\"time_range\": \"0-1s\", \"prompt\": \"...\"}], "
                 "\"full_prompt\": \"...\", \"negative\": \"...\"}}}. "
-                "Prompts must be detailed, model-specific LTX2.3 image-to-video prompts grounded in "
+                f"Prompts must be detailed, model-specific LTX2.3 prompts for workflow {workflow_id}, grounded in "
                 "the vision_analysis. Do not output generic text like preserve identity and gentle "
                 "parallax by itself. Include specific visible subjects, exact environment, camera "
                 "movement, subject/environment motion, lighting continuity, temporal pacing, and "

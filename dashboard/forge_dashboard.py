@@ -2006,6 +2006,7 @@ class VideoGeneratePromptsRequest(BaseModel):
     duration: int = 4
     fps: int = 24
     campaign_id: str = ""
+    workflow_id: str = "04_ltx2.3_image_to_video"
 
 
 class LMStudioLoadRequest(BaseModel):
@@ -2217,6 +2218,7 @@ async def api_video_generate_prompts(req: VideoGeneratePromptsRequest):
     shot_ids = [str(x) for x in req.shot_ids]
     duration = int(req.duration or 4)
     fps = int(req.fps or 24)
+    workflow_id = (req.workflow_id or "04_ltx2.3_image_to_video").strip()
     campaign_id = (req.campaign_id or _ACTIVE_CAMPAIGN or "video_batch").strip()
 
     # Resolve bible text if available
@@ -2245,6 +2247,7 @@ async def api_video_generate_prompts(req: VideoGeneratePromptsRequest):
                 shot_ids=shot_ids,
                 duration=duration,
                 fps=fps,
+                workflow_id=workflow_id,
                 bible_text=bible_text,
             )
 
