@@ -1012,6 +1012,63 @@ async def api_get_campaigns():
     }
 
 
+@app.get("/api/campaigns/{campaign_id}/agent-exchanges")
+async def api_get_campaign_agent_exchanges(campaign_id: str):
+    cid = (campaign_id or "").strip()
+    if not cid:
+        raise HTTPException(status_code=400, detail="campaign_id required")
+    exchanges: List[Dict[str, Any]] = []
+    manifest_path = MEDIA_IMAGES / cid / "_agent_exchanges.json"
+    if manifest_path.exists():
+        try:
+            data = json.loads(manifest_path.read_text(encoding="utf-8"))
+            if isinstance(data, list):
+                exchanges.extend([x for x in data if isinstance(x, dict)])
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"agent exchange log unreadable: {e}")
+    in_memory = _CAMPAIGNS.get(cid, {}).get("agent_exchanges", [])
+    if isinstance(in_memory, list):
+        seen = {
+            (
+                str(x.get("timestamp", "")),
+                str(x.get("stage", "")),
+                json.dumps(x.get("request", {}), sort_keys=True, default=str)[:300],
+            )
+            for x in exchanges
+        }
+        for x in in_memory:
+            if not isinstance(x, dict):
+                continue
+            key = (
+                str(x.get("timestamp", "")),
+                str(x.get("stage", "")),
+                json.dumps(x.get("request", {}), sort_keys=True, default=str)[:300],
+            )
+            if key not in seen:
+                exchanges.append(x)
+                seen.add(key)
+    legacy = _CAMPAIGNS.get(cid, {}) if isinstance(_CAMPAIGNS.get(cid, {}), dict) else {}
+    for key, stage in [
+        ("kimi_raw_response", "legacy_kimi_director_plan_response"),
+        ("kimi_revision_raw_response", "legacy_kimi_director_revision_response"),
+    ]:
+        raw = str(legacy.get(key, "") or "")
+        if raw:
+            exchanges.append({
+                "stage": stage,
+                "transport": "legacy_response_only",
+                "campaign_id": cid,
+                "request": None,
+                "response": {"content": raw},
+                "note": "This response was captured before full request/response exchange logging was enabled.",
+            })
+    return {
+        "campaign_id": cid,
+        "count": len(exchanges),
+        "exchanges": exchanges,
+    }
+
+
 def _safe_campaign_name(raw: str) -> str:
     # Keep this filesystem-safe and UI-friendly.
     name = re.sub(r"[^A-Za-z0-9._-]+", "_", (raw or "").strip())
@@ -2305,10 +2362,38 @@ def _apply_keyword_fails(checks: Dict[str, bool], issues: List[str], feedback: s
     merged_text = " ".join(issues + [feedback]).lower()
     if not merged_text:
         return checks
+    absence_phrases = (
+        "hands are not visible",
+        "hands not visible",
+        "no hands visible",
+        "hand is not visible",
+        "hand not visible",
+        "not visible on controls",
+    )
     for check_key, keywords in _AUDIT_KEYWORD_TO_CHECK.items():
+        if check_key == "hands_ok" and any(p in merged_text for p in absence_phrases):
+            continue
         if any(k in merged_text for k in keywords):
             checks[check_key] = False
     return checks
+
+
+def _remove_absent_hand_issues(issues: List[str]) -> List[str]:
+    absence_phrases = (
+        "hands are not visible",
+        "hands not visible",
+        "no hands visible",
+        "hand is not visible",
+        "hand not visible",
+        "not visible on controls",
+    )
+    filtered = []
+    for issue in issues:
+        text = str(issue or "")
+        if any(p in text.lower() for p in absence_phrases):
+            continue
+        filtered.append(text)
+    return filtered
 
 
 def _extract_checks(raw: Dict[str, Any]) -> Dict[str, Any]:
@@ -2334,6 +2419,12 @@ def _aggregate_audit_results(pass_a: Dict[str, Any], pass_b: Dict[str, Any]) -> 
     feedback = " | ".join([x for x in [pass_a.get("feedback"), pass_b.get("feedback")] if isinstance(x, str) and x.strip()]).strip()
 
     checks = _apply_keyword_fails(checks, issues + noncritical + critical, feedback)
+    merged_audit_text = " ".join(issues + noncritical + critical + [feedback]).lower()
+    if any(p in merged_audit_text for p in ("hands are not visible", "hands not visible", "no hands visible", "hand is not visible", "hand not visible", "not visible on controls")):
+        checks["hands_ok"] = True
+        issues = _remove_absent_hand_issues(issues)
+        noncritical = _remove_absent_hand_issues(noncritical)
+        critical = _remove_absent_hand_issues(critical)
     for key in _AUDIT_CRITICAL_CHECKS:
         if checks.get(key) is False and not any(key in c for c in critical):
             critical.append(f"{key} failed")
@@ -2437,24 +2528,25 @@ async def _run_vision_audit_pass(
     payload = {
         "model": model,
         "messages": [
-            {"role": "system", "content": system_prompt},
+            {"role": "system", "content": "/no_think\n" + system_prompt + "\nReturn compact JSON only. No markdown."},
             {
                 "role": "user",
                 "content": [
                     {
                         "type": "text",
                         "text": (
-                            user_prompt
+                            "/no_think\n"
+                            + user_prompt
                             + "\n\nIMPORTANT: Put the final answer in assistant content as raw JSON only. "
-                            "Do not leave the final answer only in reasoning_content."
+                            "Do not leave the final answer only in reasoning_content. Keep the JSON compact."
                         ),
                     },
                     {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{image_b64}"}},
                 ],
             },
         ],
-        "temperature": 0.1,
-        "max_tokens": 4096,
+        "temperature": 0,
+        "max_tokens": int(os.getenv("FORGE_VISION_AUDIT_MAX_TOKENS", "8192")),
     }
     headers = {"Content-Type": "application/json"}
     if api_key and endpoint.startswith("https://"):
@@ -2464,18 +2556,24 @@ async def _run_vision_audit_pass(
     if resp.status_code >= 400:
         raise RuntimeError(f"vision_audit_http_error status={resp.status_code} error={resp.text[:500]}")
     data = resp.json()
-    content = (
-        (data.get("choices") or [{}])[0]
-        .get("message", {})
-        .get("content", "")
-    )
+    message = (data.get("choices") or [{}])[0].get("message", {})
+    content = message.get("content", "")
+    reasoning_content = message.get("reasoning_content", "")
     finish_reason = (data.get("choices") or [{}])[0].get("finish_reason", "")
     if isinstance(content, dict):
         result = content
     else:
         if not str(content or "").strip() and finish_reason == "length":
-            raise RuntimeError("vision_no_final_content_token_limit")
-        result = _extract_json_response(str(content))
+            if str(reasoning_content or "").strip():
+                try:
+                    result = _extract_json_response(str(reasoning_content))
+                    result["_audit_warning"] = "parsed_from_reasoning_content_after_length"
+                except Exception:
+                    raise RuntimeError("vision_no_final_content_token_limit")
+            else:
+                raise RuntimeError("vision_no_final_content_token_limit")
+        else:
+            result = _extract_json_response(str(content))
     if not isinstance(result, dict):
         raise RuntimeError(f"vision_audit_invalid_response:{task_description}")
     return result
@@ -2502,54 +2600,27 @@ async def audit_render_with_kimi_vl(image_path: str, prompt: str = "", campaign:
             raise RuntimeError("missing_kimi_api_key")
         if not model:
             raise RuntimeError("missing_kimi_visual_model")
-        cinematic_system_prompt = (
-            "You are an image quality auditor. "
-            "Score cinematic composition, lighting quality, prompt adherence, and visible artifacts."
-        )
-        cinematic_user_prompt = (
-            f"Audit this full image for campaign '{campaign}'. "
-            f"Original prompt excerpt: {prompt[:240] if prompt else 'N/A'}. "
-            "Return JSON with keys: overall_score (0-100), model_passed (bool), confidence (0-1), "
-            "checks object with booleans for hands_ok, limbs_ok, face_ok, reflection_ok, vehicle_geometry_ok, "
-            "text_artifacts_ok, prompt_adherence_ok, plus critical_failures (array), noncritical_issues (array), "
-            "feedback (string), issues (array)."
+        audit_system_prompt = "You are a compact visual QA auditor. Return only JSON."
+        audit_user_prompt = (
+            "Return ONLY minified JSON, no markdown, no explanation. "
+            f"Audit this image for campaign '{campaign}'. Prompt excerpt: {prompt[:180] if prompt else 'N/A'}. "
+            "Schema: {\"overall_score\":0-100,\"model_passed\":true/false,\"confidence\":0-1,"
+            "\"checks\":{\"hands_ok\":true,\"limbs_ok\":true,\"face_ok\":true,\"reflection_ok\":true,"
+            "\"vehicle_geometry_ok\":true,\"text_artifacts_ok\":true,\"prompt_adherence_ok\":true},"
+            "\"critical_failures\":[],\"noncritical_issues\":[],\"issues\":[],\"feedback\":\"short\"}. "
+            "Fail only visible hard defects. If hands/faces/reflections/vehicles are not visible or not applicable, mark that check true."
         )
 
-        forensic_system_prompt = (
-            "You are a forensic visual consistency auditor. "
-            "Be strict on anatomy, reflections, and physical plausibility."
-        )
-        forensic_user_prompt = (
-            f"Inspect this full image for hard failures. Campaign '{campaign}'. "
-            "Explicitly verify: "
-            "1) human hand/finger count and structure, "
-            "2) extra or impossible limbs, "
-            "3) mirror/window reflection consistency with scene geometry, "
-            "4) vehicle body/wheel/door geometry consistency, "
-            "5) deformed faces, "
-            "6) text/watermark artifacts. "
-            "Return JSON in the same schema as requested in the other pass."
-        )
-
-        pass_a = await _run_vision_audit_pass(
+        audit_pass = await _run_vision_audit_pass(
             endpoint=endpoint,
             api_key=api_key,
             model=model,
             image_path=image_path,
-            system_prompt=cinematic_system_prompt,
-            user_prompt=cinematic_user_prompt,
-            task_description=f"Cinematic audit for {campaign}",
+            system_prompt=audit_system_prompt,
+            user_prompt=audit_user_prompt,
+            task_description=f"Compact audit for {campaign}",
         )
-        pass_b = await _run_vision_audit_pass(
-            endpoint=endpoint,
-            api_key=api_key,
-            model=model,
-            image_path=image_path,
-            system_prompt=forensic_system_prompt,
-            user_prompt=forensic_user_prompt,
-            task_description=f"Forensic audit for {campaign}",
-        )
-        result = _aggregate_audit_results(pass_a, pass_b)
+        result = _aggregate_audit_results(audit_pass, {})
         result["audit_backend"] = "vision_config"
         result["audit_endpoint"] = endpoint
         result["audit_model"] = model
