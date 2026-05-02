@@ -47,6 +47,7 @@ from .api.prompt_builder import load_banks, build_recipe, generate_random_recipe
 from .api.spark_monitor import monitor as spark_monitor
 from core.dispatch.comfy_client import ComfyUIClient
 from core.hermes.pipeline import HermesCampaignService, CampaignRequest, HermesAuditService, HermesVideoService
+from core.hermes.pipeline.director_service import KimiDirectorService
 
 STATIC_DIR = Path(__file__).parent / "static"
 REPO_ROOT = Path(__file__).parent.parent.resolve()
@@ -736,8 +737,16 @@ class UpdateShotRequest(BaseModel):
     shot_id: str
     prompt: str
 
+class ShotDescriptionUpdateRequest(BaseModel):
+    description: str
+
 class ReparseRequest(BaseModel):
     path: str = ""
+
+class DirectorGenerateRequest(BaseModel):
+    brief: str
+    length: str = ""
+    target_shots: Optional[int] = None
 
 class RenameCampaignRequest(BaseModel):
     old_campaign_id: str
@@ -1711,6 +1720,132 @@ def _persist_shots(source_path: Path, shots: List[Dict[str, Any]]) -> None:
                 json.dump(shots, f, indent=2)
         except Exception:
             pass
+
+
+def _script_director_event(payload: Dict[str, Any]) -> str:
+    return json.dumps(payload, ensure_ascii=True) + "\n"
+
+
+def _script_shot_from_director_plan(shot: Dict[str, Any]) -> Dict[str, Any]:
+    shot_id = str(shot.get("shot_id") or shot.get("id") or f"SHOT_{int(shot.get('sequence') or 1):03d}")
+    sequence = int(shot.get("sequence") or shot.get("n") or 1)
+    visual_brief = str(shot.get("visual_brief") or shot.get("prompt") or "").strip()
+    camera = str(shot.get("camera_direction") or "").strip()
+    lighting = str(shot.get("lighting_direction") or "").strip()
+    constraints = str(shot.get("constraints") or "").strip()
+    description_parts = [visual_brief]
+    if camera:
+        description_parts.append(f"Camera: {camera}")
+    if lighting:
+        description_parts.append(f"Lighting: {lighting}")
+    if constraints:
+        description_parts.append(f"Constraints: {constraints}")
+    description = ". ".join(part.rstrip(".") for part in description_parts if part).strip()
+    characters = shot.get("characters") if isinstance(shot.get("characters"), list) else []
+    return {
+        "id": shot_id,
+        "shot_id": shot_id,
+        "n": sequence,
+        "sequence": sequence,
+        "intent": "image",
+        "status": "ready",
+        "description": description or visual_brief or "Untitled shot",
+        "prompt": description or visual_brief or "Untitled shot",
+        "characters": characters,
+        "mood": str(shot.get("narrative_intent") or ""),
+        "environment": str(shot.get("environment") or ""),
+        "camera_direction": camera,
+        "lighting_direction": lighting,
+        "rationale": str(shot.get("rationale") or ""),
+        "constraints": constraints,
+        "seed": random.randint(100000, 999999),
+    }
+
+
+async def _stream_director_shot_generation(req: DirectorGenerateRequest) -> AsyncGenerator[str, None]:
+    brief = (req.brief or "").strip()
+    if not brief:
+        yield _script_director_event({"type": "error", "text": "Brief is required"})
+        return
+
+    campaign_id = f"script_{uuid.uuid4().hex[:10]}"
+    director = KimiDirectorService()
+    target_shots = int(req.target_shots or director.requested_shot_count(brief, req.length))
+    target_shots = max(1, min(target_shots, 120))
+
+    try:
+        yield _script_director_event({"type": "status", "text": f"Kimi Director planning {target_shots} shots..."})
+        plan = await director.request_plan(
+            brief=brief,
+            campaign_id=campaign_id,
+            length=req.length or "",
+            target_shots=target_shots,
+        )
+        normalized = director.normalize_shots(plan, campaign_id)
+        yield _script_director_event({"type": "status", "text": f"Kimi plan received: {len(normalized)} shots"})
+
+        try:
+            yield _script_director_event({"type": "status", "text": "Kimi critique pass running..."})
+            review = await director.self_check_plan(brief, campaign_id, normalized)
+            score = director.score_from_review(review)
+            status = str(review.get("status", "reviewed") or "reviewed")
+            yield _script_director_event({
+                "type": "status",
+                "text": f"Kimi critique: {status}" + (f" ({score})" if score is not None else ""),
+            })
+            if status.lower() in {"warn", "fail"} or (score is not None and score < 70):
+                yield _script_director_event({"type": "status", "text": "Kimi revision pass running..."})
+                revised = await director.revise_plan(
+                    brief=brief,
+                    campaign_id=campaign_id,
+                    normalized_shots=normalized,
+                    review=review,
+                    target_shots=target_shots,
+                    length=req.length or "",
+                )
+                normalized = director.normalize_shots(revised, campaign_id)
+                yield _script_director_event({"type": "status", "text": f"Kimi revision applied: {len(normalized)} shots"})
+        except Exception as e:
+            yield _script_director_event({"type": "status", "text": f"Warning: Kimi critique unavailable: {str(e)[:240]}"})
+
+        script_shots = [_script_shot_from_director_plan(s) for s in normalized]
+        _SHOTS_STORE.clear()
+        _SHOTS_STORE.extend(script_shots)
+
+        total = len(script_shots)
+        for idx, shot in enumerate(script_shots, start=1):
+            yield _script_director_event({"type": "shot", "shot": shot, "index": idx, "total": total})
+        yield _script_director_event({"type": "done", "text": f"Shot list ready: {total} shots", "count": total})
+    except Exception as e:
+        yield _script_director_event({"type": "error", "text": str(e)[:500]})
+
+
+@app.post("/api/director/generate")
+async def api_director_generate(req: DirectorGenerateRequest):
+    return StreamingResponse(_stream_director_shot_generation(req), media_type="application/x-ndjson")
+
+
+@app.patch("/api/shots/{shot_id}")
+async def api_update_script_shot_description(shot_id: str, req: ShotDescriptionUpdateRequest):
+    desc = (req.description or "").strip()
+    for shot in _SHOTS_STORE:
+        if str(shot.get("id") or shot.get("shot_id") or "") == shot_id:
+            shot["description"] = desc
+            shot["prompt"] = desc
+            return {"status": "ok", "shot": shot}
+    raise HTTPException(status_code=404, detail=f"Shot {shot_id} not found")
+
+
+@app.delete("/api/director/shots/{shot_id}")
+async def api_delete_script_director_shot(shot_id: str):
+    before = len(_SHOTS_STORE)
+    _SHOTS_STORE[:] = [
+        shot for shot in _SHOTS_STORE
+        if str(shot.get("id") or shot.get("shot_id") or "") != shot_id
+    ]
+    if len(_SHOTS_STORE) == before:
+        raise HTTPException(status_code=404, detail=f"Shot {shot_id} not found")
+    return {"status": "ok", "shot_id": shot_id}
 
 
 class ParseScriptRequest(BaseModel):
