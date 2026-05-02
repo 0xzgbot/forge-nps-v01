@@ -878,6 +878,15 @@ async function loadConfig() {
         document.getElementById("cfg-lmstudio-host").value = hermes.host || "";
         document.getElementById("cfg-lmstudio-port").value = hermes.port || "";
         document.getElementById("cfg-lmstudio-model").value = hermes.model_name || "";
+        const loadConfig = hermes.load_config || {};
+        const contextEl = document.getElementById("cfg-lmstudio-context");
+        if (contextEl) contextEl.value = loadConfig.context_length || 8192;
+        const batchEl = document.getElementById("cfg-lmstudio-batch");
+        if (batchEl) batchEl.value = loadConfig.eval_batch_size || 1024;
+        const flashEl = document.getElementById("cfg-lmstudio-flash");
+        if (flashEl) flashEl.checked = loadConfig.flash_attention !== false;
+        const kvEl = document.getElementById("cfg-lmstudio-kv");
+        if (kvEl) kvEl.checked = loadConfig.offload_kv_cache_to_gpu !== false;
 
         // ComfyUI
         const comfyui = currentConfig.comfyui || {};
@@ -937,6 +946,22 @@ function markDirty(dotKey) {
             return value === null ? null : (parseInt(value) || 0);
         },
         'models.hermes_3.model_name': () => fieldValue("cfg-lmstudio-model"),
+        'models.hermes_3.load_config.context_length': () => {
+            const value = fieldValue("cfg-lmstudio-context");
+            return value === null ? null : (parseInt(value) || 8192);
+        },
+        'models.hermes_3.load_config.eval_batch_size': () => {
+            const value = fieldValue("cfg-lmstudio-batch");
+            return value === null ? null : (parseInt(value) || 1024);
+        },
+        'models.hermes_3.load_config.flash_attention': () => {
+            const el = document.getElementById("cfg-lmstudio-flash");
+            return el ? el.checked : null;
+        },
+        'models.hermes_3.load_config.offload_kv_cache_to_gpu': () => {
+            const el = document.getElementById("cfg-lmstudio-kv");
+            return el ? el.checked : null;
+        },
         'comfyui.primary': () => fieldValue("cfg-comfyui-primary"),
         'comfyui.secondary': () => fieldValue("cfg-comfyui-secondary"),
         'spark.primary': () => fieldValue("cfg-spark-primary"),
@@ -962,6 +987,10 @@ function collectAllSettings() {
         'models.hermes_3.host',
         'models.hermes_3.port',
         'models.hermes_3.model_name',
+        'models.hermes_3.load_config.context_length',
+        'models.hermes_3.load_config.eval_batch_size',
+        'models.hermes_3.load_config.flash_attention',
+        'models.hermes_3.load_config.offload_kv_cache_to_gpu',
         'comfyui.primary',
         'comfyui.secondary',
         'spark.primary',
@@ -1132,19 +1161,23 @@ async function testLMStudio() {
     $modelsList.style.display = "none";
 
     try {
-        const url = "/api/test/lmstudio?host=" + encodeURIComponent(host) + "&port=" + encodeURIComponent(port);
+        const url = "/api/lmstudio/status?host=" + encodeURIComponent(host) + "&port=" + encodeURIComponent(port);
         const resp = await fetch(url);
         const data = await resp.json();
 
         if (data.status === "ok") {
-            $result.textContent = "Connected! Latency: " + data.latency_ms + "ms | " + data.message;
-            $result.className = "test-result ok";
+            const loaded = data.loaded_models || [];
+            const available = data.available_models || [];
+            $result.textContent = "Reachable: " + loaded.length + " loaded / " + available.length + " available (" + data.latency_ms + "ms)";
+            $result.className = loaded.length ? "test-result ok" : "test-result loading";
 
             // Populate model dropdown
-            if (data.models && data.models.length > 0) {
-                $modelsSelect.innerHTML = data.models.map(m =>
-                    '<option value="' + escapeHtml(m) + '">' + escapeHtml(m) + '</option>'
+            if (available.length > 0) {
+                $modelsSelect.innerHTML = available.map(m =>
+                    '<option value="' + escapeHtml(m.key) + '">' + escapeHtml((m.vision ? "VISION " : "") + (m.display_name || m.key) + " - " + m.key) + '</option>'
                 ).join("");
+                const current = document.getElementById("cfg-lmstudio-model")?.value || "";
+                if (current) $modelsSelect.value = current;
                 $modelsList.style.display = "block";
             }
         } else {
@@ -1155,6 +1188,66 @@ async function testLMStudio() {
         $result.textContent = "Error: " + e.message;
         $result.className = "test-result err";
     }
+}
+
+function getLMStudioLoadPayload() {
+    return {
+        host: document.getElementById("cfg-lmstudio-host")?.value || "",
+        port: parseInt(document.getElementById("cfg-lmstudio-port")?.value || "0") || 0,
+        model: document.getElementById("cfg-lmstudio-model")?.value || "",
+        context_length: parseInt(document.getElementById("cfg-lmstudio-context")?.value || "8192") || 8192,
+        eval_batch_size: parseInt(document.getElementById("cfg-lmstudio-batch")?.value || "1024") || 1024,
+        flash_attention: !!document.getElementById("cfg-lmstudio-flash")?.checked,
+        offload_kv_cache_to_gpu: !!document.getElementById("cfg-lmstudio-kv")?.checked,
+    };
+}
+
+async function loadLMStudioModel() {
+    const $result = document.getElementById("lmstudio-test-result");
+    const payload = getLMStudioLoadPayload();
+    if (!payload.model) {
+        $result.textContent = "Choose or enter a model key first";
+        $result.className = "test-result err";
+        return null;
+    }
+    $result.textContent = "Loading " + payload.model + "...";
+    $result.className = "test-result loading";
+    try {
+        const resp = await fetch("/api/lmstudio/load", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+        });
+        const data = await resp.json();
+        if (data.status === "ok") {
+            const seconds = data.load_time_seconds ?? Math.round((data.elapsed_ms || 0) / 1000);
+            $result.textContent = "Loaded " + data.model + " in " + seconds + "s";
+            $result.className = "test-result ok";
+            configDirty = {};
+            await loadConfig();
+            await testLMStudio();
+            return data;
+        }
+        $result.textContent = "Load failed: " + (data.error || data.detail || "unknown error");
+        $result.className = "test-result err";
+        return null;
+    } catch (e) {
+        $result.textContent = "Load error: " + e.message;
+        $result.className = "test-result err";
+        return null;
+    }
+}
+
+async function reloadHermesVision() {
+    const $result = document.getElementById("lmstudio-test-result");
+    const loaded = await loadLMStudioModel();
+    if (!loaded) return;
+    $result.textContent = "Loaded. Testing Hermes and Vision...";
+    $result.className = "test-result loading";
+    await testLMStudio();
+    await testVision();
+    $result.textContent = "Reload complete: Hermes/Vision model loaded and Vision test triggered.";
+    $result.className = "test-result ok";
 }
 
 // ---------------------------------------------------------------------------
@@ -2462,6 +2555,38 @@ async function loadVideoLibrary() {
         updateVideoSelectionUI();
     } catch (e) {
         if (statusEl) statusEl.textContent = "Failed to load media: " + e.message;
+    }
+}
+
+async function importRenderedMedia() {
+    const input = document.getElementById("video-import-path");
+    const status = document.getElementById("video-import-status");
+    const path = (input?.value || "").trim();
+    if (!path) {
+        if (status) status.value = "Enter a folder or report path";
+        return;
+    }
+    if (status) status.value = "Importing...";
+    try {
+        const resp = await fetch("/api/import/sienna-batch", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ report_path: path }),
+        });
+        const data = await resp.json();
+        if (!resp.ok || data.status !== "ok") {
+            if (status) status.value = "Import failed: " + (data.detail || data.error || resp.status);
+            return;
+        }
+        const images = Number(data.images || 0);
+        const videos = Number(data.videos || 0);
+        const imported = Number(data.imported || 0);
+        const updated = Number(data.updated_existing || 0);
+        if (status) status.value = images + " image(s), " + videos + " video(s); " + imported + " new, " + updated + " updated";
+        await loadShots();
+        await loadVideoLibrary();
+    } catch (e) {
+        if (status) status.value = "Import error: " + e.message;
     }
 }
 
