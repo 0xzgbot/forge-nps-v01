@@ -1,51 +1,98 @@
 # Forge NPS Architecture
 
 ## Runtime Boundary
-Canonical runtime for this project is entirely inside:
-`/Users/zgbot/Desktop/forge_nps_v01`
 
-Primary server:
-- `/Users/zgbot/Desktop/forge_nps_v01/dashboard/forge_dashboard.py`
-- Port `7000`
+Canonical runtime lives in:
 
-## Core Pipeline Services
-- `/Users/zgbot/Desktop/forge_nps_v01/core/hermes/pipeline/director_service.py`
-  - Kimi structured planning and self-check.
-- `/Users/zgbot/Desktop/forge_nps_v01/core/hermes/pipeline/campaign_service.py`
-  - Campaign orchestration and stream events.
-- `/Users/zgbot/Desktop/forge_nps_v01/core/hermes/pipeline/audit_service.py`
-  - Re-audit and remediation/retry behavior.
-- `/Users/zgbot/Desktop/forge_nps_v01/core/hermes/pipeline/state_machine.py`
-  - Canonical shot states and transitions.
+```text
+/Users/zgbot/Desktop/forge_nps_v01
+```
+
+Primary app:
+
+- Server: [dashboard/forge_dashboard.py](/Users/zgbot/Desktop/forge_nps_v01/dashboard/forge_dashboard.py)
+- Port: `7000`
+- UI: `http://127.0.0.1:7000`
+
+Forge NPS is a multi-service app. The dashboard coordinates external Kimi/NVIDIA, LM Studio, and ComfyUI/Spark services.
+
+## Service Roles
+
+| Service | Runtime Role |
+|---------|--------------|
+| FastAPI dashboard | Thin API/UI adapter, config, media serving, stream orchestration. |
+| Hermes pipeline services | Campaign intake, prompt compilation, continuity, remediation, memory writes. |
+| Kimi/NVIDIA | Director planning, coverage critique, visual audit when configured. |
+| LM Studio | Hermes local profile/chat calls and optional local vision model. |
+| ComfyUI/Spark | Render execution and output files. |
+| Media root | Durable rendered image/video storage outside the repo. |
+
+## Pipeline Services
+
+| File | Responsibility |
+|------|----------------|
+| [core/hermes/pipeline/campaign_service.py](/Users/zgbot/Desktop/forge_nps_v01/core/hermes/pipeline/campaign_service.py) | Main campaign orchestration and NDJSON stream events. |
+| [core/hermes/pipeline/director_service.py](/Users/zgbot/Desktop/forge_nps_v01/core/hermes/pipeline/director_service.py) | Kimi shot planning, requested shot count, self-check. |
+| [core/hermes/pipeline/profile_cli.py](/Users/zgbot/Desktop/forge_nps_v01/core/hermes/pipeline/profile_cli.py) | Hermes profile calls through LM Studio/OpenAI-compatible API. |
+| [core/hermes/pipeline/audit_service.py](/Users/zgbot/Desktop/forge_nps_v01/core/hermes/pipeline/audit_service.py) | Re-audit and remediation orchestration. |
+| [core/hermes/pipeline/video_service.py](/Users/zgbot/Desktop/forge_nps_v01/core/hermes/pipeline/video_service.py) | Image-to-video prompt/render support. |
+| [core/hermes/pipeline/state_machine.py](/Users/zgbot/Desktop/forge_nps_v01/core/hermes/pipeline/state_machine.py) | Canonical shot state transitions. |
+| [core/prompts/prompt_compiler.py](/Users/zgbot/Desktop/forge_nps_v01/core/prompts/prompt_compiler.py) | Workflow-aware prompt artifact compilation. |
 
 ## Data Flow
-1. `POST /api/hermes/run-campaign`
-2. Kimi returns strict shot-plan JSON.
-3. Hermes compiler generates workflow-specific prompt artifact.
-4. ComfyUI/Spark renders.
-5. Vision audit stamps pass/fail.
-6. Optional remediation creates linked retry shot.
+
+1. UI or client calls `POST /api/hermes/run-campaign`.
+2. Hermes campaign intake produces director context.
+3. Kimi creates a structured shot plan.
+4. Kimi performs planning/self-check critique.
+5. Hermes compiles each shot into workflow-specific prompt artifacts.
+6. ComfyUI/Spark renders each prompt.
+7. Vision audit stamps pass/fail details.
+8. Failed shots can be re-audited or remediated into linked retries.
+9. Memory records canonical pipeline events and outcomes.
 
 ## Canonical Endpoints
+
 - `POST /api/hermes/run-campaign`
+- `POST /api/hermes/cancel`
 - `GET /api/shots`
+- `GET /api/campaigns`
 - `POST /api/audit/reprocess`
 - `POST /api/audit/remediate`
 - `GET /api/memory/health`
-
-## Stream Contract
-Expected event types:
-- `kimi`, `kimi_raw`, `kimi_plan`, `kimi_review`
-- `hermes`, `compiler`, `spark`, `memory`
-- `warning`, `error`, `done`
+- `GET /api/config`
+- `POST /api/config/save`
+- `GET /api/lmstudio/status`
+- `POST /api/lmstudio/load`
+- `POST /api/test/comfyui`
 
 ## Media Storage
-- Root: `FORGE_MEDIA_ROOT` (default `/Users/zgbot/Desktop/FORGE_NPS_MEDIA`)
-- Served at `/external-renders/*`
-- Images stored in `FORGE_MEDIA_ROOT/images`
+
+Media root:
+
+```text
+/Users/zgbot/Desktop/FORGE_NPS_MEDIA
+```
+
+Important folders:
+
+- `images/`
+- `videos/`
+- `imports/`
+- `legacy/`
+
+Dashboard routes serve media through `/media-assets/*` and `/external-renders/*`.
+
+## Configuration Resolution
+
+Runtime config loads from `.env`, then overlays `data/config.json`. The Settings page writes to `data/config.json`.
+
+Important note: LM Studio load tuning is not controlled by Forge. `POST /api/lmstudio/load` sends the selected model and lets LM Studio use its own model defaults.
 
 ## Legacy Policy
-The following routes are intentionally disabled and return `410 legacy_disabled`:
+
+Legacy routes are intentionally disabled and return `410 legacy_disabled`:
+
 - `/api/shots/dispatch-all`
 - `/api/shots/dispatch`
 - `/api/submit-recipe`
@@ -53,9 +100,10 @@ The following routes are intentionally disabled and return `410 legacy_disabled`
 - `/api/render`
 - `/api/render/audit`
 
-Compatibility route:
-- `/api/renders/audit-batch` only forwards re-audit requests with `shot_ids`.
+Compatibility shim:
 
-## Memory Contract
-Events are stored in `data/hermes_memory/episodic/events.jsonl` using canonical event types only.
-Health diagnostics are exposed at `GET /api/memory/health`.
+- `/api/renders/audit-batch` forwards to canonical re-audit only when `shot_ids` is provided.
+
+## Contract Reference
+
+Event stream types, shot fields, memory events, allowed states, and fallback policy are defined in [PIPELINE_CONTRACT_SUMMARY.md](/Users/zgbot/Desktop/forge_nps_v01/PIPELINE_CONTRACT_SUMMARY.md) and [data/contracts/pipeline_contract.json](/Users/zgbot/Desktop/forge_nps_v01/data/contracts/pipeline_contract.json).

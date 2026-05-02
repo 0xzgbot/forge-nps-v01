@@ -2,13 +2,17 @@
 
 ## Canonical Runtime Flow
 1. `POST /api/hermes/run-campaign`
-2. Kimi returns strict structured shot plan.
-3. Hermes compiles workflow-specific prompt artifact.
-4. Spark renders and returns prompt id + image path.
-5. Vision audit stamps pass/fail.
-6. Failed shots can be re-audited or remediated into linked retries.
+2. Hermes campaign intake returns structured context.
+3. Kimi returns strict structured shot plan.
+4. Kimi returns planning/self-check critique.
+5. Hermes compiles workflow-specific prompt artifact.
+6. Spark renders and returns prompt id + image path.
+7. Vision audit stamps pass/fail.
+8. Failed shots can be re-audited or remediated into linked retries.
 
 ## Canonical Event Stream Types
+- `profile`
+- `pipeline_timing`
 - `kimi`
 - `kimi_raw`
 - `kimi_plan`
@@ -20,6 +24,17 @@
 - `warning`
 - `error`
 - `done`
+
+## Expected Early Campaign Stream
+
+The run button is considered wired when the stream reaches at least:
+
+1. `backend_stream_open`
+2. `Hermes / Campaign Intake starting.`
+3. `Hermes / Campaign Intake complete.`
+4. `Kimi: Generating shot list...`
+5. `kimi_director_plan`
+6. `kimi_raw`
 
 ## Required Shot Fields
 - Base:
@@ -80,6 +95,24 @@
 - `retry_linked`
 - `final_outcome`
 - `import_completed`
+
+## Memory Health
+
+Primary event store:
+
+```text
+/Users/zgbot/Desktop/forge_nps_v01/data/hermes_memory/episodic/events.jsonl
+```
+
+`GET /api/memory/health` is the memory integrity gate and should report:
+
+- `total_events`
+- `unknown_event_types`
+- `orphan_remediation_events`
+- `fallback_events`
+- `shots_missing_audit_after_render`
+
+Fallback-source events are excluded from learning unless `FORGE_LEARN_FROM_FALLBACK=true`.
 
 ## Legacy Policy
 Hard-disabled (`410 legacy_disabled`):

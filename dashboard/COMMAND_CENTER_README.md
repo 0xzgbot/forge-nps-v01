@@ -1,179 +1,116 @@
-# Forge NPS — Command Center Dashboard
+# Forge NPS Dashboard Reference
 
-FastAPI dashboard for the Forge NPS pipeline. Port 7000. Obsidian Studio UI.
+The dashboard is the FastAPI UI/API surface for Forge NPS.
 
----
+- App file: [dashboard/forge_dashboard.py](/Users/zgbot/Desktop/forge_nps_v01/dashboard/forge_dashboard.py)
+- Default port: `7000`
+- UI: `http://127.0.0.1:7000`
 
-## Start
+For full installation and service setup, use [INSTALLATION_AGENT_GUIDE.md](/Users/zgbot/Desktop/forge_nps_v01/INSTALLATION_AGENT_GUIDE.md).
 
-```bash
-cd <forge_nps_v01>
-KIMI_API_KEY="nvapi-..." python3 forge_dashboard.py
+## Startup Behavior
+
+On startup the dashboard:
+
+1. Loads `.env`.
+2. Overlays `data/config.json`.
+3. Ensures media directories exist.
+4. Reindexes media from `FORGE_MEDIA_ROOT`.
+5. Queries LM Studio `/v1/models`.
+6. Emits LM Studio status events.
+
+Expected log signs:
+
+```text
+[FORGE] Media shots reindexed at startup: ...
+[FORGE] LM Studio auto-detected model: ...
+Uvicorn running on http://0.0.0.0:7000
 ```
 
-Env vars loaded from `.env` in dashboard dir, then parent dir. `KIMI_API_KEY` is normally read from repo `.env`; the value in `data/config.json` may be masked.
-
-On startup:
-1. Loads `data/config.json`
-2. Queries LM Studio `/v1/models` — auto-detects loaded model, no hardcoding
-3. Initializes `NousHermesBridge`, `KimiBridge`, `ComfyUIClient`
-4. Emits `lmstudio_detected` / `lmstudio_offline` WebSocket event
-
----
-
-## LM Studio Settings
-
-The LM Studio card keeps model loading intentionally minimal:
-
-- **Test & Detect Models** calls status/model-list endpoints and does not load or reload a model.
-- **Load Model** and **Reload Hermes/Vision** call `POST /api/lmstudio/load` with only the selected model.
-
-Forge does not send context length, eval batch size, flash attention, or KV-cache placement overrides. LM Studio applies its own default load settings for the selected model.
-
----
-
-## API Endpoints
+## Canonical API Endpoints
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| GET | `/` | Serve index.html |
-| POST | `/api/hermes/chat` | Stream Hermes chat response (SSE) |
-| POST | `/api/hermes/run-campaign` | Full pipeline: brief → shots → renders (NDJSON stream) |
-| POST | `/api/render` | Single-shot render: prompt → ComfyUI → save → audit → memory |
-| POST | `/api/hermes/inject-prompt` | Inject prompt into ComfyUI workflow node |
-| GET | `/api/renders` | List all renders (scans campaigns/ recursively) |
-| GET | `/api/characters` | List characters from `data/character_banks/anchors/` |
-| POST | `/api/characters` | Add character — saves anchor image + appends to world bible |
-| POST | `/api/config/save` | Persist config changes to `data/config.json` |
-| GET | `/api/stats` | RAM usage, shot count, event log size |
-| GET | `/api/events` | Recent event log entries |
-| GET | `/api/shots` | Shots in current session |
+| `GET` | `/` | Serve dashboard UI. |
+| `POST` | `/api/hermes/chat` | Stream Hermes live chat response. |
+| `POST` | `/api/hermes/run-campaign` | Run full campaign pipeline as NDJSON stream. |
+| `POST` | `/api/hermes/cancel` | Cancel active campaign stream. |
+| `GET` | `/api/shots` | Return current shot store. |
+| `GET` | `/api/campaigns` | Return campaign index. |
+| `POST` | `/api/audit/reprocess` | Re-audit selected shot IDs. |
+| `POST` | `/api/audit/remediate` | Remediate failed selected shot IDs. |
+| `GET` | `/api/memory/health` | Return memory integrity health. |
+| `GET` | `/api/config` | Return effective settings. |
+| `POST` | `/api/config/save` | Persist settings to `data/config.json`. |
+| `GET` | `/api/lmstudio/status` | Check loaded and available LM Studio models. |
+| `POST` | `/api/lmstudio/load` | Ask LM Studio to load selected model using LM Studio defaults. |
+| `POST` | `/api/test/comfyui` | Test ComfyUI host health. |
 
----
+Legacy dispatch/render endpoints are intentionally disabled. See [PIPELINE_CONTRACT_SUMMARY.md](/Users/zgbot/Desktop/forge_nps_v01/PIPELINE_CONTRACT_SUMMARY.md).
 
-## Campaign Stream Events (NDJSON)
+## Campaign Stream
 
-`POST /api/hermes/run-campaign` streams newline-delimited JSON:
+`POST /api/hermes/run-campaign` returns newline-delimited JSON.
 
-```
-{"type": "kimi",   "text": "Generating shot list..."}
-{"type": "kimi",   "text": "Shot list ready: 6 shots"}
-{"type": "hermes", "text": "Writing prompt for SHOT_001...", "shot_id": "SHOT_001"}
-{"type": "hermes", "text": "SHOT_001: cinematic prompt...", "shot_id": "SHOT_001", "prompt": "..."}
-{"type": "spark",  "text": "Dispatching SHOT_001...", "shot_id": "SHOT_001", "status": "dispatched"}
-{"type": "spark",  "text": "SHOT_001 queued", "shot_id": "SHOT_001", "status": "queued", "prompt_id": "..."}
-{"type": "render_complete", "src": "/campaigns/abc123_car/shot001.png", "shot_id": "SHOT_001"}
-{"type": "kimi_vl_audit",  "score": 0.91, "passed": true, "feedback": "...", "shot_id": "SHOT_001"}
-{"type": "memory_written", "concept": "...", "event_id": "...", "score": 0.91}
-{"type": "error",  "text": "..."}
-{"type": "done",   "shots": [...]}
-```
-
-WebSocket events (model status, render_complete, audit results):
-```
-lmstudio_detected   — {model_id: "qwen3.6-35b-a3b"}
-lmstudio_offline    — {}
-render_complete     — {files, campaign, prompt_preview}
-kimi_vl_audit       — {score, passed, feedback, issues}
-memory_written      — {concept, event_id, score, passed, feedback}
-remediation_retry   — {shot_id, attempt, rewrite_reason}
-```
-
----
-
-## Run Campaign Request
+Expected early sequence:
 
 ```json
-POST /api/hermes/run-campaign
-{
-  "brief": "car commercial golden hour",
-  "shot_count": 6,
-  "bible_path": "data/lore_bible/world_bible.md"
-}
+{"type":"pipeline_timing","stage":"backend_stream_open"}
+{"type":"profile","text":"Hermes / Campaign Intake starting."}
+{"type":"pipeline_timing","stage":"hermes_campaign_intake"}
+{"type":"profile","text":"Hermes / Campaign Intake complete."}
+{"type":"kimi","text":"Generating shot list..."}
+{"type":"pipeline_timing","stage":"kimi_director_plan"}
+{"type":"kimi_raw","text":"..."}
 ```
 
-Length → shot count mapping: `15s=3, 30s=6, 60s=12, 90s=18`
+Common event types:
 
----
+- `profile`
+- `pipeline_timing`
+- `kimi`
+- `kimi_raw`
+- `kimi_plan`
+- `kimi_review`
+- `compiler`
+- `spark`
+- `render_complete`
+- `kimi_vl_audit`
+- `memory`
+- `warning`
+- `error`
+- `done`
 
-## Single Render Request
+## Settings Behavior
 
-```json
-POST /api/render
-{
-  "prompt": "cinematic wide shot, golden hour...",
-  "shot_id": "SHOT_001",
-  "seed": 42,
-  "campaign": "my_campaign",
-  "audit": true
-}
+The Settings page writes to `data/config.json`. Effective config is `.env` plus the JSON override.
+
+LM Studio behavior:
+
+- **Test & Detect Models** calls status/model-list endpoints.
+- **Load Model** and **Reload Hermes/Vision** call `POST /api/lmstudio/load` with the selected model only.
+- Forge does not send context length, eval batch size, flash attention, or KV-cache overrides.
+
+## Local Checks
+
+```bash
+curl -sS http://127.0.0.1:7000/api/stats
+curl -sS http://127.0.0.1:7000/api/config
+curl -sS http://127.0.0.1:7000/api/shots
 ```
 
-Response:
-```json
-{
-  "status": "complete",
-  "prompt_id": "abc-123",
-  "output_filename": "shot001.png",
-  "saved_count": 1,
-  "campaign_dir": "data/campaigns/my_campaign/"
-}
+Hermes chat:
+
+```bash
+curl -sS -N -X POST http://127.0.0.1:7000/api/hermes/chat \
+  -H 'Content-Type: application/json' \
+  -d '{"message":"Say hello in one sentence.","profile":"live"}'
 ```
 
----
+ComfyUI:
 
-## Add Character Request
-
+```bash
+curl -sS -X POST http://127.0.0.1:7000/api/test/comfyui \
+  -H 'Content-Type: application/json' \
+  -d '{"host":"http://100.112.87.8:8188"}'
 ```
-POST /api/characters
-Content-Type: multipart/form-data
-
-name=Sienna Nomad
-description=Wanderer with silver eyes, weathered leather jacket, dark braided hair
-anchor_image=<file upload>
-```
-
-Saves anchor to `data/character_banks/anchors/sienna_nomad.jpg`.
-Appends to `data/lore_bible/world_bible.md`.
-
----
-
-## File Layout
-
-```
-dashboard/
-├── forge_dashboard.py       # FastAPI app — all endpoints + WebSocket
-├── static/
-│   ├── js/
-│   │   ├── app.js           # All UI logic, WebSocket handlers, view rendering
-│   │   ├── data.js          # STATUS_BADGE map, static data
-│   │   └── components.css   # Chip styles, length selector, badges
-│   └── renders/sienna/      # Legacy static renders (also served)
-├── templates/
-│   └── index.html           # Single-page shell
-└── README.md
-```
-
----
-
-## ComfyUI Workflow Injection
-
-Workflow loaded from `workflows/spark_image_z_image_turbo.json`.
-
-- **Node 6** (`CLIPTextEncode`) — `inputs.text` = Hermes-generated prompt
-- **Node 9** (`KSampler`) — `inputs.seed` = random int (or user-provided)
-
-Renders saved to `data/campaigns/{campaign_id}/` and served at `/campaigns/{campaign}/{filename}`.
-
----
-
-## Dependencies
-
-```
-fastapi
-uvicorn
-python-multipart
-httpx
-```
-
-Core bridges loaded from this repository (`forge_nps_v01/core`).
