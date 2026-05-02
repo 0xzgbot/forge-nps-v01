@@ -786,6 +786,66 @@ async def api_get_shots():
     }
 
 
+MEDIA_SHOT_METADATA_FILE = "_shot_metadata.json"
+MEDIA_SHOT_METADATA_FIELDS = {
+    "video_prompt",
+    "video_prompt_source",
+    "negative_prompt",
+    "workflow_profile",
+    "model_standard_name",
+    "model_standard_version",
+    "model_standard_source",
+    "model_standard_rules",
+    "sections",
+    "kimi_plan",
+    "kimi_rationale",
+}
+
+
+def _read_media_shot_metadata(folder: Path) -> Dict[str, Any]:
+    path = folder / MEDIA_SHOT_METADATA_FILE
+    if not path.exists():
+        return {}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+
+def _metadata_for_media_file(image_path: Path) -> Dict[str, Any]:
+    data = _read_media_shot_metadata(image_path.parent)
+    record = data.get(image_path.stem)
+    return record if isinstance(record, dict) else {}
+
+
+def _persist_media_shot_metadata(shot: Dict[str, Any]) -> None:
+    image_path = str(shot.get("image_path") or "").strip()
+    if not image_path and shot.get("image_url"):
+        resolved = _resolve_image_path(str(shot.get("image_url") or ""))
+        image_path = str(resolved) if resolved else ""
+    if not image_path:
+        return
+    path = Path(image_path)
+    if not path.exists():
+        return
+    record_id = str(shot.get("id") or path.stem)
+    folder = path.parent
+    metadata = _read_media_shot_metadata(folder)
+    existing = metadata.get(record_id)
+    if not isinstance(existing, dict):
+        existing = {}
+    for key in MEDIA_SHOT_METADATA_FIELDS:
+        if key in shot:
+            existing[key] = shot.get(key)
+    existing["updated_at"] = _now_iso()
+    metadata[record_id] = existing
+    tmp = folder / f".{MEDIA_SHOT_METADATA_FILE}.tmp"
+    final = folder / MEDIA_SHOT_METADATA_FILE
+    tmp.write_text(json.dumps(metadata, indent=2), encoding="utf-8")
+    tmp.replace(final)
+
+
 @app.post("/api/shots/reindex-storage")
 async def api_reindex_shots_from_storage():
     """
@@ -837,7 +897,7 @@ async def api_reindex_shots_from_storage():
                 continue
             seen_ids.add(record_id)
             image_url = f"{url_prefix}/{rel.as_posix()}" if mount_name != "external" else f"{url_prefix}/{rel.as_posix()}"
-            rebuilt.append({
+            record = {
                 "id": record_id,
                 "campaign_id": campaign_id,
                 "shot_id": shot_id,
@@ -863,7 +923,12 @@ async def api_reindex_shots_from_storage():
                 "image_path": str(f),
                 "image_url": image_url,
                 "created_at": _now_iso(),
-            })
+            }
+            stored_metadata = _metadata_for_media_file(f)
+            for key in MEDIA_SHOT_METADATA_FIELDS:
+                if key in stored_metadata:
+                    record[key] = stored_metadata[key]
+            rebuilt.append(record)
 
     # Preserve any existing non-media script shots, but prioritize media records.
     non_media = [s for s in _SHOTS_STORE if not s.get("image_url")]
@@ -1897,7 +1962,7 @@ async def api_video_process(req: VideoProcessRequest):
 
 @app.post("/api/video/generate-prompts")
 async def api_video_generate_prompts(req: VideoGeneratePromptsRequest):
-    """Stream LTX video prompt generation via 3 LM Studio agents."""
+    """Stream LTX video prompt generation via Vision analysis + Hermes prompt profiles."""
     from fastapi.responses import StreamingResponse
     import asyncio
 
@@ -1944,45 +2009,45 @@ async def api_video_generate_prompts(req: VideoGeneratePromptsRequest):
             prompts = result.get("prompts", {})
             raw = result.get("raw", {})
 
-            # Agent 1: Image Analyst
-            yield json.dumps({"agent": "Image Analyst", "status": "thinking"}) + "\n"
+            # Agent 1: Vision Analyst
+            yield json.dumps({"agent": "Vision Analyst", "status": "thinking"}) + "\n"
             for a in analysis_results:
                 yield json.dumps({
-                    "agent": "Image Analyst",
+                    "agent": "Vision Analyst",
                     "shot_id": a.get("shot_id", ""),
                     "result": a.get("analysis", ""),
                 }) + "\n"
 
             # Agent 2: Duration Planner
-            yield json.dumps({"agent": "Duration Planner", "status": "thinking"}) + "\n"
+            yield json.dumps({"agent": "Hermes / Duration Planner", "status": "thinking"}) + "\n"
             try:
                 dp = json.loads(duration_plan) if isinstance(duration_plan, str) else duration_plan
                 plan_items = dp.get("plan", []) if isinstance(dp, dict) else []
                 for item in plan_items:
                     yield json.dumps({
-                        "agent": "Duration Planner",
+                        "agent": "Hermes / Duration Planner",
                         "shot_id": item.get("shot_id", ""),
                         "result": f"{item.get('duration_sec', 0)}s ({item.get('frames', 0)} frames) — {item.get('reasoning', '')}",
                     }) + "\n"
             except Exception:
-                yield json.dumps({"agent": "Duration Planner", "result": str(duration_plan)[:500]}) + "\n"
+                yield json.dumps({"agent": "Hermes / Duration Planner", "result": str(duration_plan)[:500]}) + "\n"
 
             # Agent 3: Prompt Engineer
-            yield json.dumps({"agent": "Prompt Engineer", "status": "thinking"}) + "\n"
+            yield json.dumps({"agent": "Hermes / LTX Prompt Engineer", "status": "thinking"}) + "\n"
             for sid, pdata in raw.items():
                 if isinstance(pdata, dict):
                     segments = pdata.get("segments", [])
                     if segments:
                         for seg in segments:
                             yield json.dumps({
-                                "agent": "Prompt Engineer",
+                                "agent": "Hermes / LTX Prompt Engineer",
                                 "shot_id": sid,
                                 "result": f"[{seg.get('time_range', '')}] {seg.get('prompt', '')}",
                             }) + "\n"
                     else:
-                        yield json.dumps({"agent": "Prompt Engineer", "shot_id": sid, "result": str(pdata)}) + "\n"
+                        yield json.dumps({"agent": "Hermes / LTX Prompt Engineer", "shot_id": sid, "result": str(pdata)}) + "\n"
                 else:
-                    yield json.dumps({"agent": "Prompt Engineer", "shot_id": sid, "result": str(pdata)}) + "\n"
+                    yield json.dumps({"agent": "Hermes / LTX Prompt Engineer", "shot_id": sid, "result": str(pdata)}) + "\n"
 
             # Save prompts to shot records
             saved = 0
@@ -1994,7 +2059,8 @@ async def api_video_generate_prompts(req: VideoGeneratePromptsRequest):
                     shot = next((s for s in _SHOTS_STORE if str(s.get("shot_id", "")) == str(sid)), None)
                 if shot:
                     shot["video_prompt"] = prompt_text
-                    shot["video_prompt_source"] = "prompt_agent"
+                    shot["video_prompt_source"] = "vision_prompt_agent"
+                    _persist_media_shot_metadata(shot)
                     saved += 1
                 else:
                     save_misses.append(sid)
@@ -2006,10 +2072,11 @@ async def api_video_generate_prompts(req: VideoGeneratePromptsRequest):
                 }) + "\n"
 
             yield json.dumps({
-                "agent": "Prompt Engineer",
+                "agent": "Hermes / LTX Prompt Engineer",
                 "done": True,
                 "saved": saved,
                 "prompts": prompts,
+                "video_prompt_source": "vision_prompt_agent",
                 "selected": result.get("selected_count", len(shot_ids)),
                 "unmapped_prompt_keys": result.get("unmapped_prompt_keys", []),
             }) + "\n"
