@@ -1726,8 +1726,9 @@ def _script_director_event(payload: Dict[str, Any]) -> str:
     return json.dumps(payload, ensure_ascii=True) + "\n"
 
 
-def _script_shot_from_director_plan(shot: Dict[str, Any]) -> Dict[str, Any]:
+def _script_shot_from_director_plan(shot: Dict[str, Any], campaign_id: str) -> Dict[str, Any]:
     shot_id = str(shot.get("shot_id") or shot.get("id") or f"SHOT_{int(shot.get('sequence') or 1):03d}")
+    record_id = f"{campaign_id}__{shot_id}"
     sequence = int(shot.get("sequence") or shot.get("n") or 1)
     visual_brief = str(shot.get("visual_brief") or shot.get("prompt") or "").strip()
     camera = str(shot.get("camera_direction") or "").strip()
@@ -1743,8 +1744,10 @@ def _script_shot_from_director_plan(shot: Dict[str, Any]) -> Dict[str, Any]:
     description = ". ".join(part.rstrip(".") for part in description_parts if part).strip()
     characters = shot.get("characters") if isinstance(shot.get("characters"), list) else []
     return {
-        "id": shot_id,
+        "id": record_id,
         "shot_id": shot_id,
+        "source": "script_director",
+        "campaign_id": campaign_id,
         "n": sequence,
         "sequence": sequence,
         "intent": "image",
@@ -1808,8 +1811,8 @@ async def _stream_director_shot_generation(req: DirectorGenerateRequest) -> Asyn
         except Exception as e:
             yield _script_director_event({"type": "status", "text": f"Warning: Kimi critique unavailable: {str(e)[:240]}"})
 
-        script_shots = [_script_shot_from_director_plan(s) for s in normalized]
-        _SHOTS_STORE.clear()
+        script_shots = [_script_shot_from_director_plan(s, campaign_id) for s in normalized]
+        _SHOTS_STORE[:] = [s for s in _SHOTS_STORE if str(s.get("source") or "") != "script_director"]
         _SHOTS_STORE.extend(script_shots)
 
         total = len(script_shots)

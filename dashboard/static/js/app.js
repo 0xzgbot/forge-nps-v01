@@ -1494,7 +1494,7 @@ function renderShotCard(shot, index, total) {
     card.innerHTML =
         '<div class="shot-header">' +
             '<input type="checkbox" class="shot-checkbox" data-shot-id="' + shot.id + '" onchange="toggleShotSelection()">' +
-            '<span class="shot-id">' + escapeHtml(shot.id) + '</span>' +
+            '<span class="shot-id">' + escapeHtml(shot.shot_id || shot.id) + '</span>' +
             '<span class="shot-intent ' + intentClass + '">' + intentLabel + '</span>' +
             '<div class="shot-actions">' +
                 '<button class="btn btn-secondary" onclick="toggleEditShot(\'' + shot.id + '\')">Edit</button>' +
@@ -1647,8 +1647,14 @@ async function sendToSpark() {
     await loadVideoLibrary();
 
     videoSelection.clear();
+    const missingMedia = [];
     shotsToSend.forEach(s => {
-        if (s && s.id) videoSelection.add(s.id);
+        if (!s || !s.id) return;
+        if (videoShotsById[s.id] && evaluateShotForVideo(videoShotsById[s.id]).eligible) {
+            videoSelection.add(s.id);
+        } else {
+            missingMedia.push(s.shot_id || s.id);
+        }
     });
     updateVideoSelectionUI();
     shotsToSend.forEach(s => {
@@ -1659,7 +1665,14 @@ async function sendToSpark() {
         if (cb) cb.checked = true;
     });
 
-    $scriptStatusText.textContent = "Selected " + shotsToSend.length + " shot(s) in Video tab";
+    if (videoSelection.size) {
+        $scriptStatusText.textContent = "Selected " + videoSelection.size + " rendered shot(s) in Video tab";
+    } else {
+        $scriptStatusText.textContent = "Selected script shots have no rendered images yet; render images before image-to-video.";
+    }
+    if (missingMedia.length && $sparkStatusText) {
+        $sparkStatusText.textContent = "Skipped " + missingMedia.length + " script shot(s) without rendered images: " + missingMedia.slice(0, 4).join(", ");
+    }
 }
 
 function clearShotList() {
@@ -3015,15 +3028,25 @@ async function processSelectedVideos() {
     const fps = parseInt($videoFps?.value || "24", 10);
     const workflowId = getSelectedVideoWorkflow();
     const videoPrompt = ($videoPrompt?.value || "").trim();
+    const selectedForVideo = Array.from(videoSelection).filter(id => {
+        const shot = videoShotsById[id];
+        return shot && evaluateShotForVideo(shot).eligible;
+    });
+    const skipped = videoSelection.size - selectedForVideo.length;
+    if (!selectedForVideo.length) {
+        $sparkStatusText.textContent = "No rendered images selected for video. Select image cards in the Video tab first.";
+        $sparkProgress.textContent = skipped ? (skipped + " selected item(s) had no image") : "";
+        return;
+    }
     $startBatchBtn.disabled = true;
     $startBatchBtn.textContent = "Processing...";
-    $sparkStatusText.textContent = "Processing " + videoSelection.size + " image(s) into videos via " + workflowId + "...";
+    $sparkStatusText.textContent = "Processing " + selectedForVideo.length + " image(s) into videos via " + workflowId + (skipped ? " (" + skipped + " skipped)" : "") + "...";
     try {
         const resp = await fetch("/api/video/process", {
             method: "POST",
             headers: {"Content-Type":"application/json"},
             body: JSON.stringify({
-                shot_ids: Array.from(videoSelection),
+                shot_ids: selectedForVideo,
                 duration,
                 fps,
                 workflow_id: workflowId,
@@ -3040,7 +3063,14 @@ async function processSelectedVideos() {
         const blocked = (data.results || []).filter(r => r.status === "blocked").length;
         const errs = (data.results || []).filter(r => r.status === "error").length;
         $sparkStatusText.textContent = "Video processing complete (" + workflowId + "): " + done + " queued, " + blocked + " blocked, " + errs + " errors";
-        $sparkProgress.textContent = (data.output_dir || "");
+        const failures = (data.results || []).filter(r => r.status === "blocked" || r.status === "error");
+        const failureText = failures.slice(0, 4).map(r =>
+            (r.shot_id || "shot") + ": " + (r.error || (r.reasons || []).join(",") || r.status)
+        ).join(" | ");
+        $sparkProgress.textContent = failureText || (data.output_dir || "");
+        if (failures.length) {
+            addLogEntry("error", "Video processing issues: " + failureText);
+        }
     } catch (e) {
         $sparkStatusText.textContent = "Error: " + e.message;
     } finally {
