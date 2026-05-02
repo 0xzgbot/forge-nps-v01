@@ -17,6 +17,7 @@ import os
 import asyncio
 import httpx
 from typing import Any, Dict, List, Optional, Tuple
+from urllib.parse import urlsplit, urlunsplit
 
 import numpy as np
 
@@ -34,10 +35,28 @@ class LMStudioClient:
         embed_model: str = "",
         timeout: float = 60.0,
     ):
-        self.base_url = (base_url or os.getenv("LMSTUDIO_HOST", "http://localhost:1234")).rstrip("/").removesuffix("/v1")
+        self.base_url = self._normalize_base_url(base_url or os.getenv("LMSTUDIO_HOST", "http://localhost:1234"))
         self.chat_model = chat_model or os.getenv("LMSTUDIO_CHAT_MODEL", "")
         self.embed_model = embed_model or os.getenv("LMSTUDIO_EMBED_MODEL", "")
         self.timeout = timeout
+
+    @staticmethod
+    def _normalize_base_url(raw: str) -> str:
+        value = (raw or "http://localhost:1234").strip().rstrip("/")
+        if not value.startswith(("http://", "https://")):
+            value = "http://" + value
+        if value.endswith("/v1"):
+            value = value[:-3].rstrip("/")
+        parts = urlsplit(value)
+        default_port = str(os.getenv("LMSTUDIO_PORT", "1234") or "1234").strip()
+        netloc = parts.netloc
+        try:
+            has_port = parts.port is not None
+        except ValueError:
+            has_port = ":" in netloc.rsplit("@", 1)[-1]
+        if default_port and not has_port:
+            netloc = f"{netloc}:{default_port}"
+        return urlunsplit((parts.scheme, netloc, parts.path.rstrip("/"), "", ""))
 
     # ------------------------------------------------------------------
     # Health / availability
