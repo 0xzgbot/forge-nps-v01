@@ -290,6 +290,12 @@ class HermesCampaignService:
                 "identity_pack": req.identity_pack or {},
             }
         self._write_campaign_manifest(campaign_id, req.brief, workflow_ids, req.identity_pack)
+        pipeline_t0 = time.perf_counter()
+
+        def elapsed_ms() -> int:
+            return int((time.perf_counter() - pipeline_t0) * 1000)
+
+        yield {"type": "pipeline_timing", "stage": "backend_stream_open", "elapsed_ms": elapsed_ms()}
         yield {"type": "profile", "profile_color_key": "profile_director_kimi", "text": "Kimi / Director Planner online"}
         yield {"type": "profile", "profile_color_key": "profile_critic_kimi", "text": "Kimi / Coverage Critic online"}
         yield {"type": "profile", "profile_color_key": "profile_compiler_lmstudio", "text": "Hermes / Prompt Compiler online"}
@@ -320,13 +326,55 @@ class HermesCampaignService:
             shot_index_offset = max_seq
         bible_text = self._resolve_bible_text(req.bible_path)
 
+        target_shots = self.director.requested_shot_count(req.brief, req.length)
+        intake_task = {
+            "task": "campaign_intake",
+            "campaign_id": campaign_id,
+            "brief": req.brief,
+            "length": req.length or "unspecified",
+            "target_shots": target_shots,
+            "workflow_ids": workflow_ids,
+            "identity_pack": req.identity_pack or {},
+            "world_bible_excerpt": bible_text[:4000] if bible_text else "none",
+            "required_output_schema": {
+                "director_brief": "string",
+                "visual_strategy": "string",
+                "continuity_priorities": ["string"],
+                "render_risks": ["string"],
+                "must_keep": ["string"],
+            },
+        }
+        intake_t0 = time.perf_counter()
+        yield {"type": "profile", "profile_color_key": "profile_compiler_lmstudio", "text": "Hermes / Campaign Intake starting."}
+        hermes_intake = await self.profile_cli.run_json("director", intake_task)
+        if not isinstance(hermes_intake, dict):
+            yield {"type": "error", "text": "Campaign stopped: Hermes campaign intake failed before Kimi planning."}
+            yield {"type": "done", "text": "Campaign stopped: Hermes intake unavailable."}
+            return
+        self._record_agent_exchange(campaign_id, hermes_intake.get("__exchange"))
+        self.campaigns[campaign_id]["hermes_intake"] = {
+            k: v for k, v in hermes_intake.items() if not str(k).startswith("__")
+        }
+        yield {
+            "type": "pipeline_timing",
+            "stage": "hermes_campaign_intake",
+            "elapsed_ms": elapsed_ms(),
+            "duration_ms": int((time.perf_counter() - intake_t0) * 1000),
+        }
+        yield {"type": "profile", "profile_color_key": "profile_compiler_lmstudio", "text": "Hermes / Campaign Intake complete."}
+
+        planning_brief = req.brief
+        intake_context = json.dumps(self.campaigns[campaign_id]["hermes_intake"], ensure_ascii=True)
+        if intake_context and intake_context != "{}":
+            planning_brief = f"{req.brief}\n\nHermes campaign intake:\n{intake_context[:4000]}"
+
         yield {"type": "kimi", "text": "Generating shot list..."}
         use_fallback = os.getenv("FORGE_DEV_FALLBACK", "false").lower() == "true"
-        target_shots = self.director.requested_shot_count(req.brief, req.length)
 
+        kimi_plan_t0 = time.perf_counter()
         try:
             plan = await self.director.request_plan(
-                req.brief,
+                planning_brief,
                 campaign_id,
                 bible_text=bible_text,
                 length=req.length,
@@ -344,6 +392,12 @@ class HermesCampaignService:
         raw_content = plan.get("__raw_content", "")
         self.campaigns[campaign_id]["kimi_raw_response"] = raw_content
         self._record_agent_exchange(campaign_id, plan.get("__exchange"))
+        yield {
+            "type": "pipeline_timing",
+            "stage": "kimi_director_plan",
+            "elapsed_ms": elapsed_ms(),
+            "duration_ms": int((time.perf_counter() - kimi_plan_t0) * 1000),
+        }
         yield {"type": "kimi_raw", "campaign_id": campaign_id, "text": raw_content[:800]}
 
         try:
@@ -358,7 +412,7 @@ class HermesCampaignService:
             yield {"type": "kimi", "text": f"Director returned {len(kimi_shots)}/{target_shots} shots. Requesting {missing} additional shots..."}
             try:
                 top_up = await self.director.request_missing_shots(
-                    brief=req.brief,
+                    brief=planning_brief,
                     campaign_id=campaign_id,
                     existing_shots=kimi_shots,
                     target_shots=target_shots,
@@ -397,9 +451,16 @@ class HermesCampaignService:
 
         review: Dict[str, Any] = {}
         try:
-            review = await self.director.self_check_plan(req.brief, campaign_id, kimi_shots)
+            review_t0 = time.perf_counter()
+            review = await self.director.self_check_plan(planning_brief, campaign_id, kimi_shots)
             self.campaigns[campaign_id]["kimi_review"] = review
             self._record_agent_exchange(campaign_id, review.get("__exchange"))
+            yield {
+                "type": "pipeline_timing",
+                "stage": "kimi_self_check",
+                "elapsed_ms": elapsed_ms(),
+                "duration_ms": int((time.perf_counter() - review_t0) * 1000),
+            }
             yield {"type": "profile", "profile_color_key": "profile_critic_kimi", "text": "Kimi / Coverage Critic completed review."}
             yield {
                 "type": "kimi_review",
@@ -428,8 +489,9 @@ class HermesCampaignService:
             if needs_revision:
                 yield {"type": "kimi", "text": "Director revision pass running..."}
                 try:
+                    revision_t0 = time.perf_counter()
                     revised = await self.director.revise_plan(
-                        brief=req.brief,
+                        brief=planning_brief,
                         campaign_id=campaign_id,
                         normalized_shots=kimi_shots,
                         review=review,
@@ -437,6 +499,12 @@ class HermesCampaignService:
                         bible_text=bible_text,
                         length=req.length,
                     )
+                    yield {
+                        "type": "pipeline_timing",
+                        "stage": "kimi_director_revision",
+                        "elapsed_ms": elapsed_ms(),
+                        "duration_ms": int((time.perf_counter() - revision_t0) * 1000),
+                    }
                     revised_raw = revised.get("__raw_content", "")
                     self._record_agent_exchange(campaign_id, revised.get("__exchange"))
                     if revised_raw:
