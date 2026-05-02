@@ -1907,6 +1907,36 @@ def _resolve_image_path(image_url: str) -> Optional[Path]:
     return None
 
 
+def _media_url_for_path(path: Path, *, is_video: bool = False) -> str:
+    try:
+        rel = path.resolve().relative_to(MEDIA_IMAGES.resolve())
+        return f"/external-renders/{rel.as_posix()}"
+    except Exception:
+        pass
+    try:
+        rel = path.resolve().relative_to(MEDIA_ROOT.resolve())
+        return f"/media-assets/{rel.as_posix()}"
+    except Exception:
+        pass
+    try:
+        rel = path.resolve().relative_to((REPO_ROOT / "data" / "campaigns").resolve())
+        return f"/campaigns/{rel.as_posix()}"
+    except Exception:
+        pass
+    try:
+        rel = path.resolve().relative_to((REPO_ROOT / "data" / "renders").resolve())
+        return f"/renders/{rel.as_posix()}"
+    except Exception:
+        pass
+    folder = "videos" if is_video else "imports"
+    dest_dir = MEDIA_ROOT / folder
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    dest = dest_dir / path.name
+    if not dest.exists() or dest.stat().st_size != path.stat().st_size:
+        shutil.copy2(path, dest)
+    return f"/media-assets/{folder}/{dest.name}"
+
+
 def _make_audit_service() -> HermesAuditService:
     return HermesAuditService(
         shots_store=_SHOTS_STORE,
@@ -2170,38 +2200,68 @@ async def api_import_sienna_batch(req: ImportBatchRequest):
     report_path = Path(req.report_path)
     if not report_path.exists():
         raise HTTPException(status_code=404, detail=f"Report not found: {report_path}")
+    image_exts = {".png", ".jpg", ".jpeg", ".webp"}
+    video_exts = {".mp4", ".mov", ".webm", ".m4v"}
+    media_exts = image_exts | video_exts
     if report_path.is_dir():
-        files = sorted([p for p in report_path.rglob("*") if p.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"}])
+        files = sorted([p for p in report_path.rglob("*") if p.suffix.lower() in media_exts])
     elif report_path.suffix.lower() in {".json"}:
         try:
             report = json.loads(report_path.read_text(encoding="utf-8"))
             files = []
-            for item in report.get("images", []):
-                p = Path(item) if Path(item).is_absolute() else report_path.parent / item
-                if p.exists():
+            for key in ("images", "videos", "media", "files"):
+                values = report.get(key, [])
+                if isinstance(values, str):
+                    values = [values]
+                if not isinstance(values, list):
+                    continue
+                for item in values:
+                    p = Path(item) if Path(str(item)).is_absolute() else report_path.parent / str(item)
+                    if p.exists() and p.suffix.lower() in media_exts:
+                        files.append(p)
+            for item in report.get("outputs", []):
+                if isinstance(item, dict):
+                    item = item.get("path") or item.get("file") or item.get("filename") or ""
+                p = Path(str(item)) if Path(str(item)).is_absolute() else report_path.parent / str(item)
+                if p.exists() and p.suffix.lower() in media_exts:
                     files.append(p)
         except Exception:
             files = []
     else:
         files = [report_path]
+    files = sorted({p.resolve(): p for p in files if p.suffix.lower() in media_exts}.values())
 
     imported = 0
     updated_existing = 0
+    imported_videos = 0
     for f in files:
         stem = f.stem
-        shot_id = f"sienna_{stem}"
+        is_video = f.suffix.lower() in video_exts
+        shot_id = f"sienna_{stem}{'__video' if is_video else ''}"
         existing = _find_shot(shot_id)
+        media_url = _media_url_for_path(f, is_video=is_video)
+        if not existing:
+            path_key = "video_path" if is_video else "image_path"
+            url_key = "video_url" if is_video else "image_url"
+            existing = next(
+                (
+                    s for s in _SHOTS_STORE
+                    if str(s.get(path_key) or "") == str(f)
+                    or str(s.get(url_key) or "") == media_url
+                ),
+                None,
+            )
         shot_payload = {
             "id": shot_id,
             "campaign_id": "import",
             "shot_id": shot_id,
             "sequence": 0,
-            "workflow_id": "imported_media",
-            "status": "rendered",
-            "state": "rendered",
+            "workflow_id": "imported_video" if is_video else "imported_media",
+            "status": "complete" if is_video else "rendered",
+            "state": "video_rendered" if is_video else "rendered",
             "seed": None,
-            "prompt": f"Imported media: {stem}",
-            "compiled_prompt": f"Imported media: {stem}",
+            "prompt": f"Imported {'video' if is_video else 'media'}: {stem}",
+            "compiled_prompt": f"Imported {'video' if is_video else 'media'}: {stem}",
             "video_prompt": "",
             "video_prompt_source": "",
             "negative_prompt": "",
@@ -2214,8 +2274,10 @@ async def api_import_sienna_batch(req: ImportBatchRequest):
             "model_standard_rules": [],
             "sections": {},
             "source": "import",
-            "image_path": str(f),
-            "image_url": f"/external-renders/{f.name}",
+            "image_path": "" if is_video else str(f),
+            "image_url": "" if is_video else media_url,
+            "video_path": str(f) if is_video else "",
+            "video_url": media_url if is_video else "",
             "created_at": _now_iso(),
         }
         if existing:
@@ -2224,14 +2286,22 @@ async def api_import_sienna_batch(req: ImportBatchRequest):
         else:
             _SHOTS_STORE.append(shot_payload)
             imported += 1
+        if is_video:
+            imported_videos += 1
 
     _record_pipeline_event(
         "import_completed",
         campaign_id="import",
         source="import",
-        extra={"imported": imported, "updated_existing": updated_existing, "report_path": str(report_path)},
+        extra={"imported": imported, "updated_existing": updated_existing, "videos": imported_videos, "report_path": str(report_path)},
     )
-    return {"status": "ok", "imported": imported, "updated_existing": updated_existing, "report": str(report_path)}
+    return {
+        "status": "ok",
+        "imported": imported,
+        "updated_existing": updated_existing,
+        "videos": imported_videos,
+        "report": str(report_path),
+    }
 
 
 @app.post("/api/shots/dispatch-all")

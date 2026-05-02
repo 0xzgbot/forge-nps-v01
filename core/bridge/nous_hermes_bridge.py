@@ -17,10 +17,12 @@ if str(PROJECT_ROOT) not in sys.path:
 
 try:
     from core.bridge.lmstudio_client import LMStudioClient
+    from core.bridge.runtime_config import get_raw_config
     from core.skills.skill_loader import SkillLoader
     from core.prompts.prompt_compiler import compile_prompt_artifact
 except ImportError:
     from core.bridge.lmstudio_client import LMStudioClient
+    from core.bridge.runtime_config import get_raw_config
     from core.skills.skill_loader import SkillLoader
     from core.prompts.prompt_compiler import compile_prompt_artifact
 
@@ -35,7 +37,13 @@ HERMES_SYSTEM = (
 
 class NousHermesBridge:
     def __init__(self):
-        self.model = os.getenv("NOUS_HERMES_MODEL", "Hermes-3-Llama-3.2-3B")
+        cfg = get_raw_config()
+        self.model = (
+            os.getenv("NOUS_HERMES_MODEL", "")
+            or os.getenv("LMSTUDIO_CHAT_MODEL", "")
+            or str(cfg.get("LMSTUDIO_CHAT_MODEL", ""))
+            or "Hermes-3-Llama-3.2-3B"
+        ).strip()
         self.client = LMStudioClient()
         self.last_error: Optional[str] = None
         try:
@@ -214,7 +222,16 @@ class NousHermesBridge:
                 temperature=0.8,
                 max_tokens=500,
             )
-            return resp["choices"][0]["message"]["content"].strip()
+            if isinstance(resp, dict) and resp.get("error"):
+                return f"[Hermes offline] {resp.get('error')}"
+            choices = resp.get("choices") if isinstance(resp, dict) else None
+            if not choices:
+                detail = json.dumps(resp, ensure_ascii=False)[:500] if isinstance(resp, dict) else str(resp)[:500]
+                return f"[Hermes offline] invalid_chat_response: {detail}"
+            content = (choices[0].get("message", {}).get("content") or "").strip()
+            if not content:
+                return "[Hermes offline] empty_chat_response"
+            return content
         except Exception as e:
             logger.warning(f"[HERMES] chat failed: {e}")
             return f"[Hermes offline] {e}"
