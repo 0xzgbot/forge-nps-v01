@@ -227,7 +227,13 @@ class HermesVideoService:
                 if p:
                     image_path = str(p)
             if not image_path:
-                results.append({"shot_id": sid, "status": "error", "error": "image_missing"})
+                results.append({
+                    "shot_id": sid,
+                    "status": "blocked",
+                    "error": "image_missing",
+                    "reasons": ["image_missing"],
+                    "workflow_id": workflow_id,
+                })
                 continue
 
             prompt_text = (prompt or "").strip() or str(
@@ -252,6 +258,8 @@ class HermesVideoService:
                         "shot_id": sid,
                         "status": "error",
                         "error": submit.get("error", "submit_failed"),
+                        "status_code": submit.get("status_code"),
+                        "raw": submit.get("raw"),
                         "workflow_id": workflow_id,
                     }
                 )
