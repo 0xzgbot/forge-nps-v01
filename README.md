@@ -8,6 +8,7 @@ Forge NPS is the hackathon pipeline where:
 5. Memory captures what happened.
 
 ## Canonical Docs
+- `~/Desktop/forge_nps_v01/INSTALLATION_AGENT_GUIDE.md`
 - `~/Desktop/forge_nps_v01/DEMO_SCRIPT.md`
 - `~/Desktop/forge_nps_v01/STABILITY_CHECKLIST.md`
 - `~/Desktop/forge_nps_v01/PIPELINE_CONTRACT_SUMMARY.md`

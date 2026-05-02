@@ -20,6 +20,10 @@ pytest-asyncio>=0.23.0
 # Dashboard
 fastapi>=0.110.0
 uvicorn>=0.27.0
+python-multipart>=0.0.9
+
+# Image metadata/thumbnail handling
+Pillow>=10.0.0
 
 # Optional: for local embedding fallback (LM Studio)
 # No pip package needed — LM Studio exposes OpenAI-compatible API on localhost:1234
