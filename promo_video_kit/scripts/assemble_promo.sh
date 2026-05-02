@@ -30,7 +30,11 @@ RESOLUTION="1280x720"
 
 # Source files (UPDATE THESE PATHS to match your actual exports)
 DASHBOARD_RECORDING="${TEMP_DIR}/dashboard_recording.mov"      # YOU record this
-TD_VIDEO="/tmp/forge_memory_graph_output.mov"                  # TouchDesigner output
+TD_MEMORY="/tmp/forge_memory_graph_v2_output.mov"              # TouchDesigner
+TD_PIPELINE="/tmp/forge_pipeline_flow_output.mov"              # TouchDesigner
+TD_AUDIT="/tmp/forge_audit_gate_output.mov"                   # TouchDesigner
+TD_COMMAND="/tmp/forge_command_center_output.mov"              # TouchDesigner
+TD_PROVENANCE="/tmp/forge_provenance_web_output.mov"           # TouchDesigner
 TRANSITION1_FRAMES="${TEMP_DIR}/transition1_frames/frame_%06d.png"  # p5js export
 TRANSITION2_FRAMES="${TEMP_DIR}/transition2_frames/frame_%06d.png"  # p5js export
 TRANSITION3_FRAMES="${TEMP_DIR}/transition3_frames/frame_%06d.png"  # p5js export
@@ -45,16 +49,20 @@ SOUNDTRACK="${TEMP_DIR}/soundtrack.wav"
 # Timing (in seconds)
 T_OPEN=5
 T_DASHBOARD=10
-T_TD=20
+T_TD_PIPELINE=10
 T_TRANSITION1=5
+T_TD_COMMAND=10
 T_HERO1=3
 T_HERO2=3
 T_HERO3=3
 T_TRANSITION2=5
+T_TD_AUDIT=10
 T_HERO4=3
 T_HERO5=3
 T_HERO6=3
-T_TRANSITION3=8
+T_TD_PROVENANCE=10
+T_TD_MEMORY=10
+T_TRANSITION3=5
 T_CLOSE=5
 
 echo "═══════════════════════════════════════════════════════════════"
@@ -196,23 +204,30 @@ else
     DASHBOARD_RECORDING="${TEMP_DIR}/dashboard.mov"
 fi
 
-# TouchDesigner placeholder
-if [ -f "${TD_VIDEO}" ]; then
-    echo "[OK] Using TouchDesigner output"
-else
-    echo "[WARN] TouchDesigner video not found. Creating placeholder."
-    ffmpeg -y -f lavfi -i "color=c=black:s=${RESOLUTION}:r=${FPS}:d=${T_TD}" \
-        -vf "
-            drawtext=fontfile=/System/Library/Fonts/Helvetica.ttc:
-            text='[TOUCHDESIGNER OUTPUT HERE]':
-            fontsize=32:fontcolor=#BD00FF:x=(w-text_w)/2:y=(h-text_h)/2:
-            format=yuv420p
-        " \
-        -c:v prores -profile:v 3 -pix_fmt yuv422p10le \
-        -t ${T_TD} \
-        "${TEMP_DIR}/td_placeholder.mov" 2>/dev/null
-    TD_VIDEO="${TEMP_DIR}/td_placeholder.mov"
-fi
+# TouchDesigner scene helpers
+use_td_or_placeholder() {
+    local path=$1
+    local duration=$2
+    local name=$3
+    if [ -f "${path}" ]; then
+        echo "[OK] Using ${name}"
+        echo "file '${path}'" >> "${TEMP_DIR}/concat_list.txt"
+    else
+        echo "[WARN] ${name} not found. Creating placeholder."
+        local placeholder="${TEMP_DIR}/td_placeholder_${name}.mov"
+        ffmpeg -y -f lavfi -i "color=c=black:s=${RESOLUTION}:r=${FPS}:d=${duration}" \
+            -vf "
+                drawtext=fontfile=/System/Library/Fonts/Helvetica.ttc:
+                text='[${name}]':
+                fontsize=32:fontcolor=#BD00FF:x=(w-text_w)/2:y=(h-text_h)/2:
+                format=yuv420p
+            " \
+            -c:v prores -profile:v 3 -pix_fmt yuv422p10le \
+            -t ${duration} \
+            "${placeholder}" 2>/dev/null
+        echo "file '${placeholder}'" >> "${TEMP_DIR}/concat_list.txt"
+    fi
+}
 
 # ── Concatenate all segments ──────────────────────────────────────────────
 
@@ -223,18 +238,23 @@ echo "[11/12] Concatenating segments..."
 cat > "${TEMP_DIR}/concat_list.txt" << EOF
 file '${TEMP_DIR}/opening.mov'
 file '${DASHBOARD_RECORDING}'
-file '${TD_VIDEO}'
-file '${TEMP_DIR}/transition1.mov'
-file '${TEMP_DIR}/hero1_clip.mov'
-file '${TEMP_DIR}/hero2_clip.mov'
-file '${TEMP_DIR}/hero3_clip.mov'
-file '${TEMP_DIR}/transition2.mov'
-file '${TEMP_DIR}/hero4_clip.mov'
-file '${TEMP_DIR}/hero5_clip.mov'
-file '${TEMP_DIR}/hero6_clip.mov'
-file '${TEMP_DIR}/transition3.mov'
-file '${TEMP_DIR}/closing.mov'
 EOF
+
+use_td_or_placeholder "${TD_PIPELINE}" ${T_TD_PIPELINE} "TD_PIPELINE"
+echo "file '${TEMP_DIR}/transition1.mov'" >> "${TEMP_DIR}/concat_list.txt"
+use_td_or_placeholder "${TD_COMMAND}" ${T_TD_COMMAND} "TD_COMMAND"
+echo "file '${TEMP_DIR}/hero1_clip.mov'" >> "${TEMP_DIR}/concat_list.txt"
+echo "file '${TEMP_DIR}/hero2_clip.mov'" >> "${TEMP_DIR}/concat_list.txt"
+echo "file '${TEMP_DIR}/hero3_clip.mov'" >> "${TEMP_DIR}/concat_list.txt"
+echo "file '${TEMP_DIR}/transition2.mov'" >> "${TEMP_DIR}/concat_list.txt"
+use_td_or_placeholder "${TD_AUDIT}" ${T_TD_AUDIT} "TD_AUDIT"
+echo "file '${TEMP_DIR}/hero4_clip.mov'" >> "${TEMP_DIR}/concat_list.txt"
+echo "file '${TEMP_DIR}/hero5_clip.mov'" >> "${TEMP_DIR}/concat_list.txt"
+echo "file '${TEMP_DIR}/hero6_clip.mov'" >> "${TEMP_DIR}/concat_list.txt"
+use_td_or_placeholder "${TD_PROVENANCE}" ${T_TD_PROVENANCE} "TD_PROVENANCE"
+use_td_or_placeholder "${TD_MEMORY}" ${T_TD_MEMORY} "TD_MEMORY"
+echo "file '${TEMP_DIR}/transition3.mov'" >> "${TEMP_DIR}/concat_list.txt"
+echo "file '${TEMP_DIR}/closing.mov'" >> "${TEMP_DIR}/concat_list.txt"
 
 ffmpeg -y -f concat -safe 0 -i "${TEMP_DIR}/concat_list.txt" \
     -c copy \

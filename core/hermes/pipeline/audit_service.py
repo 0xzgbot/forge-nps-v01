@@ -114,8 +114,13 @@ class HermesAuditService:
         host = (
             os.getenv("COMFYUI_PRIMARY", "")
             or str(cfg.get("COMFYUI_PRIMARY", ""))
-            or "http://localhost:8188"
         ).rstrip("/")
+        if not host:
+            return {
+                "status": "error",
+                "error": "comfy_not_configured",
+                "message": "COMFYUI_PRIMARY is not configured",
+            }
         comfy = ComfyUIClient(host)
         results = []
         for shot_id in shot_ids:

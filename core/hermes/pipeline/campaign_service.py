@@ -362,7 +362,7 @@ class HermesCampaignService:
                     self.campaigns[campaign_id]["kimi_revision_applied"] = False
                     yield {"type": "warning", "text": f"Director revision unavailable: {self._exc_reason(e)}"}
         except Exception as e:
-            if os.getenv("FORGE_KIMI_REQUIRE_SELF_CHECK", "false").lower() == "true":
+            if os.getenv("FORGE_KIMI_REQUIRE_SELF_CHECK", "true").lower() != "false":
                 yield {"type": "error", "text": f"Kimi self-check failed: {e}"}
                 yield {"type": "done", "text": "Campaign stopped: Kimi self-check unavailable."}
                 return
@@ -375,8 +375,11 @@ class HermesCampaignService:
         host = (
             os.getenv("COMFYUI_PRIMARY", "")
             or str(cfg.get("COMFYUI_PRIMARY", ""))
-            or "http://localhost:8188"
         ).rstrip("/")
+        if not host:
+            yield {"type": "error", "text": "Campaign stopped: COMFYUI_PRIMARY is not configured."}
+            yield {"type": "done", "text": "Campaign stopped before Spark dispatch."}
+            return
         comfy = ComfyUIClient(host)
         rendered_count = 0
         source = "fallback" if use_fallback else "campaign"

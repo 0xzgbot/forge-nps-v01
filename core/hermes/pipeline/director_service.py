@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import asyncio
 from typing import Any, Dict, List, Optional
 
 import httpx
@@ -25,11 +26,11 @@ class KimiDirectorService:
     def __init__(self) -> None:
         cfg = get_raw_config()
         raw_key = (
-            os.getenv("NOUS_API_KEY", "")
-            or os.getenv("KIMI_API_KEY", "")
+            os.getenv("KIMI_API_KEY", "")
+            or str(cfg.get("KIMI_API_KEY", ""))
+            or os.getenv("NOUS_API_KEY", "")
             or os.getenv("OPENROUTER_API_KEY", "")
             or str(cfg.get("NOUS_API_KEY", ""))
-            or str(cfg.get("KIMI_API_KEY", ""))
         ).strip()
         self.api_key = self._sanitize_api_key(raw_key)
         active = (os.getenv("KIMI_DIRECTOR_ENDPOINT_ACTIVE", "") or str(cfg.get("KIMI_DIRECTOR_ENDPOINT_ACTIVE", "api1"))).strip().lower()
@@ -38,12 +39,12 @@ class KimiDirectorService:
         endpoint = api2 if active == "api2" and api2 else api1
         if not endpoint:
             endpoint = (
-                os.getenv("NOUS_ENDPOINT", "")
-                or os.getenv("NIM_ENDPOINT", "")
+                os.getenv("NIM_ENDPOINT", "")
                 or os.getenv("KIMI_ENDPOINT", "")
+                or str(cfg.get("NIM_ENDPOINT", ""))
+                or os.getenv("NOUS_ENDPOINT", "")
                 or os.getenv("OPENROUTER_ENDPOINT", "")
                 or str(cfg.get("NOUS_ENDPOINT", ""))
-                or str(cfg.get("NIM_ENDPOINT", ""))
             ).strip()
         if not endpoint:
             endpoint = "https://inference-api.nousresearch.com/v1/chat/completions"
@@ -52,10 +53,10 @@ class KimiDirectorService:
             endpoint += "/chat/completions"
         self.endpoint = endpoint
         self.model_name = (
-            os.getenv("DIRECTOR_MODEL", "")
-            or os.getenv("KIMI_INSTRUCT_MODEL", "")
-            or str(cfg.get("DIRECTOR_MODEL", ""))
-            or str(cfg.get("KIMI_INSTRUCT_MODEL", "Hermes-4-405B"))
+            os.getenv("KIMI_INSTRUCT_MODEL", "")
+            or str(cfg.get("KIMI_INSTRUCT_MODEL", ""))
+            or os.getenv("DIRECTOR_MODEL", "")
+            or str(cfg.get("DIRECTOR_MODEL", "Hermes-4-405B"))
         ).strip()
 
     @staticmethod
@@ -275,21 +276,36 @@ class KimiDirectorService:
             "max_tokens": 4096,
         }
         timeout_sec = float(os.getenv("FORGE_KIMI_SELF_CHECK_TIMEOUT_SEC", "90"))
+        retries = max(0, int(os.getenv("FORGE_KIMI_SELF_CHECK_RETRIES", "2")))
+        last_error = ""
         async with httpx.AsyncClient(timeout=timeout_sec) as client:
-            resp = await client.post(
-                self.endpoint,
-                headers={"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"},
-                json=payload,
-            )
-            if resp.status_code >= 400:
-                raise RuntimeError(f"self_check_http_error status={resp.status_code} error={resp.text[:500]}")
-            data = resp.json()
-            content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
-            parsed = _extract_json_block(content)
-            if not isinstance(parsed, dict):
-                raise RuntimeError("self_check_invalid_json_shape")
-            parsed["__raw_content"] = content
-            return parsed
+            for attempt in range(retries + 1):
+                try:
+                    resp = await client.post(
+                        self.endpoint,
+                        headers={"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"},
+                        json=payload,
+                    )
+                    if resp.status_code >= 400:
+                        last_error = f"self_check_http_error status={resp.status_code} error={resp.text[:500]}"
+                        if resp.status_code in {429, 500, 502, 503, 504} and attempt < retries:
+                            await asyncio.sleep(1.5 * (attempt + 1))
+                            continue
+                        raise RuntimeError(last_error)
+                    data = resp.json()
+                    content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+                    parsed = _extract_json_block(content)
+                    if not isinstance(parsed, dict):
+                        raise RuntimeError("self_check_invalid_json_shape")
+                    parsed["__raw_content"] = content
+                    return parsed
+                except (httpx.TimeoutException, httpx.TransportError) as e:
+                    last_error = f"self_check_transport_error {e.__class__.__name__}: {str(e).strip()}"
+                    if attempt < retries:
+                        await asyncio.sleep(1.5 * (attempt + 1))
+                        continue
+                    raise RuntimeError(last_error)
+        raise RuntimeError(last_error or "self_check_failed")
 
     async def revise_plan(
         self,

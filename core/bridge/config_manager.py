@@ -30,8 +30,7 @@ class ConfigManager:
         return os.getenv("OPENROUTER_ENDPOINT", "")
 
     def get_comfyui_primary(self) -> str:
-        # Default to your established primary host from memory
-        return os.getenv("COMFYUI_PRIMARY", "http://localhost:8188")
+        return os.getenv("COMFYUI_PRIMARY", "")
 
     def get(self, key: str, default: Any = None) -> Any:
         """Generic accessor for configuration values (used by Orchestrator)."""

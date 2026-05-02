@@ -2326,22 +2326,88 @@ def _aggregate_audit_results(pass_a: Dict[str, Any], pass_b: Dict[str, Any]) -> 
     }
 
 
-async def _run_audit_pass(
-    client: Any,
+def _extract_json_response(text: str) -> Dict[str, Any]:
+    raw = (text or "").strip()
+    if not raw:
+        raise RuntimeError("vision_empty_response")
+    if raw.startswith("```"):
+        parts = raw.split("```")
+        if len(parts) >= 2:
+            raw = parts[1].strip()
+            if raw.startswith("json"):
+                raw = raw[4:].strip()
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        start = raw.find("{")
+        if start < 0:
+            raise
+        decoder = json.JSONDecoder()
+        parsed, _ = decoder.raw_decode(raw[start:])
+        if not isinstance(parsed, dict):
+            raise RuntimeError("vision_response_json_not_object")
+        return parsed
+
+
+async def _run_vision_audit_pass(
+    *,
+    endpoint: str,
+    api_key: str,
+    model: str,
     image_path: str,
     system_prompt: str,
     user_prompt: str,
     task_description: str,
 ) -> Dict[str, Any]:
-    result = await client.analyze_visuals(
-        image_path=image_path,
-        system_prompt=system_prompt,
-        user_prompt=user_prompt,
-        schema=FullImageAuditSchema,
-        task_description=task_description,
+    endpoint = endpoint.strip().rstrip("/")
+    if not endpoint.endswith("/chat/completions"):
+        endpoint = f"{endpoint}/chat/completions"
+    with open(image_path, "rb") as f:
+        image_b64 = base64.b64encode(f.read()).decode("utf-8")
+    payload = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": (
+                            user_prompt
+                            + "\n\nIMPORTANT: Put the final answer in assistant content as raw JSON only. "
+                            "Do not leave the final answer only in reasoning_content."
+                        ),
+                    },
+                    {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{image_b64}"}},
+                ],
+            },
+        ],
+        "temperature": 0.1,
+        "max_tokens": 4096,
+    }
+    headers = {"Content-Type": "application/json"}
+    if api_key and endpoint.startswith("https://"):
+        headers["Authorization"] = f"Bearer {api_key}"
+    async with httpx.AsyncClient(timeout=120.0) as http:
+        resp = await http.post(endpoint, headers=headers, json=payload)
+    if resp.status_code >= 400:
+        raise RuntimeError(f"vision_audit_http_error status={resp.status_code} error={resp.text[:500]}")
+    data = resp.json()
+    content = (
+        (data.get("choices") or [{}])[0]
+        .get("message", {})
+        .get("content", "")
     )
+    finish_reason = (data.get("choices") or [{}])[0].get("finish_reason", "")
+    if isinstance(content, dict):
+        result = content
+    else:
+        if not str(content or "").strip() and finish_reason == "length":
+            raise RuntimeError("vision_no_final_content_token_limit")
+        result = _extract_json_response(str(content))
     if not isinstance(result, dict):
-        return {}
+        raise RuntimeError(f"vision_audit_invalid_response:{task_description}")
     return result
 
 
@@ -2350,23 +2416,22 @@ async def audit_render_with_kimi_vl(image_path: str, prompt: str = "", campaign:
     Run Kimi-VL audit on a rendered image.
     Returns audit result dict with score, passed, feedback.
     """
-    from core.bridge.kimi_vl_client import KimiVLClient
-    from core.bridge.config_manager import ConfigManager
-    from core.bridge.lmstudio_client import LMStudioClient
-
+    cfg = get_raw_config()
     try:
-        cfg = get_raw_config()
         active = str(cfg.get("KIMI_VISUAL_ENDPOINT_ACTIVE", "api1") or "api1").strip().lower()
         api1 = str(cfg.get("KIMI_VISUAL_ENDPOINT_API1", "") or "").strip()
         api2 = str(cfg.get("KIMI_VISUAL_ENDPOINT_API2", "") or "").strip()
         endpoint = api2 if active == "api2" and api2 else api1
         if not endpoint:
             endpoint = str(cfg.get("NIM_ENDPOINT", "") or "").strip()
-        client = KimiVLClient(
-            endpoint_url=endpoint,
-            api_key=str(cfg.get("KIMI_API_KEY", "") or os.getenv("KIMI_API_KEY", "")),
-            config_manager=ConfigManager(),
-        )
+        api_key = str(cfg.get("KIMI_API_KEY", "") or os.getenv("KIMI_API_KEY", "")).strip()
+        model = str(cfg.get("KIMI_VISUAL_MODEL", "") or cfg.get("LMSTUDIO_VISION_MODEL", "") or "").strip()
+        if not endpoint:
+            raise RuntimeError("missing_kimi_visual_endpoint")
+        if endpoint.startswith("https://") and not api_key:
+            raise RuntimeError("missing_kimi_api_key")
+        if not model:
+            raise RuntimeError("missing_kimi_visual_model")
         cinematic_system_prompt = (
             "You are an image quality auditor. "
             "Score cinematic composition, lighting quality, prompt adherence, and visible artifacts."
@@ -2396,21 +2461,28 @@ async def audit_render_with_kimi_vl(image_path: str, prompt: str = "", campaign:
             "Return JSON in the same schema as requested in the other pass."
         )
 
-        pass_a = await _run_audit_pass(
-            client=client,
+        pass_a = await _run_vision_audit_pass(
+            endpoint=endpoint,
+            api_key=api_key,
+            model=model,
             image_path=image_path,
             system_prompt=cinematic_system_prompt,
             user_prompt=cinematic_user_prompt,
             task_description=f"Cinematic audit for {campaign}",
         )
-        pass_b = await _run_audit_pass(
-            client=client,
+        pass_b = await _run_vision_audit_pass(
+            endpoint=endpoint,
+            api_key=api_key,
+            model=model,
             image_path=image_path,
             system_prompt=forensic_system_prompt,
             user_prompt=forensic_user_prompt,
             task_description=f"Forensic audit for {campaign}",
         )
         result = _aggregate_audit_results(pass_a, pass_b)
+        result["audit_backend"] = "vision_config"
+        result["audit_endpoint"] = endpoint
+        result["audit_model"] = model
         print(
             "[FORGE] [KIMI-VL] Audit result: "
             f"backend_score={result.get('score', 'N/A')}, "
@@ -2421,111 +2493,24 @@ async def audit_render_with_kimi_vl(image_path: str, prompt: str = "", campaign:
     except Exception as e:
         kimi_error = str(e)
         print(f"[FORGE] [KIMI-VL] Audit failed: {kimi_error}")
-
-        # Fallback: if LM Studio vision is loaded, use it before declaring execution failure.
-        try:
-            local = LMStudioClient(timeout=90.0)
-            lm_models = local.list_models()
-            configured_vision = str(
-                cfg.get("LMSTUDIO_VISION_MODEL", "")
-                or os.getenv("LMSTUDIO_VISION_MODEL", "")
-                or ""
-            ).strip()
-            vision_model = configured_vision or (lm_models[0] if lm_models else "")
-            if not vision_model:
-                raise RuntimeError("lmstudio_no_model_loaded")
-
-            with open(image_path, "rb") as f:
-                b64 = base64.b64encode(f.read()).decode("utf-8")
-            image_data_url = f"data:image/jpeg;base64,{b64}"
-
-            def _mk_msgs(system_text: str, user_text: str) -> List[Dict[str, Any]]:
-                return [
-                    {"role": "system", "content": system_text},
-                    {
-                        "role": "user",
-                        "content": [
-                            {"type": "text", "text": user_text},
-                            {"type": "image_url", "image_url": {"url": image_data_url}},
-                        ],
-                    },
-                ]
-
-            cine_system = (
-                "You are an image quality auditor. "
-                "Score cinematic composition, lighting quality, prompt adherence, and visible artifacts."
-            )
-            cine_user = (
-                f"Audit this full image for campaign '{campaign}'. "
-                f"Original prompt excerpt: {prompt[:240] if prompt else 'N/A'}. "
-                "Return strict JSON with: overall_score (0-100), model_passed (bool), confidence (0-1), "
-                "checks object booleans for hands_ok, limbs_ok, face_ok, reflection_ok, vehicle_geometry_ok, "
-                "text_artifacts_ok, prompt_adherence_ok, plus critical_failures (array), noncritical_issues (array), "
-                "feedback (string), issues (array)."
-            )
-            for_system = (
-                "You are a forensic visual consistency auditor. "
-                "Be strict on anatomy, reflections, and physical plausibility."
-            )
-            for_user = (
-                f"Inspect this full image for hard failures. Campaign '{campaign}'. "
-                "Verify hand/finger count, impossible limbs, reflection consistency, vehicle geometry, "
-                "face deformation, text/watermark artifacts. Return JSON in the exact same schema."
-            )
-
-            async def _lm_pass(system_text: str, user_text: str) -> Dict[str, Any]:
-                resp = await local.chat_async(
-                    messages=_mk_msgs(system_text, user_text),
-                    model=vision_model,
-                    temperature=0.1,
-                    max_tokens=900,
-                    json_mode=True,
-                )
-                if not isinstance(resp, dict) or "error" in resp:
-                    raise RuntimeError(f"lmstudio_chat_error:{resp.get('error', 'unknown') if isinstance(resp, dict) else 'unknown'}")
-                content = (
-                    (resp.get("choices") or [{}])[0]
-                    .get("message", {})
-                    .get("content", "")
-                )
-                if isinstance(content, dict):
-                    return content
-                if isinstance(content, str):
-                    return json.loads(content)
-                raise RuntimeError("lmstudio_invalid_response_content")
-
-            pass_a = await _lm_pass(cine_system, cine_user)
-            pass_b = await _lm_pass(for_system, for_user)
-            result = _aggregate_audit_results(pass_a, pass_b)
-            result["audit_backend"] = "lmstudio_fallback"
-            result["audit_fallback_from"] = "kimi_vl"
-            result["audit_fallback_reason"] = kimi_error
-            print(
-                "[FORGE] [LMSTUDIO] Audit fallback result: "
-                f"backend_score={result.get('score', 'N/A')}, "
-                f"final_passed={result.get('passed', 'N/A')}"
-            )
-            return result
-        except Exception as le:
-            local_error = str(le)
-            print(f"[FORGE] [LMSTUDIO] Audit fallback failed: {local_error}")
-            return {
-                "score": 0,
-                "passed": False,
-                "feedback": f"Audit failed (Kimi + LM Studio): Kimi={kimi_error} | LM Studio={local_error}",
-                "issues": [kimi_error, local_error],
-                "overall_score": 0,
-                "model_score": 0,
-                "checks_score": 0,
-                "confidence": 0,
-                "model_passed": False,
-                "final_passed": False,
-                "checks": {k: False for k in _AUDIT_CHECK_KEYS},
-                "critical_failures": ["audit_execution_failure"],
-                "noncritical_issues": [],
-                "audit_decision_reasons": [f"audit_execution_failure:kimi={kimi_error}", f"audit_execution_failure:lmstudio={local_error}"],
-                "error": True,
-            }
+        return {
+            "score": 0,
+            "passed": False,
+            "feedback": f"Kimi-VL audit failed: {kimi_error}",
+            "issues": [kimi_error],
+            "overall_score": 0,
+            "model_score": 0,
+            "checks_score": 0,
+            "confidence": 0,
+            "model_passed": False,
+            "final_passed": False,
+            "checks": {k: False for k in _AUDIT_CHECK_KEYS},
+            "critical_failures": ["audit_execution_failure"],
+            "noncritical_issues": [],
+            "audit_backend": "kimi_vl",
+            "audit_decision_reasons": [f"audit_execution_failure:kimi_vl={kimi_error}"],
+            "error": True,
+        }
 
 
 async def write_audit_to_memory(audit_result: dict, image_path: str, prompt: str = "", campaign: str = "default"):
@@ -2894,7 +2879,7 @@ async def api_config():
     comfy_secondary = str(cfg.get("COMFYUI_SECONDARY", "") or "")
     lm_host = str(cfg.get("LMSTUDIO_HOST", "") or "")
     lm_model = str(cfg.get("LMSTUDIO_CHAT_MODEL", "") or "")
-    vision_model = str(cfg.get("KIMI_VISUAL_MODEL", "") or os.getenv("LMSTUDIO_VISION_MODEL", "qwen3.6-35b-a3b"))
+    vision_model = str(cfg.get("KIMI_VISUAL_MODEL", "") or cfg.get("LMSTUDIO_VISION_MODEL", "") or "")
     director_api1 = str(cfg.get("KIMI_DIRECTOR_ENDPOINT_API1", "") or endpoint or "")
     director_api2 = str(cfg.get("KIMI_DIRECTOR_ENDPOINT_API2", "") or "")
     director_active = str(cfg.get("KIMI_DIRECTOR_ENDPOINT_ACTIVE", "") or "api1")
@@ -2911,7 +2896,7 @@ async def api_config():
         },
         "models": {
             "director_kimi": {
-                "model_name": str(cfg.get("KIMI_INSTRUCT_MODEL", "moonshotai/kimi-k2")),
+                "model_name": str(cfg.get("KIMI_INSTRUCT_MODEL", "") or ""),
                 "endpoint": director_selected,
                 "endpoint_api1": director_api1,
                 "endpoint_api2": director_api2,
@@ -2982,13 +2967,13 @@ async def api_config_save(req: FlatConfigUpdateRequest):
         "vision_model": "VISION_MODEL",
         "kimi.api_key": "KIMI_API_KEY",
         "kimi.endpoint": "NIM_ENDPOINT",
-        "models.director_kimi.model_name": "DIRECTOR_MODEL",
-        "models.director_kimi.endpoint": "NOUS_ENDPOINT",
+        "models.director_kimi.model_name": "KIMI_INSTRUCT_MODEL",
+        "models.director_kimi.endpoint": "NIM_ENDPOINT",
         "models.director_kimi.endpoint_api1": "KIMI_DIRECTOR_ENDPOINT_API1",
         "models.director_kimi.endpoint_api2": "KIMI_DIRECTOR_ENDPOINT_API2",
         "models.director_kimi.endpoint_active": "KIMI_DIRECTOR_ENDPOINT_ACTIVE",
-        "models.kimi_vl.model_name": "VISION_MODEL",
-        "models.kimi_vl.endpoint": "NOUS_ENDPOINT",
+        "models.kimi_vl.model_name": "KIMI_VISUAL_MODEL",
+        "models.kimi_vl.endpoint": "NIM_ENDPOINT",
         "models.kimi_vl.endpoint_api1": "KIMI_VISUAL_ENDPOINT_API1",
         "models.kimi_vl.endpoint_api2": "KIMI_VISUAL_ENDPOINT_API2",
         "models.kimi_vl.endpoint_active": "KIMI_VISUAL_ENDPOINT_ACTIVE",
@@ -3006,36 +2991,112 @@ async def api_config_save(req: FlatConfigUpdateRequest):
     return {"status": "success", "saved": list(mapped.keys()), "config": updated}
 
 
+@app.get("/api/config/effective")
+async def api_config_effective():
+    """Return canonical runtime config values currently effective (masked keys)."""
+    from core.bridge.runtime_config import get_config, get_raw_config
+    masked = get_config()
+    raw = get_raw_config()
+    director_api1 = str(raw.get("KIMI_DIRECTOR_ENDPOINT_API1", "") or raw.get("NIM_ENDPOINT", "") or "").strip()
+    director_api2 = str(raw.get("KIMI_DIRECTOR_ENDPOINT_API2", "") or "").strip()
+    director_active = str(raw.get("KIMI_DIRECTOR_ENDPOINT_ACTIVE", "api1") or "api1").strip().lower()
+    vision_api1 = str(raw.get("KIMI_VISUAL_ENDPOINT_API1", "") or raw.get("NIM_ENDPOINT", "") or "").strip()
+    vision_api2 = str(raw.get("KIMI_VISUAL_ENDPOINT_API2", "") or "").strip()
+    vision_active = str(raw.get("KIMI_VISUAL_ENDPOINT_ACTIVE", "api1") or "api1").strip().lower()
+    return {
+        "status": "ok",
+        "effective": masked,
+        "active": {
+            "director_endpoint": director_api2 if director_active == "api2" and director_api2 else director_api1,
+            "vision_endpoint": vision_api2 if vision_active == "api2" and vision_api2 else vision_api1,
+            "comfy_primary": str(raw.get("COMFYUI_PRIMARY", "")).strip(),
+            "comfy_secondary": str(raw.get("COMFYUI_SECONDARY", "")).strip(),
+            "lmstudio_host": str(raw.get("LMSTUDIO_HOST", "")).strip(),
+        },
+    }
+
+
 class KimiTestRequest(BaseModel):
-    api_key: str
-    endpoint: str
+    api_key: str = ""
+    endpoint: str = ""
+
+
+async def _test_chat_completion(endpoint: str, api_key: str, model: str) -> Dict[str, Any]:
+    endpoint = (endpoint or "").strip().rstrip("/")
+    api_key = (api_key or "").strip()
+    model = (model or "").strip()
+    if endpoint and not endpoint.endswith("/chat/completions"):
+        endpoint = endpoint + "/chat/completions"
+    if not endpoint:
+        return {"status": "error", "error": "missing endpoint"}
+    if not model:
+        return {"status": "error", "error": "missing model"}
+    payload = {
+        "model": model,
+        "messages": [{"role": "user", "content": "ping"}],
+        "max_tokens": 8,
+    }
+    headers = {"Content-Type": "application/json"}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+    t0 = time.time()
+    try:
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            r = await client.post(endpoint, headers=headers, json=payload)
+        if r.status_code >= 400:
+            return {"status": "error", "error": f"http {r.status_code}: {r.text[:200]}", "endpoint": endpoint, "model": model}
+        return {"status": "ok", "latency_ms": int((time.time() - t0) * 1000), "endpoint": endpoint, "model": model}
+    except Exception as e:
+        reason = str(e).strip() or e.__class__.__name__
+        return {"status": "error", "error": reason, "endpoint": endpoint, "model": model}
 
 
 @app.post("/api/test/nous")
 async def api_test_nous(req: KimiTestRequest):
     """Test connection to Nous Research Portal (or any OpenAI-compatible endpoint)."""
-    endpoint = (req.endpoint or "").strip().rstrip("/")
+    cfg = get_raw_config()
+    endpoint = (
+        req.endpoint
+        or str(cfg.get("NIM_ENDPOINT", "") or "")
+        or str(cfg.get("NOUS_ENDPOINT", "") or "")
+    ).strip().rstrip("/")
     if endpoint and not endpoint.endswith("/chat/completions"):
         endpoint = endpoint + "/chat/completions"
-    payload = {
-        "model": os.getenv("KIMI_INSTRUCT_MODEL", "moonshotai/kimi-k2"),
-        "messages": [{"role": "user", "content": "ping"}],
-        "max_tokens": 8,
-    }
-    t0 = time.time()
-    try:
-        async with httpx.AsyncClient(timeout=20.0) as client:
-            r = await client.post(
-                endpoint,
-                headers={"Authorization": f"Bearer {req.api_key}", "Content-Type": "application/json"},
-                json=payload,
-            )
-        if r.status_code >= 400:
-            return {"status": "error", "error": f"http {r.status_code}: {r.text[:200]}"}
-        latency_ms = int((time.time() - t0) * 1000)
-        return {"status": "ok", "latency_ms": latency_ms}
-    except Exception as e:
-        return {"status": "error", "error": str(e)}
+    api_key = (req.api_key or str(cfg.get("KIMI_API_KEY", "") or "")).strip()
+    model = str(cfg.get("KIMI_INSTRUCT_MODEL", "") or cfg.get("DIRECTOR_MODEL", "") or "").strip()
+    if not endpoint:
+        return {"status": "error", "error": "missing endpoint"}
+    if not api_key:
+        return {"status": "error", "error": "missing api key"}
+    return await _test_chat_completion(endpoint, api_key, model)
+
+
+@app.get("/api/test/director")
+async def api_test_director():
+    cfg = get_raw_config()
+    active = str(cfg.get("KIMI_DIRECTOR_ENDPOINT_ACTIVE", "api1") or "api1").strip().lower()
+    api1 = str(cfg.get("KIMI_DIRECTOR_ENDPOINT_API1", "") or cfg.get("NIM_ENDPOINT", "") or "").strip()
+    api2 = str(cfg.get("KIMI_DIRECTOR_ENDPOINT_API2", "") or "").strip()
+    endpoint = api2 if active == "api2" and api2 else api1
+    api_key = str(cfg.get("KIMI_API_KEY", "") or "").strip()
+    model = str(cfg.get("KIMI_INSTRUCT_MODEL", "") or "").strip()
+    if endpoint.startswith("https://") and not api_key:
+        return {"status": "error", "error": "missing api key"}
+    return await _test_chat_completion(endpoint, api_key, model)
+
+
+@app.get("/api/test/vision")
+async def api_test_vision():
+    cfg = get_raw_config()
+    active = str(cfg.get("KIMI_VISUAL_ENDPOINT_ACTIVE", "api1") or "api1").strip().lower()
+    api1 = str(cfg.get("KIMI_VISUAL_ENDPOINT_API1", "") or cfg.get("NIM_ENDPOINT", "") or "").strip()
+    api2 = str(cfg.get("KIMI_VISUAL_ENDPOINT_API2", "") or "").strip()
+    endpoint = api2 if active == "api2" and api2 else api1
+    api_key = str(cfg.get("KIMI_API_KEY", "") or "").strip()
+    model = str(cfg.get("KIMI_VISUAL_MODEL", "") or "").strip()
+    if endpoint.startswith("https://") and not api_key:
+        return {"status": "error", "error": "missing api key"}
+    return await _test_chat_completion(endpoint, api_key, model)
 
 
 @app.get("/api/test/lmstudio")
@@ -3060,18 +3121,21 @@ async def api_test_lmstudio(host: str = "http://127.0.0.1", port: int = 1234):
 
 @app.get("/api/test/nim")
 async def api_test_nim():
-    """Legacy NIM test — redirects to Nous endpoint if configured."""
-    cm = ConfigManager()
-    endpoint = (cm.get("NOUS_ENDPOINT", "") or cm.get("NIM_ENDPOINT", "") or cm.get_nim_endpoint() or "").strip().rstrip("/")
+    """Test the saved NVIDIA/NIM-compatible Kimi config."""
+    cfg = get_raw_config()
+    endpoint = str(cfg.get("NIM_ENDPOINT", "") or "").strip().rstrip("/")
     if endpoint and not endpoint.endswith("/chat/completions"):
         endpoint = endpoint + "/chat/completions"
-    api_key = cm.get_kimi_api_key()
+    api_key = str(cfg.get("KIMI_API_KEY", "") or "").strip()
+    model = str(cfg.get("KIMI_INSTRUCT_MODEL", "") or "").strip()
     if not endpoint:
         return {"status": "error", "error": "missing endpoint"}
     if not api_key:
         return {"status": "error", "error": "missing api key"}
+    if not model:
+        return {"status": "error", "error": "missing model"}
     payload = {
-        "model": cm.get("KIMI_INSTRUCT_MODEL", "moonshotai/kimi-k2"),
+        "model": model,
         "messages": [{"role": "user", "content": "ping"}],
         "max_tokens": 8,
     }
@@ -3085,7 +3149,7 @@ async def api_test_nim():
             )
         if r.status_code >= 400:
             return {"status": "error", "error": f"http {r.status_code}: {r.text[:200]}"}
-        return {"status": "ok", "latency_ms": int((time.time() - t0) * 1000), "endpoint": endpoint}
+        return {"status": "ok", "latency_ms": int((time.time() - t0) * 1000), "endpoint": endpoint, "model": model}
     except Exception as e:
         return {"status": "error", "error": str(e), "endpoint": endpoint}
 
@@ -3115,7 +3179,9 @@ async def api_spark_stats():
     import httpx
     from core.bridge.runtime_config import get_raw_config
     cfg = get_raw_config()
-    host = (os.getenv("COMFYUI_PRIMARY", "") or str(cfg.get("COMFYUI_PRIMARY", "")) or "http://localhost:8188").rstrip("/")
+    host = (os.getenv("COMFYUI_PRIMARY", "") or str(cfg.get("COMFYUI_PRIMARY", "")) or "").rstrip("/")
+    if not host:
+        raise HTTPException(status_code=400, detail="COMFYUI_PRIMARY is not configured")
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:
             r = await client.get(f"{host}/system_stats")
@@ -3381,7 +3447,16 @@ async def api_render_character(req: RenderCharacterRequest):
         if ct == "SaveImage":
             prompt_block[node_id]["inputs"]["filename_prefix"] = f"char_{safe_name}"
 
-    client = ComfyUIClient("http://localhost:8188")
+    from core.bridge.runtime_config import get_raw_config
+    cfg = get_raw_config()
+    host = (
+        os.getenv("COMFYUI_PRIMARY", "")
+        or str(cfg.get("COMFYUI_PRIMARY", ""))
+        or ""
+    ).rstrip("/")
+    if not host:
+        raise HTTPException(status_code=400, detail="COMFYUI_PRIMARY is not configured")
+    client = ComfyUIClient(host)
     prompt_id = await client.submit_prompt(workflow)
     if not prompt_id:
         raise HTTPException(status_code=502, detail="ComfyUI submission failed")

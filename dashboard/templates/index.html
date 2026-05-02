@@ -1341,27 +1341,13 @@
                             <input type="text" id="cfg-director-model" placeholder="Hermes-4-405B" onchange="markDirty('models.director_kimi.model_name')">
                         </div>
                         <div class="form-row">
-                            <label>Director Endpoint API 1</label>
+                            <label>Director Endpoint</label>
                             <input type="text" id="cfg-director-endpoint-api1" placeholder="https://integrate.api.nvidia.com/v1/chat/completions" onchange="markDirty('models.director_kimi.endpoint_api1')">
                         </div>
-                        <div class="form-row">
-                            <label>Director API Service</label>
-                            <label class="model-checkbox"><input type="radio" name="director-api-active" id="cfg-director-api-active-1" onchange="markDirty('models.director_kimi.endpoint_active')" checked> API 1</label>
-                            <label class="model-checkbox"><input type="radio" name="director-api-active" id="cfg-director-api-active-2" onchange="markDirty('models.director_kimi.endpoint_active')"> API 2</label>
+                        <div class="card-actions">
+                            <button class="btn btn-secondary" onclick="testDirector()">Test Director</button>
                         </div>
-                    </div>
-
-                    <div class="settings-subcard">
-                        <h4>Thinking</h4>
-                        <p class="card-desc">Reasoning model and address selection.</p>
-                        <div class="form-row">
-                            <label>Thinking Model</label>
-                            <input type="text" id="cfg-thinking-model" placeholder="Hermes-4-70B" onchange="markDirty('models.kimi_vl.model_name')">
-                        </div>
-                        <div class="form-row">
-                            <label>Thinking Endpoint (Active)</label>
-                            <input type="text" id="cfg-thinking-endpoint" placeholder="https://api.moonshot.cn/v1/chat/completions" onchange="markDirty('models.kimi_vl.endpoint')">
-                        </div>
+                        <div id="director-test-result" class="test-result"></div>
                     </div>
 
                     <div class="settings-subcard">
@@ -1372,18 +1358,13 @@
                             <input type="text" id="cfg-visual-model" placeholder="qwen3.6-35b-a3b (LM Studio)" onchange="markDirty('models.kimi_vl.model_name')">
                         </div>
                         <div class="form-row">
-                            <label>Vision Address API 1</label>
-                            <input type="text" id="cfg-thinking-endpoint-api1" placeholder="https://integrate.api.nvidia.com/v1/chat/completions" onchange="markDirty('models.kimi_vl.endpoint_api1')">
+                            <label>Vision Endpoint</label>
+                            <input type="text" id="cfg-vision-endpoint-api1" placeholder="https://integrate.api.nvidia.com/v1/chat/completions" onchange="markDirty('models.kimi_vl.endpoint_api1')">
                         </div>
-                        <div class="form-row">
-                            <label>Vision Address API 2</label>
-                            <input type="text" id="cfg-thinking-endpoint-api2" placeholder="https://api.moonshot.cn/v1/chat/completions" onchange="markDirty('models.kimi_vl.endpoint_api2')">
+                        <div class="card-actions">
+                            <button class="btn btn-secondary" onclick="testVision()">Test Vision</button>
                         </div>
-                        <div class="form-row">
-                            <label>Vision API Service</label>
-                            <label class="model-checkbox"><input type="radio" name="visual-api-active" id="cfg-thinking-api-active-1" onchange="markDirty('models.kimi_vl.endpoint_active')" checked> API 1</label>
-                            <label class="model-checkbox"><input type="radio" name="visual-api-active" id="cfg-thinking-api-active-2" onchange="markDirty('models.kimi_vl.endpoint_active')"> API 2</label>
-                        </div>
+                        <div id="vision-test-result" class="test-result"></div>
                     </div>
                 </div>
             </div>
