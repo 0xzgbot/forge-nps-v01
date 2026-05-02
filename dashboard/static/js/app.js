@@ -1581,12 +1581,12 @@ function addLogEntry(type, text) {
         memory: "[MEM \uD83D\uDCBE]",
         system: "[SYS]",
         error: "[ERR]",
-        profile_director_kimi: "[Director Planner (kimi)]",
-        profile_critic_kimi: "[Coverage Critic (kimi)]",
-        profile_compiler_lmstudio: "[Prompt Compiler (lmstudio)]",
-        profile_continuity_lmstudio: "[Continuity Guard (lmstudio)]",
-        profile_remediation_lmstudio: "[Remediation Reprompter (lmstudio)]",
-        profile_audit_kimi: "[Audit Judge (kimi)]",
+        profile_director_kimi: "[Kimi / Director Planner]",
+        profile_critic_kimi: "[Kimi / Coverage Critic]",
+        profile_compiler_lmstudio: "[Hermes / Prompt Compiler]",
+        profile_continuity_lmstudio: "[Hermes / Continuity Guard]",
+        profile_remediation_lmstudio: "[Hermes / Remediation Reprompter]",
+        profile_audit_kimi: "[Kimi / Audit Judge]",
     };
 
     row.innerHTML =

@@ -62,9 +62,9 @@ def profile_label(key: str) -> str:
     if not p:
         return key
     if p.backend == "kimi":
-        return f"{p.name} (kimi)"
+        return f"Kimi / {p.name}"
     if p.backend == "lmstudio":
-        return f"{p.name} (lmstudio)"
+        return f"Hermes / {p.name}"
     return p.name
 
 
