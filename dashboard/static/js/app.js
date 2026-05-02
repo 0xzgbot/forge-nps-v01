@@ -2561,9 +2561,9 @@ async function generateVideoPrompts() {
         bubble.style.wordBreak = "break-word";
 
         const colors = {
-            "Image Analyst": { bg: "#0d2b25", border: "#1a4d3e", text: "#a8f0d8" },
-            "Duration Planner": { bg: "#2b250d", border: "#4d3e1a", text: "#f0e6a8" },
-            "Prompt Engineer": { bg: "#1a0d2b", border: "#3e1a4d", text: "#d8a8f0" },
+            "Vision Analyst": { bg: "#0d2b25", border: "#1a4d3e", text: "#a8f0d8" },
+            "Hermes / Duration Planner": { bg: "#2b250d", border: "#4d3e1a", text: "#f0e6a8" },
+            "Hermes / LTX Prompt Engineer": { bg: "#1a0d2b", border: "#3e1a4d", text: "#d8a8f0" },
             "Hermes": { bg: "#1a1a2e", border: "#2a2a4e", text: "#c8c8f0" },
             "Error": { bg: "#2b0d0d", border: "#4d1a1a", text: "#f0a8a8" },
             "You": { bg: "#1e1e1e", border: "#333", text: "#ddd" },
@@ -2624,10 +2624,13 @@ async function generateVideoPrompts() {
                         if (Array.isArray(data.unmapped_prompt_keys) && data.unmapped_prompt_keys.length) {
                             addChatBubble("Error", "Unmapped prompt keys: " + data.unmapped_prompt_keys.join(", "), false);
                         }
-                        addChatBubble("Prompt Engineer", "All prompts generated and saved.", true);
+                        addChatBubble("Hermes / LTX Prompt Engineer", "All prompts generated and saved.", true);
                         if (data.prompts) {
                             Object.entries(data.prompts).forEach(([sid, prompt]) => {
-                                if (videoShotsById[sid]) videoShotsById[sid].video_prompt = prompt;
+                                if (videoShotsById[sid]) {
+                                    videoShotsById[sid].video_prompt = prompt;
+                                    videoShotsById[sid].video_prompt_source = data.video_prompt_source || "vision_prompt_agent";
+                                }
                             });
                             loadVideoLibrary();
                         }
@@ -2817,6 +2820,7 @@ function videoPromptBadgeLabel(shot) {
     const source = String(shot?.video_prompt_source || "").trim();
     if (source === "auto_default") return "V_DEFAULT";
     if (source === "prompt_agent") return "V_AGENT";
+    if (source === "vision_prompt_agent") return "V_VISION";
     if (source === "auto_compiler") return "V_COMPILER";
     return "V_PROMPT";
 }

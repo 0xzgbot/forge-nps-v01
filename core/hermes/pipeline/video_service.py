@@ -4,8 +4,9 @@ import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Callable
 
+import httpx
+
 from core.bridge.runtime_config import get_raw_config
-from core.bridge.lmstudio_client import LMStudioClient
 from core.dispatch.comfy_client import ComfyUIClient
 from .profile_cli import HermesProfileCLI
 from .role_skill_mapper import role_skill_scope
@@ -27,6 +28,123 @@ class HermesVideoService:
         self.resolve_image_path = resolve_image_path
         self.workflow_file_for_id = workflow_file_for_id
         self.profile_cli = HermesProfileCLI()
+
+    @staticmethod
+    def _extract_json_response(text: str) -> Dict[str, Any]:
+        raw = (text or "").strip()
+        if not raw:
+            raise RuntimeError("vision_empty_response")
+        if raw.startswith("```"):
+            parts = raw.split("```")
+            if len(parts) >= 2:
+                raw = parts[1].strip()
+                if raw.startswith("json"):
+                    raw = raw[4:].strip()
+        try:
+            parsed = json.loads(raw)
+        except json.JSONDecodeError:
+            start = raw.find("{")
+            if start < 0:
+                raise
+            decoder = json.JSONDecoder()
+            parsed, _ = decoder.raw_decode(raw[start:])
+        if not isinstance(parsed, dict):
+            raise RuntimeError("vision_response_json_not_object")
+        return parsed
+
+    @staticmethod
+    def _image_mime_type(image_path: str) -> str:
+        suffix = Path(image_path).suffix.lower()
+        if suffix in {".jpg", ".jpeg"}:
+            return "image/jpeg"
+        if suffix == ".webp":
+            return "image/webp"
+        return "image/png"
+
+    def _vision_config(self) -> tuple[str, str, str]:
+        cfg = get_raw_config()
+        active = str(cfg.get("KIMI_VISUAL_ENDPOINT_ACTIVE", "api1") or "api1").strip().lower()
+        api1 = str(cfg.get("KIMI_VISUAL_ENDPOINT_API1", "") or cfg.get("NIM_ENDPOINT", "") or "").strip()
+        api2 = str(cfg.get("KIMI_VISUAL_ENDPOINT_API2", "") or "").strip()
+        endpoint = api2 if active == "api2" and api2 else api1
+        model = str(cfg.get("KIMI_VISUAL_MODEL", "") or cfg.get("LMSTUDIO_VISION_MODEL", "") or "").strip()
+        api_key = str(cfg.get("KIMI_API_KEY", "") or os.getenv("KIMI_API_KEY", "") or "").strip()
+        endpoint = endpoint.rstrip("/")
+        if endpoint and not endpoint.endswith("/chat/completions"):
+            endpoint = f"{endpoint}/chat/completions"
+        if not endpoint:
+            raise RuntimeError("vision_endpoint_not_configured")
+        if not model:
+            raise RuntimeError("vision_model_not_configured")
+        return endpoint, model, api_key
+
+    async def _run_vision_video_analysis(
+        self,
+        *,
+        image_b64: str,
+        mime_type: str,
+        shot: Dict[str, Any],
+        duration: int,
+        fps: int,
+    ) -> Dict[str, Any]:
+        endpoint, model, api_key = self._vision_config()
+        source_prompt = str(shot.get("best_source_prompt") or "").strip()
+        payload = {
+            "model": model,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": (
+                        "You are the Vision Analyst for Hermes video prompting. "
+                        "Inspect the actual selected first frame and return raw JSON only. "
+                        "Do not invent elements that are not visible."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": (
+                                "Analyze this first frame for an LTX2.3 image-to-video prompt.\n"
+                                f"shot_id: {shot.get('shot_id', '')}\n"
+                                f"target_duration_sec: {duration}\n"
+                                f"fps: {fps}\n"
+                                f"source_prompt_field: {shot.get('best_source_field', '')}\n"
+                                f"source_prompt: {source_prompt}\n\n"
+                                "Return JSON with keys: visible_subjects, setting, composition, lighting, "
+                                "camera_motion, subject_motion, environmental_motion, continuity_locks, "
+                                "motion_avoid, prompt_seed. The prompt_seed must be one strong paragraph "
+                                "grounded in the image for video continuation."
+                            ),
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": f"data:{mime_type};base64,{image_b64}"},
+                        },
+                    ],
+                },
+            ],
+            "temperature": 0.1,
+            "max_tokens": 2048,
+        }
+        headers = {"Content-Type": "application/json"}
+        if api_key and endpoint.startswith("https://"):
+            headers["Authorization"] = f"Bearer {api_key}"
+        async with httpx.AsyncClient(timeout=120.0) as http:
+            resp = await http.post(endpoint, headers=headers, json=payload)
+        if resp.status_code >= 400:
+            raise RuntimeError(f"vision_video_prompt_http_error status={resp.status_code} error={resp.text[:500]}")
+        data = resp.json()
+        content = (
+            (data.get("choices") or [{}])[0]
+            .get("message", {})
+            .get("content", "")
+        )
+        result = content if isinstance(content, dict) else self._extract_json_response(str(content))
+        if not isinstance(result, dict):
+            raise RuntimeError("vision_video_prompt_invalid_response")
+        return result
 
     async def process(
         self,
@@ -165,7 +283,7 @@ class HermesVideoService:
         bible_text: str = "",
     ) -> Dict[str, Any]:
         """
-        Orchestrate 3 LM Studio agents to generate LTX video prompts.
+        Orchestrate Vision analysis plus Hermes profile agents to generate LTX video prompts.
         Returns {"status": "ok", "prompts": {"SHOT_001": "...", ...}}
         """
         def _is_reindex_text(text: str) -> bool:
@@ -232,15 +350,12 @@ class HermesVideoService:
                 b64 = base64.b64encode(f.read()).decode("utf-8")
             best_prompt, prompt_source = _best_source_prompt(shot)
             if not best_prompt:
-                return {
-                    "status": "error",
-                    "error": "missing_source_prompt",
-                    "shot_id": sid,
-                    "message": "Video prompt generation requires compiled_prompt, raw_kimi_prompt, visual_brief, prompt, campaign_brief, or campaign manifest brief.",
-                }
+                best_prompt = "No reliable source prompt is available; use the image pixels as the source of truth."
+                prompt_source = "vision_only"
             shots_data.append({
                 "shot_id": sid,
                 "image_b64": b64,
+                "image_mime_type": self._image_mime_type(image_path),
                 "visual_brief": str(shot.get("visual_brief", "")),
                 "camera_direction": str(shot.get("camera_direction", "")),
                 "lighting_direction": str(shot.get("lighting_direction", "")),
@@ -257,48 +372,34 @@ class HermesVideoService:
         if not shots_data:
             return {"status": "error", "error": "no_valid_shots"}
 
-        client = LMStudioClient(timeout=120.0)
         cfg = get_raw_config()
         model = (os.getenv("LMSTUDIO_CHAT_MODEL", "") or str(cfg.get("LMSTUDIO_CHAT_MODEL", ""))).strip()
         if not model:
-            return {"status": "error", "error": "lmstudio_chat_model_not_configured"}
+            return {"status": "error", "error": "hermes_profile_model_not_configured"}
 
-        # Agent 1: Image Analyst.
+        # Agent 1: Vision Analyst. This must inspect the actual first-frame pixels.
         analysis_results = []
-        continuity_scope = role_skill_scope("continuity_guard")
         for s in shots_data:
-            content = ""
-            # 1) Hermes profile pass
-            profile_task = {
-                "task": "video_image_analysis",
-                "shot_id": s["shot_id"],
-                "camera_direction": s["camera_direction"],
-                "lighting_direction": s["lighting_direction"],
-                "characters": s["characters"],
-                "best_source_prompt": s["best_source_prompt"],
-                "best_source_field": s["best_source_field"],
-                "compiled_prompt": s["compiled_prompt"],
-                "raw_kimi_prompt": s["raw_kimi_prompt"],
-                "rationale": s["rationale"],
-                "allowed_skill_patterns": continuity_scope.get("patterns", []),
-                "instructions": (
-                    "Generate concise motion-oriented image analysis for LTX 2.3 video continuation. "
-                    "Output JSON only with keys: subject_action, implied_motion, camera_motion, lighting_mood, "
-                    "environmental_motion, continuity_risks, motion_do, motion_avoid."
-                ),
-            }
-            profile_out = await self.profile_cli.run_json("continuity", profile_task)
-            if isinstance(profile_out, dict) and profile_out:
-                try:
-                    content = json.dumps(profile_out, ensure_ascii=False)
-                except Exception:
-                    content = str(profile_out)
-
-            if not content:
-                return {"status": "error", "error": "video_image_analysis_failed", "shot_id": s["shot_id"]}
+            try:
+                vision_out = await self._run_vision_video_analysis(
+                    image_b64=s["image_b64"],
+                    mime_type=s["image_mime_type"],
+                    shot=s,
+                    duration=duration,
+                    fps=fps,
+                )
+            except Exception as e:
+                return {
+                    "status": "error",
+                    "error": "video_vision_analysis_failed",
+                    "shot_id": s["shot_id"],
+                    "message": str(e),
+                }
+            content = json.dumps(vision_out, ensure_ascii=False)
             analysis_results.append({
                 "shot_id": s["shot_id"],
                 "analysis": content,
+                "vision_analysis": vision_out,
                 "compiled_prompt": s["compiled_prompt"],
                 "raw_kimi_prompt": s["raw_kimi_prompt"],
                 "prompt": s["prompt"],
@@ -337,11 +438,26 @@ class HermesVideoService:
         }
         planner_out = await self.profile_cli.run_json("critic", planner_task)
         if isinstance(planner_out, dict) and planner_out.get("plan"):
-            duration_plan = json.dumps({"plan": planner_out.get("plan", [])})
+            plan = planner_out.get("plan")
+            if isinstance(plan, dict):
+                items = plan.get("shots") if isinstance(plan.get("shots"), list) else []
+                normalized_items = []
+                for item in items:
+                    if not isinstance(item, dict):
+                        continue
+                    normalized_items.append({
+                        "shot_id": item.get("shot_id", ""),
+                        "duration_sec": item.get("duration_sec", duration),
+                        "frames": item.get("frames", item.get("num_frames", item.get("frame_count", duration * fps))),
+                        "reasoning": item.get("reasoning", "Hermes duration profile allocation"),
+                    })
+                duration_plan = json.dumps({"plan": normalized_items})
+            elif isinstance(plan, list):
+                duration_plan = json.dumps({"plan": plan})
         if not duration_plan:
             return {"status": "error", "error": "video_duration_plan_failed"}
 
-        # Agent 3: Prompt Engineer (profile-first, strict LTX2.3 schema)
+        # Agent 3: Prompt Engineer (Hermes compiler profile, strict LTX2.3 schema)
         prompt_payload = {
             "lore_bible_excerpt": bible_text[:4000] if bible_text else "none",
             "duration_plan": json.loads(duration_plan) if isinstance(duration_plan, str) else duration_plan,
@@ -363,7 +479,11 @@ class HermesVideoService:
                 "{\"prompts\": {\"SHOT_001\": {\"duration_sec\": N, \"fps\": N, "
                 "\"segments\": [{\"time_range\": \"0-1s\", \"prompt\": \"...\"}], "
                 "\"full_prompt\": \"...\", \"negative\": \"...\"}}}. "
-                "Prompts must be model-specific for LTX2.3 image-to-video continuity."
+                "Prompts must be detailed, model-specific LTX2.3 image-to-video prompts grounded in "
+                "the vision_analysis. Do not output generic text like preserve identity and gentle "
+                "parallax by itself. Include specific visible subjects, exact environment, camera "
+                "movement, subject/environment motion, lighting continuity, temporal pacing, and "
+                "concrete negative constraints."
             ),
         }
         compiler_out = await self.profile_cli.run_json("compiler", compiler_task)
