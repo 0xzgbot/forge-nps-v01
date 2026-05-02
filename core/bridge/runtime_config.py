@@ -38,6 +38,7 @@ CONFIGURABLE_KEYS = [
     "COMFYUI_PRIMARY",
     "COMFYUI_SECONDARY",
     "LMSTUDIO_HOST",
+    "LMSTUDIO_PORT",
     "LMSTUDIO_EMBED_MODEL",
     "LMSTUDIO_CHAT_MODEL",
     "LMSTUDIO_VISION_MODEL",
@@ -75,6 +76,7 @@ KEY_ALIASES = {
     "comfy_secondary": "COMFYUI_SECONDARY",
     "spark_url": "COMFYUI_PRIMARY",
     "lmstudio_host": "LMSTUDIO_HOST",
+    "lmstudio_port": "LMSTUDIO_PORT",
     "lmstudio_chat_model": "LMSTUDIO_CHAT_MODEL",
     "lmstudio_embed_model": "LMSTUDIO_EMBED_MODEL",
     "lmstudio_vision_model": "LMSTUDIO_VISION_MODEL",
@@ -141,6 +143,7 @@ def _normalize_overrides(raw: Dict[str, Any]) -> Dict[str, Any]:
         hermes = models.get("hermes_3")
         if isinstance(hermes, dict):
             put_legacy(hermes, "host", "LMSTUDIO_HOST")
+            put_legacy(hermes, "port", "LMSTUDIO_PORT")
             put_legacy(hermes, "model_name", "LMSTUDIO_CHAT_MODEL")
 
     comfy = raw.get("comfyui")

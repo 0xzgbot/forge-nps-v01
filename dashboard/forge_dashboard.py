@@ -16,6 +16,7 @@ from pathlib import Path
 import httpx
 from PIL import Image
 import io
+from urllib.parse import urlsplit, urlunsplit
 
 # Load .env file at import time
 from dotenv import load_dotenv
@@ -91,15 +92,6 @@ manager = ConnectionManager()
 hermes_manager = ConnectionManager()  # Dedicated WebSocket for Hermes events
 spark_ws_manager = ConnectionManager()  # Dedicated WebSocket for Spark events
 
-# Mock Data Storage (In-memory for demo)
-sessions_db = {}
-skills_registry = [
-    {"name": "Visual Generation", "status": "ready"},
-    {"name": "Continuity Auditing", "status": "active"},
-    {"name": "Script Synthesis", "status": "ready"},
-    {"name": "Lore Consistency", "status": "idle"}
-]
-
 # --- Endpoints ---
 
 def _legacy_disabled(route: str, use_endpoint: str) -> JSONResponse:
@@ -112,6 +104,40 @@ def _legacy_disabled(route: str, use_endpoint: str) -> JSONResponse:
             "use_endpoint": use_endpoint,
         },
     )
+
+
+def _normalize_lmstudio_base_url(host: str = "", port: Any = None) -> str:
+    cfg = get_raw_config()
+    value = (host or str(cfg.get("LMSTUDIO_HOST", "") or "") or os.getenv("LMSTUDIO_HOST", "") or "http://localhost").strip().rstrip("/")
+    if not value.startswith(("http://", "https://")):
+        value = "http://" + value
+    if value.endswith("/v1"):
+        value = value[:-3].rstrip("/")
+    raw_port = port if port not in (None, "", 0, "0") else (str(cfg.get("LMSTUDIO_PORT", "") or "") or os.getenv("LMSTUDIO_PORT", "") or "1234")
+    port_text = str(raw_port or "").strip()
+    parts = urlsplit(value)
+    netloc = parts.netloc
+    try:
+        has_port = parts.port is not None
+    except ValueError:
+        has_port = ":" in netloc.rsplit("@", 1)[-1]
+    if port_text and not has_port:
+        netloc = f"{netloc}:{port_text}"
+    return urlunsplit((parts.scheme, netloc, parts.path.rstrip("/"), "", ""))
+
+
+class NexusQueryRequest(BaseModel):
+    query: str
+    top_n: int = 8
+    include_impact: bool = True
+
+
+class NexusImpactRequest(BaseModel):
+    asset_id: str
+
+
+class ClearQueueRequest(BaseModel):
+    comfy_url: str
 
 
 @app.post("/api/renders/audit-batch")
@@ -136,18 +162,19 @@ async def get_memory_page():
 
 @app.get("/api/session/{session_id}")
 async def get_session(session_id: str):
-    return sessions_db.get(session_id, {"status": "not_found"})
+    return _legacy_disabled(f"/api/session/{session_id}", "/api/campaigns")
 
 @app.get("/api/skills")
 async def get_skills():
-    return skills_registry
+    try:
+        from core.skills.skill_loader import SkillLoader
+        return {"status": "ok", "skills": SkillLoader().list_skills()}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"skill_loader_error:{e}")
 
 @app.get("/api/reasoning/{shot_id}")
 async def get_reasoning(shot_id: str):
-    return {
-        "shot_id": shot_id,
-        "content": f"Reasoning for shot {shot_id}: Analyzing visual consistency with lore bible..."
-    }
+    return _legacy_disabled(f"/api/reasoning/{shot_id}", "/api/campaigns/{campaign_id}/agent-exchanges")
 
 # --- Memory API Endpoints ---
 
@@ -168,7 +195,7 @@ async def api_stats():
         ram_pct = None
     return {
         "shots_in_store": len(_SHOTS_STORE),
-        "chat_sessions": len(sessions_db),
+        "chat_sessions": 0,
         "ram_percent": ram_pct,
     }
 
@@ -315,11 +342,7 @@ async def api_queue_clear(req: ClearQueueRequest):
     """Cancels all pending jobs in the specified ComfyUI instance."""
     from core.dispatch.comfy_client import ComfyUIClient
     client = ComfyUIClient(req.comfy_url)
-    # In a real implementation, this would call client.cancel_all() or similar
-    # For now, we simulate the interaction with the backend logic
     try:
-        # Assuming client has a method to clear queue via /queue DELETE (as per user prompt)
-        # If not implemented, we'll mock it for now but follow the architecture.
         success = await client.cancel_all() 
         if success:
             return {"status": "cleared", "message": "All pending jobs cancelled."}
@@ -426,16 +449,6 @@ async def api_renders():
                         "campaign": campaign_dir.name,
                     })
 
-    # Fallback mock data if no renders on disk
-    if not results:
-        results = [
-            {"src": "/static/renders/placeholder.png", "prompt": "Elara Vance portrait, cyberpunk neon glow", "score": 92, "status": "PASS"},
-            {"src": "/static/renders/placeholder.png", "prompt": "Concept art: neon alleyway, rain reflections", "score": 87, "status": "PASS"},
-            {"src": "/static/renders/placeholder.png", "prompt": "Character turnaround sheet — Elara", "score": 95, "status": "PASS"},
-            {"src": "/static/renders/placeholder.png", "prompt": "Orin workshop interior, forge glow", "score": 78, "status": "PASS"},
-            {"src": "/static/renders/placeholder.png", "prompt": "Vex-09 drone patrol, night city", "score": 88, "status": "PASS"},
-            {"src": "/static/renders/placeholder.png", "prompt": "Elara without hair color (injected error)", "score": 34, "status": "FAIL"},
-        ]
     return results
 
 # --- WebSocket ---
@@ -445,29 +458,16 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
     await manager.connect(websocket, session_id)
     try:
         while True:
-            data = await websocket.receive_text()
-            msg = json.loads(data)
-            if msg.get("type") == "START_MOCK":
-                asyncio.create_task(run_mock_stream(session_id))
+            await websocket.receive_text()
+            await websocket.send_json({
+                "type": "LEGACY_DISABLED",
+                "payload": {
+                    "status": "legacy_disabled",
+                    "message": "Legacy websocket stream is disabled in production.",
+                },
+            })
     except WebSocketDisconnect:
         manager.disconnect(websocket, session_id)
-
-# --- Mock Stream Generator ---
-
-async def run_mock_stream(session_id: str):
-    """Simulates Kimi and Hermes thinking."""
-    events = [
-        {"type": "SHOT_STARTED", "payload": {"shot_id": "SHOT_001", "name": "The Neon Ghost"}},
-        {"type": "KIMI_THINKING", "payload": {"text": "Analyzing character visual consistency..."}},
-        {"type": "HERMES_ACTION", "payload": {"action": "checking_lore_bible", "target": "Elara Vance"}},
-        {"type": "REASONING_UPDATE", "payload": {"shot_id": "SHOT_001", "content": "Visuals match Elara's signature aesthetic."}},
-        {"type": "AUTONOMY_SCORE", "payload": {"score": 85, "trend": "up"}},
-        {"type": "SKILL_USED", "payload": {"skill": "Continuity Auditing", "result": "SUCCESS"}},
-    ]
-    
-    for event in events:
-        await asyncio.sleep(2)
-        await manager.broadcast(event, session_id)
 
 # --- Startup & Mounts ---
 
@@ -496,9 +496,6 @@ async def root():
     return FileResponse(STATIC_DIR / "index.html")
 
 
-
-class ClearQueueRequest(BaseModel):
-    comfy_url: str # e.g., http://100.74.164.1:8188
 
 class ShotDispatchRequest(BaseModel):
     shot_id: str
@@ -676,21 +673,8 @@ class SubmitRecipeRequest(BaseModel):
     workflow_name: str = "z_image_turbo_api.json"
 
 
-# --- In-memory shots store (seeded with demo data) ---
-_SHOTS_STORE: List[Dict[str, Any]] = [
-    {"id": "SHOT_001", "n": 1, "chars": ["Elara"], "status": "ready",
-     "prompt": "Elara Vance, emerald iris, auburn hair lit by amber forge glow, 3/4 portrait, shallow DOF",
-     "seed": 849271},
-    {"id": "SHOT_002", "n": 2, "chars": ["Elara", "Orin"], "status": "ready",
-     "prompt": "Elara and Orin in mechanist workshop, blue-steel tools, rim lighting, cinematic wide",
-     "seed": 849272},
-    {"id": "SHOT_003", "n": 3, "chars": ["Vex-09"], "status": "queued",
-     "prompt": "Vex-09 drone, neon city patrol, rain-slicked streets, lens flare, extreme low angle",
-     "seed": 849273},
-    {"id": "SHOT_004", "n": 4, "chars": ["Elara"], "status": "queued",
-     "prompt": "Elara reading schematics, overexposed window behind, moody contrast, close-up hands",
-     "seed": 849274},
-]
+# --- In-memory shots store ---
+_SHOTS_STORE: List[Dict[str, Any]] = []
 _CAMPAIGNS: Dict[str, Dict[str, Any]] = {}
 _ACTIVE_CAMPAIGN: Optional[str] = None
 _CANCEL_CAMPAIGN = False
@@ -1869,16 +1853,6 @@ class VideoGeneratePromptsRequest(BaseModel):
     campaign_id: str = ""
 
 
-class NexusQueryRequest(BaseModel):
-    query: str
-    top_n: int = 8
-    include_impact: bool = True
-
-
-class NexusImpactRequest(BaseModel):
-    asset_id: str
-
-
 def _workflow_file_for_id(workflow_id: str) -> Optional[Path]:
     candidates = [
         REPO_ROOT / "workflows" / f"{workflow_id}.json",
@@ -2811,7 +2785,7 @@ async def emit_hermes_event(event_type: str, payload: Dict[str, Any]):
 # --- Teach Mode Endpoint ---
 
 class TeachModeRequest(BaseModel):
-    concept: str = "Elara Vance portrait, cyberpunk neon glow"
+    concept: str = ""
     error_type: str = "strip_hair_color"  # strip_hair_color | wrong_lighting | remove_anchor
 
 
@@ -2820,11 +2794,13 @@ async def api_hermes_teach(req: TeachModeRequest):
     """
     Run a controlled teach cycle:
     1. Inject deliberate error
-    2. Generate (simulated if Spark down)
+    2. Generate through the configured render backend
     3. Record failure + fix
     4. Trigger consolidation
     5. Return before/after trace
     """
+    if os.getenv("FORGE_ENABLE_TEACH_MODE", "false").lower() != "true":
+        return _legacy_disabled("/api/hermes/teach", "FORGE_ENABLE_TEACH_MODE=true")
     from core.hermes.hermes_agent import HermesAgent
 
     hermes = HermesAgent()
@@ -3013,9 +2989,14 @@ async def on_startup():
         f"{reindex_result.get('reindexed', 0)} media, "
         f"{reindex_result.get('preserved_non_media', 0)} non-media"
     )
-    # Auto-detect LM Studio model at startup
+    # Auto-detect LM Studio using the same saved host/port as Settings.
     from core.bridge.lmstudio_client import LMStudioClient
-    local = LMStudioClient()
+    cfg = get_raw_config()
+    local = LMStudioClient(
+        base_url=_normalize_lmstudio_base_url(cfg.get("LMSTUDIO_HOST", ""), cfg.get("LMSTUDIO_PORT", "")),
+        chat_model=str(cfg.get("LMSTUDIO_CHAT_MODEL", "") or ""),
+        embed_model=str(cfg.get("LMSTUDIO_EMBED_MODEL", "") or ""),
+    )
     if local.is_available:
         success, models, selected = await local.auto_detect_model()
         if success:
@@ -3035,7 +3016,7 @@ async def on_startup():
             print("[FORGE] LM Studio reachable but no models loaded")
             await emit_hermes_event("lmstudio_empty", {"host": local.base_url})
     else:
-        print("[FORGE] LM Studio not reachable at startup")
+        print(f"[FORGE] LM Studio not reachable at startup: {local.base_url}")
         await emit_hermes_event("lmstudio_offline", {"host": local.base_url})
 
 
@@ -3056,6 +3037,7 @@ async def api_config():
     comfy_primary = str(cfg.get("COMFYUI_PRIMARY", "") or "")
     comfy_secondary = str(cfg.get("COMFYUI_SECONDARY", "") or "")
     lm_host = str(cfg.get("LMSTUDIO_HOST", "") or "")
+    lm_port = str(cfg.get("LMSTUDIO_PORT", "") or "")
     lm_model = str(cfg.get("LMSTUDIO_CHAT_MODEL", "") or "")
     vision_model = str(cfg.get("KIMI_VISUAL_MODEL", "") or cfg.get("LMSTUDIO_VISION_MODEL", "") or "")
     director_api1 = str(cfg.get("KIMI_DIRECTOR_ENDPOINT_API1", "") or endpoint or "")
@@ -3066,6 +3048,10 @@ async def api_config():
     visual_active = str(cfg.get("KIMI_VISUAL_ENDPOINT_ACTIVE", "") or "api1")
     director_selected = director_api2 if director_active == "api2" and director_api2 else director_api1
     visual_selected = visual_api2 if visual_active == "api2" and visual_api2 else visual_api1
+    try:
+        lm_port_value: Any = int(lm_port or "1234") if lm_host else ""
+    except ValueError:
+        lm_port_value = 1234 if lm_host else ""
     return {
         "backend_mode": "remote" if endpoint.startswith("http") else "local",
         "kimi": {
@@ -3089,7 +3075,7 @@ async def api_config():
             },
             "hermes_3": {
                 "host": lm_host,
-                "port": 1234 if lm_host else "",
+                "port": lm_port_value,
                 "model_name": lm_model,
             },
         },
@@ -3156,6 +3142,7 @@ async def api_config_save(req: FlatConfigUpdateRequest):
         "models.kimi_vl.endpoint_api2": "KIMI_VISUAL_ENDPOINT_API2",
         "models.kimi_vl.endpoint_active": "KIMI_VISUAL_ENDPOINT_ACTIVE",
         "models.hermes_3.host": "LMSTUDIO_HOST",
+        "models.hermes_3.port": "LMSTUDIO_PORT",
         "models.hermes_3.model_name": "LMSTUDIO_CHAT_MODEL",
         "comfyui.primary": "COMFYUI_PRIMARY",
         "comfyui.secondary": "COMFYUI_SECONDARY",
@@ -3190,6 +3177,7 @@ async def api_config_effective():
             "comfy_primary": str(raw.get("COMFYUI_PRIMARY", "")).strip(),
             "comfy_secondary": str(raw.get("COMFYUI_SECONDARY", "")).strip(),
             "lmstudio_host": str(raw.get("LMSTUDIO_HOST", "")).strip(),
+            "lmstudio_port": str(raw.get("LMSTUDIO_PORT", "") or "1234").strip() if str(raw.get("LMSTUDIO_HOST", "")).strip() else "",
         },
     }
 
@@ -3278,13 +3266,9 @@ async def api_test_vision():
 
 
 @app.get("/api/test/lmstudio")
-async def api_test_lmstudio(host: str = "http://127.0.0.1", port: int = 1234):
-    base = (host or "").strip().rstrip("/")
-    if not base:
-        base = "http://127.0.0.1"
-    if not base.startswith("http://") and not base.startswith("https://"):
-        base = "http://" + base
-    url = f"{base}:{int(port)}/v1/models"
+async def api_test_lmstudio(host: str = "", port: int = 0):
+    base = _normalize_lmstudio_base_url(host, port)
+    url = f"{base}/v1/models"
     try:
         async with httpx.AsyncClient(timeout=8.0) as client:
             r = await client.get(url)
@@ -3408,29 +3392,8 @@ CHARACTERS_ANCHORS_DIR.mkdir(parents=True, exist_ok=True)
 # Keyed by character id (lowercase slug)
 _CHARACTERS_STORE: Dict[str, Dict[str, Any]] = {}
 
-# Seed with Elara Vance (the only character with a real anchor image)
-_CHARACTERS_STORE["elara"] = {
-    "id": "elara",
-    "name": "ELARA",
-    "role": "Pilot · Protagonist",
-    "accent": "cyan",
-    "score": 94,
-    "anchor_url": "/api/characters/anchor/elara_vance",
-    "anchor_prompt": "Portrait of ELARA, female pilot protagonist, platinum crop hair with undercut left side and singed tips, pale amber reflective eyes, lean athletic build, charcoal flight jacket over graphite undersuit with copper piping along seams, ember-glow tattoo on left forearm, softbox studio lighting, neutral dark background, highly detailed, cinematic, 8k",
-    "dna": {
-        "hair": "Platinum crop, undercut left side, singed tips from the Hollow",
-        "eyes": "Pale amber, reflective — pupils dilate in low-light",
-        "build": "Lean, 5'8\", defined shoulders from high-g maneuvers",
-        "clothing": "Charcoal flight jacket over graphite undersuit, copper piping along seams",
-        "signature": "Left forearm: ember-glow tattoo — a spiralling sigil, always visible",
-        "palette": ["#C4A57A", "#2A2E35", "#E9A74B"]
-    }
-}
-
-
 def _scan_character_files() -> None:
     """Scan character_banks for JSON character files and anchor images, merge into store."""
-    # Load character JSON files (skip demo_* files)
     for json_file in CHARACTER_BANKS_DIR.glob("*.json"):
         if json_file.name.startswith("demo_"):
             continue
@@ -3915,24 +3878,12 @@ async def api_hermes_chat_stream(req: HermesChatRequest):
     )
 
 
+@app.get("/api/products")
+async def api_get_products():
+    """Return configured products. No synthetic product data is generated."""
+    return {"status": "ok", "products": []}
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=7000)
-
-
-@app.get("/api/products")
-async def api_get_products():
-    """Returns the list of products for the Products tab."""
-    # In a real production setup, this would fetch from a database or file.
-    # For now, we return the data defined in data.js via a mock/static approach 
-    # since the backend doesn't directly share JS files.
-    return {
-        "products": [
-            {
-                "id": "emberdrive_mk2",
-                "name": "Emberdrive Mk-II",
-                "description": "High-performance propulsion module designed for deep-space maneuvers and rapid atmospheric entry.",
-                "anchor_prompt": "Studio product photography of Emberdrive Mk-II, sleek obsidian chassis with glowing amber heat sinks, internal turbine components visible through semi-transparent casing, macro lens detail, dramatic rim lighting, dark technical background, 8k"
-            }
-        ]
-    }
