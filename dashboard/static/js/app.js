@@ -74,10 +74,18 @@ const $videoPrompt = document.getElementById("video-prompt");
 const $sparkGrid = document.getElementById("spark-grid");
 const $sparkStatusText = document.getElementById("spark-status-text");
 const $sparkProgress = document.getElementById("spark-progress");
+const DEFAULT_VIDEO_WORKFLOW_ID = "04_ltx2.3_image_to_video";
 
 function getSelectedVideoWorkflow() {
     const el = document.querySelector('input[name="video-workflow"]:checked');
-    return el ? String(el.value || "").trim() : "02_ltx2.3_T2V_I2V_distilled";
+    return el ? String(el.value || "").trim() : DEFAULT_VIDEO_WORKFLOW_ID;
+}
+
+function setDefaultVideoWorkflow() {
+    const selected = document.querySelector('input[name="video-workflow"]:checked');
+    if (selected) return;
+    const el = document.querySelector('input[name="video-workflow"][value="' + DEFAULT_VIDEO_WORKFLOW_ID + '"]');
+    if (el) el.checked = true;
 }
 const $startBatchBtn = document.getElementById("start-batch-btn");
 const $lightboxModal = document.getElementById("lightbox-modal");
@@ -88,6 +96,7 @@ const $dashboardLeftPane = document.getElementById("dashboard-left-pane");
 // Init
 // ---------------------------------------------------------------------------
 window.addEventListener("DOMContentLoaded", () => {
+    setDefaultVideoWorkflow();
     loadCharacters();
     loadStats();
     loadShots();
@@ -2897,6 +2906,7 @@ async function generateVideoPrompts() {
     }
     const duration = parseInt(document.getElementById("video-duration")?.value || "4", 10);
     const fps = parseInt(document.getElementById("video-fps")?.value || "24", 10);
+    const workflowId = getSelectedVideoWorkflow();
     const $chatLog = document.getElementById("video-chat-log");
     const $chatStatus = document.getElementById("video-chat-status");
     const $btn = document.getElementById("generate-prompts-btn");
@@ -2962,6 +2972,7 @@ async function generateVideoPrompts() {
                 shot_ids: Array.from(videoSelection),
                 duration,
                 fps,
+                workflow_id: workflowId,
             }),
         });
         if (!resp.ok) throw new Error("HTTP " + resp.status);
