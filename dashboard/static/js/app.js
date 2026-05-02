@@ -2320,6 +2320,15 @@ async function loadVideoLibrary() {
             }
 
             if (s.video_prompt) {
+                const preview = document.createElement("div");
+                preview.className = "video-prompt-preview";
+                const promptText = String(s.video_prompt || "");
+                preview.textContent = promptText.substring(0, 140) + (promptText.length > 140 ? "..." : "");
+                preview.title = videoPromptBadgeTitle(s);
+                label.appendChild(preview);
+            }
+
+            if (s.video_prompt) {
                 const dot = document.createElement("span");
                 dot.className = "video-prompt-dot";
                 dot.title = "Video prompt attached";
@@ -2361,7 +2370,9 @@ async function loadVideoLibrary() {
             gridEl.appendChild(cell);
         });
         if (statusEl) {
+            const withPrompts = shots.filter(s => !!s.video_prompt).length;
             statusEl.textContent = "Ready — loaded " + shots.length + " photo(s)" +
+                (withPrompts ? (" · " + withPrompts + " with video prompts") : " · 0 with video prompts") +
                 (totalBeforeCap > MAX_VIDEO_THUMBS ? (" (latest " + MAX_VIDEO_THUMBS + " of " + totalBeforeCap + ")") : "");
         }
         updateVideoSelectionUI();

@@ -846,8 +846,7 @@ def _persist_media_shot_metadata(shot: Dict[str, Any]) -> None:
     tmp.replace(final)
 
 
-@app.post("/api/shots/reindex-storage")
-async def api_reindex_shots_from_storage():
+def _reindex_shots_from_storage() -> Dict[str, Any]:
     """
     Rehydrate shot records from on-disk render folders so historical campaigns
     appear again in Dashboard/Video after server restarts or store drift.
@@ -941,6 +940,11 @@ async def api_reindex_shots_from_storage():
         "preserved_non_media": len(non_media),
         "count": len(_SHOTS_STORE),
     }
+
+
+@app.post("/api/shots/reindex-storage")
+async def api_reindex_shots_from_storage():
+    return _reindex_shots_from_storage()
 
 
 @app.get("/api/campaigns")
@@ -2976,6 +2980,12 @@ async def on_startup():
     # Apply data/config.json overrides to environment on boot
     from core.bridge.runtime_config import apply_to_environment
     apply_to_environment()
+    reindex_result = _reindex_shots_from_storage()
+    print(
+        "[FORGE] Media shots reindexed at startup: "
+        f"{reindex_result.get('reindexed', 0)} media, "
+        f"{reindex_result.get('preserved_non_media', 0)} non-media"
+    )
     # Auto-detect LM Studio model at startup
     from core.bridge.lmstudio_client import LMStudioClient
     local = LMStudioClient()
