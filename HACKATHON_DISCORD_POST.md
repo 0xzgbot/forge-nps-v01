@@ -81,6 +81,57 @@ This turns the event store into a **quality dashboard** for the pipeline itself.
 
 ---
 
+## 📚 The Skills Library (127 skill directories)
+
+Forge ships a curated, multi-layer Hermes skills library. Every shot record carries a `skills_used` list, so you can trace which knowledge fired on which render.
+
+**The closed loop (Forge agent protocols — 14 skills)**
+The skills that *make Forge agentic*. They live under [hermes_home/profiles/live/skills/](hermes_home/profiles/live/skills/):
+- `forge-intelligence-loop-protocol` / `forge-nps-intelligence-loop` — the Sense-Think-Act-Correct architecture
+- `forge-remediation-loop-protocol` — J8/J9 closed-loop remediation (audit + autonomous repair)
+- `forge-visual-audit-protocol` — KimiVL-integrated vision audit
+- `forge-production-orchestrator` — single-entry pipeline executor
+- `expert-image-submitter-agent` — validated payload injection + lifecycle on remote ComfyUI
+- + 8 more (full list in [SKILLS_INDEX.md](SKILLS_INDEX.md))
+
+**ComfyUI / Spark operating layer (13 skills)**
+- `comfyui-master-control` — splits work into discovery vs. execution layers (mixing them = system failure)
+- `comfyui-remote-api-orchestrator` — dispatching to remote SPARK / Dual-3090 servers
+- `comfyui-payload-sanitization-protocol` — sanitizing LLM-generated payloads
+- `comfyui-batch-burst-protocol` — multi-hundred-image generation under host-OS pressure
+- `comfyui-crash-recovery-protocol` — process audit + script forensics on hangs
+- + 8 more
+
+**Style specialists (12, film-school deep)**
+Each is a complete visual treatise, not a one-line tag. Examples:
+- `cyberpunk_neon_noir_specialist` — Blade Runner / Akira / GitS, magenta-cyan color science with hex tables, neon physics, wet-surface materials
+- `studio_ghibli_specialist` — Miyazaki / Takahata / Kazuo Oga, hand-painted backgrounds, watercolor technique
+- `wes_anderson_specialist` — symmetry, 60-30-10 color rule, planimetric composition, Futura/Archer typography
+- `baroque_caravaggio_specialist` — tenebrism, chiaroscuro, dramatic spotlight illumination
+- `pixar_specialist` — 12 principles of animation, RenderMan lighting, Pixar Story Spine
+- + Art Nouveau/Deco, 1970s Italian Giallo, Synthwave/Retrowave, Surrealism/Dalí, Soviet Constructivist/Brutalist, Ukiyo-e, Neural Aesthetic system
+
+**Diagnostic / failure-mode (10 skills)**
+This is where "failure is a feature" actually lives — encoded knowledge of what goes wrong:
+- `anatomical_errors`, `character_age_drift`, `eye_color_mismatch`, `skin_tone_inconsistency`, `motion_blur_artifacts`, `photometric_overexposure`, `scale_distortion`, `composition_drift`, `clothing_detail_loss`, `background_bleed`
+
+**Cinematography (9) + Lighting (10)**
+Anamorphic, dutch-angle, drone, rack-focus, telephoto, wide-angle, POV, macro, aspect-ratio · Golden-hour, chiaroscuro, neon practical, fire/candlelight, natural-window, softbox, overcast, underwater, color-palette injection.
+
+**Continuity & character (7)**
+Including `character_consistency` (four-layer anti-drift: DNA → Pack → Keyframes → Locks), `cinematic_consistency_protocol` (CCP v1.0 — FLUX2 still + LTX 2.3 motion anchoring), `iterative_prompt_refinement` (semantic remediation classified by domain × severity).
+
+**Profile-mounted skills (24 unique across `character`, `product`, `script` profiles)**
+Including `kimi-vl-integration-protocol`, `tiered-audit-remediation-workflow`, `ltx25-beat-based-scripting`, `seedance-2-prompt-standard`, `zimage-turbo-payload-generator`.
+
+**Schemas (5)** — `flux2_json_schema`, `kimi-shot-plan-schema`, `workflow_flux2_text_to_image`, `workflow_ltx_i2v`, `sienna-nomad-prompt-standardization`.
+
+**Plus** format/runtime (5), industry verticals (12), prompt-engineering libraries (7), sound design (1), and the bundled Hermes default skill set (25 directories spanning 76 upstream skills) for general-purpose work.
+
+📋 **Full categorized index with one-line descriptions for every skill: [SKILLS_INDEX.md](SKILLS_INDEX.md)**
+
+---
+
 ## 🛠️ Tech Stack
 
 | Layer | Technology |

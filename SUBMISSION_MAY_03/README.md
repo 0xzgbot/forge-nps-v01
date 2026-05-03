@@ -195,6 +195,22 @@ LMSTUDIO_EMBED_MODEL=your-embedding-model
 
 ---
 
+## 📚 Skills Library (127 skill directories)
+
+Forge extends Hermes with a curated multi-layer skills library. Every shot record carries `skills_used`, so you can trace which knowledge fired on which render.
+
+- **14 Forge agent protocols** (the closed loop): `forge-intelligence-loop-protocol`, `forge-nps-intelligence-loop`, `forge-remediation-loop-protocol`, `forge-visual-audit-protocol`, `forge-production-orchestrator`, `expert-image-submitter-agent`, + 8 more.
+- **13 ComfyUI/Spark operating skills**: `comfyui-master-control`, `comfyui-remote-api-orchestrator`, `comfyui-payload-sanitization-protocol`, `comfyui-batch-burst-protocol`, `comfyui-crash-recovery-protocol`, + 8 more.
+- **12 deep style specialists** (film-school depth): `cyberpunk_neon_noir_specialist`, `studio_ghibli_specialist`, `wes_anderson_specialist`, `baroque_caravaggio_specialist`, `pixar_specialist`, `ukiyo_e_specialist`, `synthwave_retrowave_specialist`, `surrealism_dali_specialist`, `soviet_constructivist_brutalist_specialist`, `italian_giallo_specialist`, `art_nouveau_deco_specialist`, `neural_aesthetic`.
+- **10 diagnostic skills** (failure-mode knowledge): `anatomical_errors`, `character_age_drift`, `eye_color_mismatch`, `skin_tone_inconsistency`, `motion_blur_artifacts`, `photometric_overexposure`, `scale_distortion`, `composition_drift`, `clothing_detail_loss`, `background_bleed`.
+- **9 cinematography + 10 lighting skills.**
+- **7 continuity/character skills** including the four-layer anti-drift `character_consistency` and the FLUX2-to-LTX2.3 `cinematic_consistency_protocol` (CCP v1.0).
+- **24 profile-mounted specialists** under `character`, `product`, and `script` profiles — Sienna Nomad rebuild standards, Kimi-VL integration, tiered audit remediation, LTX 2.5 beat-based scripting, Seedance 2, Z-Image Turbo payload generation.
+- **5 schemas + 12 industry verticals + 7 prompt-engineering libraries + 5 format/runtime + 1 sound + 2 strategic skills.**
+- **25 bundled Hermes default skill directories** (76 upstream skills) for general-purpose work.
+
+📋 Full categorized catalog with one-line descriptions: [../SKILLS_INDEX.md](../SKILLS_INDEX.md)
+
 ## Hackathon MVP — What's Demo-Ready
 
 | Feature | Status | Demo Path |
