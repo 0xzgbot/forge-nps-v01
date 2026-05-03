@@ -11,8 +11,8 @@ A comprehensive guide for querying remote ComfyUI servers and analyzing workflow
 
 ### Get Server Information
 ```bash
-curl http://100.74.164.1:8188/api/system_stats | python3 -m json.tool
-curl http://100.74.164.1:8189/api/system_stats | python3 -m json.tool
+curl http://localhost:8188/api/system_stats | python3 -m json.tool
+curl http://localhost:8189/api/system_stats | python3 -m json.tool
 ```
 
 ⚠️ Must use `/api/system_stats` — not `/system_stats` (returns nothing on ComfyUI 0.18.2+).

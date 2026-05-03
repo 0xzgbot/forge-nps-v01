@@ -32,7 +32,7 @@ class ForgeOrchestrator:
         self.kimi = KimiBridge()
         self.genesis = GenesisEngine(self.kimi, projects_dir=projects_dir)
         self.prompt_gen = AssetPromptGenerator(self.kimi)
-        self.submitter = ComfyUIBatchSubmitter(hosts=hosts or ["http://100.112.87.8:8188", "http://100.112.87.8:8189"])
+        self.submitter = ComfyUIBatchSubmitter(hosts=hosts or ["http://localhost:8188", "http://localhost:8189"])
 
     async def run_full_production(self, idea: str, project_name: str = None):
         """The complete end-to-end pipeline."""

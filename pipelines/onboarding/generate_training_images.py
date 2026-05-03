@@ -65,7 +65,7 @@ def main():
     args = parser.parse_args()
     slug = args.slug
     content = get_project_data(slug); subject, trigger = parse_character_info(content, slug); banks = load_banks(slug)
-    client = comfy_client.ComfyClient(host="100.112.87.8", port=GPU_PORT)
+    client = comfy_client.ComfyClient(host="localhost", port=GPU_PORT)
     output_dir = f"/Users/zgbot/Desktop/forge_nps_v01/projects/{slug}/assets/training_images"; os.makedirs(output_dir, exist_ok=True)
     
     prompt_jobs = []

@@ -157,17 +157,17 @@ python3 -m dashboard.forge_dashboard
 Open:
 
 ```text
-http://127.0.0.1:7000
+http://localhost:7000
 ```
 
 ## Required Services
 
 | Service | Default |
 | --- | --- |
-| Dashboard | `http://127.0.0.1:7000` |
+| Dashboard | `http://localhost:7000` |
 | Kimi / NVIDIA-compatible API | `https://integrate.api.nvidia.com/v1/chat/completions` |
-| LM Studio | `http://100.74.164.1:1234` |
-| ComfyUI / Spark | `http://100.112.87.8:8188` |
+| LM Studio | `http://localhost:1234` |
+| ComfyUI / Spark | `http://localhost:8188` |
 | Media root | `/Users/zgbot/Desktop/FORGE_NPS_MEDIA` |
 
 Minimum environment/config values:
@@ -178,12 +178,12 @@ NIM_ENDPOINT=https://integrate.api.nvidia.com/v1/chat/completions
 KIMI_INSTRUCT_MODEL=moonshotai/kimi-k2-instruct
 KIMI_THINKING_MODEL=moonshotai/kimi-k2.6
 
-LMSTUDIO_HOST=http://100.74.164.1
+LMSTUDIO_HOST=http://localhost:1234
 LMSTUDIO_PORT=1234
 LMSTUDIO_CHAT_MODEL=qwen3.6-35b-a3b@q6_k
 LMSTUDIO_VISION_MODEL=qwen3.6-35b-a3b@q6_k
 
-COMFYUI_PRIMARY=http://100.112.87.8:8188
+COMFYUI_PRIMARY=http://localhost:8188
 FORGE_MEDIA_ROOT=/Users/zgbot/Desktop/FORGE_NPS_MEDIA
 ```
 
@@ -193,7 +193,7 @@ FORGE_MEDIA_ROOT=/Users/zgbot/Desktop/FORGE_NPS_MEDIA
 
 ```bash
 python3 -m py_compile dashboard/forge_dashboard.py core/hermes/pipeline/campaign_service.py core/hermes/pipeline/profile_cli.py
-curl -sS http://127.0.0.1:7000/api/stats
+curl -sS http://localhost:7000/api/stats
 ```
 
 Run the full pre-demo checklist in [STABILITY_CHECKLIST.md](STABILITY_CHECKLIST.md).
@@ -210,8 +210,6 @@ Run the full pre-demo checklist in [STABILITY_CHECKLIST.md](STABILITY_CHECKLIST.
 | [SKILLS_INDEX.md](SKILLS_INDEX.md) | Full categorized index of all 127 skills and profile-mounted skill sets. |
 | [dashboard/COMMAND_CENTER_README.md](dashboard/COMMAND_CENTER_README.md) | Dashboard-specific API/UI reference. |
 | [data/contracts/pipeline_contract.json](data/contracts/pipeline_contract.json) | Machine-readable pipeline contract. |
-
-Archived planning/demo drafts live under [docs/archive](docs/archive).
 
 ## Key Runtime Files
 

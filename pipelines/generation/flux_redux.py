@@ -5,7 +5,7 @@ from datetime import datetime
 from hermes_tools import terminal, json_parse
 
 # --- CONFIGURATION ---
-COMFYUI_HOST = "100.112.87.8"
+COMFYUI_HOST = "localhost"
 COMFYUI_PORT = 8188  # Primary GPU (Image Gen)
 WORKFLOW_PATH = "/Users/zgbot/Desktop/forge_nps_v01/workflows/flux_redux_api.json"
 

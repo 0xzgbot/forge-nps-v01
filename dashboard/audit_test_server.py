@@ -20,7 +20,7 @@ app = Flask(__name__, static_folder='static', template_folder='templates')
 
 # --- CONFIGURATION (Simulated) ---
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-LM_STUDIO_URL = "http://100.74.164.1:1234/v1/chat/completions"
+LM_STUDIO_URL = "http://localhost:1234/v1/chat/completions"
 RENDER_DIR = PROJECT_ROOT / "dashboard" / "static" / "renders" / "sienna"
 ANCHOR_PATH = PROJECT_ROOT / "data" / "character_banks" / "anchors" / "elara_vance.jpg"
 

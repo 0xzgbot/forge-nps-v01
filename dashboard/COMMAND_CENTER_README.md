@@ -4,7 +4,7 @@ The dashboard is the FastAPI UI/API surface for Forge NPS.
 
 - App file: [dashboard/forge_dashboard.py](/Users/zgbot/Desktop/forge_nps_v01/dashboard/forge_dashboard.py)
 - Default port: `7000`
-- UI: `http://127.0.0.1:7000`
+- UI: `http://localhost:7000`
 
 For full installation and service setup, use [INSTALLATION_AGENT_GUIDE.md](/Users/zgbot/Desktop/forge_nps_v01/INSTALLATION_AGENT_GUIDE.md).
 
@@ -94,15 +94,15 @@ LM Studio behavior:
 ## Local Checks
 
 ```bash
-curl -sS http://127.0.0.1:7000/api/stats
-curl -sS http://127.0.0.1:7000/api/config
-curl -sS http://127.0.0.1:7000/api/shots
+curl -sS http://localhost:7000/api/stats
+curl -sS http://localhost:7000/api/config
+curl -sS http://localhost:7000/api/shots
 ```
 
 Hermes chat:
 
 ```bash
-curl -sS -N -X POST http://127.0.0.1:7000/api/hermes/chat \
+curl -sS -N -X POST http://localhost:7000/api/hermes/chat \
   -H 'Content-Type: application/json' \
   -d '{"message":"Say hello in one sentence.","profile":"live"}'
 ```
@@ -110,7 +110,7 @@ curl -sS -N -X POST http://127.0.0.1:7000/api/hermes/chat \
 ComfyUI:
 
 ```bash
-curl -sS -X POST http://127.0.0.1:7000/api/test/comfyui \
+curl -sS -X POST http://localhost:7000/api/test/comfyui \
   -H 'Content-Type: application/json' \
-  -d '{"host":"http://100.112.87.8:8188"}'
+  -d '{"host":"http://localhost:8188"}'
 ```

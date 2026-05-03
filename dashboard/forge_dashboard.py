@@ -2652,7 +2652,7 @@ class InjectPromptRequest(BaseModel):
     prompt: str = ""
     node_id: str = "6"  # Default to node "6" (CLIPTextEncode)
     workflow_name: str = "default.json"
-    comfy_url: str = "http://100.74.164.1:8188"
+    comfy_url: str = "http://localhost:8188"
     filename: str = "FORGE"
     seed: int = 42
 
@@ -2670,7 +2670,7 @@ class RenderRequest(BaseModel):
     workflow_name: str = "default.json"
     workflow: str = "default.json"
     target_node: str = "6"
-    comfy_url: str = "http://100.74.164.1:8188"
+    comfy_url: str = "http://localhost:8188"
     campaign: str = "default"
     filename: str = "FORGE"
     seed: int = 42

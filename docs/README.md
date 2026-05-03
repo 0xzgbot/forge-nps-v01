@@ -10,5 +10,3 @@ Primary operational docs live at the repo root:
 - [SUBMISSION_GUIDE.md](/Users/zgbot/Desktop/forge_nps_v01/SUBMISSION_GUIDE.md)
 
 Files that remain directly under `docs/` are supporting submission/design materials, not runtime runbooks.
-
-Archived planning drafts and superseded demo notes live under [archive/](/Users/zgbot/Desktop/forge_nps_v01/docs/archive).

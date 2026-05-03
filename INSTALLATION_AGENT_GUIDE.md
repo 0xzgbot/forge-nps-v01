@@ -16,10 +16,10 @@ Forge NPS is not a standalone single-process app. It expects these services:
 
 | Component | Purpose | Default |
 |-----------|---------|---------|
-| Forge dashboard | FastAPI UI and pipeline API | `http://127.0.0.1:7000` |
+| Forge dashboard | FastAPI UI and pipeline API | `http://localhost:7000` |
 | NVIDIA/Kimi-compatible API | Director planning and critique | `https://integrate.api.nvidia.com/v1/chat/completions` |
-| LM Studio | Hermes local chat/profile calls and optional local vision | `http://100.74.164.1:1234` |
-| ComfyUI/Spark | Image/video render execution | `http://100.112.87.8:8188` |
+| LM Studio | Hermes local chat/profile calls and optional local vision | `http://localhost:1234` |
+| ComfyUI/Spark | Image/video render execution | `http://localhost:8188` |
 | Media root | Rendered images/videos served by dashboard | `/Users/zgbot/Desktop/FORGE_NPS_MEDIA` |
 
 ## Repository Setup
@@ -75,13 +75,13 @@ KIMI_INSTRUCT_MODEL=moonshotai/kimi-k2-instruct
 KIMI_THINKING_MODEL=moonshotai/kimi-k2.6
 KIMI_VISUAL_MODEL=qwen3.6-35b-a3b@q6_k
 
-LMSTUDIO_HOST=http://100.74.164.1
+LMSTUDIO_HOST=http://localhost:1234
 LMSTUDIO_PORT=1234
 LMSTUDIO_CHAT_MODEL=qwen3.6-35b-a3b@q6_k
 LMSTUDIO_VISION_MODEL=qwen3.6-35b-a3b@q6_k
 
-COMFYUI_PRIMARY=http://100.112.87.8:8188
-COMFYUI_SECONDARY=http://100.74.164.1:8189
+COMFYUI_PRIMARY=http://localhost:8188
+COMFYUI_SECONDARY=http://localhost:8189
 FORGE_MEDIA_ROOT=/Users/zgbot/Desktop/FORGE_NPS_MEDIA
 ```
 
@@ -118,15 +118,15 @@ Required behavior:
 Health check:
 
 ```bash
-curl -sS http://100.74.164.1:1234/v1/models | python3 -m json.tool
+curl -sS http://localhost:1234/v1/models | python3 -m json.tool
 ```
 
 Load model through Forge:
 
 ```bash
-curl -sS -X POST http://127.0.0.1:7000/api/lmstudio/load \
+curl -sS -X POST http://localhost:7000/api/lmstudio/load \
   -H 'Content-Type: application/json' \
-  -d '{"host":"http://100.74.164.1","port":1234,"model":"qwen3.6-35b-a3b@q6_k"}' \
+  -d '{"host":"http://localhost:1234","port":1234,"model":"qwen3.6-35b-a3b@q6_k"}' \
   | python3 -m json.tool
 ```
 
@@ -143,15 +143,15 @@ Start ComfyUI on the render host, listening on `0.0.0.0:8188`.
 Minimum health check:
 
 ```bash
-curl -sS http://100.112.87.8:8188/system_stats | python3 -m json.tool
+curl -sS http://localhost:8188/system_stats | python3 -m json.tool
 ```
 
 Dashboard health check:
 
 ```bash
-curl -sS -X POST http://127.0.0.1:7000/api/test/comfyui \
+curl -sS -X POST http://localhost:7000/api/test/comfyui \
   -H 'Content-Type: application/json' \
-  -d '{"host":"http://100.112.87.8:8188"}' \
+  -d '{"host":"http://localhost:8188"}' \
   | python3 -m json.tool
 ```
 
@@ -184,7 +184,7 @@ Uvicorn running on http://0.0.0.0:7000
 Open:
 
 ```text
-http://127.0.0.1:7000
+http://localhost:7000
 ```
 
 If port `7000` is busy:
@@ -212,19 +212,19 @@ In the Settings panel:
 Stats:
 
 ```bash
-curl -sS http://127.0.0.1:7000/api/stats | python3 -m json.tool
+curl -sS http://localhost:7000/api/stats | python3 -m json.tool
 ```
 
 Config:
 
 ```bash
-curl -sS http://127.0.0.1:7000/api/config | python3 -m json.tool
+curl -sS http://localhost:7000/api/config | python3 -m json.tool
 ```
 
 Hermes chat:
 
 ```bash
-curl -sS -N -X POST http://127.0.0.1:7000/api/hermes/chat \
+curl -sS -N -X POST http://localhost:7000/api/hermes/chat \
   -H 'Content-Type: application/json' \
   -d '{"message":"Say hello in one sentence.","profile":"live"}'
 ```
@@ -232,7 +232,7 @@ curl -sS -N -X POST http://127.0.0.1:7000/api/hermes/chat \
 Campaign stream without using the UI:
 
 ```bash
-curl -sS -N -X POST http://127.0.0.1:7000/api/hermes/run-campaign \
+curl -sS -N -X POST http://localhost:7000/api/hermes/run-campaign \
   -H 'Content-Type: application/json' \
   -d '{
     "brief":"A single figure standing on an empty dirt path, back to camera, pale morning sun casting long shadows, overcast sky, ground-level framing, desaturated tones.",
@@ -255,7 +255,7 @@ kimi_raw
 Cancel a running campaign:
 
 ```bash
-curl -sS -X POST http://127.0.0.1:7000/api/hermes/cancel
+curl -sS -X POST http://localhost:7000/api/hermes/cancel
 ```
 
 ## Common Failures and Fixes
@@ -275,7 +275,7 @@ If it stops at Hermes intake:
 Check:
 
 ```bash
-curl -sS http://100.74.164.1:1234/v1/models | python3 -m json.tool
+curl -sS http://localhost:1234/v1/models | python3 -m json.tool
 ```
 
 If LM Studio says no models loaded, load the configured model from LM Studio or use the dashboard **Load Model** button.
@@ -286,7 +286,7 @@ Common causes:
 
 - The configured visual model is not loaded.
 - The model is not vision-capable.
-- Endpoint is wrong: local LM Studio should usually be `http://100.74.164.1:1234/v1`.
+- Endpoint is wrong: local LM Studio should usually be `http://localhost:1234/v1`.
 - Payload format rejected by the server.
 
 ### Settings Do Not Stick

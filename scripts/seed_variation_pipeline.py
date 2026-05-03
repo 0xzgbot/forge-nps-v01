@@ -44,7 +44,7 @@ from core.consistency.character_consistency_engine import CharacterConsistencyEn
 
 # ─── Configuration ───────────────────────────────────────────────────────────
 
-DEFAULT_COMFY_HOST = "http://100.112.87.8:8188"
+DEFAULT_COMFY_HOST = "http://localhost:8188"
 DEFAULT_WORKFLOW = REPO_ROOT / "workflows" / "z_image_turbo_api.json"
 SEED_IMAGES_DIR = REPO_ROOT / "data" / "seed_images"
 OUTPUT_DIR = REPO_ROOT / "data" / "seed_outputs"

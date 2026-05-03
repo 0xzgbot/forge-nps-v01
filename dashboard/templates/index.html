@@ -1606,7 +1606,7 @@
                 <div class="form-inline">
                     <div class="form-row">
                         <label>Host</label>
-                        <input type="text" id="cfg-lmstudio-host" placeholder="100.74.164.1" onchange="markDirty('models.hermes_3.host')">
+                        <input type="text" id="cfg-lmstudio-host" placeholder="localhost:1234" onchange="markDirty('models.hermes_3.host')">
                     </div>
                     <div class="form-row small">
                         <label>Port</label>
@@ -1636,15 +1636,15 @@
                 <p class="card-desc">Primary ComfyUI host and Spark WebSocket.</p>
                 <div class="form-row">
                     <label>Spark Primary WebSocket</label>
-                    <input type="text" id="cfg-spark-primary" placeholder="ws://100.74.164.1:8000" onchange="markDirty('spark.primary')">
+                    <input type="text" id="cfg-spark-primary" placeholder="ws://localhost:8000" onchange="markDirty('spark.primary')">
                 </div>
                 <div class="form-row">
                     <label>Primary (Port 8188)</label>
-                    <input type="text" id="cfg-comfyui-primary" placeholder="http://100.112.87.8:8188" style="flex:1;" onchange="markDirty('comfyui.primary')">
+                    <input type="text" id="cfg-comfyui-primary" placeholder="http://localhost:8188" style="flex:1;" onchange="markDirty('comfyui.primary')">
                 </div>
                 <div class="form-row">
                     <label>Secondary (Port 8189)</label>
-                    <input type="text" id="cfg-comfyui-secondary" placeholder="http://100.74.164.1:8189" style="flex:1;" onchange="markDirty('comfyui.secondary')">
+                    <input type="text" id="cfg-comfyui-secondary" placeholder="http://localhost:8189" style="flex:1;" onchange="markDirty('comfyui.secondary')">
                 </div>
                 <div class="card-actions">
                     <button class="btn btn-secondary" onclick="testComfyUIAll()">Test ComfyUI + Spark</button>

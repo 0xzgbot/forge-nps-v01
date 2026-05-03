@@ -7,7 +7,7 @@ LM Studio loads any GGUF model and exposes an OpenAI-compatible API
 Set LMSTUDIO_HOST in your .env to point to wherever LM Studio is running:
   - Mac laptop: http://localhost:1234
   - Remote GPU box: http://192.168.1.50:1234
-  - Spark: http://100.112.87.8:1234
+  - Spark: http://localhost:1234
 
 No external dependencies needed beyond urllib.
 """

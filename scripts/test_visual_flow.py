@@ -7,7 +7,7 @@ sys.path.append("/Users/zgbot/Desktop/forge_nps_v01")
 from agents.visual.visual_agent import VisualAgent
 
 async def run_test():
-    agent = VisualAgent("http://100.112.87.8:8188")
+    agent = VisualAgent("http://localhost:8188")
     mock_shot = {
         "shot_id": "SHOT_001",
         "visual_prompt": {

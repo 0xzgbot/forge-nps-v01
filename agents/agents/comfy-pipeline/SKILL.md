@@ -7,7 +7,7 @@ allowed-tools: Bash, Read, Write, Glob, Grep, Agent, WebFetch
 
 # ComfyUI Local Server Skill
 
-You interact with a local ComfyUI server at `http://100.112.87.8:8188 (primary) and http://100.112.87.8:8189 (secondary)` to generate images and video headlessly via the REST API.
+You interact with a local ComfyUI server at `http://localhost:8188 (primary) and http://localhost:8189 (secondary)` to generate images and video headlessly via the REST API.
 
 ## Workflow Templates (Source of Truth)
 
@@ -51,8 +51,8 @@ from datetime import datetime
 
 # Configuration
 SERVERS = [
-    "http://100.112.87.8:8188",  # Primary
-    "http://100.112.87.8:8189"   # Secondary
+    "http://localhost:8188",  # Primary
+    "http://localhost:8189"   # Secondary
 ]
 OUTPUT_DIR = os.path.expanduser("~/Desktop/comfy_generations")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -126,14 +126,14 @@ When connecting to new servers, use these discovery commands:
 
 ```bash
 # Test connectivity and get system info
-curl -s http://100.112.87.8:8188/system_stats
+curl -s http://localhost:8188/system_stats
 
 # List available checkpoint models
-curl -s http://100.112.87.8:8188/api/models/checkpoints | python -c "import json,sys; data=json.load(sys.stdin); print('
+curl -s http://localhost:8188/api/models/checkpoints | python -c "import json,sys; data=json.load(sys.stdin); print('
 '.join(data))"
 
 # List diffusion models (for Flux, Wan, etc.)
-curl -s http://100.112.87.8:8188/api/models/diffusion | python -c "import json,sys; data=json.load(sys.stdin); print('
+curl -s http://localhost:8188/api/models/diffusion | python -c "import json,sys; data=json.load(sys.stdin); print('
 '.join(data))"
 ```
 
@@ -143,19 +143,19 @@ Before building a workflow, query the API to find exact model/lora filenames:
 
 ```python
 # List all available loras
-curl -s http://100.112.87.8:8188 (primary) and http://100.112.87.8:8189 (secondary)/object_info/LoraLoader | python -c "
+curl -s http://localhost:8188 (primary) and http://localhost:8189 (secondary)/object_info/LoraLoader | python -c "
 import json,sys; data=json.load(sys.stdin)
 for l in data['LoraLoader']['input']['required']['lora_name'][0]: print(l)
 "
 
 # List available checkpoints
-curl -s http://100.112.87.8:8188 (primary) and http://100.112.87.8:8189 (secondary)/object_info/CheckpointLoaderSimple | python -c "
+curl -s http://localhost:8188 (primary) and http://localhost:8189 (secondary)/object_info/CheckpointLoaderSimple | python -c "
 import json,sys; data=json.load(sys.stdin)
 for m in data['CheckpointLoaderSimple']['input']['required']['ckpt_name'][0]: print(m)
 "
 
 # List available diffusion models (for split-file workflows like z-image)
-curl -s http://100.112.87.8:8188 (primary) and http://100.112.87.8:8189 (secondary)/object_info/UNETLoader | python -c "
+curl -s http://localhost:8188 (primary) and http://localhost:8189 (secondary)/object_info/UNETLoader | python -c "
 import json,sys; data=json.load(sys.stdin)
 for m in data['UNETLoader']['input']['required']['unet_name'][0]: print(m)
 "
@@ -180,7 +180,7 @@ prompt = {
 }
 
 payload = json.dumps({"prompt": prompt}).encode("utf-8")
-req = urllib.request.Request("http://100.112.87.8:8188 (primary) and http://100.112.87.8:8189 (secondary)/prompt", data=payload, headers={"Content-Type": "application/json"})
+req = urllib.request.Request("http://localhost:8188 (primary) and http://localhost:8189 (secondary)/prompt", data=payload, headers={"Content-Type": "application/json"})
 resp = urllib.request.urlopen(req)
 result = json.loads(resp.read())
 print(json.dumps(result, indent=2))
@@ -347,7 +347,7 @@ To feed a generated image into i2v without saving/reloading:
 Upload it to ComfyUI's input folder first:
 ```python
 # Download from output, re-upload to input
-img_data = urllib.request.urlopen("http://100.112.87.8:8188 (primary) and http://100.112.87.8:8189 (secondary)/view?filename=NAME&type=output").read()
+img_data = urllib.request.urlopen("http://localhost:8188 (primary) and http://localhost:8189 (secondary)/view?filename=NAME&type=output").read()
 # POST as multipart to /upload/image
 ```
 
@@ -412,11 +412,11 @@ Query the ComfyUI API to see what models are currently available:
 
 ```bash
 # Check specific loader types
-curl -s http://100.112.87.8:8188 (primary) and http://100.112.87.8:8189 (secondary)/object_info/UNETLoader | python -c "
+curl -s http://localhost:8188 (primary) and http://localhost:8189 (secondary)/object_info/UNETLoader | python -c "
 import json,sys; data=json.load(sys.stdin)
 for m in data['UNETLoader']['input']['required']['unet_name'][0]: print(m)"
 
-curl -s http://100.112.87.8:8188 (primary) and http://100.112.87.8:8189 (secondary)/object_info/CheckpointLoaderSimple | python -c "
+curl -s http://localhost:8188 (primary) and http://localhost:8189 (secondary)/object_info/CheckpointLoaderSimple | python -c "
 import json,sys; data=json.load(sys.stdin)
 for m in data['CheckpointLoaderSimple']['input']['required']['ckpt_name'][0]: print(m)"
 ```

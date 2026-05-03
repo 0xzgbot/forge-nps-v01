@@ -54,8 +54,8 @@ class ComfyRemediationHarness:
 
         # Default hosts from project config
         self.hosts = comfy_hosts or [
-            "http://100.112.87.8:8188",
-            "http://100.112.87.8:8189",
+            "http://localhost:8188",
+            "http://localhost:8189",
         ]
         for host in self.hosts:
             self.clients[host] = ComfyUIClient(host)
@@ -389,7 +389,7 @@ async def main():
     parser = argparse.ArgumentParser(description="ComfyUI Remediation Harness")
     parser.add_argument("project_root", help="Path to project root (e.g., Sienna_Nomad_Project)")
     parser.add_argument("--filter", choices=["image", "anchor", "photo", "all"], default="image")
-    parser.add_argument("--hosts", nargs="+", default=["http://100.112.87.8:8188", "http://100.112.87.8:8189"])
+    parser.add_argument("--hosts", nargs="+", default=["http://localhost:8188", "http://localhost:8189"])
     parser.add_argument("--output", default=None, help="Output directory for renders")
     args = parser.parse_args()
 

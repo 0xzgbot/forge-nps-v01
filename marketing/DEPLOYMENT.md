@@ -44,7 +44,7 @@ python3 -m http.server 8080
 Then open:
 
 ```text
-http://127.0.0.1:8080/marketing/
+http://localhost:8080/marketing/
 ```
 
 ## Included Pages

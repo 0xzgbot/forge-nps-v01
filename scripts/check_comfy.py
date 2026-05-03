@@ -3,7 +3,7 @@ import os
 from pipelines.comfy_client import ComfyClient
 
 # Configuration
-HOST = "100.112.87.8"
+HOST = "localhost"
 PORTS = [8188, 8189]
 REQUIRED_MODELS = [
     "z_image_turbo_bf16.safetensors",

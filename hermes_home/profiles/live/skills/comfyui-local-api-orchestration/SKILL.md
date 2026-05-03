@@ -14,8 +14,8 @@ The direct API is the execution layer. MCP handles discovery; this handles every
 Always probe before use. Both ports are interchangeable — either may be up or down.
 
 ```bash
-curl -s --max-time 3 http://100.74.164.1:8188/api/system_stats
-curl -s --max-time 3 http://100.74.164.1:8189/api/system_stats
+curl -s --max-time 3 http://localhost:8188/api/system_stats
+curl -s --max-time 3 http://localhost:8189/api/system_stats
 ```
 
 ---
@@ -34,7 +34,7 @@ Server health + GPU info. ⚠️ Must use `/api/` prefix on ComfyUI 0.18.2+ — 
 ### `GET /object_info/{NodeClass}`
 Model catalog for a specific node type. Used by MCP's `list_models`.
 ```bash
-curl -s http://100.74.164.1:8188/object_info/CheckpointLoaderSimple
+curl -s http://localhost:8188/object_info/CheckpointLoaderSimple
 ```
 
 ### `POST /prompt`
@@ -50,7 +50,7 @@ Submit a generation job.
 
 **Always write to a temp file first:**
 ```bash
-curl -s -X POST http://100.74.164.1:8188/prompt \
+curl -s -X POST http://localhost:8188/prompt \
   -H "Content-Type: application/json" \
   -d @/tmp/comfy_payload.json
 ```
@@ -149,7 +149,7 @@ with open('/tmp/payload.json', 'w') as f:
 For processing multiple prompts across both servers:
 
 ```python
-servers = [s for s in ['http://100.74.164.1:8188', 'http://100.74.164.1:8189']
+servers = [s for s in ['http://localhost:8188', 'http://localhost:8189']
            if is_up(s)]  # probe first
 
 for i, prompt_text in enumerate(prompts):

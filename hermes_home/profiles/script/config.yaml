@@ -1,7 +1,7 @@
 model:
   default: gemma-4-26b-a4b-it
   provider: custom
-  base_url: http://100.74.164.1:1234/v1
+  base_url: http://localhost:1234/v1
 providers: {}
 fallback_providers: []
 toolsets:

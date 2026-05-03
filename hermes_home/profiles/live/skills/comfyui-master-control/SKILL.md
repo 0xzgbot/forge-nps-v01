@@ -39,15 +39,15 @@ Two independent ComfyUI instances running on a single Windows machine.
 
 | Port | GPU Assignment | VRAM | Status/Capability |
 |---|---|---|---|
-| `100.74.164.1:8188` | RTX 3090 #0 (`--cuda-device 0`) | 24GB | Primary Image/Video |
-| `100.74.164.1:8189` | RTX 3090 #1 (`--cuda-device 1`) | 24GB | Secondary/Batch |
+| `localhost:8188` | RTX 3090 #0 (`--cuda-device 0`) | 24GB | Primary Image/Video |
+| `localhost:8189` | RTX 3090 #1 (`--cuda-device 1`) | 24GB | Secondary/Batch |
 
 **Probe Availability:**
 Always verify server health before attempting a job.
 
 ```bash
-curl -s --max-time 3 http://100.74.164.1:8188/api/system_stats
-curl -s --max-time 3 http://100.74.164.1:8189/api/system_stats
+curl -s --max-time 3 http://localhost:8188/api/system_stats
+curl -s --max-time 3 http://localhost:8189/api/system_stats
 ```
 
 **Launch Flags (Standard):**
@@ -82,16 +82,16 @@ All active generation work occurs here via direct HTTP calls.
 Submit the payload as a POST request. **Always use a temporary file for payloads to avoid shell argument limits.**
 
 ```bash
-curl -s -X POST http://100.74.164.1:8188/prompt \
+curl -s -X POST http://localhost:8188/prompt \
   -H "Content-Type: application/json" \
   -d @/tmp/payload.json
 ```
 *   **Required Payload Format:** `{"prompt": {<workflow_dict>}, "client_id": "<uuid>"}`
 
 ### Monitor & Retrieve
-1.  **Poll History:** `GET http://100.74.164.1:8188/history/{prompt_id}`
+1.  **Poll History:** `GET http://localhost:8188/history/{prompt_id}`
     *   Wait for the response to contain an `outputs` key for your target nodes.
-2.  **Download Asset:** `GET http://100.74.164.1:8188/view?filename=...&subfolder=...&type=output`
+2.  **Download Asset:** `GET http://localhost:8188/view?filename=...&subfolder=...&type=output`
 
 ---
 

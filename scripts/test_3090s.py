@@ -6,8 +6,8 @@ import httpx
 logging.basicConfig(level=logging.INFO, format="[%(asctime)s] %(message)s", datefmt="%H:%M:%S")
 logger = logging.getLogger("Test3090s")
 
-GPU1 = "http://100.74.164.1:8188"
-GPU2 = "http://100.74.164.1:8189"
+GPU1 = "http://localhost:8188"
+GPU2 = "http://localhost:8189"
 OUT = Path("/Users/zgbot/Desktop/forge_nps_v01/data/renders/3090_tests")
 OUT.mkdir(parents=True, exist_ok=True)
 

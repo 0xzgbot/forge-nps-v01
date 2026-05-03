@@ -49,9 +49,9 @@ Options:
 ---
 
 ## ComfyUI endpoints
-- Port 8188: `http://100.74.164.1:8188`
-- Port 8189: `http://100.74.164.1:8189`
-- Health check: `GET http://100.74.164.1:8188/api/system_stats`
+- Port 8188: `http://localhost:8188`
+- Port 8189: `http://localhost:8189`
+- Health check: `GET http://localhost:8188/api/system_stats`
 
 ---
 

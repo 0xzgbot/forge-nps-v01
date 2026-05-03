@@ -283,8 +283,8 @@
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  [COMFYUI HOSTS]                                            │
-│  Primary:   [100.112.87.8:8188]  🟢 Online                │
-│  Secondary: [100.112.87.8:8189]  ⚫ Offline               │
+│  Primary:   [localhost:8188]  🟢 Online                │
+│  Secondary: [localhost:8189]  ⚫ Offline               │
 │  [+ Add Host]                                               │
 │                                                             │
 │  [BANK EDITOR]                                              │

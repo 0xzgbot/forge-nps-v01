@@ -29,7 +29,7 @@ mcp_servers:
       - --workflow-dir
       - ~/workflows
     env:
-      COMFYUI_API_BASE_URL: http://100.74.164.1:8188/
+      COMFYUI_API_BASE_URL: http://localhost:8188/
       COMFYUI_HTTP_TIMEOUT: '300'
     timeout: 300
     connect_timeout: 60
@@ -109,7 +109,7 @@ Queries the remote ComfyUI server's `/object_info/{NodeClass}` endpoint to enume
 **Returns (summary mode):**
 ```json
 {
-  "base_url": "http://100.74.164.1:8188",
+  "base_url": "http://localhost:8188",
   "kinds": ["checkpoints", "loras", "vae", "clip", "controlnet"],
   "counts": {"checkpoints": 7, "loras": 3, ...},
   "models": {

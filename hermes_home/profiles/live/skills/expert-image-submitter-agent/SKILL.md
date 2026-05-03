@@ -29,8 +29,8 @@ You must maintain a hard boundary between discovery and execution to ensure reli
 Confirm availability of the dual-server setup before proceeding.
 
 ```bash
-curl -s --max-time 3 http://100.74.164.1:8188/api/system_stats
-curl -s --max-time 3 http://100.74.164.1:8189/api/system_stats
+curl -s --max-time 3 http://localhost:8188/api/system_stats
+curl -s --max-time 3 http://localhost:8189/api/system_stats
 ```
 *   **Action:** Build a list of active hosts. If neither responds, abort and report status.
 
@@ -97,7 +97,7 @@ with open('/tmp/comfy_payload.json', 'w') as f:
 Distribute jobs across available servers. For batches ≥ 4, use round-robin distribution.
 
 ```bash
-curl -s -X POST http://100.74.164.1:8188/prompt \
+curl -s -X POST http://localhost:8188/prompt \
   -H "Content-Type: application/json" \
   -d @/tmp/comfy_payload.json
 ```
