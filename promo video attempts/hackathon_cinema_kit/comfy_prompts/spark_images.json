@@ -1,0 +1,29 @@
+{
+  "description": "Source images for Scene 1 'The Spark' — high-impact hero images that represent the moment of creation.",
+  "images": [
+    {
+      "id": "spark_01",
+      "prompt": "Epic cinematic wide shot, trail runner silhouetted against golden hour sunset on a granite mountain ridge, dust particles catching light, anamorphic lens flare, film grain, 35mm, Kodak Vision3, directed by Denis Villeneuve, high contrast, dramatic shadows",
+      "negative_prompt": "blurry, low quality, deformed, ugly, bad anatomy, watermark, text, logo, oversaturated",
+      "width": 1344,
+      "height": 768,
+      "model": "flux2"
+    },
+    {
+      "id": "spark_02",
+      "prompt": "Extreme close-up of human eye reflecting a galaxy of stars, macro photography, shallow depth of field, cinematic lighting, skin texture visible, iris detail, photorealistic, Arri Alexa",
+      "negative_prompt": "cartoon, anime, painting, illustration, blurry, low quality",
+      "width": 768,
+      "height": 768,
+      "model": "flux2"
+    },
+    {
+      "id": "spark_03",
+      "prompt": "A single luminous seed floating in infinite black void, bioluminescent tendrils emerging, microscopic photography style, ethereal glow, particle effects, octane render, 8k detail",
+      "negative_prompt": "background, clutter, text, watermark, low resolution",
+      "width": 768,
+      "height": 768,
+      "model": "flux2"
+    }
+  ]
+}
