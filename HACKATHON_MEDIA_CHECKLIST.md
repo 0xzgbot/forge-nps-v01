@@ -45,7 +45,7 @@ This is every piece of media you need to generate, screenshot, or record to supp
 - Skills used list
 - Spark output (prompt ID, seed)
 - Audit status/score
-
+Screenshot 2026-05-02 at 9.07.20 PM
 **Why:** Tweet 6 references this. Discord post section 1 references this.
 
 ### Screenshot B: Retry Lineage
@@ -55,16 +55,10 @@ This is every piece of media you need to generate, screenshot, or record to supp
 - Remediated shot with `retry_of` pointing to original
 - Final audit outcome on the retry
 - The lineage chain visible in the UI
-
+Screenshot 2026-05-02 at 9.15.03 PM
 **Why:** Tweet 7 explicitly says "[screenshot of retry lineage]". This is your biggest differentiator.
 
-### Screenshot C: Memory Health Endpoint
-**Where:** `GET /api/memory/health` in browser or curl.
-**What to capture:**
-- The JSON response showing `total_events`, `unknown_event_types`, `orphan_remediation_events`, `shots_missing_audit_after_render`
-- Preferably with some non-zero counts so it looks real
 
-**Why:** Tweet 8 references this. Shows observability.
 
 ### Screenshot D: Live Event Stream
 **Where:** Dashboard during an active campaign run.

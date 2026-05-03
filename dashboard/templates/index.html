@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Forge NPS — Hermes Command Center</title>
+    <title>The Forge — Hermes Command Center</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/cytoscape@3.26.0/dist/cytoscape.min.js"></script>
@@ -324,8 +324,8 @@
             padding: 12px 24px;
             background: #0d0d0d;
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-            grid-auto-rows: 180px;
+            grid-template-columns: repeat(auto-fill, minmax(var(--media-thumb-size, 180px), 1fr));
+            grid-auto-rows: var(--media-thumb-size, 180px);
             gap: 8px;
             overflow-y: auto;
             align-content: start;
@@ -1198,7 +1198,7 @@
         .spark-progress { font-family: 'JetBrains Mono', monospace; color: #3D5AFE; }
         .spark-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(var(--media-thumb-size, 200px), 1fr));
             gap: 12px;
             min-height: 200px;
         }
@@ -1206,7 +1206,7 @@
             position: relative;
             width: 100%;
             aspect-ratio: 1 / 1;
-            min-height: 180px;
+            min-height: min(var(--media-thumb-size, 200px), 260px);
             background: #1A1A1A;
             border: 1px solid #333;
             border-radius: 8px;
@@ -1310,6 +1310,24 @@
             font-size: 14px;
         }
         .grid-placeholder strong { color: #3D5AFE; }
+        .thumbnail-size-control {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #9aa0a6;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+        .thumbnail-size-control input[type="range"] {
+            width: 150px;
+            accent-color: #3D5AFE;
+        }
+        .thumbnail-size-value {
+            min-width: 44px;
+            color: #cfd3d7;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+        }
 
         /* Lightbox */
         .lightbox-modal {
@@ -1324,15 +1342,16 @@
         .lightbox-modal.active { display: flex; }
         .lightbox-content {
             position: relative;
-            max-width: 90vw;
-            max-height: 90vh;
+            width: min(96vw, 1800px);
+            height: min(90vh, 980px);
             display: flex;
-            flex-direction: column;
-            gap: 12px;
+            flex-direction: row;
+            gap: 16px;
+            align-items: stretch;
         }
         .lightbox-close {
             position: absolute;
-            top: -40px;
+            top: -38px;
             right: 0;
             background: none;
             border: none;
@@ -1341,44 +1360,79 @@
             cursor: pointer;
         }
         .lightbox-image-container {
-            max-height: 70vh;
+            flex: 0 0 56%;
+            min-width: 0;
+            min-height: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             overflow: hidden;
-        }
-        .lightbox-image-container img {
-            max-width: 90vw;
-            max-height: 70vh;
-            object-fit: contain;
+            background: #050505;
+            border: 1px solid #262626;
             border-radius: 8px;
         }
+        .lightbox-image-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+        }
         .lightbox-details {
+            flex: 1 1 44%;
+            min-width: 360px;
+            min-height: 0;
             background: #1A1A1A;
             border: 1px solid #333;
             border-radius: 8px;
-            padding: 12px 16px;
+            padding: 14px 16px;
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 8px;
+            overflow: auto;
         }
         .detail-row {
-            display: flex;
+            display: grid;
+            grid-template-columns: 116px minmax(0, 1fr);
             gap: 8px;
             font-size: 12px;
+            align-items: start;
         }
         .detail-label {
             color: #6C7278;
-            min-width: 80px;
             font-weight: 600;
+            line-height: 1.4;
         }
         .detail-row span:last-child {
             color: #ccc;
             font-family: 'JetBrains Mono', monospace;
+            line-height: 1.45;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            min-width: 0;
+        }
+        @media (max-width: 980px) {
+            .lightbox-content {
+                width: 94vw;
+                height: 92vh;
+                flex-direction: column;
+            }
+            .lightbox-image-container {
+                flex: 0 0 46%;
+            }
+            .lightbox-details {
+                flex: 1 1 auto;
+                min-width: 0;
+            }
+            .detail-row {
+                grid-template-columns: 96px minmax(0, 1fr);
+            }
         }
     </style>
 </head>
 <body>
     <!-- Sidebar -->
     <div id="sidebar">
-        <h1>FORGE <span>NPS</span></h1>
+        <h1>The <span>Forge</span></h1>
 
         <div class="nav-tabs">
             <div class="nav-tab active" data-page="dashboard-view" onclick="switchPage('dashboard-view')">Dashboard</div>
@@ -1460,6 +1514,11 @@
                     <label class="model-checkbox"><input type="checkbox" id="filter-passed-only" onchange="loadShots();loadVideoLibrary();"> Passed</label>
                     <label class="model-checkbox"><input type="checkbox" id="filter-retries-only" onchange="loadShots();loadVideoLibrary();"> Retries</label>
                     <label class="model-checkbox"><input type="checkbox" id="filter-imported-only" onchange="loadShots();loadVideoLibrary();"> Imported</label>
+                    <label class="thumbnail-size-control" title="Resize media thumbnails">
+                        Thumbs
+                        <input type="range" id="thumbnail-size-slider" class="thumbnail-size-slider" min="120" max="320" step="10" value="200" oninput="setMediaThumbSize(this.value)">
+                        <span class="thumbnail-size-value">200px</span>
+                    </label>
                     <button class="btn btn-secondary" onclick="applyShotFilters()">Apply Filters</button>
                 </div>
             </div>
@@ -1671,7 +1730,7 @@
                 <button class="btn btn-secondary" onclick="reprocessSelectedFromVideo()">Re-Audit Selected</button>
                 <button class="btn btn-secondary" onclick="remediateFailedSelected()">Re-Render Failed</button>
                 <button class="btn btn-secondary" onclick="clearVideoSelection()">Clear Selection</button>
-                <button class="btn btn-secondary" onclick="loadVideoLibrary()">Refresh Photos</button>
+                <button class="btn btn-secondary" onclick="refreshPhotos()">Refresh Photos</button>
             </div>
         </div>
 
@@ -1721,6 +1780,13 @@
                 <div class="toolbar-group">
                     <label>FPS</label>
                     <input type="number" id="video-fps" value="24" min="12" max="60">
+                </div>
+                <div class="toolbar-group">
+                    <label>Thumbs</label>
+                    <label class="thumbnail-size-control" title="Resize video tab thumbnails">
+                        <input type="range" id="video-thumbnail-size-slider" class="thumbnail-size-slider" min="120" max="320" step="10" value="200" oninput="setMediaThumbSize(this.value)">
+                        <span class="thumbnail-size-value">200px</span>
+                    </label>
                 </div>
                 <div class="toolbar-group">
                     <label>Action</label>

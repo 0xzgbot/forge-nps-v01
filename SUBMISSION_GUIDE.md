@@ -109,9 +109,16 @@ Use this close:
 
 Before recording, run [STABILITY_CHECKLIST.md](/Users/zgbot/Desktop/forge_nps_v01/STABILITY_CHECKLIST.md) top to bottom.
 
+## Skills Library Proof Point
+
+Forge ships a 127-skill curated Hermes library: 14 Forge agent protocols (the closed loop), 13 ComfyUI/Spark operating skills, 12 deep style specialists (Cyberpunk, Ghibli, Wes Anderson, Caravaggio…), 10 diagnostic failure-mode skills, plus cinematography, lighting, continuity, schema, and industry skills — and 24 profile-mounted specialists for `character`, `product`, and `script` profiles. Every shot record carries `skills_used`, so judges can trace which knowledge fired on which render.
+
+Walk judges through the index in 30 seconds: open [SKILLS_INDEX.md](/Users/zgbot/Desktop/forge_nps_v01/SKILLS_INDEX.md) → point to the **Forge Agent Protocols** section (the closed loop) → point to the **Style Specialists** section → open one (e.g., [hermes_home/skills/cyberpunk_neon_noir_specialist/SKILL.md](/Users/zgbot/Desktop/forge_nps_v01/hermes_home/skills/cyberpunk_neon_noir_specialist/SKILL.md)) to show the depth.
+
 ## Canonical References
 
 - [README.md](/Users/zgbot/Desktop/forge_nps_v01/README.md)
 - [INSTALLATION_AGENT_GUIDE.md](/Users/zgbot/Desktop/forge_nps_v01/INSTALLATION_AGENT_GUIDE.md)
 - [PIPELINE_CONTRACT_SUMMARY.md](/Users/zgbot/Desktop/forge_nps_v01/PIPELINE_CONTRACT_SUMMARY.md)
+- [SKILLS_INDEX.md](/Users/zgbot/Desktop/forge_nps_v01/SKILLS_INDEX.md)
 - [data/contracts/pipeline_contract.json](/Users/zgbot/Desktop/forge_nps_v01/data/contracts/pipeline_contract.json)

@@ -72,6 +72,25 @@ It learns. It repairs. It keeps continuity.
 
 ---
 
+## Tweet 5b/12 — The Skills Library
+
+We didn't just *use* Hermes skills — we wrote a creative library on top.
+
+127 skill directories. Including:
+• 12 deep style specialists (Cyberpunk, Ghibli, Wes Anderson, Caravaggio, Ukiyo-e…)
+• 14 Forge agent protocols (the closed loop)
+• 13 ComfyUI/Spark operating skills
+• 10 diagnostic skills (anatomical errors, eye-color drift, scale distortion…)
+• 9 camera + 10 lighting skills
+
+Each one is film-school deep. The Cyberpunk skill alone has a magenta-cyan color-science table with hex codes.
+
+Every shot records `skills_used`. The pipeline knows what knowledge fired.
+
+📚 Full index: [SKILLS_INDEX.md link]
+
+---
+
 ## Tweet 6/12 — Provenance
 
 Click any shot and you see the complete paper trail:
@@ -235,6 +254,22 @@ Hermes isn't just chat. It's the pipeline brain:
 • Canonical memory writes
 
 It learns. It repairs. It keeps continuity.
+```
+
+**Tweet 5b (skills library):**
+```
+We didn't just use Hermes skills — we wrote a creative library on top.
+
+127 skill directories:
+• 12 deep style specialists (Cyberpunk, Ghibli, Wes Anderson, Caravaggio…)
+• 14 Forge agent protocols
+• 13 ComfyUI/Spark operating skills
+• 10 diagnostic skills
+• 9 camera + 10 lighting
+
+Every shot records skills_used. The pipeline knows what knowledge fired.
+
+📚 SKILLS_INDEX.md
 ```
 
 **Tweet 6:**

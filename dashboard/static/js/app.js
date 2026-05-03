@@ -29,6 +29,8 @@ let identityAssets = [];
 let identityAssetSelection = new Set();
 const MAX_DASHBOARD_THUMBS = 180;
 const MAX_VIDEO_THUMBS = 180;
+const MEDIA_THUMB_SIZE_KEY = "forge_media_thumb_size";
+const DEFAULT_MEDIA_THUMB_SIZE = 200;
 let campaignSort = { key: "name", reverse: false };
 let mediaSort = { key: "time", reverse: true }; // newest first
 const shotFilters = {
@@ -111,6 +113,7 @@ window.addEventListener("DOMContentLoaded", () => {
     if (csr) campaignSort.reverse = !!csr.checked;
     mediaSort = { key: "time", reverse: true };
     syncInlineMediaSortControls();
+    initMediaThumbSizeControl();
     initDashboardResizer();
     initVideoResizer();
     ["identity-type","identity-name","identity-tokens","identity-negatives"].forEach((k) => {
@@ -121,6 +124,38 @@ window.addEventListener("DOMContentLoaded", () => {
 });
 
 function id(s) { return document.getElementById(s); }
+
+function clampMediaThumbSize(value) {
+    const parsed = parseInt(value, 10);
+    if (!Number.isFinite(parsed)) return DEFAULT_MEDIA_THUMB_SIZE;
+    return Math.max(120, Math.min(320, parsed));
+}
+
+function setMediaThumbSize(value) {
+    const size = clampMediaThumbSize(value);
+    document.documentElement.style.setProperty("--media-thumb-size", size + "px");
+    document.querySelectorAll(".thumbnail-size-slider").forEach((slider) => {
+        if (slider.value !== String(size)) slider.value = String(size);
+    });
+    document.querySelectorAll(".thumbnail-size-value").forEach((label) => {
+        label.textContent = size + "px";
+    });
+    try {
+        localStorage.setItem(MEDIA_THUMB_SIZE_KEY, String(size));
+    } catch (_e) {
+        // localStorage may be unavailable in restricted browser contexts.
+    }
+}
+
+function initMediaThumbSizeControl() {
+    let saved = DEFAULT_MEDIA_THUMB_SIZE;
+    try {
+        saved = localStorage.getItem(MEDIA_THUMB_SIZE_KEY) || DEFAULT_MEDIA_THUMB_SIZE;
+    } catch (_e) {
+        saved = DEFAULT_MEDIA_THUMB_SIZE;
+    }
+    setMediaThumbSize(saved);
+}
 
 function _csvToList(v) {
     return String(v || "")
@@ -538,6 +573,28 @@ async function refreshShotViews() {
     await loadCampaignFolders();
 }
 
+async function refreshPhotos() {
+    const campaignId = (document.getElementById("filter-campaign-id")?.value || "").trim();
+    if (campaignId) {
+        try {
+            const resp = await fetch("/api/comfy/recover-history", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ campaign_id: campaignId }),
+            });
+            const result = await resp.json();
+            if (resp.ok && result.recovered_count) {
+                addLogEntry("system", "Recovered " + result.recovered_count + " completed Comfy render(s) for " + campaignId + ".");
+            } else if (!resp.ok) {
+                addLogEntry("warning", "Comfy history recovery skipped: " + (result.detail || result.error || resp.status));
+            }
+        } catch (e) {
+            addLogEntry("warning", "Comfy history recovery skipped: " + (e?.message || e));
+        }
+    }
+    await refreshShotViews();
+}
+
 function syncShotFiltersFromControls() {
     shotFilters.campaignId = (document.getElementById("filter-campaign-id")?.value || "").trim();
     shotFilters.renderedOnly = !!document.getElementById("filter-rendered-only")?.checked;
@@ -787,7 +844,10 @@ async function loadCampaignFolders() {
 
             const meta = document.createElement("span");
             meta.className = "campaign-meta";
-            meta.textContent = String(c.shot_count || 0);
+            const mediaCount = Number.isFinite(Number(c.media_count)) ? Number(c.media_count) : Number(c.shot_count || 0);
+            const totalCount = Number.isFinite(Number(c.total_shot_count)) ? Number(c.total_shot_count) : mediaCount;
+            meta.textContent = String(mediaCount || 0);
+            meta.title = "Media: " + String(mediaCount || 0) + (totalCount !== mediaCount ? " / total records: " + String(totalCount || 0) : "");
             row.appendChild(meta);
 
             const renameBtn = document.createElement("button");

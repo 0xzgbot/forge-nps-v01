@@ -150,6 +150,12 @@ class ComfyRecoverPromptRequest(BaseModel):
     host: str = ""
 
 
+class ComfyRecoverHistoryRequest(BaseModel):
+    campaign_id: str = ""
+    host: str = ""
+    limit: int = 250
+
+
 @app.post("/api/renders/audit-batch")
 async def api_renders_audit_batch(request: Request):
     """
@@ -999,6 +1005,8 @@ def _campaign_from_comfy_history_outputs(history_entry: Dict[str, Any]) -> str:
             if not isinstance(items, list):
                 continue
             for item in items:
+                if not isinstance(item, dict):
+                    continue
                 filename = str((item or {}).get("filename", "") or "")
                 stem = Path(filename).stem
                 if "__SHOT_" in stem:
@@ -1049,6 +1057,100 @@ async def api_recover_comfy_prompt(req: ComfyRecoverPromptRequest):
     }
 
 
+@app.post("/api/comfy/recover-history")
+async def api_recover_comfy_history(req: ComfyRecoverHistoryRequest):
+    cfg = get_raw_config()
+    host = (
+        req.host.strip()
+        or os.getenv("COMFYUI_PRIMARY", "")
+        or str(cfg.get("COMFYUI_PRIMARY", ""))
+    ).rstrip("/")
+    if not host:
+        raise HTTPException(status_code=400, detail="COMFYUI_PRIMARY is not configured")
+
+    target_campaign = _safe_campaign_name(req.campaign_id) if req.campaign_id else ""
+    limit = max(1, min(int(req.limit or 250), 1000))
+
+    async with httpx.AsyncClient(timeout=15.0) as client:
+        resp = await client.get(f"{host}/history")
+    if resp.status_code != 200:
+        raise HTTPException(status_code=502, detail=f"Comfy history failed: HTTP {resp.status_code}")
+    history = resp.json()
+    if not isinstance(history, dict):
+        raise HTTPException(status_code=502, detail="Comfy history response was not an object")
+
+    comfy = ComfyUIClient(host)
+    recovered: List[Dict[str, Any]] = []
+    skipped_existing = 0
+    inspected = 0
+
+    for prompt_id, entry in list(history.items())[-limit:]:
+        if not isinstance(entry, dict):
+            continue
+        status = entry.get("status", {}) if isinstance(entry.get("status"), dict) else {}
+        if status.get("status_str") == "error":
+            continue
+
+        campaign_id = _campaign_from_comfy_history_outputs(entry)
+        if target_campaign and campaign_id != target_campaign:
+            continue
+        if campaign_id in {"", "imports"} and target_campaign:
+            campaign_id = target_campaign
+        if campaign_id in {"", "imports"}:
+            continue
+
+        outputs = entry.get("outputs", {}) if isinstance(entry.get("outputs"), dict) else {}
+        output_filenames: List[str] = []
+        for node_output in outputs.values():
+            if not isinstance(node_output, dict):
+                continue
+            for media_key in ("images", "gifs", "videos", "animated", "files"):
+                items = node_output.get(media_key)
+                if not isinstance(items, list):
+                    continue
+                for item in items:
+                    if not isinstance(item, dict):
+                        continue
+                    filename = str(item.get("filename", "") or "")
+                    if filename:
+                        output_filenames.append(filename)
+        if not output_filenames:
+            continue
+        inspected += 1
+
+        image_names = [
+            name for name in output_filenames
+            if Path(name).suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"}
+        ]
+        if not image_names:
+            continue
+        output_dir = MEDIA_IMAGES / campaign_id
+        existing = [output_dir / Path(name).name for name in image_names]
+        if existing and all(p.exists() for p in existing):
+            skipped_existing += 1
+            continue
+
+        saved = await comfy.download_outputs(str(prompt_id), str(output_dir))
+        if saved:
+            recovered.append({
+                "prompt_id": str(prompt_id),
+                "campaign_id": campaign_id,
+                "saved_files": saved,
+            })
+
+    reindex = _reindex_shots_from_storage()
+    return {
+        "status": "ok",
+        "host": host,
+        "campaign_id": target_campaign,
+        "inspected": inspected,
+        "recovered_count": len(recovered),
+        "skipped_existing": skipped_existing,
+        "recovered": recovered,
+        "reindex": reindex,
+    }
+
+
 @app.get("/api/campaigns")
 async def api_get_campaigns():
     ids = set()
@@ -1073,7 +1175,8 @@ async def api_get_campaigns():
     campaigns = []
     for cid in sorted(ids):
         matching = [s for s in _SHOTS_STORE if str(s.get("campaign_id") or "") == cid]
-        shot_count = len(matching)
+        media_count = len([s for s in matching if s.get("image_url") or s.get("video_url")])
+        total_shot_count = len(matching)
         meta = _CAMPAIGNS.get(cid, {}) if isinstance(_CAMPAIGNS.get(cid, {}), dict) else {}
         manifest = _campaign_manifest_load(cid)
         inferred_brief = str(meta.get("brief", "") or "")
@@ -1102,7 +1205,10 @@ async def api_get_campaigns():
             identity = manifest.get("identity_pack", {})
         campaigns.append({
             "campaign_id": cid,
-            "shot_count": shot_count,
+            "shot_count": media_count,
+            "media_count": media_count,
+            "total_shot_count": total_shot_count,
+            "pending_count": max(0, total_shot_count - media_count),
             "active": cid == _ACTIVE_CAMPAIGN,
             "brief": inferred_brief,
             "brief_source": brief_source,
