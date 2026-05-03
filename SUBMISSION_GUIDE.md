@@ -49,7 +49,7 @@ If this sequence is clear, the system reads as a working pipeline rather than a 
    python3 -m dashboard.forge_dashboard
    ```
 
-2. Open `http://127.0.0.1:7000`.
+2. Open `http://localhost:7000`.
 3. In Settings confirm:
    - Kimi/NVIDIA endpoint and key
    - LM Studio host/model

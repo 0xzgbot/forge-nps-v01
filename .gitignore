@@ -28,10 +28,22 @@ data/sessions/
 data/reasoning_logs/
 data/renders/campaigns/
 data/renders/videos/
+data/renders/
+data/reports/
+data/seed_outputs/
+dashboard/static/renders/
 hermes_outputs/
 remediation*.json
 remediated_prompt*.json
 prompts/*_refined.json
+
+# Publish cleanup / local archives
+private/
+docs/archive/
+SUBMISSION_MAY_03/
+promo video attempts/
+dashboard/_archived_repo_ui/
+forge_nps_publish_cleanup_bundle*/
 
 # Claude worktrees
 .claude/worktrees/

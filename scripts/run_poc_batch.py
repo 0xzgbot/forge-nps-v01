@@ -12,7 +12,7 @@ except ImportError as e:
     print(f"[ERROR] Failed to import ArchitectRouter: {e}")
     sys.exit(1)
 
-COMFYUI_API_URL = "http://127.0.0.1:8188/prompt"
+COMFYUI_API_URL = "http://localhost:8188/prompt"
 
 class PoCGenerator:
     def __init__(self, router: ArchitectRouter):

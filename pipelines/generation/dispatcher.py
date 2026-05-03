@@ -13,7 +13,7 @@ class Dispatcher:
     def __init__(self):
         # The user's established ComfyUI cluster configuration
         self.hosts = [
-            "http://localhost:8188", 
+            "http://localhost:8188",
             "http://localhost:8189"
         ]
         self.current_host_index = 0

@@ -109,7 +109,7 @@ class ComfyDispatcher:
 if __name__ == "__main__":
     # Quick local test (requires manual execution or integration test run)
     async def main():
-        d = ComfyDispatcher(["http://127.0.0.1:8188"])
+        d = ComfyDispatcher(["http://localhost:8188"])
         print(await d.dispatch({"test": "data"}))
 
     asyncio.run(main())
