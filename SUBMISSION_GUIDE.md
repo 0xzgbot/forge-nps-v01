@@ -111,7 +111,7 @@ Before recording, run [STABILITY_CHECKLIST.md](~/Desktop/forge_nps_v01/STABILITY
 
 ## Skills Library Proof Point
 
-Forge ships a 127-skill curated Hermes library: 14 Forge agent protocols (the closed loop), 13 ComfyUI/Spark operating skills, 12 deep style specialists (Cyberpunk, Ghibli, Wes Anderson, Caravaggio…), 10 diagnostic failure-mode skills, plus cinematography, lighting, continuity, schema, and industry skills — and 24 profile-mounted specialists for `character`, `product`, and `script` profiles. Every shot record carries `skills_used`, so judges can trace which knowledge fired on which render.
+Forge ships a 155-skill curated Hermes library: 14 Forge agent protocols (the closed loop), 13 ComfyUI/Spark operating skills, 15 deep style specialists (Cyberpunk, Ghibli, Wes Anderson, Caravaggio, Film Noir, Impressionism…), 10 diagnostic failure-mode skills, plus cinematography, lighting, FLUX.2 Dev, LTX 2.3, sound, VFX, schema, and industry skills. Profile-mounted libraries are active for `live`, `character`, `product`, `script`, `forgehermes`, and `trading`. Every shot record carries `skills_used`, so judges can trace which knowledge fired on which render.
 
 Walk judges through the index in 30 seconds: open [SKILLS_INDEX.md](~/Desktop/forge_nps_v01/SKILLS_INDEX.md) → point to the **Forge Agent Protocols** section (the closed loop) → point to the **Style Specialists** section → open one (e.g., [hermes_home/skills/cyberpunk_neon_noir_specialist/SKILL.md](~/Desktop/forge_nps_v01/hermes_home/skills/cyberpunk_neon_noir_specialist/SKILL.md)) to show the depth.
 

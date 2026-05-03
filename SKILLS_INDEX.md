@@ -2,7 +2,7 @@
 
 > The Hermes Agent in Forge NPS ships with a curated, multi-layer skills library. This index catalogs every skill so judges, reviewers, and contributors can see what's in the box without grepping the repo.
 
-**Total skill directories:** 127 at the top level, plus profile-mounted skill sets for `live`, `character`, `product`, and `script` profiles.
+**Total skill directories:** 155 at the top level, plus profile-mounted skill sets for `live`, `character`, `product`, `script`, `forgehermes`, and `trading` profiles.
 
 **Skills root:** [hermes_home/skills/](hermes_home/skills/)
 **Profile mounts:** [hermes_home/profiles/](hermes_home/profiles/)
@@ -19,6 +19,12 @@
 - **📦 Bundled (Hermes Default)** — Stock Hermes Agent skills shipped with the framework, retained for completeness.
 
 Skills marked with **(twin: `skill_*`)** have a duplicate `skill_`-prefixed directory containing identical content. Both are loadable; the bare-name variant is the canonical one in the index.
+
+### Newly indexed in this refresh
+
+This update adds the 28 root skills that were present under [hermes_home/skills/](hermes_home/skills/) but missing from the document:
+
+`blue_hour_silhouette_lighting` · `chroma_key_green_screen_vfx` · `color_grading_film_emulation` · `documentary_interview_format` · `dolly_zoom_vertigo_effect` · `film_noir_classic_specialist` · `flux2dev_architectural_environment` · `flux2dev_cinematic_still_mastery` · `flux2dev_fashion_beauty_editorial` · `flux2dev_macro_texture_surface` · `flux2dev_photorealistic_portraiture` · `flux2dev_product_hero_photography` · `flux2dev_prompt_engineering_master` · `hero_journey_narrative_structure` · `impressionism_monet_specialist` · `ltx23_audio_visual_sync` · `ltx23_camera_movement_language` · `ltx23_prompt_engineering_master` · `ltx23_subject_motion_performance` · `ltx23_technical_configuration` · `motion_graphics_kinetic_type` · `music_scoring_cinematic` · `performance_direction_micro_expression` · `steadicam_handheld_camera` · `stop_motion_claymation_aesthetic` · `time_lapse_hyper_lapse` · `travel_tourism_wanderlust` · `volumetric_god_rays_lighting`
 
 ---
 
@@ -71,13 +77,15 @@ Forge-authored render-execution skills under [hermes_home/profiles/live/skills/]
 
 ## 🎬 Style Specialists (cinema-literate creative library)
 
-Twelve deep style skills, each a film-school-quality treatment of a visual movement. These are what gives Forge its visual range.
+Fifteen deep style skills, each a film-school-quality treatment of a visual movement. These are what gives Forge its visual range.
 
 | Skill | What it encodes | Twin |
 |---|---|---|
 | **art_nouveau_deco_specialist** | Art Nouveau (1890–1910) and Art Deco (1920–1940). Mucha's flowing organic lines + ornate geometric elegance. | twin: `skill_art_nouveau_deco_specialist` |
 | **baroque_caravaggio_specialist** | Baroque painting (1600–1750) with deep focus on Caravaggio's tenebrism and chiaroscuro. | twin: `skill_baroque_caravaggio_specialist` |
 | **cyberpunk_neon_noir_specialist** | Blade Runner / Blade Runner 2049 / Akira / Ghost in the Shell. Magenta-cyan color science with hex tables, neon physics, wet-surface materials. | twin: `skill_cyberpunk_neon_noir_specialist` |
+| **film_noir_classic_specialist** | Classical American film noir (1941–1958): low-key lighting, venetian blind shadows, hard-boiled archetypes, rain-slick urban fatalism. | — |
+| **impressionism_monet_specialist** | French Impressionism with deep focus on Monet: broken color, plein air light, visible brushstroke, atmospheric perspective. | — |
 | **italian_giallo_specialist** | 1970s Italian *giallo* — Mario Bava and Dario Argento. Color-gel combinations, stylized horror/thriller atmosphere. | twin: `skill_italian_giallo_specialist` |
 | **pixar_specialist** | The 12 principles of animation, character shape language, RenderMan lighting, the Pixar Story Spine, color script discipline. | twin: `skill_pixar_specialist` |
 | **soviet_constructivist_brutalist_specialist** | Russian Constructivism (Rodchenko, El Lissitzky) + Brutalist architecture. Red-black-white propaganda palette, geometric abstraction. | twin: `skill_soviet_constructivist_brutalist_specialist` |
@@ -86,6 +94,7 @@ Twelve deep style skills, each a film-school-quality treatment of a visual movem
 | **synthwave_retrowave_specialist** | Outrun / Neon-Noir 1980s revival aesthetic, neon pink + cyan palette. | twin: `skill_synthwave_retrowave_specialist` |
 | **ukiyo_e_specialist** | Edo-period (1603–1868) Japanese woodblock print: flat color, bold black outlines, Prussian blue, asymmetric composition. | twin: `skill_ukiyo_e_specialist` |
 | **wes_anderson_specialist** | Symmetry, the 60-30-10 color rule, planimetric composition, Futura/Archer typography. | twin: `skill_wes_anderson_specialist` |
+| **stop_motion_claymation_aesthetic** | Frame-by-frame animation grammar: tactile materials, slight jitter, physical lighting, handmade imperfection. | — |
 | **neural_aesthetic** | Forge's *system-level* style DNA framework — lighting constants, mood descriptors, structured prompt injection. | twin: `skill_neural_aesthetic` |
 
 Companion: **neural_aesthetic_brand_bible** — Forge Architect Router Injection Standard (v1.0).
@@ -97,12 +106,19 @@ Companion: **neural_aesthetic_brand_bible** — Forge Architect Router Injection
 | Skill | Purpose |
 |---|---|
 | **anamorphic_lens_signature** | Anamorphic lens characteristics — oval bokeh, horizontal flares, 2.39:1 framing. |
+| **documentary_interview_format** | Documentary and interview grammar: observer camera, testimonial framing, B-roll coverage, archival integration. |
+| **dolly_zoom_vertigo_effect** | Contra-zoom / Vertigo effect for psychological shock, realization, dread, or spatial impossibility. |
 | **drone_aerial_framing** | Aerial-perspective framing, altitude-as-emotion, top-down vs. orbit. |
 | **dutch_angle_tension** | Tilted-frame psychological tension. |
+| **ltx23_camera_movement_language** | LTX 2.3 camera-motion prompt syntax, jitter-reduction tokens, and shot-note structure for temporal stability. |
+| **ltx23_subject_motion_performance** | LTX 2.3 subject motion, acting, gesture, dialogue, and human-performance prompt doctrine. |
 | **macro_intimacy** | Macro-scale framing for emotional intimacy. |
+| **performance_direction_micro_expression** | AI actor direction using facial action, micro-expression, gesture, and emotional specificity. |
 | **pov_first_person** | First-person POV grammar. |
 | **rack_focus_technique** | Pulling focus between subjects within a shot. |
+| **steadicam_handheld_camera** | Fluid steadicam movement and organic handheld camera language, including emotional use of shake and inertia. |
 | **telephoto_compression** | Long-lens spatial compression, background flattening. |
+| **time_lapse_hyper_lapse** | Temporal compression grammar for time-lapse, hyper-lapse, accelerated cities, construction, weather, and transitions. |
 | **wide_angle_environmental** | Wide-lens environmental context, character-in-world framing. |
 | **resolution_aspect_ratio** | Aspect ratio language and 1:1 / 9:16 / 16:9 / 2.39:1 selection. |
 
@@ -112,6 +128,7 @@ Companion: **neural_aesthetic_brand_bible** — Forge Architect Router Injection
 
 | Skill | Purpose |
 |---|---|
+| **blue_hour_silhouette_lighting** | Twilight color temperature, silhouette separation, rim light, and shadow-as-subject composition. |
 | **dramatic_chiaroscuro** | High-contrast directional lighting, single-source modeling. |
 | **fire_candlelight** | Practical warm-source lighting (candle, torch, fireplace). |
 | **golden_hour_mastery** | Sunrise/sunset color science and angle-of-incidence. |
@@ -121,7 +138,9 @@ Companion: **neural_aesthetic_brand_bible** — Forge Architect Router Injection
 | **overcast_diffusion** | Soft overcast / softbox-like natural diffusion. |
 | **studio_softbox_setups** | Three-point lighting, key/fill/rim configurations. |
 | **underwater_aquatic_light** | Caustics, color absorption, depth-falloff. |
+| **volumetric_god_rays_lighting** | Visible light shafts through dust, haze, smoke, mist, and other volumetric particles. |
 | **color_palette_injection** | Forced palette injection at prompt level. |
+| **color_grading_film_emulation** | Post-production color science, LUT-based looks, film stock language, tonal curves, and campaign-wide color identity. |
 
 ---
 
@@ -151,6 +170,7 @@ These skills encode *what goes wrong* in AI generation. They feed audit reasonin
 | **character_consistency** | Four-layer anti-drift architecture: Character DNA → Character Pack → Shot Keyframes → Render Locks. (twin: `skill_character_consistency`) |
 | **cinematic_consistency_protocol** | CCP v1.0 — anchoring with FLUX 2 stills and extending into LTX 2.3 / Wan 2.1 motion. |
 | **cinematic_continuity** | 180° rule, eyeline matching, match cuts, shot-reverse-shot, lighting continuity, color continuity. (twin: `skill_cinematic_continuity`) |
+| **hero_journey_narrative_structure** | Joseph Campbell monomyth as campaign architecture, adaptable from 15-second hooks to multi-episode character arcs. |
 | **ltx23_character_consistency** | Deep research on character consistency in LTX 2.3 (Lightricks 22B-parameter open-weight video model). |
 | **story_spine_narrative** | Three-act structure, 11 story beats, emotional arcs, scene sequencing → visual shots. (twin: `skill_story_spine_narrative`) |
 | **ensemble_group_dynamics** | Multi-character framing and group blocking. |
@@ -182,11 +202,21 @@ These skills encode *what goes wrong* in AI generation. They feed audit reasonin
 
 ---
 
+## 🧩 VFX, Motion Graphics, and Virtual Production
+
+| Skill | Purpose |
+|---|---|
+| **chroma_key_green_screen_vfx** | Chroma key compositing, screen lighting, spill suppression, edge refinement, and foreground/background integration. |
+| **motion_graphics_kinetic_type** | Kinetic typography, graphic animation, title sequences, explainer motion, logo reveals, and animated data storytelling. |
+| **ltx23_technical_configuration** | LTX 2.3 production settings: inference modes, resolution rules, frame counts, CFG, VRAM tiers, Extend/Retake workflows. |
+
+---
+
 ## 🏢 Industry Verticals
 
 Vertical-specific creative briefs, ready to swap into a campaign.
 
-`automotive` · `beauty_skincare` · `entertainment_gaming` · `explainer_educational` · `financial_professional` · `food_hospitality` · `health_wellness` · `lifestyle_aspiration` · `luxury_premium` · `sports_performance` · `streetwear_youth_culture` · `tech_innovation`
+`automotive` · `beauty_skincare` · `entertainment_gaming` · `explainer_educational` · `financial_professional` · `food_hospitality` · `health_wellness` · `lifestyle_aspiration` · `luxury_premium` · `sports_performance` · `streetwear_youth_culture` · `tech_innovation` · `travel_tourism_wanderlust`
 
 ---
 
@@ -201,6 +231,23 @@ Vertical-specific creative briefs, ready to swap into a campaign.
 | **seed_strategy** | Seed selection / locking strategy. |
 | **style_suffix_library** | Suffix tokens for style coercion. |
 | **ghost_machine_narrative** | Temporal narrative arc for "Ghost in the Machine" style launches. |
+| **flux2dev_prompt_engineering_master** | Universal FLUX.2 Dev prompt doctrine: token hierarchy, positive-only constraints, camera syntax, color control, and parameters. |
+| **ltx23_prompt_engineering_master** | Universal LTX 2.3 prompt doctrine for T2V, I2V, audio-to-video, V2V, Extend, and Retake workflows. |
+
+---
+
+## 🧠 FLUX.2 Dev Model Specialists
+
+Domain-specific prompting doctrine for FLUX.2 Dev. These skills make model behavior explicit instead of hiding image-generation assumptions in route code.
+
+| Skill | Purpose |
+|---|---|
+| **flux2dev_architectural_environment** | Architecture, interiors, real estate, environmental landscapes, perspective control, scale accuracy, and material vocabulary. |
+| **flux2dev_cinematic_still_mastery** | Cinematic still-frame generation with shot grammar, film stock language, aspect-ratio-aware composition, and artifact prevention. |
+| **flux2dev_fashion_beauty_editorial** | Fashion editorial and beauty imagery: garments, pose architecture, makeup detail, skin prep, and fabric rendering. |
+| **flux2dev_macro_texture_surface** | Macro, extreme close-up, tactile material, shallow-DoF, and micro-texture prompting. |
+| **flux2dev_photorealistic_portraiture** | Photoreal human portrait prompting: skin fidelity, eyes, hair, age, ethnicity, lens pairings, and positive anatomical framing. |
+| **flux2dev_product_hero_photography** | Product and e-commerce hero photography: studio lighting, reflection control, surface interaction, and packaging detail. |
 
 ---
 
@@ -220,6 +267,8 @@ Vertical-specific creative briefs, ready to swap into a campaign.
 
 | Skill | Purpose |
 |---|---|
+| **ltx23_audio_visual_sync** | LTX 2.3 native audio-video synchronization, reference audio conditioning, lip-sync direction, and prompt tags. |
+| **music_scoring_cinematic** | Music scoring doctrine: leitmotifs, underscoring, instrumentation, tempo-to-emotion mapping, and visual-beat correlation. |
 | **sound_design** | Cinematic sound design language — diegetic vs. non-diegetic, foley, music cues, sonic counterparts to visual elements. (twin: `skill_sound_design`) |
 
 ---
@@ -276,6 +325,13 @@ Specialty: script → shot list → motion-prompt translation.
 ### Profile: `forgehermes` ([hermes_home/profiles/forgehermes/skills/](hermes_home/profiles/forgehermes/skills/))
 The default Forge-Hermes operator profile — mounts the bundled Hermes default set (see "Bundled" below) for general-purpose work.
 
+### Profile: `trading` ([hermes_home/profiles/trading/skills/](hermes_home/profiles/trading/skills/))
+Specialty: market-intelligence workflows layered on top of the bundled Hermes default set.
+
+- **trading-intelligence / x-bookmark-intelligence-extraction**
+- **trading-intelligence / multi-layered-quant-engine**
+- **trading-intelligence / multi-layered-quant-engine-v2**
+
 ### Other profiles
 [director_planner](hermes_home/profiles/director_planner/), [compiler](hermes_home/profiles/compiler/), [audit_judge](hermes_home/profiles/audit_judge/), [coverage_critic](hermes_home/profiles/coverage_critic/), [continuity_guard](hermes_home/profiles/continuity_guard/), [remediator](hermes_home/profiles/remediator/) — each defined by `SOUL.md` + `config.yaml`. These are role-specialized profiles invoked at specific pipeline stages.
 
@@ -297,27 +353,29 @@ The `.bundled_manifest` lists 76 underlying upstream skills (apple-notes, github
 |---|---|
 | Forge Agent Protocols (live profile) | **14** |
 | ComfyUI / Spark Operating Skills | **13** |
-| Style Specialists (Forge-original cinema) | **12** (× duplicate twins) |
-| Cinematography & Camera | **9** |
-| Lighting | **10** |
+| Style Specialists (Forge-original cinema) | **15** (12 have duplicate twins) |
+| Cinematography & Camera | **16** |
+| Lighting | **13** |
 | Diagnostic / Failure-Mode | **10** |
-| Continuity, Character, Iteration | **7** |
+| Continuity, Character, Iteration | **8** |
 | Subject Direction / Casting | **5** |
 | Format & Runtime | **5** |
-| Industry Verticals | **12** |
-| Prompt-Engineering Libraries | **7** |
+| VFX / Motion Graphics / Virtual Production | **3** |
+| Industry Verticals | **13** |
+| Prompt-Engineering Libraries | **9** |
+| FLUX.2 Dev Model Specialists | **6** |
 | Schemas & Workflow Reference | **5** |
-| Sound | **1** |
+| Sound | **3** |
 | Strategic / Meta | **2** |
-| Profile-Mounted (character + product + script) | **24** unique |
+| Profile-Mounted active libraries | `live` **108**, `character` **92**, `product` **86**, `script` **89**, `forgehermes` **81**, `trading` **98** |
 | Bundled Hermes Default | **25** directories (76 upstream) |
-| **Top-level skill directories** | **127** |
+| **Top-level skill directories** | **155** |
 
 ---
 
 ## Status notes
 
-- `skill_*`-prefixed twins of 16 style/continuity skills exist as exact byte-identical copies of their bare-named counterparts. They are kept in place for runtime stability; canonical name is the bare form.
+- `skill_*`-prefixed twins of 16 style, continuity, and sound skills exist as loadable compatibility aliases of their bare-named counterparts. They are kept in place for runtime stability; canonical name is the bare form.
 - The Forge agent protocols (the closed loop) live primarily under [hermes_home/profiles/live/skills/](hermes_home/profiles/live/skills/), not under the top-level [hermes_home/skills/](hermes_home/skills/) library. This is by design — they are *operator* skills, not *creative* skills.
 - Skills that emit machine-readable schemas (`flux2_json_schema`, `kimi-shot-plan-schema`) include an `__init__.py` so they can be referenced from Python orchestration code.
-- All skill directories are validated at runtime by the Hermes profile loader; missing `SKILL.md` files are skipped without crashing.
+- All skill directories are validated at runtime by the Hermes profile loader. Production-critical required skills should be treated as configuration failures if missing; hidden fallback behavior should not be used in production.
