@@ -527,13 +527,7 @@ function _sortShots(list) {
 }
 
 async function refreshShotViews() {
-    // Keep filter state in sync with controls before reloading.
-    shotFilters.campaignId = (document.getElementById("filter-campaign-id")?.value || "").trim();
-    shotFilters.renderedOnly = !!document.getElementById("filter-rendered-only")?.checked;
-    shotFilters.failedOnly = !!document.getElementById("filter-failed-only")?.checked;
-    shotFilters.passedOnly = !!document.getElementById("filter-passed-only")?.checked;
-    shotFilters.retriesOnly = !!document.getElementById("filter-retries-only")?.checked;
-    shotFilters.importedOnly = !!document.getElementById("filter-imported-only")?.checked;
+    syncShotFiltersFromControls();
     try {
         await fetch("/api/shots/reindex-storage", { method: "POST" });
     } catch (_e) {
@@ -542,6 +536,15 @@ async function refreshShotViews() {
     await loadShots();
     await loadVideoLibrary();
     await loadCampaignFolders();
+}
+
+function syncShotFiltersFromControls() {
+    shotFilters.campaignId = (document.getElementById("filter-campaign-id")?.value || "").trim();
+    shotFilters.renderedOnly = !!document.getElementById("filter-rendered-only")?.checked;
+    shotFilters.failedOnly = !!document.getElementById("filter-failed-only")?.checked;
+    shotFilters.passedOnly = !!document.getElementById("filter-passed-only")?.checked;
+    shotFilters.retriesOnly = !!document.getElementById("filter-retries-only")?.checked;
+    shotFilters.importedOnly = !!document.getElementById("filter-imported-only")?.checked;
 }
 
 function scheduleCampaignMediaRefresh() {
@@ -619,12 +622,7 @@ function initVideoResizer() {
 }
 
 function applyShotFilters() {
-    shotFilters.campaignId = (document.getElementById("filter-campaign-id")?.value || "").trim();
-    shotFilters.renderedOnly = !!document.getElementById("filter-rendered-only")?.checked;
-    shotFilters.failedOnly = !!document.getElementById("filter-failed-only")?.checked;
-    shotFilters.passedOnly = !!document.getElementById("filter-passed-only")?.checked;
-    shotFilters.retriesOnly = !!document.getElementById("filter-retries-only")?.checked;
-    shotFilters.importedOnly = !!document.getElementById("filter-imported-only")?.checked;
+    syncShotFiltersFromControls();
     loadShots();
     loadVideoLibrary();
 }
@@ -714,6 +712,8 @@ async function loadCampaignFolders() {
         allBtn.addEventListener("click", () => {
             const filter = document.getElementById("filter-campaign-id");
             if (filter) filter.value = "";
+            const append = document.getElementById("append-campaign");
+            if (append) append.checked = false;
             shotFilters.campaignId = "";
             currentCampaignId = "";
             // Reset sidebar/media filters so "All" truly shows all shots.
@@ -760,6 +760,8 @@ async function loadCampaignFolders() {
             campaignBtn.addEventListener("click", () => {
                 const filter = document.getElementById("filter-campaign-id");
                 if (filter) filter.value = c.campaign_id;
+                const append = document.getElementById("append-campaign");
+                if (append) append.checked = true;
                 shotFilters.campaignId = c.campaign_id;
                 currentCampaignId = c.campaign_id;
                 // Do not overwrite the creative brief with slug-derived fallbacks.
@@ -873,7 +875,7 @@ async function loadConfig() {
         document.getElementById("cfg-backend-mode").checked = backendMode === "remote";
         _updateBackendLabels(backendMode === "remote");
 
-        // AI Provider (Nous / Kimi / OpenRouter)
+        // AI Provider (Nous / Kimi / OpenRouter / NVIDIA)
         const kimi = currentConfig.kimi || {};
         const keyField = document.getElementById("cfg-kimi-api-key");
         keyField.value = "";
@@ -1847,9 +1849,7 @@ async function runCampaign() {
     const flux2 = document.getElementById("model-flux2")?.checked;
     const turbo = document.getElementById("model-turbo")?.checked;
     const appendToCampaign = !!document.getElementById("append-campaign")?.checked;
-    const selectedCampaignId =
-        (document.getElementById("filter-campaign-id")?.value || "").trim() ||
-        (currentCampaignId || "").trim();
+    const selectedCampaignId = (document.getElementById("filter-campaign-id")?.value || "").trim();
     const workflowMap = {
         flux2: {
             standard: "01_flux2_text_to_image",
@@ -1982,9 +1982,6 @@ function handleCampaignEvent(event) {
     setCampaignStatus(statusParts[0], statusParts[1], statusParts[2], statusParts[3]);
     if (event.campaign_id) {
         currentCampaignId = event.campaign_id;
-        const filter = document.getElementById("filter-campaign-id");
-        if (filter && filter.value !== event.campaign_id) filter.value = event.campaign_id;
-        shotFilters.campaignId = event.campaign_id;
         loadCampaignFolders();
     }
 
@@ -2302,6 +2299,7 @@ async function loadStats() {
 // ---------------------------------------------------------------------------
 async function loadShots() {
     try {
+        syncShotFiltersFromControls();
         const resp = await fetch("/api/shots");
         const data = await resp.json();
         const rawShots = Array.isArray(data) ? data : (data.shots || []);
@@ -2561,6 +2559,7 @@ async function loadVideoLibrary() {
         return;
     }
     try {
+        syncShotFiltersFromControls();
         const resp = await fetch("/api/shots");
         const data = await resp.json();
         const allShots = Array.isArray(data) ? data : (data.shots || []);

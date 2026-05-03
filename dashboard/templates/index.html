@@ -558,9 +558,16 @@
         .backend-label.active { color: #00D4FF; }
         .settings-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-areas:
+                "api api"
+                "lm comfy";
             gap: 16px;
+            align-items: start;
         }
+        .ai-provider-card { grid-area: api; }
+        .lmstudio-card { grid-area: lm; }
+        .comfy-card { grid-area: comfy; }
         .settings-card {
             background: #1A1A1A;
             border: 1px solid #333;
@@ -596,6 +603,9 @@
             grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 14px;
         }
+        .ai-provider-card .settings-subgrid-2x2 {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
         .settings-subcard {
             background: transparent;
             border: 0;
@@ -617,6 +627,16 @@
             margin-top: -2px;
         }
         @media (max-width: 1200px) {
+            .settings-grid {
+                grid-template-columns: 1fr;
+                grid-template-areas:
+                    "api"
+                    "lm"
+                    "comfy";
+            }
+            .ai-provider-card .settings-subgrid-2x2 {
+                grid-template-columns: 1fr;
+            }
             .settings-subgrid-2x2 {
                 grid-template-columns: 1fr;
             }
@@ -1464,12 +1484,12 @@
         <div class="settings-grid">
 
             <!-- AI Inference Provider -->
-            <div class="settings-card" style="grid-column: span 2;">
-                <h3><span class="card-icon">&#128271;</span> AI Provider (Nous / Kimi / OpenRouter)</h3>
+            <div class="settings-card ai-provider-card">
+                <h3><span class="card-icon">&#128271;</span> AI Provider (Nous / Kimi / OpenRouter / NVIDIA)</h3>
                 <div class="settings-subgrid-2x2">
                     <div class="settings-subcard">
                         <h4>Access</h4>
-                        <p class="card-desc">Nous Research, Kimi, OpenRouter, or any OpenAI-compatible API.</p>
+                        <p class="card-desc">Nous Research, Kimi, OpenRouter, NVIDIA, or any OpenAI-compatible API.</p>
                         <div class="form-row">
                             <label>API Key</label>
                             <input type="password" id="cfg-kimi-api-key" placeholder="Bearer token..." onchange="markDirty('kimi.api_key')">
@@ -1521,7 +1541,7 @@
             </div>
 
             <!-- LM Studio Card -->
-            <div class="settings-card">
+            <div class="settings-card lmstudio-card">
                 <h3><span class="card-icon">&#128736;</span> LM Studio (Hermes 3)</h3>
                 <p class="card-desc">Local inference server for Hermes chat and campaign prompts.</p>
                 <div class="form-inline">
@@ -1552,7 +1572,7 @@
             </div>
 
             <!-- ComfyUI Hosts Card -->
-            <div class="settings-card">
+            <div class="settings-card comfy-card">
                 <h3><span class="card-icon">&#127912;</span> ComfyUI + Spark &#9889;</h3>
                 <p class="card-desc">Primary ComfyUI host and Spark WebSocket.</p>
                 <div class="form-row">
