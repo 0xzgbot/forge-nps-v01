@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Forge NPS | App UI Concept</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./app-ui.css">
+</head>
+<body>
+  <canvas class="signal-canvas" id="signalCanvas" aria-hidden="true"></canvas>
+
+  <div class="app-shell">
+    <aside class="side-rail" aria-label="Forge navigation">
+      <a class="brand" href="./index.html">
+        <span class="brand-mark">F</span>
+        <span>
+          <strong>Forge NPS</strong>
+          <small>Virtual agency</small>
+        </span>
+      </a>
+
+      <nav class="rail-nav">
+        <a class="active" href="#command" title="Command">
+          <svg viewBox="0 0 24 24"><path d="M4 5h16v14H4z"/><path d="M8 9h8M8 13h5"/></svg>
+          <span>Command</span>
+        </a>
+        <a href="#memory" title="Memory">
+          <svg viewBox="0 0 24 24"><path d="M8 4h8l4 4v8l-4 4H8l-4-4V8z"/><path d="M12 4v16M4 12h16"/></svg>
+          <span>Memory</span>
+        </a>
+        <a href="#skills" title="Skills">
+          <svg viewBox="0 0 24 24"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"/></svg>
+          <span>Skills</span>
+        </a>
+        <a href="#audit" title="Audit">
+          <svg viewBox="0 0 24 24"><path d="M12 3l8 4v6c0 5-4 8-8 8s-8-3-8-8V7z"/><path d="m8 12 3 3 5-6"/></svg>
+          <span>Audit</span>
+        </a>
+      </nav>
+
+      <div class="rail-status">
+        <span class="status-dot"></span>
+        <div>
+          <strong>Hermes online</strong>
+          <small>No hidden fallback</small>
+        </div>
+      </div>
+    </aside>
+
+    <main class="workspace">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Hermes command center</p>
+          <h1>Campaign operating surface</h1>
+        </div>
+        <div class="topbar-actions">
+          <button class="icon-btn" type="button" aria-label="Search">
+            <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/></svg>
+          </button>
+          <button class="icon-btn" type="button" aria-label="Notifications">
+            <svg viewBox="0 0 24 24"><path d="M6 9a6 6 0 0 1 12 0v5l2 4H4l2-4z"/><path d="M10 21h4"/></svg>
+          </button>
+          <button class="primary-action" type="button">Run campaign</button>
+        </div>
+      </header>
+
+      <section class="hero-panel" id="command">
+        <div class="brief-card">
+          <div class="panel-head">
+            <span>Campaign brief</span>
+            <strong>Hermes intake</strong>
+          </div>
+          <textarea aria-label="Campaign brief">Launch a cinematic vertical campaign for a premium AI production system. Emphasize memory, skill packs, director critique, and governed creative output.</textarea>
+          <div class="brief-footer">
+            <div class="chip active">Memory enabled</div>
+            <div class="chip">Kimi critique</div>
+            <div class="chip">Skill routed</div>
+            <button type="button">Compile</button>
+          </div>
+        </div>
+
+        <div class="brain-card">
+          <img src="./assets/hermes-agent-core.png" alt="Hermes agent intelligence core">
+          <div class="scan-beam" aria-hidden="true"></div>
+          <div class="brain-overlay">
+            <span>Agency brain</span>
+            <strong>Hermes</strong>
+          </div>
+        </div>
+
+        <div class="metric-row">
+          <article><span>Shots</span><strong>18</strong><small>planned by Kimi</small></article>
+          <article><span>Skills</span><strong>42</strong><small>mounted this run</small></article>
+          <article><span>Memory</span><strong>214</strong><small>events linked</small></article>
+          <article><span>Audit</span><strong>94%</strong><small>current pass rate</small></article>
+        </div>
+      </section>
+
+      <section class="main-grid">
+        <div class="panel live-stream">
+          <div class="panel-head">
+            <span>Live production stream</span>
+            <strong>NDJSON events</strong>
+          </div>
+          <div class="event-list">
+            <div class="event hermes"><span>Hermes</span><p>Campaign intake complete. Brand constraints and campaign objective sealed.</p><time>00:04</time></div>
+            <div class="event kimi"><span>Kimi</span><p>Shot list generated with coverage rationale and self-critique.</p><time>00:18</time></div>
+            <div class="event skill"><span>Skills</span><p>Neural aesthetic, cinematic lighting, continuity, and remediation packs loaded.</p><time>00:23</time></div>
+            <div class="event memory"><span>Memory</span><p>Planning event, critique event, and compiler artifact written to provenance.</p><time>00:31</time></div>
+            <div class="event audit"><span>Audit</span><p>Retry lineage attached to SHOT_006 with remediation reason.</p><time>00:52</time></div>
+          </div>
+        </div>
+
+        <div class="panel memory-panel" id="memory">
+          <div class="panel-head">
+            <span>Memory infrastructure</span>
+            <strong>Persistent agency context</strong>
+          </div>
+          <div class="memory-vault">
+            <img src="./assets/memory-skill-agency.png" alt="Virtual agency memory vault">
+            <div class="vault-stats">
+              <div><strong>Events</strong><span>2,418</span></div>
+              <div><strong>Fallback learning</strong><span>Blocked</span></div>
+              <div><strong>Retry chains</strong><span>37</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel skills-panel" id="skills">
+          <div class="panel-head">
+            <span>Virtual agency skill pack</span>
+            <strong>Specialists mounted</strong>
+          </div>
+          <div class="agency-strip">
+            <article><span>Copy</span><strong>Hooks, scripts, social variants</strong></article>
+            <article><span>Visual</span><strong>Style, lighting, continuity</strong></article>
+            <article><span>Ops</span><strong>Render routing, audit, retry</strong></article>
+          </div>
+          <div class="skill-matrix">
+            <button class="loaded">Forge protocols <span>14</span></button>
+            <button class="loaded">Spark ops <span>13</span></button>
+            <button class="loaded">Style specialists <span>12</span></button>
+            <button>Cinematography <span>9</span></button>
+            <button>Lighting <span>10</span></button>
+            <button>Diagnostics <span>10</span></button>
+            <button>Character <span>8</span></button>
+            <button>Product <span>8</span></button>
+            <button>Script <span>8</span></button>
+          </div>
+        </div>
+
+        <div class="panel kimi-panel">
+          <div class="panel-head">
+            <span>Kimi Moonshot</span>
+            <strong>Planning + critique</strong>
+          </div>
+          <img src="./assets/kimi-planning-theater.png" alt="Kimi planning theater">
+          <div class="critique-list">
+            <div><span>Coverage gap</span><strong>Add one proof-of-memory shot before final montage.</strong></div>
+            <div><span>Constraint</span><strong>Do not render without audit-ready provenance fields.</strong></div>
+          </div>
+        </div>
+
+        <div class="panel audit-panel" id="audit">
+          <div class="panel-head">
+            <span>Audit gate</span>
+            <strong>Quality decisions</strong>
+          </div>
+          <div class="audit-ring">
+            <div class="ring-core">94%</div>
+          </div>
+          <div class="audit-copy">
+            <strong>Vision gate active</strong>
+            <p>Failed shots enter remediation with a reason, original prompt, edited prompt, and retry link.</p>
+          </div>
+        </div>
+
+        <div class="panel render-panel">
+          <div class="panel-head">
+            <span>Output board</span>
+            <strong>Campaign assets</strong>
+          </div>
+          <div class="render-grid">
+            <article><img src="./assets/forge-hero-brain.png" alt=""><span>Hero keyframe</span></article>
+            <article><img src="./assets/memory-skill-agency.png" alt=""><span>Memory proof</span></article>
+            <article><img src="./assets/kimi-planning-theater.png" alt=""><span>Kimi board</span></article>
+            <article><img src="./assets/hermes-agent-core.png" alt=""><span>Hermes core</span></article>
+            <article><div class="synthetic-thumb teal"></div><span>Audit pass</span></article>
+            <article><div class="synthetic-thumb amber"></div><span>Retry map</span></article>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="./app-ui.js"></script>
+</body>
+</html>
