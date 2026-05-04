@@ -737,6 +737,9 @@ function switchPage(pageClass) {
     if (pageClass === "settings-view") {
         loadConfig();
     }
+    if (pageClass === "models-view") {
+        loadConfig();
+    }
     if (pageClass === "spark-view") {
         loadVideoLibrary();
     }
@@ -2344,11 +2347,30 @@ async function loadStats() {
     try {
         const resp = await fetch("/api/stats");
         const data = await resp.json();
-        document.getElementById("stat-shots").textContent = data.shots_in_store || 0;
-        document.getElementById("stat-sessions").textContent = data.chat_sessions || 0;
+        if (document.getElementById("stat-shots")) document.getElementById("stat-shots").textContent = data.shots_in_store || 0;
+        if (document.getElementById("stat-sessions")) document.getElementById("stat-sessions").textContent = data.chat_sessions || 0;
         if (data.ram_percent != null) {
-            document.getElementById("stat-ram").textContent = data.ram_percent + "%";
+            if (document.getElementById("stat-ram")) document.getElementById("stat-ram").textContent = data.ram_percent + "%";
         }
+        if (document.getElementById("home-queue")) document.getElementById("home-queue").textContent = data.shots_in_store || 0;
+    } catch (e) {
+        // silent
+    }
+    try {
+        const resp = await fetch("/api/memory/stats");
+        const stats = await resp.json();
+        const pct = Number(stats.success_rate || 0);
+        const success = pct > 0 && pct <= 1 ? Math.round(pct * 100) + "%" : (pct ? String(pct) + "%" : "0%");
+        const set = (id, value) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = value;
+        };
+        set("home-events", stats.total_events ?? stats.events ?? "0");
+        set("home-insights", stats.total_insights ?? stats.insights ?? "0");
+        set("home-success", success);
+        set("home-sessions", stats.active_sessions ?? stats.sessions ?? "0");
+        const timeEl = document.querySelector("#main .hero-card:last-child .hero-val");
+        if (timeEl && stats.time_range) timeEl.textContent = stats.time_range;
     } catch (e) {
         // silent
     }
