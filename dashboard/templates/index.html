@@ -1427,20 +1427,581 @@
                 grid-template-columns: 96px minmax(0, 1fr);
             }
         }
+        /* ============================================================
+           Forge NPS 2035 Studio Refresh
+           Overrides the legacy command-center skin while preserving
+           the FastAPI adapter IDs and existing JavaScript hooks.
+           ============================================================ */
+        :root {
+            --bg-primary: #0A0E14;
+            --bg-panel: rgba(13, 17, 23, 0.82);
+            --bg-card: rgba(17, 24, 32, 0.84);
+            --bg-well: rgba(4, 8, 13, 0.9);
+            --border: #1E2A3A;
+            --border-hot: rgba(255, 106, 42, 0.5);
+            --text-primary: #E6EDF3;
+            --text-secondary: #A6A39A;
+            --text-dim: #5E6B7A;
+            --cyan: #6EA8FE;
+            --magenta: #D56B3E;
+            --amber: #FFC857;
+            --green: #9BE564;
+            --red: #FF3333;
+            --purple: #8FBC8F;
+            --ember: #FF6A2A;
+            --brass: #D6A84F;
+            --steel: #6EA8FE;
+            --verdigris: #6FAF8D;
+            --r-sm: 6px;
+            --r-md: 8px;
+            --glow-cyan: 0 0 24px rgba(255, 106, 42, 0.16);
+            --glow-magenta: 0 0 24px rgba(214, 168, 79, 0.16);
+            --glow-amber: 0 0 24px rgba(155, 229, 100, 0.12);
+            --media-thumb-size: 200px;
+        }
+
+        body {
+            position: relative;
+            background:
+                radial-gradient(circle at 18% -12%, rgba(255, 106, 42, 0.11), transparent 30%),
+                radial-gradient(circle at 88% 6%, rgba(110, 168, 254, 0.08), transparent 28%),
+                linear-gradient(180deg, #0A0E14 0%, #07090B 100%) !important;
+            color: var(--text-primary) !important;
+            font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace !important;
+        }
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 1000;
+            background:
+                repeating-linear-gradient(0deg, transparent 0 2px, rgba(255, 200, 87, 0.012) 2px 4px),
+                linear-gradient(rgba(110, 168, 254, 0.024) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(110, 168, 254, 0.024) 1px, transparent 1px);
+            background-size: auto, 48px 48px, 48px 48px;
+            mix-blend-mode: screen;
+        }
+
+        #sidebar {
+            width: 292px;
+            min-width: 292px;
+            background: linear-gradient(180deg, rgba(13, 17, 23, 0.94), rgba(10, 14, 20, 0.78)) !important;
+            border-right: 1px solid rgba(214, 168, 79, 0.18) !important;
+            box-shadow: 14px 0 44px rgba(0, 0, 0, 0.32), inset -1px 0 0 rgba(255, 106, 42, 0.08);
+            backdrop-filter: blur(16px);
+        }
+        #sidebar h1 {
+            font-size: 18px;
+            letter-spacing: 0.22em;
+            text-transform: uppercase;
+            color: var(--text-primary);
+            text-shadow: 0 0 18px rgba(255, 106, 42, 0.2);
+        }
+        #sidebar h1 span {
+            background: linear-gradient(90deg, var(--ember), var(--brass), var(--steel));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        #sidebar h1::after {
+            content: "Hermes pipeline brain";
+            display: block;
+            margin-top: 6px;
+            font-size: 10px;
+            font-weight: 500;
+            letter-spacing: 0.18em;
+            color: var(--text-secondary);
+        }
+        #sidebar h3,
+        #brief-panel label,
+        .toolbar-group label,
+        .form-row label,
+        .memory-control-group label {
+            color: var(--text-secondary) !important;
+            letter-spacing: 0.16em !important;
+        }
+
+        .nav-tabs {
+            padding: 6px;
+            border: 1px solid rgba(214, 168, 79, 0.16);
+            border-radius: var(--r-md);
+            background: rgba(4, 8, 13, 0.56);
+            box-shadow: inset 0 0 28px rgba(255, 106, 42, 0.025);
+        }
+        .nav-tab {
+            position: relative;
+            overflow: hidden;
+            border: 1px solid transparent !important;
+            border-radius: var(--r-sm) !important;
+            background: transparent !important;
+            color: var(--text-secondary) !important;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+        .nav-tab::before {
+            content: "";
+            position: absolute;
+            inset: 0 auto 0 0;
+            width: 2px;
+            background: transparent;
+            box-shadow: none;
+            transition: 180ms ease;
+        }
+        .nav-tab:hover {
+            color: var(--text-primary) !important;
+            border-color: rgba(255, 106, 42, 0.26) !important;
+            background: rgba(255, 106, 42, 0.045) !important;
+        }
+        .nav-tab.active {
+            color: var(--amber) !important;
+            border-color: rgba(255, 106, 42, 0.46) !important;
+            background: linear-gradient(90deg, rgba(255, 106, 42, 0.13), rgba(214, 168, 79, 0.065)) !important;
+            box-shadow: var(--glow-cyan);
+            text-shadow: 0 0 12px rgba(255, 200, 87, 0.34);
+        }
+        .nav-tab.active::before {
+            background: linear-gradient(180deg, var(--ember), var(--brass));
+            box-shadow: 0 0 16px rgba(255, 106, 42, 0.5);
+        }
+
+        .page-view {
+            background: transparent !important;
+        }
+        #brief-panel,
+        .spark-header,
+        .spark-toolbar,
+        .settings-card,
+        .settings-subcard,
+        .rulebook,
+        .graph-wrap,
+        #chat-panel,
+        #log-panel,
+        .dashboard-filter-dock,
+        .campaign-row,
+        .studio-card,
+        .hero-card {
+            position: relative;
+            background: var(--bg-card) !important;
+            border: 1px solid var(--border) !important;
+            border-radius: var(--r-md) !important;
+            box-shadow: 0 18px 48px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.035);
+            backdrop-filter: blur(14px);
+        }
+        #brief-panel::before,
+        .spark-header::before,
+        .spark-toolbar::before,
+        .settings-card::before,
+        .settings-subcard::before,
+        .rulebook::before,
+        .graph-wrap::before,
+        .studio-card::before,
+        .hero-card::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--ember), var(--brass), transparent);
+            border-radius: var(--r-md) var(--r-md) 0 0;
+        }
+        .settings-card:nth-child(2)::before,
+        .studio-card.amber::before { background: linear-gradient(90deg, var(--verdigris), var(--steel), transparent); }
+        .settings-card:nth-child(3)::before,
+        .studio-card.magenta::before { background: linear-gradient(90deg, var(--brass), var(--ember), transparent); }
+
+        #brief-panel {
+            margin: 16px;
+            padding: 18px;
+        }
+        .dashboard-workspace,
+        .video-workspace {
+            border-top: 0 !important;
+            gap: 12px;
+            padding: 0 16px 16px;
+            background: transparent !important;
+        }
+        .dashboard-left-pane,
+        .dashboard-right-pane,
+        .video-left-pane,
+        .video-right-pane {
+            background: transparent !important;
+        }
+        .dashboard-divider {
+            width: 7px;
+            border: 1px solid rgba(0, 255, 255, 0.14) !important;
+            border-radius: 999px;
+            background: linear-gradient(180deg, rgba(255,106,42,0.16), rgba(214,168,79,0.13)) !important;
+            box-shadow: 0 0 18px rgba(255,106,42,0.12);
+        }
+        #filmstrip,
+        .spark-grid,
+        #script-chat-log,
+        #video-chat-log,
+        #shot-list-container {
+            background: rgba(4, 8, 13, 0.62) !important;
+            border: 1px solid rgba(30, 42, 58, 0.82) !important;
+            border-radius: var(--r-md);
+        }
+        #filmstrip {
+            margin-bottom: 12px;
+        }
+
+        .btn,
+        button.memory-inline-btn,
+        .graph-toolbar button,
+        .campaign-btn {
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255, 106, 42, 0.36) !important;
+            background: linear-gradient(180deg, rgba(255, 106, 42, 0.12), rgba(255, 106, 42, 0.035)) !important;
+            color: var(--amber) !important;
+            border-radius: var(--r-sm) !important;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+            transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease, color 180ms ease;
+        }
+        .btn::after,
+        button.memory-inline-btn::after,
+        .graph-toolbar button::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            transform: translateX(-120%);
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.16), transparent);
+            transition: transform 360ms ease;
+        }
+        .btn:hover,
+        button.memory-inline-btn:hover,
+        .graph-toolbar button:hover,
+        .campaign-btn:hover {
+            transform: translateY(-1px);
+            border-color: var(--ember) !important;
+            box-shadow: 0 0 22px rgba(255, 106, 42, 0.2);
+        }
+        .btn:hover::after,
+        button.memory-inline-btn:hover::after,
+        .graph-toolbar button:hover::after {
+            transform: translateX(120%);
+        }
+        .btn-secondary {
+            border-color: rgba(110, 168, 254, 0.28) !important;
+            background: linear-gradient(180deg, rgba(110, 168, 254, 0.08), rgba(110, 168, 254, 0.025)) !important;
+            color: #AFC7F7 !important;
+        }
+        .btn-cancel {
+            border-color: rgba(255, 51, 51, 0.45) !important;
+            background: linear-gradient(180deg, rgba(255, 51, 51, 0.12), rgba(255, 51, 51, 0.04)) !important;
+            color: #ff7777 !important;
+        }
+        #run-campaign-btn,
+        #start-batch-btn,
+        #send-to-spark-btn,
+        #generate-shots-btn {
+            border-color: rgba(155, 229, 100, 0.5) !important;
+            background: linear-gradient(135deg, rgba(155, 229, 100, 0.18), rgba(255, 200, 87, 0.08)) !important;
+            color: var(--green) !important;
+            box-shadow: 0 0 26px rgba(155, 229, 100, 0.12);
+        }
+
+        input,
+        textarea,
+        select,
+        #dashboard-selected-count,
+        #video-selected-count,
+        #video-import-status {
+            background: rgba(4, 8, 13, 0.92) !important;
+            border: 1px solid rgba(30, 42, 58, 0.95) !important;
+            color: var(--text-primary) !important;
+            border-radius: var(--r-sm) !important;
+            font-family: 'JetBrains Mono', ui-monospace, monospace !important;
+            box-shadow: inset 0 0 18px rgba(255, 200, 87, 0.02);
+        }
+        input:focus,
+        textarea:focus,
+        select:focus {
+            outline: none !important;
+            border-color: var(--ember) !important;
+            box-shadow: 0 0 0 3px rgba(255, 106, 42, 0.1), 0 0 22px rgba(255, 106, 42, 0.14) !important;
+        }
+        input[type="range"] {
+            accent-color: var(--ember);
+            box-shadow: none !important;
+        }
+        input[type="checkbox"],
+        input[type="radio"] {
+            accent-color: var(--ember);
+        }
+        .model-checkbox,
+        .memory-chip,
+        .thumbnail-size-control {
+            background: rgba(4, 8, 13, 0.72) !important;
+            border: 1px solid rgba(30, 42, 58, 0.95) !important;
+            color: var(--text-secondary) !important;
+            border-radius: 999px !important;
+        }
+        .model-checkbox:has(input:checked),
+        .memory-chip:has(input:checked) {
+            border-color: rgba(255, 106, 42, 0.56) !important;
+            color: var(--amber) !important;
+            background: rgba(255, 106, 42, 0.08) !important;
+            box-shadow: 0 0 16px rgba(255, 106, 42, 0.13);
+        }
+
+        #campaign-status-box,
+        .spark-status {
+            border: 1px solid rgba(214, 168, 79, 0.2) !important;
+            background: rgba(4, 8, 13, 0.82) !important;
+            border-radius: var(--r-md) !important;
+            box-shadow: inset 0 0 26px rgba(255, 106, 42, 0.03);
+        }
+        #campaign-status-box .status-role,
+        #spark-status-text,
+        #script-status-text {
+            color: var(--amber) !important;
+        }
+        .stat-row {
+            border: 1px solid rgba(30, 42, 58, 0.72);
+            border-radius: var(--r-sm);
+            padding: 8px 10px;
+            background: rgba(4, 8, 13, 0.48);
+        }
+        .stat-row .val { color: var(--amber) !important; }
+        #sidebar > .sidebar-section:last-child {
+            margin-top: 0 !important;
+        }
+        .campaigns-section {
+            flex: 0 0 auto !important;
+            min-height: 0;
+        }
+        .campaign-list {
+            flex: 0 0 auto !important;
+            max-height: 260px;
+            overflow: auto;
+            padding-right: 4px;
+        }
+        .campaign-list::-webkit-scrollbar {
+            width: 6px;
+        }
+        .campaign-list::-webkit-scrollbar-thumb {
+            background: rgba(255, 106, 42, 0.24);
+            border-radius: 999px;
+        }
+
+        .filmstrip-item,
+        .grid-cell,
+        .shot-card,
+        .char-card {
+            background: rgba(17, 24, 32, 0.72) !important;
+            border: 1px solid rgba(30, 42, 58, 0.94) !important;
+            border-radius: var(--r-md) !important;
+            transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+        }
+        .filmstrip-item:hover,
+        .grid-cell:hover,
+        .shot-card:hover,
+        .char-card:hover {
+            transform: translateY(-2px) scale(1.01);
+            border-color: rgba(255, 106, 42, 0.55) !important;
+            box-shadow: var(--glow-cyan);
+        }
+
+        .hero-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+        }
+        .hero-card {
+            padding: 14px 16px;
+            min-height: 88px;
+        }
+        .hero-val {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--amber);
+            text-shadow: 0 0 18px rgba(255,106,42,0.28);
+        }
+        .hero-lbl {
+            margin-top: 6px;
+            font-size: 10px;
+            color: var(--text-secondary);
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+        }
+
+        .studio-scroll {
+            flex: 1;
+            overflow: auto;
+            padding: 18px;
+        }
+        .studio-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 14px;
+        }
+        .studio-card {
+            padding: 18px;
+            min-height: 130px;
+        }
+        .studio-card h2,
+        .studio-card h3,
+        .spark-header h2,
+        .settings-header h2 {
+            margin: 0 0 10px;
+            color: var(--text-primary) !important;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            text-shadow: 0 0 16px rgba(0,255,255,0.12);
+        }
+        .studio-card p {
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+        .col-3 { grid-column: span 3; }
+        .col-4 { grid-column: span 4; }
+        .col-5 { grid-column: span 5; }
+        .col-6 { grid-column: span 6; }
+        .col-7 { grid-column: span 7; }
+        .col-8 { grid-column: span 8; }
+        .col-12 { grid-column: span 12; }
+        .studio-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+        }
+        .control-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+            gap: 12px;
+            margin-top: 12px;
+        }
+        .control-field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .control-field label {
+            font-size: 10px;
+            color: var(--text-secondary);
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+        }
+        .swatch-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+        }
+        .swatch {
+            width: 34px;
+            height: 22px;
+            border-radius: 999px;
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 0 18px currentColor;
+        }
+        .metric-line {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 9px 0;
+            border-bottom: 1px solid rgba(30, 42, 58, 0.68);
+            color: var(--text-secondary);
+        }
+        .metric-line strong { color: var(--text-primary); }
+        .bar-track {
+            height: 6px;
+            border-radius: 999px;
+            background: rgba(30,42,58,0.9);
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        .bar-fill {
+            display: block;
+            height: 100%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, var(--ember), var(--brass), var(--steel));
+            box-shadow: 0 0 18px rgba(255,106,42,0.25);
+        }
+
+        .settings-header,
+        .spark-header {
+            margin: 16px;
+            padding: 16px 18px;
+        }
+        .settings-grid {
+            padding: 0 16px 16px;
+            grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr) !important;
+        }
+        .ai-provider-card {
+            grid-column: span 2;
+        }
+        .settings-subgrid-2x2 {
+            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        }
+
+        @media (max-width: 900px) {
+            body { flex-direction: column; overflow: auto; height: auto; min-height: 100vh; }
+            #sidebar {
+                width: auto;
+                min-width: 0;
+                max-height: none;
+            }
+            .nav-tabs {
+                display: grid;
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+            }
+            .dashboard-workspace,
+            .video-workspace {
+                flex-direction: column;
+                overflow: visible;
+            }
+            .dashboard-left-pane,
+            .video-left-pane {
+                width: auto !important;
+                max-width: none !important;
+            }
+            .dashboard-divider { display: none; }
+            .settings-grid,
+            .settings-subgrid-2x2,
+            .studio-grid {
+                grid-template-columns: 1fr !important;
+            }
+            .ai-provider-card,
+            .col-3, .col-4, .col-5, .col-6, .col-7, .col-8, .col-12 {
+                grid-column: auto;
+            }
+        }
     </style>
 </head>
 <body>
     <!-- Sidebar -->
     <div id="sidebar">
-        <h1>The <span>Forge</span></h1>
+        <h1>Forge <span>NPS</span></h1>
 
         <div class="nav-tabs">
-            <div class="nav-tab active" data-page="dashboard-view" onclick="switchPage('dashboard-view')">Dashboard</div>
+            <div class="nav-tab active" data-page="dashboard-view" onclick="switchPage('dashboard-view')">Home</div>
+            <div class="nav-tab" data-page="identity-view" onclick="switchPage('identity-view'); loadIdentityTab()">Characters</div>
             <div class="nav-tab" data-page="script-view" onclick="switchPage('script-view')">Script</div>
-            <div class="nav-tab" data-page="spark-view" onclick="switchPage('spark-view')">Video</div>
-            <div class="nav-tab" data-page="identity-view" onclick="switchPage('identity-view'); loadIdentityTab()">Identity</div>
+            <div class="nav-tab" data-page="products-view" onclick="switchPage('products-view')">Products</div>
+            <div class="nav-tab" data-page="spark-view" onclick="switchPage('spark-view')">Renders</div>
             <div class="nav-tab" data-page="memory-view" onclick="switchPage('memory-view'); loadMemoryTab()">Memory</div>
+            <div class="nav-tab" data-page="models-view" onclick="switchPage('models-view')">Models</div>
             <div class="nav-tab" data-page="settings-view" onclick="switchPage('settings-view')">Settings</div>
+        </div>
+
+        <div class="sidebar-section">
+            <h3>System Heartbeat</h3>
+            <div class="stat-row"><span>Total Shots</span><span class="val" id="stat-shots">0</span></div>
+            <div class="stat-row"><span>Sessions</span><span class="val" id="stat-sessions">0</span></div>
+            <div class="stat-row"><span>RAM</span><span class="val" id="stat-ram">—</span></div>
+        </div>
+
+        <div class="sidebar-section">
+            <h3>Anchors</h3>
+            <div id="char-list"><div style="color:#666; font-size:12px;">Loading...</div></div>
         </div>
 
         <div class="sidebar-section campaigns-section">
@@ -1639,6 +2200,14 @@
                     <input type="text" id="cfg-spark-primary" placeholder="ws://localhost:8000" onchange="markDirty('spark.primary')">
                 </div>
                 <div class="form-row">
+                    <label>Spark Secondary WebSocket</label>
+                    <input type="text" id="cfg-spark-secondary" placeholder="ws://localhost:8001" onchange="markDirty('spark.secondary')">
+                </div>
+                <div class="form-row">
+                    <label>Spark Workflow File</label>
+                    <input type="text" id="cfg-spark-workflow" placeholder="workflows/01_flux2_text_to_image.json" onchange="markDirty('spark.workflow_file')">
+                </div>
+                <div class="form-row">
                     <label>Primary (Port 8188)</label>
                     <input type="text" id="cfg-comfyui-primary" placeholder="http://localhost:8188" style="flex:1;" onchange="markDirty('comfyui.primary')">
                 </div>
@@ -1657,8 +2226,119 @@
                 <div id="comfyui-test-result" class="test-result"></div>
             </div>
 
+            <!-- Bank Editor Card -->
+            <div class="settings-card">
+                <h3><span class="card-icon">&#9881;</span> Bank Editor</h3>
+                <p class="card-desc">One item per line. These banks guide pose, view, lighting, background, and extra render constraints.</p>
+                <div class="control-grid">
+                    <div class="control-field">
+                        <label>Pose Bank</label>
+                        <textarea rows="7">standing hero pose
+walking profile
+macro hand detail</textarea>
+                    </div>
+                    <div class="control-field">
+                        <label>View Bank</label>
+                        <textarea rows="7">front view
+three-quarter view
+top-down flat lay</textarea>
+                    </div>
+                    <div class="control-field">
+                        <label>Lighting Bank</label>
+                        <textarea rows="7">cyan rim light
+amber key light
+softbox product sweep</textarea>
+                    </div>
+                    <div class="control-field">
+                        <label>Background Bank</label>
+                        <textarea rows="7">dark technical grid
+neutral studio cyclorama
+cinematic production floor</textarea>
+                    </div>
+                </div>
+                <div class="studio-actions">
+                </div>
+            </div>
+
         </div>
         </div>  <!-- /#settings-view -->
+
+        <!-- Models View -->
+        <div id="models-view" class="page-view models-view">
+            <div class="settings-header">
+                <h2>Models</h2>
+                <div class="backend-toggle-inline">
+                    <span class="backend-label">LOCAL</span>
+                    <span class="model-checkbox" style="padding:8px 14px;">Hermes planning locked to pipeline contracts</span>
+                    <span class="backend-label">API</span>
+                </div>
+                <button class="btn" onclick="switchPage('settings-view'); loadConfig()">Edit Config</button>
+            </div>
+            <div class="studio-scroll">
+                <div class="studio-grid">
+                    <div class="studio-card col-6">
+                        <h3>Hermes Brain</h3>
+                        <p>Hermes remains the pipeline coordinator. Use this panel to inspect the intended routing and jump to the editable config without introducing hidden fallbacks.</p>
+                        <div class="metric-line"><span>Planning</span><strong>Kimi max capability</strong></div>
+                        <div class="metric-line"><span>Critique</span><strong>Kimi semantic audit</strong></div>
+                        <div class="metric-line"><span>Execution</span><strong>Spark / ComfyUI</strong></div>
+                        <div class="bar-track"><span class="bar-fill" style="width:92%;"></span></div>
+                        <div class="studio-actions">
+                            <button class="btn btn-secondary" onclick="testDirector()">Test Director</button>
+                            <button class="btn btn-secondary" onclick="testVision()">Test Vision</button>
+                            <button class="btn" onclick="reloadHermesVision()">Reload Hermes/Vision</button>
+                        </div>
+                    </div>
+                    <div class="studio-card magenta col-6">
+                        <h3>Provider Matrix</h3>
+                        <div class="control-grid">
+                            <div class="control-field">
+                                <label>Director Tier</label>
+                                <select>
+                                    <option>Kimi / Hermes 4 planning</option>
+                                    <option>Nous API compatible</option>
+                                    <option>NVIDIA endpoint</option>
+                                </select>
+                            </div>
+                            <div class="control-field">
+                                <label>Critique Depth</label>
+                                <input type="range" min="1" max="10" value="10">
+                            </div>
+                            <div class="control-field">
+                                <label>Production Fallbacks</label>
+                                <label class="model-checkbox"><input type="checkbox" checked disabled> Disabled in production</label>
+                            </div>
+                            <div class="control-field">
+                                <label>Local Chat</label>
+                                <button class="btn btn-secondary" onclick="testLMStudio()">Test LM Studio</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="studio-card amber col-4">
+                        <h3>LM Studio</h3>
+                        <div class="metric-line"><span>Status</span><strong id="models-local-status">Ready to test</strong></div>
+                        <div class="studio-actions">
+                            <button class="btn btn-secondary" onclick="testLMStudio()">Detect Models</button>
+                            <button class="btn btn-secondary" onclick="loadLMStudioModel()">Load Model</button>
+                        </div>
+                    </div>
+                    <div class="studio-card col-4">
+                        <h3>Kimi / API</h3>
+                        <div class="metric-line"><span>Endpoint</span><strong>OpenAI-compatible</strong></div>
+                        <div class="studio-actions">
+                            <button class="btn btn-secondary" onclick="testProvider()">Test API</button>
+                        </div>
+                    </div>
+                    <div class="studio-card magenta col-4">
+                        <h3>NIM / Vision</h3>
+                        <div class="metric-line"><span>Visual Audit</span><strong>Explicit route</strong></div>
+                        <div class="studio-actions">
+                            <button class="btn btn-secondary" onclick="testVision()">Test Vision</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>  <!-- /#models-view -->
 
         <!-- Script View (Director) -->
         <div id="script-view" class="page-view script-view">
@@ -1721,6 +2401,92 @@
             <div id="shot-list" style="display:none;flex-direction:column;gap:12px;"></div>
         </div>
         </div>  <!-- /#script-view -->
+
+        <!-- Products View -->
+        <div id="products-view" class="page-view products-view">
+            <div class="spark-header">
+                <h2>Products</h2>
+            </div>
+            <div class="studio-scroll">
+                <div class="studio-grid">
+                    <div class="studio-card col-5">
+                        <h3>Product Anchor</h3>
+                        <div style="aspect-ratio:1/1;border:1px solid var(--border);border-radius:var(--r-md);background:radial-gradient(circle at 50% 35%, rgba(255,106,42,0.16), transparent 28%), linear-gradient(135deg, rgba(110,168,254,0.06), rgba(214,168,79,0.08));display:grid;place-items:center;color:var(--amber);letter-spacing:.18em;text-transform:uppercase;">Anchor Preview</div>
+                    </div>
+                    <div class="studio-card magenta col-7">
+                        <h3>Product Description Editor</h3>
+                        <div class="control-grid">
+                            <div class="control-field">
+                                <label>Product Name</label>
+                                <input type="text" value="Emberdrive Mk-II">
+                            </div>
+                            <div class="control-field">
+                                <label>Finish</label>
+                                <select>
+                                    <option>Obsidian chassis</option>
+                                    <option>Brushed alloy</option>
+                                    <option>Matte ceramic</option>
+                                </select>
+                            </div>
+                            <div class="control-field">
+                                <label>Consistency</label>
+                                <input type="range" min="0" max="100" value="91">
+                            </div>
+                            <div class="control-field">
+                                <label>Seed Lock</label>
+                                <label class="model-checkbox"><input type="checkbox" checked> Deterministic product seed</label>
+                            </div>
+                        </div>
+                        <div class="control-field" style="margin-top:12px;">
+                            <label>Description</label>
+                            <textarea rows="7">High-performance propulsion module with obsidian casing, amber heat sinks, visible turbine geometry, and premium technical lifestyle framing.</textarea>
+                        </div>
+                    </div>
+                    <div class="studio-card amber col-3">
+                        <h3>Angle Bank</h3>
+                        <label class="model-checkbox"><input type="checkbox" checked> Macro detail</label>
+                        <label class="model-checkbox"><input type="checkbox" checked> 45 degree hero</label>
+                        <label class="model-checkbox"><input type="checkbox"> Top-down flat lay</label>
+                        <label class="model-checkbox"><input type="checkbox"> Scale reference</label>
+                    </div>
+                    <div class="studio-card col-3">
+                        <h3>Material Bank</h3>
+                        <label class="model-checkbox"><input type="checkbox" checked> Aluminum</label>
+                        <label class="model-checkbox"><input type="checkbox" checked> Carbon fiber</label>
+                        <label class="model-checkbox"><input type="checkbox"> Glass reveal</label>
+                        <label class="model-checkbox"><input type="checkbox"> Rubberized grip</label>
+                    </div>
+                    <div class="studio-card magenta col-3">
+                        <h3>Context Bank</h3>
+                        <label class="model-checkbox"><input type="radio" name="product-context" checked> Studio sweep</label>
+                        <label class="model-checkbox"><input type="radio" name="product-context"> Lifestyle field</label>
+                        <label class="model-checkbox"><input type="radio" name="product-context"> Exploded tech view</label>
+                        <label class="model-checkbox"><input type="radio" name="product-context"> Retail PDP</label>
+                    </div>
+                    <div class="studio-card col-3">
+                        <h3>Lighting Bank</h3>
+                        <div class="control-field">
+                            <label>Rim Intensity</label>
+                            <input type="range" min="0" max="100" value="76">
+                        </div>
+                        <div class="control-field">
+                            <label>Glow Color</label>
+                            <div class="swatch-row">
+                                <span class="swatch" style="background:var(--cyan);color:var(--cyan);"></span>
+                                <span class="swatch" style="background:var(--amber);color:var(--amber);"></span>
+                                <span class="swatch" style="background:var(--magenta);color:var(--magenta);"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="studio-card col-12">
+                        <h3>Product Variation Gallery</h3>
+                        <div class="spark-grid" style="min-height:260px;padding:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;">
+                            <div class="grid-placeholder"><p>No product renders loaded.</p></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>  <!-- /#products-view -->
 
         <!-- Video View -->
         <div id="spark-view" class="page-view spark-view">
