@@ -142,11 +142,25 @@
         }
         #brief-input:focus { outline: none; border-color: #3D5AFE; }
         #brief-actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-        .model-stack {
+        .model-combo {
             display: flex;
-            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+        .model-inline-option {
+            display: inline-flex;
+            align-items: center;
             gap: 6px;
-            transform: translateY(13px);
+            cursor: pointer;
+        }
+        .model-inline-option.disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+        .model-divider {
+            width: 1px;
+            height: 16px;
+            background: #3a3a3a;
         }
         #campaign-status-box {
             display: grid;
@@ -198,8 +212,7 @@
             user-select: none; transition: border-color 0.15s, color 0.15s;
         }
         .model-checkbox:has(input:checked) { border-color: #3D5AFE; color: #fff; }
-        .model-checkbox.disabled,
-        .model-checkbox:has(input:disabled) {
+        .model-checkbox.disabled {
             opacity: 0.45;
             cursor: not-allowed;
         }
@@ -446,6 +459,240 @@
         }
         .nav-tab:hover { background: #2a2a2a; color: #ccc; }
         .nav-tab.active { background: #3D5AFE; border-color: #3D5AFE; color: #fff; }
+        .ideas-view {
+            min-height: 0;
+            background: #0A0A0A;
+            overflow: hidden;
+        }
+        .idea-board-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 18px 24px;
+            background: #1A1A1A;
+            border-bottom: 1px solid #333;
+        }
+        .idea-kicker {
+            margin-bottom: 6px;
+            color: #8ba0ff;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+        .idea-board-header h2 {
+            margin: 0 0 6px;
+            color: #fff;
+            font-size: 24px;
+            line-height: 1.1;
+        }
+        .idea-board-header p {
+            margin: 0;
+            color: #888;
+            font-size: 13px;
+        }
+        .idea-board-actions {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        #idea-board-filter {
+            min-width: 180px;
+            background: #222;
+            border: 1px solid #444;
+            border-radius: 4px;
+            color: #ccc;
+            padding: 9px 10px;
+            font-size: 12px;
+        }
+        .idea-board-status {
+            min-height: 36px;
+            padding: 10px 24px;
+            border-bottom: 1px solid #222;
+            color: #888;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+        }
+        .idea-create-bar {
+            display: grid;
+            grid-template-columns: minmax(180px, 1fr) 130px minmax(150px, 0.8fr) minmax(220px, 1.2fr) auto;
+            gap: 10px;
+            padding: 12px 24px;
+            border-bottom: 1px solid #222;
+            background: #101010;
+        }
+        .idea-create-bar input,
+        .idea-create-bar select {
+            min-width: 0;
+            background: #222;
+            border: 1px solid #444;
+            border-radius: 4px;
+            color: #E0E0E0;
+            padding: 9px 10px;
+            font-size: 12px;
+        }
+        .idea-create-bar input:focus,
+        .idea-create-bar select:focus {
+            outline: none;
+            border-color: #3D5AFE;
+        }
+        .idea-board {
+            flex: 1;
+            min-height: 0;
+            display: grid;
+            grid-auto-flow: column;
+            grid-auto-columns: minmax(250px, 1fr);
+            gap: 12px;
+            padding: 14px 24px 24px;
+            overflow: auto;
+            align-items: stretch;
+        }
+        .idea-column {
+            min-width: 250px;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            border: 1px solid #2d2d2d;
+            border-radius: 6px;
+            background: #111;
+        }
+        .idea-column header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 11px 12px;
+            border-bottom: 1px solid #2a2a2a;
+        }
+        .idea-column-title {
+            color: #d7d7d7;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .idea-column-count {
+            min-width: 24px;
+            height: 22px;
+            display: inline-grid;
+            place-items: center;
+            border-radius: 4px;
+            color: #cbd3ff;
+            background: #1b2140;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            font-weight: 700;
+        }
+        .idea-card-list {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 10px;
+            overflow-y: auto;
+        }
+        .idea-card {
+            display: flex;
+            flex-direction: column;
+            gap: 9px;
+            min-height: 148px;
+            padding: 12px;
+            border: 1px solid #333;
+            border-radius: 6px;
+            background: #1A1A1A;
+            cursor: pointer;
+            transition: border-color 0.15s, background 0.15s, transform 0.15s;
+        }
+        .idea-card:hover {
+            transform: translateY(-1px);
+            border-color: #3D5AFE;
+            background: #1d2030;
+        }
+        .idea-card.pass { border-color: #2e7d32; }
+        .idea-card.fail { border-color: #8e3030; }
+        .idea-card-meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            color: #8790a0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .idea-card h3 {
+            margin: 0;
+            color: #fff;
+            font-size: 14px;
+            line-height: 1.25;
+            overflow-wrap: anywhere;
+        }
+        .idea-card p {
+            margin: 0;
+            color: #aaa;
+            font-size: 12px;
+            line-height: 1.45;
+            overflow-wrap: anywhere;
+        }
+        .idea-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: auto;
+        }
+        .idea-tags span {
+            max-width: 100%;
+            padding: 3px 6px;
+            border: 1px solid #3a3a3a;
+            border-radius: 4px;
+            color: #b8c1d9;
+            background: #202020;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            overflow-wrap: anywhere;
+        }
+        .idea-card-actions {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            padding-top: 2px;
+        }
+        .idea-mini-btn {
+            min-height: 26px;
+            padding: 4px 7px;
+            border: 1px solid #3a3a3a;
+            border-radius: 4px;
+            color: #cbd3ff;
+            background: #202020;
+            font-size: 10px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .idea-mini-btn:hover {
+            border-color: #3D5AFE;
+            color: #fff;
+        }
+        .idea-mini-btn:disabled {
+            color: #555;
+            cursor: not-allowed;
+            border-color: #2a2a2a;
+        }
+        .idea-mini-btn.danger {
+            color: #ff9a9a;
+            margin-left: auto;
+        }
+        .idea-empty {
+            padding: 18px 12px;
+            color: #666;
+            font-size: 12px;
+            text-align: center;
+        }
         .campaign-list {
             display: flex;
             flex-direction: column;
@@ -956,6 +1203,309 @@
             font-size: 11px;
             padding: 4px 10px;
         }
+        .script-director-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 18px 20px;
+            background: #141414;
+            border: 1px solid #2a2a2a;
+            border-radius: 8px;
+        }
+        .script-kicker {
+            margin-bottom: 6px;
+            color: #8ba0ff;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+        .script-director-header h2 {
+            margin: 0 0 6px;
+            color: #fff;
+            font-size: 24px;
+            line-height: 1.1;
+        }
+        .script-director-header p {
+            margin: 0;
+            color: #888;
+            font-size: 13px;
+        }
+        .script-header-actions,
+        .script-action-row,
+        .script-shot-controls {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .script-flow {
+            display: grid;
+            grid-template-columns: minmax(340px, 0.9fr) minmax(420px, 1.1fr);
+            gap: 14px;
+            padding-top: 14px;
+            min-height: 0;
+        }
+        .script-panel {
+            min-width: 0;
+            background: #111;
+            border: 1px solid #333;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .script-panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 12px 14px;
+            border-bottom: 1px solid #292929;
+            background: #171717;
+        }
+        .script-panel-head > span {
+            width: 28px;
+            height: 28px;
+            display: grid;
+            place-items: center;
+            border: 1px solid #3D5AFE;
+            border-radius: 4px;
+            color: #aebaff;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            flex: 0 0 auto;
+        }
+        .script-panel-head h3,
+        .script-package-box h4 {
+            margin: 0;
+            color: #e8e8e8;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+        .script-panel-head h3 { margin-right: auto; }
+        .script-brief-panel,
+        .script-package-panel,
+        .script-scenes-panel,
+        .script-json-panel,
+        .script-shot-panel,
+        .script-chat-panel {
+            padding: 0;
+        }
+        .script-brief-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 14px;
+        }
+        .script-brief-panel .script-panel-head {
+            margin: -14px -14px 0;
+        }
+        .script-grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .script-field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .script-field label,
+        .script-upload span,
+        .script-shot-controls label {
+            color: #6C7278;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+        .script-field input,
+        .script-field textarea,
+        .script-upload input,
+        #script-package-json,
+        .script-shot-controls input {
+            width: 100%;
+            background: #222;
+            border: 1px solid #444;
+            border-radius: 4px;
+            color: #E0E0E0;
+            padding: 9px 10px;
+            font-size: 13px;
+            font-family: 'Inter', sans-serif;
+        }
+        .script-field textarea {
+            min-height: 190px;
+            resize: vertical;
+            line-height: 1.5;
+        }
+        .script-upload {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            flex: 1 1 220px;
+        }
+        .script-status-line {
+            min-height: 34px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 8px 10px;
+            border: 1px solid #333;
+            border-radius: 4px;
+            background: #0a0a0a;
+            color: #9aa0aa;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+        }
+        .script-package-panel,
+        .script-scenes-panel,
+        .script-json-panel,
+        .script-shot-panel {
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+        .script-package-tabs {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            padding: 12px;
+            overflow: auto;
+        }
+        .script-package-box {
+            border: 1px solid #292929;
+            border-radius: 6px;
+            background: #0b0b0b;
+            padding: 12px;
+        }
+        .script-output {
+            margin-top: 8px;
+            color: #c9c9c9;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+        .script-output h3 {
+            margin: 0 0 10px;
+            color: #fff;
+            font-size: 15px;
+        }
+        .script-output p {
+            margin: 0 0 10px;
+        }
+        .script-scenes-panel,
+        .script-shot-panel {
+            grid-column: 1 / -1;
+        }
+        .script-scenes-output {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 10px;
+            padding: 12px;
+        }
+        .script-scene-card {
+            border: 1px solid #292929;
+            border-radius: 6px;
+            background: #0b0b0b;
+            padding: 12px;
+        }
+        .script-scene-head {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .script-scene-head span,
+        .script-scene-head em,
+        .script-beat span {
+            color: #8ba0ff;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            font-style: normal;
+        }
+        .script-scene-head strong {
+            color: #fff;
+            font-size: 13px;
+        }
+        .script-scene-card p,
+        .script-beat p {
+            margin: 0;
+            color: #b8b8b8;
+            font-size: 12px;
+            line-height: 1.45;
+        }
+        .script-beat-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .script-beat {
+            border-left: 2px solid #333;
+            padding-left: 8px;
+        }
+        .script-json-panel textarea {
+            min-height: 280px;
+            border: 0;
+            border-radius: 0;
+            background: #0a0a0a;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            line-height: 1.5;
+            resize: vertical;
+        }
+        .script-shot-panel .script-panel-head {
+            align-items: center;
+        }
+        .script-shot-controls input {
+            width: 86px;
+            margin-left: 6px;
+        }
+        .script-shot-list-wrap {
+            max-height: 620px;
+            overflow: auto;
+            padding: 12px;
+        }
+        .script-shot-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .script-empty-mini,
+        .script-empty-shot {
+            color: #666;
+            font-size: 12px;
+        }
+        .script-empty-shot {
+            display: grid;
+            place-items: center;
+            min-height: 180px;
+            border: 1px dashed #333;
+            border-radius: 6px;
+            background: #0a0a0a;
+        }
+        .script-lock-group h3 {
+            margin: 10px 0 6px;
+            color: #8ba0ff;
+            font-size: 11px;
+        }
+        @media (max-width: 1100px) {
+            .script-flow,
+            .script-grid-2 {
+                grid-template-columns: 1fr;
+            }
+            .script-director-header {
+                flex-direction: column;
+            }
+            .script-header-actions {
+                justify-content: flex-start;
+            }
+        }
         /* Scrollbar */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
@@ -1141,6 +1691,173 @@
         .toolbar-group textarea:focus {
             outline: none;
             border-color: #3D5AFE;
+        }
+        .character-library {
+            margin-bottom: 16px;
+        }
+        .character-forge-grid {
+            display: grid;
+            grid-template-columns: minmax(320px, 0.9fr) minmax(360px, 1.1fr);
+            gap: 14px;
+            align-items: stretch;
+        }
+        .character-forge-panel {
+            background: #111;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-width: 0;
+        }
+        .character-forge-panel h3 {
+            color: #fff;
+            font-size: 13px;
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+        .character-forge-row {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+        .character-forge-panel textarea {
+            width: 100%;
+            min-height: 128px;
+        }
+        .character-forge-panel textarea.prompt-large {
+            min-height: 210px;
+        }
+        .character-action-bar {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .character-roster-wrap {
+            margin-top: 14px;
+            display: grid;
+            grid-template-columns: minmax(280px, 0.8fr) minmax(320px, 1.2fr);
+            gap: 14px;
+            align-items: start;
+        }
+        .character-create-compact {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+        .character-create-compact .toolbar-group {
+            min-width: 190px;
+        }
+        .character-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 12px;
+        }
+        .character-card-live {
+            display: grid;
+            grid-template-columns: 72px 1fr;
+            gap: 12px;
+            background: #111;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 12px;
+            min-width: 0;
+        }
+        .character-card-live img,
+        .character-avatar-fallback {
+            width: 72px;
+            height: 72px;
+            border-radius: 6px;
+            object-fit: cover;
+            background: #222;
+            border: 1px solid #3a3a3a;
+            display: grid;
+            place-items: center;
+            color: #3D5AFE;
+            font-weight: 700;
+            font-size: 24px;
+        }
+        .character-card-live h3 {
+            font-size: 13px;
+            color: #fff;
+            margin-bottom: 4px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .character-card-live .role {
+            font-size: 12px;
+            color: #9aa0aa;
+            line-height: 1.35;
+            margin-bottom: 8px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .character-card-live .meta {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            flex-wrap: wrap;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            color: #6C7278;
+        }
+        .character-card-live .meta a {
+            color: #9db0ff;
+            text-decoration: none;
+        }
+        .character-card-live .meta a:hover {
+            color: #fff;
+        }
+        .character-manager-status {
+            color: #6C7278;
+            font-size: 12px;
+            font-family: 'JetBrains Mono', monospace;
+            padding: 4px 0;
+        }
+        .character-render-gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 10px;
+            min-height: 160px;
+        }
+        .character-render-tile {
+            position: relative;
+            min-height: 160px;
+            border: 1px solid #333;
+            border-radius: 6px;
+            overflow: hidden;
+            background: #111;
+        }
+        .character-render-tile img {
+            width: 100%;
+            height: 100%;
+            min-height: 160px;
+            object-fit: cover;
+            display: block;
+        }
+        .character-render-tile .caption {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            padding: 5px 7px;
+            background: rgba(0,0,0,0.74);
+            color: #d8d8d8;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+        }
+        @media (max-width: 1180px) {
+            .character-forge-grid,
+            .character-roster-wrap {
+                grid-template-columns: 1fr;
+            }
         }
         .seed-row {
             display: flex;
@@ -1954,6 +2671,50 @@
         .settings-subgrid-2x2 {
             grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
         }
+        #script-view {
+            padding: 20px !important;
+            gap: 14px !important;
+            overflow-y: auto !important;
+            align-content: flex-start;
+        }
+        #script-view .script-flow {
+            align-items: start;
+            grid-auto-rows: auto;
+            overflow: visible;
+        }
+        #script-view .script-panel {
+            overflow: visible;
+        }
+        #script-view .script-brief-panel {
+            min-height: 0;
+        }
+        #script-view .script-package-panel,
+        #script-view .script-scenes-panel,
+        #script-view .script-json-panel,
+        #script-view .script-shot-panel,
+        #script-view .script-chat-panel {
+            min-height: 0;
+        }
+        #script-view .script-package-tabs {
+            overflow: visible;
+            max-height: none;
+        }
+        #script-view #script-brief {
+            min-height: 180px;
+        }
+        #script-view #script-package-json {
+            min-height: 220px;
+        }
+        #script-view .script-shot-list-wrap {
+            max-height: none;
+            min-height: 230px;
+        }
+        #script-view .script-chat-panel {
+            grid-column: 1 / -1;
+        }
+        #script-view .script-chat-log {
+            max-height: 180px;
+        }
 
         @media (max-width: 900px) {
             body { flex-direction: column; overflow: auto; height: auto; min-height: 100vh; }
@@ -1970,6 +2731,29 @@
             .video-workspace {
                 flex-direction: column;
                 overflow: visible;
+            }
+            .idea-board-header {
+                flex-direction: column;
+            }
+            .idea-board-actions {
+                width: 100%;
+                justify-content: flex-start;
+            }
+            .idea-create-bar {
+                grid-template-columns: 1fr;
+            }
+            #idea-board-filter {
+                flex: 1;
+                min-width: 160px;
+            }
+            .idea-board {
+                grid-auto-flow: row;
+                grid-auto-columns: auto;
+                grid-template-columns: 1fr;
+                overflow: visible;
+            }
+            .idea-column {
+                min-height: 220px;
             }
             .dashboard-left-pane,
             .video-left-pane {
@@ -1996,7 +2780,8 @@
 
         <div class="nav-tabs">
             <div class="nav-tab active" data-page="dashboard-view" onclick="switchPage('dashboard-view')">Home</div>
-            <div class="nav-tab" data-page="identity-view" onclick="switchPage('identity-view'); loadIdentityTab()">Characters</div>
+            <div class="nav-tab" data-page="ideas-view" onclick="switchPage('ideas-view')">Ideas</div>
+            <div class="nav-tab" data-page="identity-view" onclick="switchPage('identity-view'); loadIdentityTab(); loadCharacterManager()">Characters</div>
             <div class="nav-tab" data-page="script-view" onclick="switchPage('script-view')">Script</div>
             <div class="nav-tab" data-page="products-view" onclick="switchPage('products-view')">Products</div>
             <div class="nav-tab" data-page="spark-view" onclick="switchPage('spark-view')">Renders</div>
@@ -2044,19 +2829,20 @@
             <!-- Brief -->
             <div id="brief-panel">
             <label>Prompt</label>
-            <textarea id="brief-input" placeholder="Describe your cinematic vision... (e.g. A lone astronaut discovers a glowing garden on an alien moon, bathed in twin-sunset light)"></textarea>
-            <div id="brief-actions">
-                <button class="btn" id="run-campaign-btn" onclick="runCampaign()">Generate Images</button>
-                <input type="text" id="dashboard-selected-count" value="0 selected" readonly style="width:120px;background:#222;border:1px solid #444;border-radius:4px;color:#ccc;padding:8px 10px;font-size:12px;">
-                <label class="model-checkbox"><input type="checkbox" id="append-campaign" checked> Append To Selected Campaign</label>
-                <button class="btn btn-cancel" id="cancel-campaign-btn" onclick="cancelCampaign()" style="display:none;">✕ Cancel</button>
-                <div class="model-stack">
-                    <label class="model-checkbox"><input type="checkbox" id="model-flux2" checked> Flux2.Dev</label>
-                    <label class="model-checkbox" title="Requires Flux2.Dev"><input type="checkbox" id="model-turbo"> Turbo</label>
+                <textarea id="brief-input" placeholder="Describe your cinematic vision... (e.g. A lone astronaut discovers a glowing garden on an alien moon, bathed in twin-sunset light)"></textarea>
+                <div id="brief-actions">
+                    <button class="btn" id="run-campaign-btn" onclick="runCampaign()">Generate Images</button>
+                    <input type="text" id="dashboard-selected-count" value="0 selected" readonly style="width:120px;background:#222;border:1px solid #444;border-radius:4px;color:#ccc;padding:8px 10px;font-size:12px;">
+                    <label class="model-checkbox"><input type="checkbox" id="append-campaign" checked> Append To Selected Campaign</label>
+                    <button class="btn btn-cancel" id="cancel-campaign-btn" onclick="cancelCampaign()" style="display:none;">✕ Cancel</button>
+                    <div class="model-checkbox model-combo">
+                        <label class="model-inline-option"><input type="checkbox" id="model-flux2" checked> Flux2.Dev</label>
+                        <span class="model-divider" aria-hidden="true"></span>
+                        <label class="model-inline-option" title="Requires Flux2.Dev"><input type="checkbox" id="model-turbo"> Turbo</label>
+                    </div>
+                    <label class="model-checkbox"><input type="checkbox" id="model-klein"> Flux2 Klein</label>
+                    <input type="text" id="filter-campaign-id" placeholder="Campaign ID" style="width:130px;background:#222;border:1px solid #444;border-radius:4px;color:#ccc;padding:8px 10px;font-size:12px;">
                 </div>
-                <label class="model-checkbox"><input type="checkbox" id="model-klein"> Flux2 Klein</label>
-                <input type="text" id="filter-campaign-id" placeholder="Campaign ID" style="width:130px;background:#222;border:1px solid #444;border-radius:4px;color:#ccc;padding:8px 10px;font-size:12px;">
-            </div>
             <div id="campaign-status-box">
                 <span class="status-role">Pipeline</span>
                 <span class="status-message">Ready.</span>
@@ -2097,6 +2883,39 @@
             </div>
         </div>
         </div>  <!-- /#main dashboard-view -->
+
+        <!-- Ideas View -->
+        <div id="ideas-view" class="page-view ideas-view">
+            <div class="idea-board-header">
+                <div>
+                    <div class="idea-kicker">Creative board</div>
+                    <h2>Idea board</h2>
+                    <p id="idea-board-subtitle">Creative concepts grouped by stage.</p>
+                </div>
+                <div class="idea-board-actions">
+                    <select id="idea-board-filter" onchange="loadIdeaBoard()">
+                        <option value="">All campaigns</option>
+                    </select>
+                    <button class="btn btn-secondary" onclick="loadIdeaBoard()">Refresh</button>
+                    <button class="btn" onclick="switchPage('dashboard-view')">Open Home</button>
+                </div>
+            </div>
+            <form class="idea-create-bar" onsubmit="createIdeaCard(event)">
+                <input name="title" type="text" placeholder="New idea title" required>
+                <select name="type">
+                    <option value="concept">Concept</option>
+                    <option value="hook">Hook</option>
+                    <option value="story">Story</option>
+                    <option value="visual">Visual</option>
+                    <option value="offer">Offer</option>
+                </select>
+                <input name="tags" type="text" placeholder="Tags, comma separated">
+                <input name="body" type="text" placeholder="One-line note, reference, or angle">
+                <button class="btn" type="submit">Add Idea</button>
+            </form>
+            <div id="idea-board-status" class="idea-board-status">Loading idea board...</div>
+            <div id="idea-board" class="idea-board" aria-label="Creative idea board"></div>
+        </div>
 
         <!-- Settings View -->
         <div id="settings-view" class="page-view settings-view">
@@ -2212,14 +3031,6 @@
                     <input type="text" id="cfg-spark-primary" placeholder="ws://localhost:8000" onchange="markDirty('spark.primary')">
                 </div>
                 <div class="form-row">
-                    <label>Spark Secondary WebSocket</label>
-                    <input type="text" id="cfg-spark-secondary" placeholder="ws://localhost:8001" onchange="markDirty('spark.secondary')">
-                </div>
-                <div class="form-row">
-                    <label>Spark Workflow File</label>
-                    <input type="text" id="cfg-spark-workflow" placeholder="workflows/01_flux2_text_to_image.json" onchange="markDirty('spark.workflow_file')">
-                </div>
-                <div class="form-row">
                     <label>Primary (Port 8188)</label>
                     <input type="text" id="cfg-comfyui-primary" placeholder="http://localhost:8188" style="flex:1;" onchange="markDirty('comfyui.primary')">
                 </div>
@@ -2238,103 +3049,130 @@
                 <div id="comfyui-test-result" class="test-result"></div>
             </div>
 
-            <!-- Bank Editor Card -->
-            <div class="settings-card">
-                <h3><span class="card-icon">&#9881;</span> Bank Editor</h3>
-                <p class="card-desc">One item per line. These banks guide pose, view, lighting, background, and extra render constraints.</p>
-                <div class="control-grid">
-                    <div class="control-field">
-                        <label>Pose Bank</label>
-                        <textarea rows="7">standing hero pose
-walking profile
-macro hand detail</textarea>
-                    </div>
-                    <div class="control-field">
-                        <label>View Bank</label>
-                        <textarea rows="7">front view
-three-quarter view
-top-down flat lay</textarea>
-                    </div>
-                    <div class="control-field">
-                        <label>Lighting Bank</label>
-                        <textarea rows="7">cyan rim light
-amber key light
-softbox product sweep</textarea>
-                    </div>
-                    <div class="control-field">
-                        <label>Background Bank</label>
-                        <textarea rows="7">dark technical grid
-neutral studio cyclorama
-cinematic production floor</textarea>
-                    </div>
-                </div>
-                <div class="studio-actions">
-                </div>
-            </div>
-
         </div>
         </div>  <!-- /#settings-view -->
 
         <!-- Script View (Director) -->
         <div id="script-view" class="page-view script-view">
-        <div class="spark-header">
-            <h2>Script Director</h2>
-            <div style="display:flex;gap:8px;">
-                <button class="btn btn-secondary" onclick="clearShotList()">Clear Shots</button>
-                <button class="btn" id="send-to-spark-btn" onclick="sendToSpark()" disabled>Send Selected to Spark</button>
+            <div class="script-director-header">
+                <div>
+                    <div class="script-kicker">Hermes Script Pipeline</div>
+                    <h2>Script to Cohesive Edit</h2>
+                    <p>Develop a locked script package first, then generate scene-aware coverage for Spark.</p>
+                </div>
+                <div class="script-header-actions">
+                    <button class="btn btn-secondary" onclick="clearShotList()">Reset</button>
+                    <button class="btn" id="send-to-spark-btn" onclick="sendToSpark()" disabled>Send Selected to Spark</button>
+                </div>
             </div>
-        </div>
 
-        <!-- Brief Upload + Editor -->
-        <div class="spark-toolbar" style="margin-bottom:16px;">
-            <div class="toolbar-row">
-                <div class="toolbar-group" style="flex:1;">
-                    <label>Prompt</label>
-                    <textarea id="script-brief" placeholder="Paste your prompt here or upload a file..." rows="6" style="width:100%;"></textarea>
-                </div>
-            </div>
-            <div class="toolbar-row">
-                <div class="toolbar-group">
-                    <label>Upload Prompt</label>
-                    <input type="file" id="brief-file-input" accept=".md,.txt,.pdf" onchange="uploadBrief()" style="color:#ccc;font-size:12px;">
-                </div>
-                <div class="toolbar-group">
-                    <label>Format</label>
-                    <select id="brief-format">
-                        <option value="markdown">Markdown</option>
-                        <option value="plain">Plain Text</option>
-                    </select>
-                </div>
-                <div class="toolbar-group" style="display:flex;align-items:flex-end;">
-                    <button class="btn" id="generate-shots-btn" onclick="generateShotList()">Generate Shot List</button>
-                </div>
-            </div>
-            <div id="script-status" class="spark-status" style="margin:0;">
-                <span id="script-status-text">Ready</span>
-                <span id="script-progress"></span>
-            </div>
-        </div>
+            <div class="script-flow">
+                <section class="script-panel script-brief-panel">
+                    <div class="script-panel-head">
+                        <span>01</span>
+                        <h3>Brief</h3>
+                    </div>
+                    <div class="script-grid-2">
+                        <div class="script-field">
+                            <label>Title</label>
+                            <input type="text" id="script-title" placeholder="Campaign or film title">
+                        </div>
+                        <div class="script-field">
+                            <label>Tone</label>
+                            <input type="text" id="script-tone" placeholder="e.g. restrained sci-fi thriller">
+                        </div>
+                        <div class="script-field">
+                            <label>Runtime Sec</label>
+                            <input type="number" id="script-runtime" value="60" min="15" max="720">
+                        </div>
+                        <div class="script-field">
+                            <label>Scenes</label>
+                            <input type="number" id="script-scenes" value="4" min="1" max="12">
+                        </div>
+                    </div>
+                    <div class="script-field">
+                        <label>Prompt / Brief</label>
+                        <textarea id="script-brief" placeholder="Paste the concept, client brief, story premise, or raw script..." rows="9"></textarea>
+                    </div>
+                    <div class="script-action-row">
+                        <label class="script-upload">
+                            <span>Upload .md/.txt/.pdf</span>
+                            <input type="file" id="brief-file-input" accept=".md,.txt,.pdf" onchange="uploadBrief()">
+                        </label>
+                        <button class="btn" id="develop-script-btn" onclick="developScriptPackage()">Develop Script Package</button>
+                    </div>
+                    <div id="script-status" class="script-status-line">
+                        <span id="script-status-text">Ready</span>
+                        <span id="script-progress"></span>
+                    </div>
+                </section>
 
-        <div class="script-chat-panel">
-            <div class="script-chat-header">
-                <span>Hermes Chat</span>
-                <span id="script-chat-status">Ready</span>
-            </div>
-            <div id="script-chat-log" class="script-chat-log"></div>
-            <div class="script-chat-input-row">
-                <input type="text" id="script-chat-input" placeholder="Message Hermes..." onkeydown="if(event.key==='Enter')sendScriptChat()">
-                <button class="btn" id="script-chat-send-btn" onclick="sendScriptChat()">Send</button>
-            </div>
-        </div>
+                <section class="script-panel script-package-panel">
+                    <div class="script-panel-head">
+                        <span>02</span>
+                        <h3>Locked Package</h3>
+                    </div>
+                    <div class="script-package-tabs">
+                        <div class="script-package-box">
+                            <h4>Treatment</h4>
+                            <div id="script-treatment-output" class="script-output"><div class="script-empty-mini">No treatment yet.</div></div>
+                        </div>
+                        <div class="script-package-box">
+                            <h4>Continuity</h4>
+                            <div id="script-continuity-output" class="script-output"><div class="script-empty-mini">No continuity locks yet.</div></div>
+                        </div>
+                        <div class="script-package-box">
+                            <h4>Edit Plan</h4>
+                            <div id="script-edit-output" class="script-output"><div class="script-empty-mini">No edit plan yet.</div></div>
+                        </div>
+                    </div>
+                </section>
 
-        <!-- Shot List -->
-        <div id="shot-list-container" style="flex:1;overflow-y:auto;padding:0 0 16px;">
-            <div id="shot-list-placeholder" style="text-align:center;padding:40px;color:#555;">
-                <p style="font-size:16px;color:#3D5AFE;margin-bottom:8px;">No shots yet</p>
-                <p style="font-size:13px;">Upload or paste a brief, then click <strong>Generate Shot List</strong></p>
+                <section class="script-panel script-scenes-panel">
+                    <div class="script-panel-head">
+                        <span>03</span>
+                        <h3>Scenes and Beats</h3>
+                    </div>
+                    <div id="script-scenes-output" class="script-scenes-output"><div class="script-empty-mini">Generate the package to see scene structure.</div></div>
+                </section>
+
+                <section class="script-panel script-json-panel">
+                    <div class="script-panel-head">
+                        <span>04</span>
+                        <h3>Package JSON</h3>
+                    </div>
+                    <textarea id="script-package-json" spellcheck="false" placeholder="The locked script package appears here. You can edit it before generating coverage."></textarea>
+                </section>
+
+                <section class="script-panel script-shot-panel">
+                    <div class="script-panel-head">
+                        <span>05</span>
+                        <h3>Coverage Shotlist</h3>
+                        <div class="script-shot-controls">
+                            <label>Shots <input type="number" id="script-target-shots" min="1" max="120" placeholder="auto"></label>
+                            <button class="btn" id="generate-shots-btn" onclick="generateShotList()">Generate Coverage Shotlist</button>
+                        </div>
+                    </div>
+                    <div id="shot-list-container" class="script-shot-list-wrap">
+                        <div id="shot-list-placeholder" class="script-empty-shot">
+                            <p>Generate a script package, then convert it into coverage.</p>
+                        </div>
+                        <div id="shot-list" class="script-shot-list" style="display:none;"></div>
+                    </div>
+                </section>
+
+                <section class="script-panel script-chat-panel">
+                    <div class="script-chat-header">
+                        <span>Hermes Notes</span>
+                        <span id="script-chat-status">Ready</span>
+                    </div>
+                    <div id="script-chat-log" class="script-chat-log"></div>
+                    <div class="script-chat-input-row">
+                        <input type="text" id="script-chat-input" placeholder="Ask for a targeted revision note..." onkeydown="if(event.key==='Enter')sendScriptChat()">
+                        <button class="btn" id="script-chat-send-btn" onclick="sendScriptChat()">Send</button>
+                    </div>
+                </section>
             </div>
-            <div id="shot-list" style="display:none;flex-direction:column;gap:12px;"></div>
-        </div>
         </div>  <!-- /#script-view -->
 
         <!-- Products View -->
@@ -2534,10 +3372,94 @@ cinematic production floor</textarea>
         <!-- Identity View -->
         <div id="identity-view" class="page-view identity-view" style="padding:20px;overflow:auto;">
             <div class="spark-header">
-                <h2>Identity Pack</h2>
+                <h2>Characters</h2>
                 <div style="display:flex;gap:8px;">
+                    <button class="btn btn-secondary" onclick="loadCharacterManager()">Refresh Characters</button>
                     <button class="btn btn-secondary" onclick="loadIdentityTab()">Refresh</button>
                     <button class="btn" onclick="saveCampaignIdentity()">Save Identity Pack</button>
+                </div>
+            </div>
+            <div class="spark-toolbar character-library">
+                <div class="character-forge-grid">
+                    <section class="character-forge-panel">
+                        <h3>New Character</h3>
+                        <div class="character-forge-row">
+                            <div class="toolbar-group">
+                                <label>Name</label>
+                                <input id="char-forge-name" type="text" placeholder="Sienna Vale">
+                            </div>
+                            <div class="toolbar-group">
+                                <label>Role / Archetype</label>
+                                <input id="char-forge-role" type="text" placeholder="nomad pilot, antagonist, mascot">
+                            </div>
+                        </div>
+                        <div class="toolbar-group">
+                            <label>Base Character Prompt</label>
+                            <textarea id="char-forge-base-prompt" class="prompt-large" placeholder="Full character identity: face, hair, build, wardrobe, palette, signature details, camera style, quality terms."></textarea>
+                        </div>
+                        <div class="character-forge-row">
+                            <div class="toolbar-group">
+                                <label>Workflow</label>
+                                <select id="char-forge-workflow">
+                                    <option value="01_flux2_text_to_image">FLUX2 Text to Image</option>
+                                    <option value="08_flux2_klein_9b_text_to_image">FLUX2 Klein 9B</option>
+                                </select>
+                            </div>
+                            <div class="toolbar-group">
+                                <label>Seed</label>
+                                <input id="char-forge-seed" type="number" placeholder="random">
+                            </div>
+                        </div>
+                        <div class="character-action-bar">
+                            <button class="btn btn-secondary" type="button" onclick="composeCharacterPrompts()">Compose Sheet + Variations</button>
+                            <button class="btn" type="button" onclick="createCharacterFromManager(event)">Save Metadata</button>
+                            <button class="btn" type="button" onclick="renderCharacterOnSpark('character')">Generate Character on Spark</button>
+                        </div>
+                        <div id="character-manager-status" class="character-manager-status">Spark is optional until you click a generate button.</div>
+                    </section>
+                    <section class="character-forge-panel">
+                        <h3>Sheet + Variation Prompts</h3>
+                        <div class="character-forge-row">
+                            <div class="toolbar-group">
+                                <label>Locations</label>
+                                <input id="char-forge-locations" type="text" value="studio gray sweep, desert highway, neon market, rain-soaked alley">
+                            </div>
+                            <div class="toolbar-group">
+                                <label>Clothes</label>
+                                <input id="char-forge-clothes" type="text" value="hero outfit, travel coat, formal variant, tactical utility layer">
+                            </div>
+                        </div>
+                        <div class="toolbar-group">
+                            <label>Angles / Framing</label>
+                            <input id="char-forge-angles" type="text" value="front, 3/4 left, 3/4 right, profile, rear, full body, portrait close-up, hands detail">
+                        </div>
+                        <div class="toolbar-group">
+                            <label>Multi-Angle Character Sheet Prompt</label>
+                            <textarea id="char-forge-sheet-prompt" placeholder="Click Compose Sheet + Variations or write your own sheet prompt."></textarea>
+                        </div>
+                        <div class="toolbar-group">
+                            <label>Multi-Location / Outfit Variation Prompt</label>
+                            <textarea id="char-forge-variation-prompt" placeholder="Click Compose Sheet + Variations or write your own variation prompt."></textarea>
+                        </div>
+                        <div class="character-action-bar">
+                            <button class="btn" type="button" onclick="renderCharacterOnSpark('sheet')">Generate Character Sheet on Spark</button>
+                            <button class="btn" type="button" onclick="renderCharacterOnSpark('variation')">Generate Variation Set on Spark</button>
+                        </div>
+                    </section>
+                </div>
+                <div class="character-roster-wrap">
+                    <section>
+                        <div class="character-manager-status">Character Roster</div>
+                        <div id="character-manager-content" class="character-grid">
+                            <div class="character-manager-status">Loading characters...</div>
+                        </div>
+                    </section>
+                    <section>
+                        <div class="character-manager-status">Latest Spark Results</div>
+                        <div id="character-render-gallery" class="character-render-gallery">
+                            <div class="character-manager-status">No generated images in this session.</div>
+                        </div>
+                    </section>
                 </div>
             </div>
             <div class="spark-toolbar" style="margin-bottom:16px;">
@@ -2696,7 +3618,7 @@ cinematic production floor</textarea>
           <label>Views</label>
           <div class="memory-chip-row">
             <label class="memory-chip"><input id="mem-view-heat" type="checkbox" />Heat</label>
-            <label class="memory-chip"><input id="mem-view-lanes" type="checkbox" checked />Lanes</label>
+            <label class="memory-chip"><input id="mem-view-lanes" type="checkbox" />Lanes</label>
           </div>
         </div>
         <div class="memory-control-group" style="grid-column:1 / -1;">

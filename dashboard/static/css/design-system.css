@@ -22,6 +22,9 @@
   --text-2:        #9A9AA0;
   --text-3:        #6A6A70;
   --text-disabled: #48484C;
+  --text-primary:  var(--text);
+  --text-secondary: var(--text-2);
+  --text-dim:      var(--text-3);
 
   /* Accents — restricted */
   --accent:        #0A84FF;        /* electric blue */
@@ -29,6 +32,15 @@
   --accent-line:   rgba(10,132,255,0.40);
   --error:         #FF453A;
   --error-soft:    rgba(255,69,58,0.14);
+  --cyan:          var(--accent);
+  --magenta:       #FF2D55;
+  --amber:         #FF9F0A;
+  --green:         #30D158;
+  --purple:        #BF5AF2;
+  --red:           var(--error);
+  --bg-primary:    var(--bg-app);
+  --bg-card:       var(--bg-panel);
+  --bg:            var(--bg-app);
 
   /* Process glow — only used during active renders */
   --process-glow:  0 0 0 1px rgba(10,132,255,0.55), 0 0 18px rgba(10,132,255,0.25);

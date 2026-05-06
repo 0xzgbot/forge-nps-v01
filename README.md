@@ -19,6 +19,8 @@
   ·
   <a href="INSTALLATION_AGENT_GUIDE.md"><strong>Install Guide</strong></a>
   ·
+  <a href="docs/GEMMA4_MTP_VLLM.md"><strong>Gemma 4 MTP / vLLM</strong></a>
+  ·
   <a href="PIPELINE_CONTRACT_SUMMARY.md"><strong>Pipeline Contract</strong></a>
 </p>
 
@@ -167,6 +169,7 @@ http://localhost:7000
 | Dashboard | `http://localhost:7000` |
 | Kimi / NVIDIA-compatible API | `https://integrate.api.nvidia.com/v1/chat/completions` |
 | LM Studio | `http://localhost:1234` |
+| vLLM local/remote | `http://localhost:8000/v1` |
 | ComfyUI / Spark | `http://localhost:8188` |
 | Media root | `/Users/zgbot/Desktop/FORGE_NPS_MEDIA` |
 
@@ -182,6 +185,12 @@ LMSTUDIO_HOST=http://localhost:1234
 LMSTUDIO_PORT=1234
 LMSTUDIO_CHAT_MODEL=qwen3.6-35b-a3b@q6_k
 LMSTUDIO_VISION_MODEL=qwen3.6-35b-a3b@q6_k
+
+# Optional local/remote vLLM profile endpoint, including Gemma 4 MTP presets.
+FORGE_PROFILE_PROVIDER=custom
+FORGE_PROFILE_MODEL=gemma4-31b-mtp
+FORGE_PROFILE_BASE_URL=http://localhost:8000/v1
+OPENAI_API_KEY=not-needed
 
 COMFYUI_PRIMARY=http://localhost:8188
 FORGE_MEDIA_ROOT=/Users/zgbot/Desktop/FORGE_NPS_MEDIA

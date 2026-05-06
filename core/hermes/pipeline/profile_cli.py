@@ -2,6 +2,7 @@ import asyncio
 import json
 import os
 from typing import Any, Dict, Optional
+from urllib.parse import urlsplit, urlunsplit
 
 import httpx
 
@@ -66,6 +67,33 @@ class HermesProfileCLI:
                 return None
         return parsed if isinstance(parsed, dict) else None
 
+    @staticmethod
+    def _normalize_openai_base_url(raw: str, *, default_port: str = "") -> str:
+        value = (raw or "").strip().rstrip("/")
+        if not value:
+            return ""
+        if not value.startswith(("http://", "https://")):
+            value = "http://" + value
+
+        parts = urlsplit(value)
+        path = parts.path.rstrip("/")
+        if path.endswith("/chat/completions"):
+            path = path[: -len("/chat/completions")].rstrip("/")
+        if path.endswith("/v1"):
+            path = path.rstrip("/")
+        else:
+            path = f"{path}/v1" if path else "/v1"
+
+        netloc = parts.netloc
+        try:
+            has_port = parts.port is not None
+        except ValueError:
+            has_port = ":" in netloc.rsplit("@", 1)[-1]
+        if default_port and not has_port:
+            netloc = f"{netloc}:{default_port}"
+
+        return urlunsplit((parts.scheme, netloc, path, "", ""))
+
     def _runtime_args_and_env(self) -> tuple[list[str], Dict[str, str], Dict[str, str]]:
         cfg = get_raw_config()
         provider = os.getenv("FORGE_PROFILE_PROVIDER", "custom").strip() or "custom"
@@ -74,21 +102,20 @@ class HermesProfileCLI:
             or os.getenv("LMSTUDIO_CHAT_MODEL", "")
             or str(cfg.get("LMSTUDIO_CHAT_MODEL", ""))
         ).strip()
-        base_url = (
-            os.getenv("FORGE_PROFILE_BASE_URL", "")
-            or os.getenv("OPENAI_BASE_URL", "")
-            or str(cfg.get("LMSTUDIO_HOST", ""))
-            or str(cfg.get("KIMI_VISUAL_ENDPOINT_API1", ""))
-        ).strip()
-
-        if base_url:
-            base_url = base_url.rstrip("/")
-            if base_url.endswith("/chat/completions"):
-                base_url = base_url[: -len("/chat/completions")]
-            if not base_url.endswith("/v1"):
-                if ":1234" not in base_url:
-                    base_url = f"{base_url}:1234"
-                base_url = f"{base_url}/v1"
+        base_candidates = [
+            ("FORGE_PROFILE_BASE_URL", os.getenv("FORGE_PROFILE_BASE_URL", "")),
+            ("OPENAI_BASE_URL", os.getenv("OPENAI_BASE_URL", "")),
+            ("LMSTUDIO_HOST", str(cfg.get("LMSTUDIO_HOST", ""))),
+            ("KIMI_VISUAL_ENDPOINT_API1", str(cfg.get("KIMI_VISUAL_ENDPOINT_API1", ""))),
+        ]
+        base_source, raw_base_url = next(
+            ((source, value) for source, value in base_candidates if str(value or "").strip()),
+            ("", ""),
+        )
+        default_port = ""
+        if base_source == "LMSTUDIO_HOST":
+            default_port = str(cfg.get("LMSTUDIO_PORT", "") or os.getenv("LMSTUDIO_PORT", "1234") or "").strip()
+        base_url = self._normalize_openai_base_url(str(raw_base_url), default_port=default_port)
 
         args: list[str] = []
         if provider:
@@ -105,6 +132,7 @@ class HermesProfileCLI:
             "provider": provider,
             "model": model,
             "base_url": base_url,
+            "base_source": base_source,
         }
         return args, env, debug
 
