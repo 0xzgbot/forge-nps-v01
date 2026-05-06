@@ -61,7 +61,6 @@ const $scriptChatStatus = document.getElementById("script-chat-status");
 const $scriptChatLog = document.getElementById("script-chat-log");
 const $scriptChatSendBtn = document.getElementById("script-chat-send-btn");
 const $briefInput = document.getElementById("brief-input");
-const $biblePath = document.getElementById("bible-path");
 const $runBtn = document.getElementById("run-campaign-btn");
 const $campaignStatusBox = document.getElementById("campaign-status-box");
 const $charList = document.getElementById("char-list");
@@ -112,6 +111,7 @@ window.addEventListener("DOMContentLoaded", () => {
     if (csk) campaignSort.key = csk.value || "name";
     if (csr) campaignSort.reverse = !!csr.checked;
     mediaSort = { key: "time", reverse: true };
+    initModelControls();
     syncInlineMediaSortControls();
     initMediaThumbSizeControl();
     initDashboardResizer();
@@ -124,6 +124,30 @@ window.addEventListener("DOMContentLoaded", () => {
 });
 
 function id(s) { return document.getElementById(s); }
+
+function initModelControls() {
+    const flux2El = document.getElementById("model-flux2");
+    const turboEl = document.getElementById("model-turbo");
+    if (flux2El) flux2El.addEventListener("change", syncTurboModelControl);
+    if (turboEl) turboEl.addEventListener("change", syncTurboModelControl);
+    syncTurboModelControl();
+}
+
+function syncTurboModelControl() {
+    const flux2El = document.getElementById("model-flux2");
+    const turboEl = document.getElementById("model-turbo");
+    if (!flux2El || !turboEl) return;
+
+    const enabled = !!flux2El.checked;
+    if (!enabled) turboEl.checked = false;
+    turboEl.disabled = !enabled;
+
+    const label = turboEl.closest(".model-checkbox");
+    if (label) {
+        label.classList.toggle("disabled", !enabled);
+        label.title = enabled ? "Use Flux2.Dev turbo mode" : "Enable Flux2.Dev to use Turbo";
+    }
+}
 
 function clampMediaThumbSize(value) {
     const parsed = parseInt(value, 10);
@@ -263,7 +287,7 @@ function renderIdentityAssets(assets) {
         txt.textContent = " " + a.asset_id;
         const role = document.createElement("select");
         role.style.marginLeft = "6px";
-        role.innerHTML = '<option value="anchor">anchor</option><option value="sheet">sheet</option><option value="detail">detail</option>';
+        role.innerHTML = '<option value="anchor">character</option><option value="sheet">sheet</option><option value="detail">detail</option>';
         role.value = a.role || "anchor";
         role.addEventListener("change", () => updateIdentityAsset(a.asset_id, { role: role.value }));
         const up = document.createElement("button");
@@ -400,7 +424,7 @@ async function autoSelectIdentityAnchors() {
         const data = await resp.json();
         if (!resp.ok) throw new Error(data.detail || "auto-select failed");
         await loadIdentityAssets(cid);
-        addLogEntry("hermes", "Auto-selected " + (data.selected || 0) + " anchor assets.");
+        addLogEntry("hermes", "Auto-selected " + (data.selected || 0) + " character assets.");
     } catch (e) {
         addLogEntry("error", "Auto-select failed: " + e.message);
     }
@@ -486,7 +510,7 @@ function updateIdentityPreview() {
         pack.type ? ("identity lock " + pack.type + ": " + (pack.name || "unnamed")) : "",
         pack.identity_tokens.length ? ("traits: " + pack.identity_tokens.join(", ")) : "",
         pack.negative_tokens.length ? ("drift negatives: " + pack.negative_tokens.join(", ")) : "",
-        pack.anchor_image_ids.length ? ("anchors: " + pack.anchor_image_ids.length) : "",
+        pack.anchor_image_ids.length ? ("characters: " + pack.anchor_image_ids.length) : "",
     ].filter(Boolean).join(" | ");
     el.title = preview;
     if (out) out.value = preview;
@@ -735,9 +759,6 @@ function switchPage(pageClass) {
 
     // Load config when switching to settings
     if (pageClass === "settings-view") {
-        loadConfig();
-    }
-    if (pageClass === "models-view") {
         loadConfig();
     }
     if (pageClass === "spark-view") {
@@ -1906,11 +1927,10 @@ async function runCampaign() {
         return;
     }
 
-    const biblePath = $biblePath ? $biblePath.value.trim() : "";
     const length = $lengthSelect ? $lengthSelect.value : "";
     const klein = document.getElementById("model-klein")?.checked;
     const flux2 = document.getElementById("model-flux2")?.checked;
-    const turbo = document.getElementById("model-turbo")?.checked;
+    const turbo = flux2 && !!document.getElementById("model-turbo")?.checked;
     const appendToCampaign = !!document.getElementById("append-campaign")?.checked;
     const selectedCampaignId = (document.getElementById("filter-campaign-id")?.value || "").trim();
     const workflowMap = {
@@ -1923,13 +1943,7 @@ async function runCampaign() {
     const workflow_ids = [];
     if (klein) workflow_ids.push(workflowMap.klein);
     if (flux2) workflow_ids.push(turbo ? workflowMap.flux2.turbo : workflowMap.flux2.standard);
-    if (turbo) {
-        if (flux2) {
-            addLogEntry("system", "Turbo mode enabled for Flux2.Dev.");
-        } else {
-            addLogEntry("system", "Turbo is only applied to Flux2.Dev.");
-        }
-    }
+    if (turbo) addLogEntry("system", "Turbo mode enabled for Flux2.Dev.");
     // De-dupe in case multiple toggles currently map to the same numbered workflow.
     const dedupedWorkflows = [...new Set(workflow_ids)];
     if (!dedupedWorkflows.length) {
@@ -1958,7 +1972,7 @@ async function runCampaign() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 brief: brief,
-                bible_path: biblePath,
+                bible_path: "",
                 length: length,
                 workflow_ids: dedupedWorkflows,
                 identity_pack: identity_pack,
@@ -2325,7 +2339,7 @@ async function loadCharacters() {
         const chars = data.characters || [];
 
         if (!chars.length) {
-            $charList.innerHTML = '<div style="color:#666; font-size:12px;">No anchors yet</div>';
+            $charList.innerHTML = '<div style="color:#666; font-size:12px;">No characters yet</div>';
             return;
         }
 

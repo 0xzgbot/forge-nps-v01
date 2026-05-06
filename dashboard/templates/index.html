@@ -122,7 +122,8 @@
             gap: 10px;
         }
         #brief-panel label {
-            font-size: 11px;
+            font-size: 13px;
+            font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.08em;
             color: #6C7278;
@@ -141,6 +142,12 @@
         }
         #brief-input:focus { outline: none; border-color: #3D5AFE; }
         #brief-actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+        .model-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            transform: translateY(13px);
+        }
         #campaign-status-box {
             display: grid;
             grid-template-columns: minmax(120px, auto) 1fr auto;
@@ -191,7 +198,13 @@
             user-select: none; transition: border-color 0.15s, color 0.15s;
         }
         .model-checkbox:has(input:checked) { border-color: #3D5AFE; color: #fff; }
+        .model-checkbox.disabled,
+        .model-checkbox:has(input:disabled) {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
         .model-checkbox input[type="checkbox"] { accent-color: #3D5AFE; cursor: pointer; }
+        .model-checkbox input[type="checkbox"]:disabled { cursor: not-allowed; }
         .length-selector {
             background: #222;
             border: 1px solid #444;
@@ -202,17 +215,6 @@
             width: 90px;
         }
         .length-selector:focus { outline: none; border-color: #3D5AFE; }
-        #bible-path {
-            background: #222;
-            border: 1px solid #444;
-            border-radius: 4px;
-            color: #E0E0E0;
-            padding: 8px 10px;
-            font-size: 12px;
-            flex: 1;
-            max-width: 300px;
-        }
-
         /* Dashboard & Video split panes */
         .dashboard-workspace, .video-workspace {
             flex: 1;
@@ -1725,6 +1727,17 @@
             border-color: var(--ember) !important;
             box-shadow: 0 0 0 3px rgba(255, 106, 42, 0.1), 0 0 22px rgba(255, 106, 42, 0.14) !important;
         }
+        #brief-input {
+            min-height: 132px !important;
+            background: #13243a !important;
+            border-color: rgba(74, 117, 166, 0.72) !important;
+            color: #eef6ff !important;
+            box-shadow: inset 0 0 22px rgba(10, 132, 255, 0.08), 0 0 0 1px rgba(10, 132, 255, 0.04) !important;
+        }
+        #brief-input:focus {
+            border-color: #4f8dd6 !important;
+            box-shadow: 0 0 0 3px rgba(79, 141, 214, 0.16), inset 0 0 24px rgba(10, 132, 255, 0.1) !important;
+        }
         input[type="range"] {
             accent-color: var(--ember);
             box-shadow: none !important;
@@ -1988,7 +2001,6 @@
             <div class="nav-tab" data-page="products-view" onclick="switchPage('products-view')">Products</div>
             <div class="nav-tab" data-page="spark-view" onclick="switchPage('spark-view')">Renders</div>
             <div class="nav-tab" data-page="memory-view" onclick="switchPage('memory-view'); loadMemoryTab()">Memory</div>
-            <div class="nav-tab" data-page="models-view" onclick="switchPage('models-view')">Models</div>
             <div class="nav-tab" data-page="settings-view" onclick="switchPage('settings-view')">Settings</div>
         </div>
 
@@ -2000,7 +2012,7 @@
         </div>
 
         <div class="sidebar-section">
-            <h3>Anchors</h3>
+            <h3>Characters</h3>
             <div id="char-list"><div style="color:#666; font-size:12px;">Loading...</div></div>
         </div>
 
@@ -2035,14 +2047,14 @@
             <textarea id="brief-input" placeholder="Describe your cinematic vision... (e.g. A lone astronaut discovers a glowing garden on an alien moon, bathed in twin-sunset light)"></textarea>
             <div id="brief-actions">
                 <button class="btn" id="run-campaign-btn" onclick="runCampaign()">Generate Images</button>
-                <button class="btn btn-secondary" onclick="reprocessSelectedFromDashboard()">Re-Audit Selected</button>
                 <input type="text" id="dashboard-selected-count" value="0 selected" readonly style="width:120px;background:#222;border:1px solid #444;border-radius:4px;color:#ccc;padding:8px 10px;font-size:12px;">
                 <label class="model-checkbox"><input type="checkbox" id="append-campaign" checked> Append To Selected Campaign</label>
                 <button class="btn btn-cancel" id="cancel-campaign-btn" onclick="cancelCampaign()" style="display:none;">✕ Cancel</button>
-                <label class="model-checkbox"><input type="checkbox" id="model-flux2" checked> Flux2.Dev</label>
+                <div class="model-stack">
+                    <label class="model-checkbox"><input type="checkbox" id="model-flux2" checked> Flux2.Dev</label>
+                    <label class="model-checkbox" title="Requires Flux2.Dev"><input type="checkbox" id="model-turbo"> Turbo</label>
+                </div>
                 <label class="model-checkbox"><input type="checkbox" id="model-klein"> Flux2 Klein</label>
-                <label class="model-checkbox"><input type="checkbox" id="model-turbo"> Turbo</label>
-                <input type="text" id="bible-path" placeholder="Optional: /path/to/world_bible.md">
                 <input type="text" id="filter-campaign-id" placeholder="Campaign ID" style="width:130px;background:#222;border:1px solid #444;border-radius:4px;color:#ccc;padding:8px 10px;font-size:12px;">
             </div>
             <div id="campaign-status-box">
@@ -2263,83 +2275,6 @@ cinematic production floor</textarea>
         </div>
         </div>  <!-- /#settings-view -->
 
-        <!-- Models View -->
-        <div id="models-view" class="page-view models-view">
-            <div class="settings-header">
-                <h2>Models</h2>
-                <div class="backend-toggle-inline">
-                    <span class="backend-label">LOCAL</span>
-                    <span class="model-checkbox" style="padding:8px 14px;">Hermes planning locked to pipeline contracts</span>
-                    <span class="backend-label">API</span>
-                </div>
-                <button class="btn" onclick="switchPage('settings-view'); loadConfig()">Edit Config</button>
-            </div>
-            <div class="studio-scroll">
-                <div class="studio-grid">
-                    <div class="studio-card col-6">
-                        <h3>Hermes Brain</h3>
-                        <p>Hermes remains the pipeline coordinator. Use this panel to inspect the intended routing and jump to the editable config without introducing hidden fallbacks.</p>
-                        <div class="metric-line"><span>Planning</span><strong>Kimi max capability</strong></div>
-                        <div class="metric-line"><span>Critique</span><strong>Kimi semantic audit</strong></div>
-                        <div class="metric-line"><span>Execution</span><strong>Spark / ComfyUI</strong></div>
-                        <div class="bar-track"><span class="bar-fill" style="width:92%;"></span></div>
-                        <div class="studio-actions">
-                            <button class="btn btn-secondary" onclick="testDirector()">Test Director</button>
-                            <button class="btn btn-secondary" onclick="testVision()">Test Vision</button>
-                            <button class="btn" onclick="reloadHermesVision()">Reload Hermes/Vision</button>
-                        </div>
-                    </div>
-                    <div class="studio-card magenta col-6">
-                        <h3>Provider Matrix</h3>
-                        <div class="control-grid">
-                            <div class="control-field">
-                                <label>Director Tier</label>
-                                <select>
-                                    <option>Kimi / Hermes 4 planning</option>
-                                    <option>Nous API compatible</option>
-                                    <option>NVIDIA endpoint</option>
-                                </select>
-                            </div>
-                            <div class="control-field">
-                                <label>Critique Depth</label>
-                                <input type="range" min="1" max="10" value="10">
-                            </div>
-                            <div class="control-field">
-                                <label>Production Fallbacks</label>
-                                <label class="model-checkbox"><input type="checkbox" checked disabled> Disabled in production</label>
-                            </div>
-                            <div class="control-field">
-                                <label>Local Chat</label>
-                                <button class="btn btn-secondary" onclick="testLMStudio()">Test LM Studio</button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="studio-card amber col-4">
-                        <h3>LM Studio</h3>
-                        <div class="metric-line"><span>Status</span><strong id="models-local-status">Ready to test</strong></div>
-                        <div class="studio-actions">
-                            <button class="btn btn-secondary" onclick="testLMStudio()">Detect Models</button>
-                            <button class="btn btn-secondary" onclick="loadLMStudioModel()">Load Model</button>
-                        </div>
-                    </div>
-                    <div class="studio-card col-4">
-                        <h3>Kimi / API</h3>
-                        <div class="metric-line"><span>Endpoint</span><strong>OpenAI-compatible</strong></div>
-                        <div class="studio-actions">
-                            <button class="btn btn-secondary" onclick="testProvider()">Test API</button>
-                        </div>
-                    </div>
-                    <div class="studio-card magenta col-4">
-                        <h3>NIM / Vision</h3>
-                        <div class="metric-line"><span>Visual Audit</span><strong>Explicit route</strong></div>
-                        <div class="studio-actions">
-                            <button class="btn btn-secondary" onclick="testVision()">Test Vision</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>  <!-- /#models-view -->
-
         <!-- Script View (Director) -->
         <div id="script-view" class="page-view script-view">
         <div class="spark-header">
@@ -2410,8 +2345,8 @@ cinematic production floor</textarea>
             <div class="studio-scroll">
                 <div class="studio-grid">
                     <div class="studio-card col-5">
-                        <h3>Product Anchor</h3>
-                        <div style="aspect-ratio:1/1;border:1px solid var(--border);border-radius:var(--r-md);background:radial-gradient(circle at 50% 35%, rgba(255,106,42,0.16), transparent 28%), linear-gradient(135deg, rgba(110,168,254,0.06), rgba(214,168,79,0.08));display:grid;place-items:center;color:var(--amber);letter-spacing:.18em;text-transform:uppercase;">Anchor Preview</div>
+                        <h3>Product Character</h3>
+                        <div style="aspect-ratio:1/1;border:1px solid var(--border);border-radius:var(--r-md);background:radial-gradient(circle at 50% 35%, rgba(255,106,42,0.16), transparent 28%), linear-gradient(135deg, rgba(110,168,254,0.06), rgba(214,168,79,0.08));display:grid;place-items:center;color:var(--amber);letter-spacing:.18em;text-transform:uppercase;">Character Preview</div>
                     </div>
                     <div class="studio-card magenta col-7">
                         <h3>Product Description Editor</h3>
@@ -2493,7 +2428,6 @@ cinematic production floor</textarea>
         <div class="spark-header">
             <h2>Video Processing Studio</h2>
             <div style="display:flex;gap:8px;">
-                <button class="btn btn-secondary" onclick="reprocessSelectedFromVideo()">Re-Audit Selected</button>
                 <button class="btn btn-secondary" onclick="remediateFailedSelected()">Re-Render Failed</button>
                 <button class="btn btn-secondary" onclick="clearVideoSelection()">Clear Selection</button>
                 <button class="btn btn-secondary" onclick="refreshPhotos()">Refresh Photos</button>
@@ -2637,7 +2571,7 @@ cinematic production floor</textarea>
                 </div>
                 <div class="toolbar-row">
                     <div class="toolbar-group" style="flex:1;">
-                        <label>Anchor IDs (auto from active assets)</label>
+                        <label>Character IDs (auto from active assets)</label>
                         <input id="identity-anchors" type="text" readonly placeholder="asset ids populated from active assets">
                     </div>
                 </div>
@@ -2677,7 +2611,7 @@ cinematic production floor</textarea>
                     <div class="toolbar-group" style="min-width:200px;">
                         <label>Asset Role</label>
                         <select id="identity-upload-role">
-                            <option value="anchor">Anchor</option>
+                            <option value="anchor">Character</option>
                             <option value="sheet">Sheet</option>
                             <option value="detail">Detail</option>
                         </select>
@@ -2687,14 +2621,14 @@ cinematic production floor</textarea>
                         <input id="identity-upload-input" type="file" accept=".png,.jpg,.jpeg,.webp" onchange="uploadIdentityAsset()">
                     </div>
                     <div class="toolbar-group" style="display:flex;align-items:flex-end;">
-                        <button class="btn btn-secondary" onclick="autoSelectIdentityAnchors()">Auto Select Best Anchors</button>
+                        <button class="btn btn-secondary" onclick="autoSelectIdentityAnchors()">Auto Select Best Characters</button>
                     </div>
                 </div>
                 <div class="toolbar-row">
                     <div class="toolbar-group" style="min-width:220px;">
                         <label>Bulk Role</label>
                         <select id="identity-bulk-role">
-                            <option value="anchor">Anchor</option>
+                            <option value="anchor">Character</option>
                             <option value="sheet">Sheet</option>
                             <option value="detail">Detail</option>
                         </select>
