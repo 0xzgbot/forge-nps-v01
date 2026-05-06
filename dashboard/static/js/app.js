@@ -2332,26 +2332,252 @@ async function sendScriptChat() {
 // ---------------------------------------------------------------------------
 // Characters
 // ---------------------------------------------------------------------------
+let characterManagerCache = [];
+
+function normalizeCharacters(payload) {
+    if (Array.isArray(payload)) return payload;
+    if (Array.isArray(payload?.characters)) return payload.characters;
+    return [];
+}
+
+function characterName(char) {
+    return String(char?.name || char?.id || "Unnamed").trim();
+}
+
+function characterId(char) {
+    return String(char?.id || characterName(char)).trim().toLowerCase().replace(/\s+/g, "_");
+}
+
+function characterImage(char) {
+    return char?.anchor_url || char?.anchor_src || "";
+}
+
 async function loadCharacters() {
+    const charList = document.getElementById("char-list");
+    if (!charList) return;
     try {
         const resp = await fetch("/api/characters");
         const data = await resp.json();
-        const chars = data.characters || [];
+        const chars = normalizeCharacters(data);
 
         if (!chars.length) {
-            $charList.innerHTML = '<div style="color:#666; font-size:12px;">No characters yet</div>';
+            charList.innerHTML = '<div style="color:#666; font-size:12px;">No characters yet</div>';
             return;
         }
 
-        $charList.innerHTML = chars.map(c =>
+        charList.innerHTML = chars.map(c => {
+            const img = characterImage(c);
+            return (
             '<div class="char-card">' +
-            '<img src="' + c.anchor_src + '" alt="' + escapeHtml(c.name) + '">' +
-            '<span class="char-name">' + escapeHtml(c.name) + "</span>" +
+            (img ? '<img src="' + escapeHtml(img) + '" alt="' + escapeHtml(characterName(c)) + '">' : '<div class="char-card-fallback"></div>') +
+            '<span class="char-name">' + escapeHtml(characterName(c)) + "</span>" +
             "</div>"
-        ).join("");
+            );
+        }).join("");
     } catch (e) {
-        $charList.innerHTML = '<div style="color:#666; font-size:12px;">Failed to load</div>';
+        charList.innerHTML = '<div style="color:#666; font-size:12px;">Failed to load</div>';
     }
+}
+
+async function loadCharacterManager() {
+    const grid = document.getElementById("character-manager-content");
+    const status = document.getElementById("character-manager-status");
+    if (!grid) return;
+    grid.innerHTML = '<div class="character-manager-status">Loading characters...</div>';
+    try {
+        const resp = await fetch("/api/characters");
+        const payload = await resp.json();
+        if (!resp.ok) throw new Error(payload.detail || payload.error || "HTTP " + resp.status);
+        const chars = normalizeCharacters(payload);
+        characterManagerCache = chars;
+        if (status) status.textContent = String(chars.length) + " character" + (chars.length === 1 ? "" : "s");
+        if (!chars.length) {
+            grid.innerHTML = '<div class="character-manager-status">No characters yet.</div>';
+            return;
+        }
+        grid.innerHTML = chars.map((char) => {
+            const id = characterId(char);
+            const name = characterName(char);
+            const img = characterImage(char);
+            const dna = char?.dna && typeof char.dna === "object" ? Object.keys(char.dna).length : 0;
+            const avatar = img
+                ? '<img src="' + escapeHtml(img) + '" alt="' + escapeHtml(name) + '" loading="lazy">'
+                : '<div class="character-avatar-fallback">' + escapeHtml(name.slice(0, 1).toUpperCase()) + '</div>';
+            return (
+                '<article class="character-card-live">' +
+                    avatar +
+                    '<div>' +
+                        '<h3>' + escapeHtml(name) + '</h3>' +
+                        '<div class="role">' + escapeHtml(char.role || char.description || "Character") + '</div>' +
+                        '<div class="meta"><span>ID ' + escapeHtml(id) + '</span><span>DNA ' + dna + '</span><button class="btn btn-secondary" type="button" onclick="selectCharacterForForge(\'' + escapeHtml(id) + '\')">Use</button><a href="/api/characters/' + encodeURIComponent(id) + '/export" target="_blank" rel="noreferrer">Export</a></div>' +
+                    '</div>' +
+                '</article>'
+            );
+        }).join("");
+    } catch (e) {
+        if (status) status.textContent = "Character load failed";
+        grid.innerHTML = '<div class="character-manager-status">Character API unavailable: ' + escapeHtml(e?.message || e) + '</div>';
+    }
+}
+
+async function createCharacterFromManager(event) {
+    if (event && event.preventDefault) event.preventDefault();
+    const status = document.getElementById("character-manager-status");
+    const name = (document.getElementById("char-forge-name")?.value || "").trim();
+    const description = (document.getElementById("char-forge-role")?.value || "").trim();
+    if (!name) {
+        if (status) status.textContent = "Name is required.";
+        return;
+    }
+    if (status) status.textContent = "Creating...";
+    try {
+        const data = new FormData();
+        data.append("name", name);
+        data.append("description", description);
+        const resp = await fetch("/api/characters", { method: "POST", body: data });
+        const payload = await resp.json().catch(() => ({}));
+        if (!resp.ok && resp.status !== 409) throw new Error(payload.detail || payload.error || "HTTP " + resp.status);
+        if (status) status.textContent = resp.status === 409 ? "Character already exists; metadata kept." : "Character metadata saved.";
+        await loadCharacters();
+        await loadCharacterManager();
+    } catch (e) {
+        if (status) status.textContent = "Create failed: " + (e?.message || e);
+    }
+}
+
+function characterForgeValue(id) {
+    return (document.getElementById(id)?.value || "").trim();
+}
+
+function getCharacterForgeSeed() {
+    const raw = characterForgeValue("char-forge-seed");
+    if (!raw) return null;
+    const parsed = parseInt(raw, 10);
+    return Number.isFinite(parsed) ? parsed : null;
+}
+
+function composeCharacterPrompts() {
+    const name = characterForgeValue("char-forge-name") || "the character";
+    const role = characterForgeValue("char-forge-role");
+    const base = characterForgeValue("char-forge-base-prompt") || [
+        name,
+        role,
+        "consistent face identity, fixed hair shape, fixed eye color, fixed body proportions, signature wardrobe details, production-ready character design",
+    ].filter(Boolean).join(", ");
+    const locations = characterForgeValue("char-forge-locations") || "studio gray sweep, exterior daylight, interior practical lighting";
+    const clothes = characterForgeValue("char-forge-clothes") || "hero outfit, alternate travel outfit, formal outfit";
+    const angles = characterForgeValue("char-forge-angles") || "front, 3/4 left, 3/4 right, profile, rear";
+
+    const sheetPrompt = [
+        "multi-angle character model sheet for " + name,
+        role ? "role: " + role : "",
+        base,
+        "single consistent character identity across every panel",
+        "clean orthographic lineup, " + angles,
+        "neutral gray background, even studio lighting, full body plus portrait close-up, hands and footwear detail callouts",
+        "no text labels, no duplicate characters, no identity drift, no costume redesign between angles",
+    ].filter(Boolean).join(", ");
+
+    const variationPrompt = [
+        "controlled character variation grid for " + name,
+        role ? "role: " + role : "",
+        base,
+        "same face, same body proportions, same signature identity markers in every image",
+        "locations: " + locations,
+        "wardrobe states: " + clothes,
+        "camera angles and framings: " + angles,
+        "cinematic but consistent lighting, production stills, no text, no logo, no identity drift",
+    ].filter(Boolean).join(", ");
+
+    const sheetEl = document.getElementById("char-forge-sheet-prompt");
+    const variationEl = document.getElementById("char-forge-variation-prompt");
+    if (sheetEl) sheetEl.value = sheetPrompt;
+    if (variationEl) variationEl.value = variationPrompt;
+    const status = document.getElementById("character-manager-status");
+    if (status) status.textContent = "Prompts composed locally. Spark not required until generation.";
+}
+
+function selectCharacterForForge(charId) {
+    const char = characterManagerCache.find((c) => characterId(c) === charId);
+    if (!char) return;
+    const nameEl = document.getElementById("char-forge-name");
+    const roleEl = document.getElementById("char-forge-role");
+    const baseEl = document.getElementById("char-forge-base-prompt");
+    if (nameEl) nameEl.value = characterName(char);
+    if (roleEl) roleEl.value = char.role || char.description || "Character";
+    if (baseEl) {
+        baseEl.value = char.anchor_prompt || [
+            characterName(char),
+            char.role || "",
+            char.dna && Object.keys(char.dna).length ? Object.entries(char.dna).map(([k, v]) => k + ": " + (Array.isArray(v) ? v.join(", ") : String(v))).join(", ") : "",
+        ].filter(Boolean).join(", ");
+    }
+    composeCharacterPrompts();
+}
+
+function promptForCharacterRender(kind) {
+    if (kind === "sheet") return characterForgeValue("char-forge-sheet-prompt");
+    if (kind === "variation") return characterForgeValue("char-forge-variation-prompt");
+    return characterForgeValue("char-forge-base-prompt");
+}
+
+async function renderCharacterOnSpark(kind) {
+    const status = document.getElementById("character-manager-status");
+    const name = characterForgeValue("char-forge-name");
+    if (!name) {
+        if (status) status.textContent = "Name is required before Spark generation.";
+        return;
+    }
+    if ((kind === "sheet" || kind === "variation") && !promptForCharacterRender(kind)) {
+        composeCharacterPrompts();
+    }
+    const prompt = promptForCharacterRender(kind);
+    if (!prompt) {
+        if (status) status.textContent = "Prompt is required before Spark generation.";
+        return;
+    }
+    if (status) status.textContent = "Sending " + kind + " prompt to Spark...";
+    try {
+        const resp = await fetch("/api/characters/spark-render", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                name,
+                role: characterForgeValue("char-forge-role"),
+                prompt,
+                render_type: kind,
+                workflow_id: characterForgeValue("char-forge-workflow") || "01_flux2_text_to_image",
+                seed: getCharacterForgeSeed(),
+                save_character: true,
+            }),
+        });
+        const payload = await resp.json().catch(() => ({}));
+        if (!resp.ok) throw new Error(payload.detail || payload.error || "HTTP " + resp.status);
+        if (status) status.textContent = "Spark complete: " + (payload.prompt_id || "render saved");
+        renderCharacterResultTiles(payload, kind);
+        await loadCharacters();
+        await loadCharacterManager();
+    } catch (e) {
+        if (status) status.textContent = "Spark generation unavailable: " + (e?.message || e);
+    }
+}
+
+function renderCharacterResultTiles(payload, kind) {
+    const gallery = document.getElementById("character-render-gallery");
+    if (!gallery) return;
+    const urls = Array.isArray(payload?.image_urls) ? payload.image_urls : [];
+    if (!urls.length) {
+        gallery.innerHTML = '<div class="character-manager-status">Spark returned no image URLs.</div>';
+        return;
+    }
+    const html = urls.map((url, i) => (
+        '<figure class="character-render-tile">' +
+            '<img src="' + escapeHtml(url) + '" alt="' + escapeHtml(kind) + ' render">' +
+            '<figcaption class="caption">' + escapeHtml(kind) + ' #' + String(i + 1) + '</figcaption>' +
+        '</figure>'
+    )).join("");
+    if (gallery.querySelector(".character-manager-status")) gallery.innerHTML = "";
+    gallery.insertAdjacentHTML("afterbegin", html);
 }
 
 // ---------------------------------------------------------------------------

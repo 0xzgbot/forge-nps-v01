@@ -1142,6 +1142,152 @@
             outline: none;
             border-color: #3D5AFE;
         }
+        .character-library { margin-bottom: 16px; }
+        .character-forge-grid {
+            display: grid;
+            grid-template-columns: minmax(320px, 0.9fr) minmax(360px, 1.1fr);
+            gap: 14px;
+            align-items: stretch;
+        }
+        .character-forge-panel {
+            background: #111;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-width: 0;
+        }
+        .character-forge-panel h3 {
+            color: #fff;
+            font-size: 13px;
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+        .character-forge-row {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+        .character-forge-panel textarea { width: 100%; min-height: 128px; }
+        .character-forge-panel textarea.prompt-large { min-height: 210px; }
+        .character-action-bar {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .character-roster-wrap {
+            margin-top: 14px;
+            display: grid;
+            grid-template-columns: minmax(280px, 0.8fr) minmax(320px, 1.2fr);
+            gap: 14px;
+            align-items: start;
+        }
+        .character-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 12px;
+        }
+        .character-card-live {
+            display: grid;
+            grid-template-columns: 72px 1fr;
+            gap: 12px;
+            background: #111;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 12px;
+            min-width: 0;
+        }
+        .character-card-live img,
+        .character-avatar-fallback {
+            width: 72px;
+            height: 72px;
+            border-radius: 6px;
+            object-fit: cover;
+            background: #222;
+            border: 1px solid #3a3a3a;
+            display: grid;
+            place-items: center;
+            color: #3D5AFE;
+            font-weight: 700;
+            font-size: 24px;
+        }
+        .character-card-live h3 {
+            font-size: 13px;
+            color: #fff;
+            margin-bottom: 4px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .character-card-live .role {
+            font-size: 12px;
+            color: #9aa0aa;
+            line-height: 1.35;
+            margin-bottom: 8px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .character-card-live .meta {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            flex-wrap: wrap;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            color: #6C7278;
+        }
+        .character-card-live .meta a { color: #9db0ff; text-decoration: none; }
+        .character-card-live .meta a:hover { color: #fff; }
+        .character-manager-status {
+            color: #6C7278;
+            font-size: 12px;
+            font-family: 'JetBrains Mono', monospace;
+            padding: 4px 0;
+        }
+        .character-render-gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 10px;
+            min-height: 160px;
+        }
+        .character-render-tile {
+            position: relative;
+            min-height: 160px;
+            border: 1px solid #333;
+            border-radius: 6px;
+            overflow: hidden;
+            background: #111;
+        }
+        .character-render-tile img {
+            width: 100%;
+            height: 100%;
+            min-height: 160px;
+            object-fit: cover;
+            display: block;
+        }
+        .character-render-tile .caption {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            padding: 5px 7px;
+            background: rgba(0,0,0,0.74);
+            color: #d8d8d8;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+        }
+        @media (max-width: 1180px) {
+            .character-forge-grid,
+            .character-roster-wrap {
+                grid-template-columns: 1fr;
+            }
+        }
         .seed-row {
             display: flex;
             gap: 8px;
@@ -1996,7 +2142,7 @@
 
         <div class="nav-tabs">
             <div class="nav-tab active" data-page="dashboard-view" onclick="switchPage('dashboard-view')">Home</div>
-            <div class="nav-tab" data-page="identity-view" onclick="switchPage('identity-view'); loadIdentityTab()">Characters</div>
+            <div class="nav-tab" data-page="identity-view" onclick="switchPage('identity-view'); loadIdentityTab(); loadCharacterManager()">Characters</div>
             <div class="nav-tab" data-page="script-view" onclick="switchPage('script-view')">Script</div>
             <div class="nav-tab" data-page="products-view" onclick="switchPage('products-view')">Products</div>
             <div class="nav-tab" data-page="spark-view" onclick="switchPage('spark-view')">Renders</div>
@@ -2534,10 +2680,94 @@ cinematic production floor</textarea>
         <!-- Identity View -->
         <div id="identity-view" class="page-view identity-view" style="padding:20px;overflow:auto;">
             <div class="spark-header">
-                <h2>Identity Pack</h2>
+                <h2>Characters</h2>
                 <div style="display:flex;gap:8px;">
+                    <button class="btn btn-secondary" onclick="loadCharacterManager()">Refresh Characters</button>
                     <button class="btn btn-secondary" onclick="loadIdentityTab()">Refresh</button>
                     <button class="btn" onclick="saveCampaignIdentity()">Save Identity Pack</button>
+                </div>
+            </div>
+            <div class="spark-toolbar character-library">
+                <div class="character-forge-grid">
+                    <section class="character-forge-panel">
+                        <h3>New Character</h3>
+                        <div class="character-forge-row">
+                            <div class="toolbar-group">
+                                <label>Name</label>
+                                <input id="char-forge-name" type="text" placeholder="Sienna Vale">
+                            </div>
+                            <div class="toolbar-group">
+                                <label>Role / Archetype</label>
+                                <input id="char-forge-role" type="text" placeholder="nomad pilot, antagonist, mascot">
+                            </div>
+                        </div>
+                        <div class="toolbar-group">
+                            <label>Base Character Prompt</label>
+                            <textarea id="char-forge-base-prompt" class="prompt-large" placeholder="Full character identity: face, hair, build, wardrobe, palette, signature details, camera style, quality terms."></textarea>
+                        </div>
+                        <div class="character-forge-row">
+                            <div class="toolbar-group">
+                                <label>Workflow</label>
+                                <select id="char-forge-workflow">
+                                    <option value="01_flux2_text_to_image">FLUX2 Text to Image</option>
+                                    <option value="08_flux2_klein_9b_text_to_image">FLUX2 Klein 9B</option>
+                                </select>
+                            </div>
+                            <div class="toolbar-group">
+                                <label>Seed</label>
+                                <input id="char-forge-seed" type="number" placeholder="random">
+                            </div>
+                        </div>
+                        <div class="character-action-bar">
+                            <button class="btn btn-secondary" type="button" onclick="composeCharacterPrompts()">Compose Sheet + Variations</button>
+                            <button class="btn" type="button" onclick="createCharacterFromManager(event)">Save Metadata</button>
+                            <button class="btn" type="button" onclick="renderCharacterOnSpark('anchor')">Generate Anchor on Spark</button>
+                        </div>
+                        <div id="character-manager-status" class="character-manager-status">Spark is optional until you click a generate button.</div>
+                    </section>
+                    <section class="character-forge-panel">
+                        <h3>Sheet + Variation Prompts</h3>
+                        <div class="character-forge-row">
+                            <div class="toolbar-group">
+                                <label>Locations</label>
+                                <input id="char-forge-locations" type="text" value="studio gray sweep, desert highway, neon market, rain-soaked alley">
+                            </div>
+                            <div class="toolbar-group">
+                                <label>Clothes</label>
+                                <input id="char-forge-clothes" type="text" value="hero outfit, travel coat, formal variant, tactical utility layer">
+                            </div>
+                        </div>
+                        <div class="toolbar-group">
+                            <label>Angles / Framing</label>
+                            <input id="char-forge-angles" type="text" value="front, 3/4 left, 3/4 right, profile, rear, full body, portrait close-up, hands detail">
+                        </div>
+                        <div class="toolbar-group">
+                            <label>Multi-Angle Character Sheet Prompt</label>
+                            <textarea id="char-forge-sheet-prompt" placeholder="Click Compose Sheet + Variations or write your own sheet prompt."></textarea>
+                        </div>
+                        <div class="toolbar-group">
+                            <label>Multi-Location / Outfit Variation Prompt</label>
+                            <textarea id="char-forge-variation-prompt" placeholder="Click Compose Sheet + Variations or write your own variation prompt."></textarea>
+                        </div>
+                        <div class="character-action-bar">
+                            <button class="btn" type="button" onclick="renderCharacterOnSpark('sheet')">Generate Character Sheet on Spark</button>
+                            <button class="btn" type="button" onclick="renderCharacterOnSpark('variation')">Generate Variation Set on Spark</button>
+                        </div>
+                    </section>
+                </div>
+                <div class="character-roster-wrap">
+                    <section>
+                        <div class="character-manager-status">Character Roster</div>
+                        <div id="character-manager-content" class="character-grid">
+                            <div class="character-manager-status">Loading characters...</div>
+                        </div>
+                    </section>
+                    <section>
+                        <div class="character-manager-status">Latest Spark Results</div>
+                        <div id="character-render-gallery" class="character-render-gallery">
+                            <div class="character-manager-status">No generated images in this session.</div>
+                        </div>
+                    </section>
                 </div>
             </div>
             <div class="spark-toolbar" style="margin-bottom:16px;">
