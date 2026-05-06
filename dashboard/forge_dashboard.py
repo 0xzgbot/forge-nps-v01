@@ -4165,6 +4165,150 @@ class RenderCharacterRequest(BaseModel):
     seed: Optional[int] = None
 
 
+class CharacterSparkRenderRequest(BaseModel):
+    name: str
+    prompt: str
+    role: Optional[str] = ""
+    render_type: str = "anchor"
+    workflow_id: str = "01_flux2_text_to_image"
+    seed: Optional[int] = None
+    save_character: bool = True
+
+
+def _default_character_workflow_path(workflow_id: str = "") -> Optional[Path]:
+    requested = (workflow_id or "").strip()
+    candidates: List[Path] = []
+    if requested:
+        wf = _workflow_file_for_id(requested)
+        if wf:
+            candidates.append(wf)
+    candidates.extend([
+        REPO_ROOT / "workflows" / "01_flux2_text_to_image.json",
+        REPO_ROOT / "workflows" / "08_flux2_klein_9b_text_to_image.json",
+    ])
+    return next((p for p in candidates if p and p.exists()), None)
+
+
+def _character_host_from_config() -> str:
+    cfg = get_raw_config()
+    comfyui = cfg.get("comfyui", {}) if isinstance(cfg.get("comfyui"), dict) else {}
+    host = (
+        os.getenv("COMFYUI_PRIMARY", "")
+        or str(cfg.get("COMFYUI_PRIMARY", ""))
+        or str(comfyui.get("primary", ""))
+        or ""
+    ).strip().rstrip("/")
+    if host and not host.startswith(("http://", "https://")):
+        host = "http://" + host
+    return host
+
+
+@app.post("/api/characters/spark-render")
+async def api_character_spark_render(req: CharacterSparkRenderRequest):
+    safe_name = re.sub(r'[^a-z0-9]+', '_', req.name.lower().strip()).strip('_')
+    if not safe_name:
+        raise HTTPException(status_code=400, detail="Character name is required")
+    prompt = (req.prompt or "").strip()
+    if not prompt:
+        raise HTTPException(status_code=400, detail="Prompt is required")
+
+    render_type = (req.render_type or "anchor").strip().lower()
+    if render_type not in {"anchor", "sheet", "variation"}:
+        raise HTTPException(status_code=400, detail="render_type must be anchor, sheet, or variation")
+
+    host = _character_host_from_config()
+    if not host:
+        raise HTTPException(status_code=400, detail="COMFYUI_PRIMARY is not configured. Turn on Spark or set the ComfyUI primary host in Settings.")
+
+    workflow_path = _default_character_workflow_path(req.workflow_id)
+    if not workflow_path:
+        raise HTTPException(status_code=404, detail="No text-to-image workflow file found for character rendering")
+
+    client = ComfyUIClient(host)
+    ok, info = await client.check_health()
+    if not ok:
+        raise HTTPException(status_code=503, detail=f"Spark/ComfyUI is offline at {host}: {info.get('error', 'unreachable')}")
+
+    seed = req.seed if req.seed is not None else random.randint(1, 2**32 - 1)
+    output_dir = MEDIA_IMAGES / "characters" / safe_name
+    output_dir.mkdir(parents=True, exist_ok=True)
+    shot_id = f"char_{safe_name}_{render_type}_{int(time.time())}"
+    result = await client.submit_prompt_for_shot(
+        shot_id=shot_id,
+        prompt=prompt,
+        workflow_path=str(workflow_path),
+        seed=seed,
+        output_dir=str(output_dir),
+        wait_for_output=True,
+    )
+    if result.get("status") != "success":
+        raise HTTPException(status_code=502, detail=result.get("error", "Spark character render failed"))
+
+    saved_files = [str(p) for p in result.get("saved_files") or []]
+    image_urls = [_media_url_for_path(Path(p)) for p in saved_files if Path(p).exists()]
+
+    anchor_url = ""
+    if render_type == "anchor" and saved_files:
+        first = Path(saved_files[0])
+        ext = first.suffix.lower() if first.suffix.lower() in {".jpg", ".jpeg", ".png", ".webp"} else ".png"
+        dest = CHARACTERS_ANCHORS_DIR / f"{safe_name}{ext}"
+        shutil.copy2(first, dest)
+        anchor_url = f"/api/characters/anchor/{safe_name}"
+
+    char = _CHARACTERS_STORE.get(safe_name, {
+        "id": safe_name,
+        "name": req.name.strip(),
+        "role": (req.role or "Character").strip() or "Character",
+        "accent": "cyan",
+        "score": 0,
+        "anchor_url": "",
+        "anchor_prompt": "",
+        "dna": {},
+    })
+    if req.role:
+        char["role"] = req.role.strip()
+    if render_type == "anchor":
+        char["anchor_prompt"] = prompt
+        if anchor_url:
+            char["anchor_url"] = anchor_url
+    char.setdefault("render_prompts", {})[render_type] = prompt
+    char.setdefault("render_history", []).append({
+        "type": render_type,
+        "prompt": prompt,
+        "prompt_id": result.get("prompt_id"),
+        "seed": seed,
+        "workflow_id": req.workflow_id,
+        "image_urls": image_urls,
+        "created_at": _now_iso(),
+    })
+    if req.save_character:
+        _CHARACTERS_STORE[safe_name] = char
+        _persist_character(safe_name, char)
+
+    meta_path = output_dir / f"{shot_id}.json"
+    meta_path.write_text(json.dumps({
+        "id": shot_id,
+        "character_id": safe_name,
+        "render_type": render_type,
+        "prompt": prompt,
+        "seed": seed,
+        "workflow_id": req.workflow_id,
+        "prompt_id": result.get("prompt_id"),
+        "image_urls": image_urls,
+    }, indent=2), encoding="utf-8")
+
+    return {
+        "status": "complete",
+        "character": char,
+        "render_type": render_type,
+        "prompt_id": result.get("prompt_id"),
+        "seed": seed,
+        "image_urls": image_urls,
+        "anchor_url": anchor_url or char.get("anchor_url", ""),
+        "saved_files": saved_files,
+    }
+
+
 @app.post("/api/characters/render")
 async def api_render_character(req: RenderCharacterRequest):
     from core.dispatch.comfy_client import ComfyUIClient
@@ -4209,7 +4353,10 @@ async def api_render_character(req: RenderCharacterRequest):
     if not host:
         raise HTTPException(status_code=400, detail="COMFYUI_PRIMARY is not configured")
     client = ComfyUIClient(host)
-    prompt_id = await client.submit_prompt(workflow)
+    submit = await client.submit_prompt(workflow)
+    if not submit.get("ok"):
+        raise HTTPException(status_code=502, detail=submit.get("error", "ComfyUI submission failed"))
+    prompt_id = submit.get("prompt_id")
     if not prompt_id:
         raise HTTPException(status_code=502, detail="ComfyUI submission failed")
 
