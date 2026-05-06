@@ -759,6 +759,13 @@ class DirectorGenerateRequest(BaseModel):
     length: str = ""
     target_shots: Optional[int] = None
 
+class ScriptDevelopRequest(BaseModel):
+    brief: str
+    title: str = ""
+    runtime_seconds: int = 60
+    target_scenes: int = 4
+    tone: str = ""
+
 class RenameCampaignRequest(BaseModel):
     old_campaign_id: str
     new_campaign_name: str
@@ -793,6 +800,154 @@ async def api_get_shots():
         "count": len(_SHOTS_STORE),
         "active_campaign_id": _ACTIVE_CAMPAIGN,
     }
+
+
+IDEA_BOARD_COLUMNS = [
+    {"id": "inbox", "label": "Inbox"},
+    {"id": "spark", "label": "Spark"},
+    {"id": "story", "label": "Story"},
+    {"id": "visual", "label": "Visual"},
+    {"id": "ready", "label": "Ready"},
+]
+IDEA_BOARD_FILE = MEDIA_ROOT / "idea_board.json"
+
+
+def _short_text(value: Any, limit: int = 180) -> str:
+    text = re.sub(r"\s+", " ", str(value or "")).strip()
+    if len(text) <= limit:
+        return text
+    return text[: max(0, limit - 3)].rstrip() + "..."
+
+
+class IdeaCardCreateRequest(BaseModel):
+    title: str
+    body: str = ""
+    type: str = "concept"
+    campaign_id: str = ""
+    stage: str = "inbox"
+    tags: List[str] = []
+
+
+class IdeaCardUpdateRequest(BaseModel):
+    title: Optional[str] = None
+    body: Optional[str] = None
+    type: Optional[str] = None
+    campaign_id: Optional[str] = None
+    stage: Optional[str] = None
+    tags: Optional[List[str]] = None
+
+
+def _valid_idea_stage(stage: str) -> str:
+    allowed = {column["id"] for column in IDEA_BOARD_COLUMNS}
+    return stage if stage in allowed else "inbox"
+
+
+def _read_idea_cards() -> List[Dict[str, Any]]:
+    if not IDEA_BOARD_FILE.exists():
+        return []
+    try:
+        data = json.loads(IDEA_BOARD_FILE.read_text(encoding="utf-8"))
+    except Exception:
+        return []
+    cards = data.get("cards", []) if isinstance(data, dict) else []
+    return [card for card in cards if isinstance(card, dict)]
+
+
+def _write_idea_cards(cards: List[Dict[str, Any]]) -> None:
+    IDEA_BOARD_FILE.parent.mkdir(parents=True, exist_ok=True)
+    IDEA_BOARD_FILE.write_text(
+        json.dumps({"cards": cards}, indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+
+
+def _normalize_idea_card(card: Dict[str, Any]) -> Dict[str, Any]:
+    tags = card.get("tags", [])
+    if not isinstance(tags, list):
+        tags = []
+    return {
+        "id": str(card.get("id") or f"idea_{uuid.uuid4().hex[:8]}"),
+        "title": _short_text(card.get("title") or "Untitled idea", 80),
+        "body": _short_text(card.get("body") or "", 360),
+        "type": _short_text(card.get("type") or "concept", 32).lower(),
+        "campaign_id": str(card.get("campaign_id") or ""),
+        "stage": _valid_idea_stage(str(card.get("stage") or "inbox")),
+        "tags": [_short_text(tag, 28) for tag in tags[:6]],
+        "created_at": str(card.get("created_at") or datetime.utcnow().isoformat()),
+        "updated_at": str(card.get("updated_at") or card.get("created_at") or datetime.utcnow().isoformat()),
+    }
+
+
+def _build_idea_board(campaign_id: str = "") -> Dict[str, Any]:
+    cards = [
+        _normalize_idea_card(card)
+        for card in _read_idea_cards()
+        if not campaign_id or str(card.get("campaign_id") or "") == campaign_id
+    ]
+    columns = [{**column, "cards": []} for column in IDEA_BOARD_COLUMNS]
+    by_stage = {column["id"]: column for column in columns}
+    for card in cards:
+        by_stage.get(card["stage"], by_stage["inbox"])["cards"].append(card)
+    return {
+        "status": "ok",
+        "source": "forge_idea_board",
+        "campaign_id": campaign_id,
+        "columns": columns,
+        "count": len(cards),
+    }
+
+
+@app.get("/api/ideas/board")
+async def api_get_idea_board(campaign_id: str = ""):
+    return _build_idea_board(campaign_id)
+
+
+@app.post("/api/ideas/cards")
+async def api_create_idea_card(req: IdeaCardCreateRequest):
+    title = _short_text(req.title, 80)
+    if not title:
+        raise HTTPException(status_code=400, detail="title required")
+    cards = [_normalize_idea_card(card) for card in _read_idea_cards()]
+    now = datetime.utcnow().isoformat()
+    card = _normalize_idea_card({
+        "id": f"idea_{uuid.uuid4().hex[:10]}",
+        "title": title,
+        "body": req.body,
+        "type": req.type,
+        "campaign_id": req.campaign_id,
+        "stage": req.stage,
+        "tags": req.tags,
+        "created_at": now,
+        "updated_at": now,
+    })
+    cards.append(card)
+    _write_idea_cards(cards)
+    return {"status": "ok", "card": card}
+
+
+@app.patch("/api/ideas/cards/{card_id}")
+async def api_update_idea_card(card_id: str, req: IdeaCardUpdateRequest):
+    cards = [_normalize_idea_card(card) for card in _read_idea_cards()]
+    for index, card in enumerate(cards):
+        if card["id"] != card_id:
+            continue
+        updates = req.model_dump(exclude_unset=True) if hasattr(req, "model_dump") else req.dict(exclude_unset=True)
+        card.update(updates)
+        card["updated_at"] = datetime.utcnow().isoformat()
+        cards[index] = _normalize_idea_card(card)
+        _write_idea_cards(cards)
+        return {"status": "ok", "card": cards[index]}
+    raise HTTPException(status_code=404, detail="idea card not found")
+
+
+@app.delete("/api/ideas/cards/{card_id}")
+async def api_delete_idea_card(card_id: str):
+    cards = [_normalize_idea_card(card) for card in _read_idea_cards()]
+    kept = [card for card in cards if card["id"] != card_id]
+    if len(kept) == len(cards):
+        raise HTTPException(status_code=404, detail="idea card not found")
+    _write_idea_cards(kept)
+    return {"status": "ok", "deleted": card_id}
 
 
 MEDIA_SHOT_METADATA_FILE = "_shot_metadata.json"
@@ -1897,6 +2052,213 @@ def _script_director_event(payload: Dict[str, Any]) -> str:
     return json.dumps(payload, ensure_ascii=True) + "\n"
 
 
+def _extract_json_response(text: str) -> Dict[str, Any]:
+    raw = (text or "").strip()
+    if raw.startswith("```"):
+        parts = raw.split("```")
+        if len(parts) >= 2:
+            raw = parts[1]
+            if raw.lstrip().startswith("json"):
+                raw = raw.lstrip()[4:]
+    parsed = json.loads(raw.strip())
+    if not isinstance(parsed, dict):
+        raise ValueError("json response must be an object")
+    return parsed
+
+
+def _fallback_script_package(req: ScriptDevelopRequest) -> Dict[str, Any]:
+    brief = (req.brief or "").strip()
+    title = (req.title or "").strip() or "Untitled Forge Film"
+    scene_count = max(1, min(int(req.target_scenes or 4), 12))
+    runtime = max(15, min(int(req.runtime_seconds or 60), 720))
+    scene_duration = max(6, round(runtime / scene_count))
+    scene_names = [
+        "Opening Image",
+        "Inciting Signal",
+        "Escalation",
+        "Point of No Return",
+        "Confrontation",
+        "Resolution",
+    ]
+    scenes = []
+    continuity_characters = []
+    for idx in range(1, scene_count + 1):
+        scene_id = f"SC_{idx:03d}"
+        beat_a = f"{scene_id}_B01"
+        beat_b = f"{scene_id}_B02"
+        label = scene_names[min(idx - 1, len(scene_names) - 1)]
+        scenes.append({
+            "scene_id": scene_id,
+            "title": label,
+            "duration_sec": scene_duration,
+            "location": "primary story environment established by the brief",
+            "time_of_day": "continuity-locked production lighting",
+            "emotional_turn": "advance the central promise, tension, or reveal",
+            "beats": [
+                {
+                    "beat_id": beat_a,
+                    "action": f"{label}: establish the visible stakes from the brief.",
+                    "dialogue": "",
+                    "characters": ["Hero"],
+                    "continuity": {
+                        "wardrobe": "locked hero wardrobe from continuity panel",
+                        "props": ["primary story object"],
+                        "screen_direction": "maintain consistent left-to-right progression unless the edit intentionally reverses momentum",
+                    },
+                },
+                {
+                    "beat_id": beat_b,
+                    "action": "Turn the scene into a concrete visual decision that sets up the next scene.",
+                    "dialogue": "",
+                    "characters": ["Hero"],
+                    "continuity": {
+                        "wardrobe": "same as previous beat",
+                        "props": ["primary story object"],
+                        "screen_direction": "match previous axis",
+                    },
+                },
+            ],
+        })
+    continuity_characters.append({
+        "name": "Hero",
+        "visual_lock": "derive exact age, wardrobe, silhouette, and face details from the approved character/brief",
+        "wardrobe": "single locked outfit unless a scene explicitly changes it",
+        "performance": "clear readable emotional progression across scenes",
+    })
+    return {
+        "title": title,
+        "source": "fallback",
+        "brief": brief,
+        "treatment": {
+            "logline": brief[:220] if brief else "A concise visual story built for a cohesive AI-generated edit.",
+            "synopsis": "Hermes structured the prompt into scenes, beats, continuity locks, and edit intent. Configure the Director API for model-authored prose.",
+            "visual_language": req.tone or "precise, continuity-first cinematic coverage",
+            "runtime_seconds": runtime,
+        },
+        "script": {
+            "acts": [
+                {
+                    "act_id": "ACT_01",
+                    "function": "Setup, escalation, and resolution sized for the requested runtime.",
+                    "scenes": scenes,
+                }
+            ],
+        },
+        "continuity": {
+            "characters": continuity_characters,
+            "locations": [{
+                "name": "primary story environment",
+                "visual_lock": "same geography, lighting family, and screen direction across scene coverage",
+            }],
+            "props": [{
+                "name": "primary story object",
+                "state": "state changes must be explicit beat-to-beat",
+            }],
+            "motifs": ["recurring color accent", "repeated camera move", "sound bridge"],
+        },
+        "edit_plan": {
+            "pacing": "open with orientation, accelerate through the midpoint, resolve with one readable final image",
+            "audio_strategy": "J-cuts for anticipation, restrained music lift at each reveal, hard silence before the final turn",
+            "transition_strategy": "motivated hard cuts, match cuts on motion or object state, no decorative transitions without narrative purpose",
+        },
+    }
+
+
+async def _request_script_package(req: ScriptDevelopRequest) -> Dict[str, Any]:
+    director = KimiDirectorService()
+    if not director.api_key:
+        return _fallback_script_package(req)
+
+    title = (req.title or "").strip() or "Untitled Forge Film"
+    scene_count = max(1, min(int(req.target_scenes or 4), 12))
+    runtime = max(15, min(int(req.runtime_seconds or 60), 720))
+    schema_hint = {
+        "title": "string",
+        "treatment": {
+            "logline": "string",
+            "synopsis": "string",
+            "visual_language": "string",
+            "runtime_seconds": runtime,
+        },
+        "script": {
+            "acts": [{
+                "act_id": "ACT_01",
+                "function": "string",
+                "scenes": [{
+                    "scene_id": "SC_001",
+                    "title": "string",
+                    "duration_sec": 15,
+                    "location": "string",
+                    "time_of_day": "string",
+                    "emotional_turn": "string",
+                    "beats": [{
+                        "beat_id": "SC_001_B01",
+                        "action": "string",
+                        "dialogue": "string",
+                        "characters": ["string"],
+                        "continuity": {
+                            "wardrobe": "string",
+                            "props": ["string"],
+                            "screen_direction": "string",
+                        },
+                    }],
+                }],
+            }],
+        },
+        "continuity": {
+            "characters": [{"name": "string", "visual_lock": "string", "wardrobe": "string", "performance": "string"}],
+            "locations": [{"name": "string", "visual_lock": "string"}],
+            "props": [{"name": "string", "state": "string"}],
+            "motifs": ["string"],
+        },
+        "edit_plan": {
+            "pacing": "string",
+            "audio_strategy": "string",
+            "transition_strategy": "string",
+        },
+    }
+    system_prompt = (
+        "You are Hermes Script Architect for FORGE NPS. Return only valid JSON. "
+        "Your job is not to make isolated pretty shots; produce a locked script package "
+        "that can be converted into scene-by-scene coverage for a cohesive movie edit."
+    )
+    user_prompt = (
+        f"title: {title}\n"
+        f"runtime_seconds: {runtime}\n"
+        f"target_scenes: {scene_count}\n"
+        f"tone: {(req.tone or 'unspecified').strip()}\n"
+        f"brief:\n{(req.brief or '').strip()}\n\n"
+        "Write a structured screenplay package. Every scene must include concrete beats, "
+        "continuity locks, emotional turns, edit pacing, audio strategy, and transitions. "
+        "Keep output concise enough for downstream shot planning.\n\n"
+        f"Required JSON schema:\n{json.dumps(schema_hint, indent=2)}"
+    )
+    payload = {
+        "model": director.model_name,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        "temperature": 0.45,
+        "response_format": {"type": "json_object"},
+        "max_tokens": 12000,
+    }
+    timeout_sec = max(float(os.getenv("FORGE_KIMI_TIMEOUT_SEC", "120")), 180.0)
+    async with httpx.AsyncClient(timeout=timeout_sec) as client:
+        resp = await client.post(
+            director.endpoint,
+            headers={"Authorization": f"Bearer {director.api_key}", "Content-Type": "application/json"},
+            json=payload,
+        )
+        if resp.status_code >= 400:
+            raise RuntimeError(f"http_error status={resp.status_code} error={resp.text[:500]}")
+        data = resp.json()
+        content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+        package = _extract_json_response(content)
+        package["source"] = "director_api"
+        return package
+
+
 def _script_shot_from_director_plan(shot: Dict[str, Any], campaign_id: str) -> Dict[str, Any]:
     shot_id = str(shot.get("shot_id") or shot.get("id") or f"SHOT_{int(shot.get('sequence') or 1):03d}")
     record_id = f"{campaign_id}__{shot_id}"
@@ -1997,6 +2359,20 @@ async def _stream_director_shot_generation(req: DirectorGenerateRequest) -> Asyn
 @app.post("/api/director/generate")
 async def api_director_generate(req: DirectorGenerateRequest):
     return StreamingResponse(_stream_director_shot_generation(req), media_type="application/x-ndjson")
+
+
+@app.post("/api/script/develop")
+async def api_script_develop(req: ScriptDevelopRequest):
+    brief = (req.brief or "").strip()
+    if not brief:
+        raise HTTPException(status_code=400, detail="brief required")
+    try:
+        package = await _request_script_package(req)
+        return {"status": "ok", "package": package, "source": package.get("source", "director_api")}
+    except Exception as e:
+        fallback = _fallback_script_package(req)
+        fallback["error"] = str(e)[:500]
+        return {"status": "fallback", "package": fallback, "source": "fallback", "error": str(e)[:500]}
 
 
 @app.patch("/api/shots/{shot_id}")
@@ -4004,7 +4380,7 @@ CHARACTERS_ANCHORS_DIR.mkdir(parents=True, exist_ok=True)
 _CHARACTERS_STORE: Dict[str, Dict[str, Any]] = {}
 
 def _scan_character_files() -> None:
-    """Scan character_banks for JSON character files and anchor images, merge into store."""
+    """Scan character_banks for JSON character files and character images, merge into store."""
     for json_file in CHARACTER_BANKS_DIR.glob("*.json"):
         if json_file.name.startswith("demo_"):
             continue
@@ -4165,6 +4541,154 @@ class RenderCharacterRequest(BaseModel):
     seed: Optional[int] = None
 
 
+class CharacterSparkRenderRequest(BaseModel):
+    name: str
+    prompt: str
+    role: Optional[str] = ""
+    render_type: str = "character"  # character | sheet | variation
+    workflow_id: str = "01_flux2_text_to_image"
+    seed: Optional[int] = None
+    save_character: bool = True
+
+
+def _default_character_workflow_path(workflow_id: str = "") -> Optional[Path]:
+    requested = (workflow_id or "").strip()
+    candidates: List[Path] = []
+    if requested:
+        wf = _workflow_file_for_id(requested)
+        if wf:
+            candidates.append(wf)
+    candidates.extend([
+        REPO_ROOT / "workflows" / "01_flux2_text_to_image.json",
+        REPO_ROOT / "workflows" / "08_flux2_klein_9b_text_to_image.json",
+    ])
+    return next((p for p in candidates if p and p.exists()), None)
+
+
+def _character_host_from_config() -> str:
+    cfg = get_raw_config()
+    host = (
+        os.getenv("COMFYUI_PRIMARY", "")
+        or str(cfg.get("COMFYUI_PRIMARY", ""))
+        or str((cfg.get("comfyui", {}) if isinstance(cfg.get("comfyui"), dict) else {}).get("primary", ""))
+        or ""
+    ).strip().rstrip("/")
+    if host and not host.startswith(("http://", "https://")):
+        host = "http://" + host
+    return host
+
+
+@app.post("/api/characters/spark-render")
+async def api_character_spark_render(req: CharacterSparkRenderRequest):
+    safe_name = re.sub(r'[^a-z0-9]+', '_', req.name.lower().strip()).strip('_')
+    if not safe_name:
+        raise HTTPException(status_code=400, detail="Character name is required")
+    prompt = (req.prompt or "").strip()
+    if not prompt:
+        raise HTTPException(status_code=400, detail="Prompt is required")
+
+    requested_type = (req.render_type or "character").strip().lower()
+    if requested_type == "anchor":
+        requested_type = "character"
+    if requested_type not in {"character", "sheet", "variation"}:
+        raise HTTPException(status_code=400, detail="render_type must be character, sheet, or variation")
+    storage_type = "anchor" if requested_type == "character" else requested_type
+
+    host = _character_host_from_config()
+    if not host:
+        raise HTTPException(status_code=400, detail="COMFYUI_PRIMARY is not configured. Turn on Spark or set the ComfyUI primary host in Settings.")
+
+    workflow_path = _default_character_workflow_path(req.workflow_id)
+    if not workflow_path:
+        raise HTTPException(status_code=404, detail="No text-to-image workflow file found for character rendering")
+
+    client = ComfyUIClient(host)
+    ok, info = await client.check_health()
+    if not ok:
+        raise HTTPException(status_code=503, detail=f"Spark/ComfyUI is offline at {host}: {info.get('error', 'unreachable')}")
+
+    seed = req.seed if req.seed is not None else random.randint(1, 2**32 - 1)
+    output_dir = MEDIA_IMAGES / "characters" / safe_name
+    output_dir.mkdir(parents=True, exist_ok=True)
+    shot_id = f"char_{safe_name}_{requested_type}_{int(time.time())}"
+    result = await client.submit_prompt_for_shot(
+        shot_id=shot_id,
+        prompt=prompt,
+        workflow_path=str(workflow_path),
+        seed=seed,
+        output_dir=str(output_dir),
+        wait_for_output=True,
+    )
+    if result.get("status") != "success":
+        raise HTTPException(status_code=502, detail=result.get("error", "Spark character render failed"))
+
+    saved_files = [str(p) for p in result.get("saved_files") or []]
+    image_urls = [_media_url_for_path(Path(p)) for p in saved_files if Path(p).exists()]
+
+    anchor_url = ""
+    if requested_type == "character" and saved_files:
+        first = Path(saved_files[0])
+        ext = first.suffix.lower() if first.suffix.lower() in {".jpg", ".jpeg", ".png", ".webp"} else ".png"
+        dest = CHARACTERS_ANCHORS_DIR / f"{safe_name}{ext}"
+        shutil.copy2(first, dest)
+        anchor_url = f"/api/characters/anchor/{safe_name}"
+
+    char = _CHARACTERS_STORE.get(safe_name, {
+        "id": safe_name,
+        "name": req.name.strip(),
+        "role": (req.role or "Character").strip() or "Character",
+        "accent": "cyan",
+        "score": 0,
+        "anchor_url": "",
+        "anchor_prompt": "",
+        "dna": {},
+    })
+    if req.role:
+        char["role"] = req.role.strip()
+    if requested_type == "character":
+        char["anchor_prompt"] = prompt
+        if anchor_url:
+            char["anchor_url"] = anchor_url
+    char.setdefault("render_prompts", {})[requested_type] = prompt
+    if storage_type != requested_type:
+        char.setdefault("render_prompts", {})[storage_type] = prompt
+    char.setdefault("render_history", []).append({
+        "type": requested_type,
+        "prompt": prompt,
+        "prompt_id": result.get("prompt_id"),
+        "seed": seed,
+        "workflow_id": req.workflow_id,
+        "image_urls": image_urls,
+        "created_at": _now_iso(),
+    })
+    if req.save_character:
+        _CHARACTERS_STORE[safe_name] = char
+        _persist_character(safe_name, char)
+
+    meta_path = output_dir / f"{shot_id}.json"
+    meta_path.write_text(json.dumps({
+        "id": shot_id,
+        "character_id": safe_name,
+        "render_type": requested_type,
+        "prompt": prompt,
+        "seed": seed,
+        "workflow_id": req.workflow_id,
+        "prompt_id": result.get("prompt_id"),
+        "image_urls": image_urls,
+    }, indent=2), encoding="utf-8")
+
+    return {
+        "status": "complete",
+        "character": char,
+        "render_type": requested_type,
+        "prompt_id": result.get("prompt_id"),
+        "seed": seed,
+        "image_urls": image_urls,
+        "anchor_url": anchor_url or char.get("anchor_url", ""),
+        "saved_files": saved_files,
+    }
+
+
 @app.post("/api/characters/render")
 async def api_render_character(req: RenderCharacterRequest):
     from core.dispatch.comfy_client import ComfyUIClient
@@ -4209,7 +4733,10 @@ async def api_render_character(req: RenderCharacterRequest):
     if not host:
         raise HTTPException(status_code=400, detail="COMFYUI_PRIMARY is not configured")
     client = ComfyUIClient(host)
-    prompt_id = await client.submit_prompt(workflow)
+    submit = await client.submit_prompt(workflow)
+    if not submit.get("ok"):
+        raise HTTPException(status_code=502, detail=submit.get("error", "ComfyUI submission failed"))
+    prompt_id = submit.get("prompt_id")
     if not prompt_id:
         raise HTTPException(status_code=502, detail="ComfyUI submission failed")
 
@@ -4236,7 +4763,7 @@ async def api_character_anchor(name: str):
         img_path = anchors_dir / f"{safe_name}{ext}"
         if img_path.exists():
             return FileResponse(str(img_path))
-    raise HTTPException(status_code=404, detail=f"No anchor image for '{name}'")
+    raise HTTPException(status_code=404, detail=f"No character image for '{name}'")
 
 
 class NewCharacterRequest(BaseModel):
@@ -4250,7 +4777,7 @@ async def api_create_character(
     description: str = Form(""),
     anchor_image: UploadFile | None = Form(None),
 ):
-    """Create a new character with an optional drag-drop anchor image."""
+    """Create a new character with an optional drag-drop character image."""
     import uuid as _uuid
 
     safe_name = re.sub(r'[^a-z0-9]+', '_', name.lower().strip()).strip('_')
@@ -4265,7 +4792,7 @@ async def api_create_character(
     existing_accents = {c.get("accent") for c in _CHARACTERS_STORE.values()}
     accent = next((a for a in accents if a not in existing_accents), "cyan")
 
-    # Save anchor image if provided
+    # Save character image if provided
     anchor_url = ""
     if anchor_image and anchor_image.filename:
         raw_name = re.sub(r'[^a-z0-9]+', '_', Path(anchor_image.filename).stem.lower()).strip('_')
@@ -4314,7 +4841,7 @@ async def api_create_character(
         char_section = (
             f"\n## KEY CHARACTER: {name.strip().upper()}\n"
             f"- **Role:** {description or 'Character'}\n"
-            f"- **Anchor Image:** `{Path(final_name).stem}`\n\n"
+            f"- **Character Image:** `{Path(final_name).stem}`\n\n"
         )
         if not world_bible_path.exists():
             world_bible_path.parent.mkdir(parents=True, exist_ok=True)

@@ -12,6 +12,7 @@ from typing import Dict, List, Any, Optional
 
 REPO_ROOT = Path(__file__).parent.parent.parent.resolve()
 BANKS_DIR = REPO_ROOT / "data" / "character_banks"
+PRODUCT_BANKS_DIR = REPO_ROOT / "data" / "product_banks"
 CREATIVE_BRIEF_PATH = REPO_ROOT / "data" / "lore_bible" / "creative_brief.md"
 
 QUALITY_CONSTANTS = "photorealism, hyperrealistic, sharp focus, professional photography, high detail, 8k resolution, cinema lens"
@@ -19,7 +20,7 @@ QUALITY_CONSTANTS = "photorealism, hyperrealistic, sharp focus, professional pho
 
 def load_banks(mode: str = "character") -> Dict[str, List[str]]:
     """Load all bank files for the given mode."""
-    target_dir = BANKS_DIR if mode == "character" else BANKS_DIR / "product_banks"
+    target_dir = BANKS_DIR if mode == "character" else PRODUCT_BANKS_DIR
     banks = {}
     if not target_dir.exists():
         return banks
