@@ -1902,7 +1902,7 @@ async function cancelCampaign() {
 async function runCampaign() {
     const brief = $briefInput.value.trim();
     if (!brief) {
-        addLogEntry("error", "Please enter a creative brief");
+        addLogEntry("error", "Please enter a prompt");
         return;
     }
 
@@ -2029,7 +2029,7 @@ async function runCampaign() {
         }
     } finally {
         $runBtn.disabled = false;
-        $runBtn.textContent = "Run Campaign";
+        $runBtn.textContent = "Generate Images";
         campaignActive = false;
         campaignAbortController = null;
         const $cancelBtn = document.getElementById("cancel-campaign-btn");
