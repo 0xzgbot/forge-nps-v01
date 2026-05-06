@@ -4004,7 +4004,7 @@ CHARACTERS_ANCHORS_DIR.mkdir(parents=True, exist_ok=True)
 _CHARACTERS_STORE: Dict[str, Dict[str, Any]] = {}
 
 def _scan_character_files() -> None:
-    """Scan character_banks for JSON character files and anchor images, merge into store."""
+    """Scan character_banks for JSON character files and character images, merge into store."""
     for json_file in CHARACTER_BANKS_DIR.glob("*.json"):
         if json_file.name.startswith("demo_"):
             continue
@@ -4169,7 +4169,7 @@ class CharacterSparkRenderRequest(BaseModel):
     name: str
     prompt: str
     role: Optional[str] = ""
-    render_type: str = "anchor"
+    render_type: str = "character"
     workflow_id: str = "01_flux2_text_to_image"
     seed: Optional[int] = None
     save_character: bool = True
@@ -4212,9 +4212,12 @@ async def api_character_spark_render(req: CharacterSparkRenderRequest):
     if not prompt:
         raise HTTPException(status_code=400, detail="Prompt is required")
 
-    render_type = (req.render_type or "anchor").strip().lower()
-    if render_type not in {"anchor", "sheet", "variation"}:
-        raise HTTPException(status_code=400, detail="render_type must be anchor, sheet, or variation")
+    requested_type = (req.render_type or "character").strip().lower()
+    if requested_type == "anchor":
+        requested_type = "character"
+    if requested_type not in {"character", "sheet", "variation"}:
+        raise HTTPException(status_code=400, detail="render_type must be character, sheet, or variation")
+    storage_type = "anchor" if requested_type == "character" else requested_type
 
     host = _character_host_from_config()
     if not host:
@@ -4232,7 +4235,7 @@ async def api_character_spark_render(req: CharacterSparkRenderRequest):
     seed = req.seed if req.seed is not None else random.randint(1, 2**32 - 1)
     output_dir = MEDIA_IMAGES / "characters" / safe_name
     output_dir.mkdir(parents=True, exist_ok=True)
-    shot_id = f"char_{safe_name}_{render_type}_{int(time.time())}"
+    shot_id = f"char_{safe_name}_{requested_type}_{int(time.time())}"
     result = await client.submit_prompt_for_shot(
         shot_id=shot_id,
         prompt=prompt,
@@ -4248,7 +4251,7 @@ async def api_character_spark_render(req: CharacterSparkRenderRequest):
     image_urls = [_media_url_for_path(Path(p)) for p in saved_files if Path(p).exists()]
 
     anchor_url = ""
-    if render_type == "anchor" and saved_files:
+    if requested_type == "character" and saved_files:
         first = Path(saved_files[0])
         ext = first.suffix.lower() if first.suffix.lower() in {".jpg", ".jpeg", ".png", ".webp"} else ".png"
         dest = CHARACTERS_ANCHORS_DIR / f"{safe_name}{ext}"
@@ -4267,13 +4270,15 @@ async def api_character_spark_render(req: CharacterSparkRenderRequest):
     })
     if req.role:
         char["role"] = req.role.strip()
-    if render_type == "anchor":
+    if requested_type == "character":
         char["anchor_prompt"] = prompt
         if anchor_url:
             char["anchor_url"] = anchor_url
-    char.setdefault("render_prompts", {})[render_type] = prompt
+    char.setdefault("render_prompts", {})[requested_type] = prompt
+    if storage_type != requested_type:
+        char.setdefault("render_prompts", {})[storage_type] = prompt
     char.setdefault("render_history", []).append({
-        "type": render_type,
+        "type": requested_type,
         "prompt": prompt,
         "prompt_id": result.get("prompt_id"),
         "seed": seed,
@@ -4289,7 +4294,7 @@ async def api_character_spark_render(req: CharacterSparkRenderRequest):
     meta_path.write_text(json.dumps({
         "id": shot_id,
         "character_id": safe_name,
-        "render_type": render_type,
+        "render_type": requested_type,
         "prompt": prompt,
         "seed": seed,
         "workflow_id": req.workflow_id,
@@ -4300,7 +4305,7 @@ async def api_character_spark_render(req: CharacterSparkRenderRequest):
     return {
         "status": "complete",
         "character": char,
-        "render_type": render_type,
+        "render_type": requested_type,
         "prompt_id": result.get("prompt_id"),
         "seed": seed,
         "image_urls": image_urls,
@@ -4383,7 +4388,7 @@ async def api_character_anchor(name: str):
         img_path = anchors_dir / f"{safe_name}{ext}"
         if img_path.exists():
             return FileResponse(str(img_path))
-    raise HTTPException(status_code=404, detail=f"No anchor image for '{name}'")
+    raise HTTPException(status_code=404, detail=f"No character image for '{name}'")
 
 
 class NewCharacterRequest(BaseModel):
@@ -4397,7 +4402,7 @@ async def api_create_character(
     description: str = Form(""),
     anchor_image: UploadFile | None = Form(None),
 ):
-    """Create a new character with an optional drag-drop anchor image."""
+    """Create a new character with an optional drag-drop character image."""
     import uuid as _uuid
 
     safe_name = re.sub(r'[^a-z0-9]+', '_', name.lower().strip()).strip('_')
@@ -4412,7 +4417,7 @@ async def api_create_character(
     existing_accents = {c.get("accent") for c in _CHARACTERS_STORE.values()}
     accent = next((a for a in accents if a not in existing_accents), "cyan")
 
-    # Save anchor image if provided
+    # Save character image if provided
     anchor_url = ""
     if anchor_image and anchor_image.filename:
         raw_name = re.sub(r'[^a-z0-9]+', '_', Path(anchor_image.filename).stem.lower()).strip('_')
@@ -4461,7 +4466,7 @@ async def api_create_character(
         char_section = (
             f"\n## KEY CHARACTER: {name.strip().upper()}\n"
             f"- **Role:** {description or 'Character'}\n"
-            f"- **Anchor Image:** `{Path(final_name).stem}`\n\n"
+            f"- **Character Image:** `{Path(final_name).stem}`\n\n"
         )
         if not world_bible_path.exists():
             world_bible_path.parent.mkdir(parents=True, exist_ok=True)

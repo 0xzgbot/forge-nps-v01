@@ -2573,7 +2573,7 @@ function renderCharacterResultTiles(payload, kind) {
     const html = urls.map((url, i) => (
         '<figure class="character-render-tile">' +
             '<img src="' + escapeHtml(url) + '" alt="' + escapeHtml(kind) + ' render">' +
-            '<figcaption class="caption">' + escapeHtml(kind) + ' #' + String(i + 1) + '</figcaption>' +
+            '<figcaption class="caption">' + escapeHtml(kind === "anchor" ? "character" : kind) + ' #' + String(i + 1) + '</figcaption>' +
         '</figure>'
     )).join("");
     if (gallery.querySelector(".character-manager-status")) gallery.innerHTML = "";
