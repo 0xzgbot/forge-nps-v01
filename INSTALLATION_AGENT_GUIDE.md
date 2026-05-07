@@ -258,9 +258,17 @@ Cancel a running campaign:
 curl -sS -X POST http://localhost:7000/api/hermes/cancel
 ```
 
+Idea board fallback:
+
+```bash
+curl -sS http://localhost:7000/api/hermes/idea-board | python3 -m json.tool
+```
+
+If the running backend is older and does not expose `/api/hermes/idea-board`, the browser UI falls back to `/api/shots` and should still render the Ideas board.
+
 ## Common Failures and Fixes
 
-### Run Campaign Button Appears Dead
+### Generate Images Button Appears Dead
 
 The button is usually firing if the log shows `backend_stream_open`. Check the stream for the first failure.
 
@@ -336,7 +344,7 @@ Do not touch it unless asked.
 
 Run before submission/demo:
 
-1. `python3 -m py_compile dashboard/forge_dashboard.py core/hermes/pipeline/campaign_service.py`
+1. `python3 -m py_compile dashboard/forge_dashboard.py core/hermes/pipeline/campaign_service.py core/hermes/pipeline/profile_cli.py`
 2. `GET /api/stats` succeeds.
 3. Kimi **Test Connection** succeeds.
 4. LM Studio **Test & Detect Models** succeeds.
@@ -345,4 +353,5 @@ Run before submission/demo:
 7. `/api/hermes/run-campaign` reaches Kimi planning.
 8. A short campaign reaches Spark dispatch.
 9. Rendered media appears in dashboard.
-10. Audit/re-audit reports pass/fail details, not generic placeholders.
+10. `/api/hermes/idea-board` returns a board, or the Ideas UI falls back to `/api/shots`.
+11. Audit/remediation reports pass/fail details, not generic placeholders.

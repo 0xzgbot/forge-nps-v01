@@ -21,6 +21,8 @@
   ·
   <a href="docs/GEMMA4_MTP_VLLM.md"><strong>Gemma 4 MTP / vLLM</strong></a>
   ·
+  <a href="docs/CHANGELOG.md"><strong>Changelog</strong></a>
+  ·
   <a href="PIPELINE_CONTRACT_SUMMARY.md"><strong>Pipeline Contract</strong></a>
 </p>
 
@@ -45,6 +47,18 @@ Forge NPS is built around one non-negotiable idea: AI production needs an agency
 | **Memory** | Persistent provenance for events, prompts, model choices, audit results, failures, retries, and final outcomes. |
 | **Spark / ComfyUI** | Render execution layer for images and videos. |
 | **Vision Audit** | Quality gate that drives remediation instead of silent failure. |
+
+## Latest Workspace Update
+
+The current dashboard refresh is documented in [docs/CHANGELOG.md](docs/CHANGELOG.md). Highlights include:
+
+- Main generation controls now use **Prompt** and **Generate Images** terminology.
+- The prompt box is larger, blue-toned, and paired with a simplified toolbar.
+- **Turbo** is in the same model pill as **Flux2.Dev** and only works when Flux2.Dev is enabled.
+- **Anchor/Anchors** visible copy now reads **Character/Characters** while backend anchor fields remain compatible.
+- The standalone **Models** tab, visible **Re-Audit Selected** controls, and world-bible path input were removed from the dashboard.
+- The **Ideas** tab can use `/api/hermes/idea-board` or fall back to `/api/shots` on older running backends.
+- vLLM / Gemma 4 MTP profile tooling and tests were added.
 
 ## Why It Matters
 
@@ -140,9 +154,11 @@ flowchart LR
 
 1. `POST /api/hermes/run-campaign`
 2. `GET /api/shots`
-3. `POST /api/audit/reprocess`
-4. `POST /api/audit/remediate`
-5. `GET /api/memory/health`
+3. `GET /api/hermes/idea-board`
+4. `POST /api/script/develop`
+5. `POST /api/audit/reprocess`
+6. `POST /api/audit/remediate`
+7. `GET /api/memory/health`
 
 Legacy dispatch and render routes are intentionally disabled and return `410 legacy_disabled`; see [PIPELINE_CONTRACT_SUMMARY.md](PIPELINE_CONTRACT_SUMMARY.md).
 
@@ -202,6 +218,7 @@ FORGE_MEDIA_ROOT=/Users/zgbot/Desktop/FORGE_NPS_MEDIA
 
 ```bash
 python3 -m py_compile dashboard/forge_dashboard.py core/hermes/pipeline/campaign_service.py core/hermes/pipeline/profile_cli.py
+python3 -m pytest tests/test_profile_cli.py
 curl -sS http://localhost:7000/api/stats
 ```
 
@@ -213,6 +230,7 @@ Run the full pre-demo checklist in [STABILITY_CHECKLIST.md](STABILITY_CHECKLIST.
 | --- | --- |
 | [INSTALLATION_AGENT_GUIDE.md](INSTALLATION_AGENT_GUIDE.md) | Full setup/runbook for another agent or engineer. |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Current runtime architecture, service boundaries, and data flow. |
+| [docs/CHANGELOG.md](docs/CHANGELOG.md) | Dated implementation notes for the dashboard/profile tooling refresh. |
 | [PIPELINE_CONTRACT_SUMMARY.md](PIPELINE_CONTRACT_SUMMARY.md) | Event, shot, memory, state, and fallback contract. |
 | [STABILITY_CHECKLIST.md](STABILITY_CHECKLIST.md) | Pre-demo health and smoke checklist. |
 | [SUBMISSION_GUIDE.md](SUBMISSION_GUIDE.md) | Judge-facing proof points and demo script. |
