@@ -619,6 +619,8 @@ class ComfyUIClient:
         output_dir: str | None = None,
         image_path: Optional[str] = None,
         wait_for_output: bool = True,
+        width: int | None = None,
+        height: int | None = None,
     ) -> dict:
         """Load a workflow, inject prompt/seed, submit, poll, and optionally download outputs."""
         import random
@@ -680,6 +682,10 @@ class ComfyUIClient:
                 inputs["seed"] = chosen_seed
             if class_type in ("RandomNoise", "FluxNoise") and "noise_seed" in inputs:
                 inputs["noise_seed"] = chosen_seed
+            if width and "width" in inputs and not isinstance(inputs.get("width"), list):
+                inputs["width"] = int(width)
+            if height and "height" in inputs and not isinstance(inputs.get("height"), list):
+                inputs["height"] = int(height)
             if class_type in ("SaveImage", "SaveVideo", "VHS_VideoCombine") and shot_id:
                 inputs["filename_prefix"] = shot_id
 

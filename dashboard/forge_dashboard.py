@@ -12,6 +12,7 @@ import os
 import re
 import random
 import shutil
+import zipfile
 from pathlib import Path
 import httpx
 from PIL import Image
@@ -46,8 +47,14 @@ from .memory_api import (
 from .api.prompt_builder import load_banks, build_recipe, generate_random_recipe
 from .api.spark_monitor import monitor as spark_monitor
 from core.dispatch.comfy_client import ComfyUIClient
+from core.affiliate.local_higgsfield import LocalHiggsfieldAdapter
 from core.hermes.pipeline import HermesCampaignService, CampaignRequest, HermesAuditService, HermesVideoService
 from core.hermes.pipeline.director_service import KimiDirectorService
+from core.hermes.platform_skills import (
+    carousel_caption_text,
+    detect_platform_skill,
+    generate_hook_ideas,
+)
 
 STATIC_DIR = Path(__file__).parent / "static"
 REPO_ROOT = Path(__file__).parent.parent.resolve()
@@ -2618,6 +2625,27 @@ class RunCampaignRequest(BaseModel):
     identity_pack: Optional[CampaignIdentityPack] = None
     campaign_id: str = ""
     append_to_campaign: bool = False
+    platform_mode: str = "auto"
+    series_continuity: Optional[bool] = None
+
+
+class PlatformDetectRequest(BaseModel):
+    brief: str = ""
+    platform_mode: str = "auto"
+    series_continuity: Optional[bool] = None
+
+
+class HookGenerateRequest(BaseModel):
+    brief: str = ""
+    platform_mode: str = "auto"
+    campaign_id: str = ""
+    save_to_board: bool = False
+
+
+class CarouselExportRequest(BaseModel):
+    campaign_id: str = ""
+    shot_ids: List[str] = []
+    platform_mode: str = "auto"
 
 
 class ReAuditRequest(BaseModel):
@@ -2639,6 +2667,7 @@ class VideoProcessRequest(BaseModel):
     fps: int = 24
     workflow_id: str = "02_ltx2.3_T2V_I2V_distilled"
     prompt: str = ""
+    platform_mode: str = "auto"
     min_audit_score: float = 0.85
     min_audit_confidence: float = 0.70
     require_audit_pass: bool = True
@@ -2651,6 +2680,43 @@ class VideoGeneratePromptsRequest(BaseModel):
     fps: int = 24
     campaign_id: str = ""
     workflow_id: str = "04_ltx2.3_image_to_video"
+    platform_mode: str = "auto"
+
+
+class LocalHiggsfieldImageRequest(BaseModel):
+    prompt: str
+    width_and_height: str = "1696x960"
+    enhance_prompt: bool = True
+    quality: str = "720p"
+    batch_size: int = 1
+    style_id: Optional[str] = None
+    style_strength: float = 1.0
+    seed: Optional[int] = None
+    custom_reference_id: Optional[str] = None
+    custom_reference_strength: float = 1.0
+    image_reference_url: Optional[str] = None
+    wait_for_output: bool = False
+
+
+class LocalHiggsfieldMotion(BaseModel):
+    id: str
+    strength: float = 1.0
+
+
+class LocalHiggsfieldVideoRequest(BaseModel):
+    input_image_url: str
+    prompt: str
+    model: str = "dop-turbo"
+    seed: Optional[int] = None
+    motions: List[LocalHiggsfieldMotion] = []
+    input_image_end_url: Optional[str] = None
+    enhance_prompt: bool = True
+    wait_for_output: bool = False
+
+
+class LocalHiggsfieldCharacterRequest(BaseModel):
+    name: str
+    image_urls: List[str]
 
 
 class LMStudioLoadRequest(BaseModel):
@@ -2668,6 +2734,29 @@ def _workflow_file_for_id(workflow_id: str) -> Optional[Path]:
         if c.exists():
             return c
     return None
+
+
+def _resolve_comfy_primary() -> str:
+    cfg = get_raw_config()
+    host = (
+        os.getenv("COMFYUI_PRIMARY", "")
+        or str(cfg.get("COMFYUI_PRIMARY", ""))
+        or "http://localhost:8188"
+    ).strip().rstrip("/")
+    if host and not host.startswith(("http://", "https://")):
+        host = "http://" + host
+    return host
+
+
+def _make_local_higgsfield_adapter() -> LocalHiggsfieldAdapter:
+    return LocalHiggsfieldAdapter(
+        repo_root=REPO_ROOT,
+        media_root=MEDIA_ROOT,
+        media_images=MEDIA_IMAGES,
+        comfy_url=_resolve_comfy_primary(),
+        workflow_file_for_id=_workflow_file_for_id,
+        resolve_image_path=_resolve_image_path,
+    )
 
 
 def _resolve_image_path(image_url: str) -> Optional[Path]:
@@ -2769,6 +2858,43 @@ async def api_hermes_cancel():
     return {"status": "ok", "cancelled": True}
 
 
+@app.post("/api/platform/detect")
+async def api_platform_detect(req: PlatformDetectRequest):
+    platform = detect_platform_skill(
+        req.brief,
+        requested_mode=req.platform_mode,
+        series_continuity=req.series_continuity,
+    )
+    hooks = generate_hook_ideas(req.brief, platform, limit=3) if platform.get("active") else []
+    return {"status": "ok", "platform": platform, "hooks": hooks}
+
+
+@app.post("/api/ideas/hooks")
+async def api_generate_hook_ideas(req: HookGenerateRequest):
+    platform = detect_platform_skill(req.brief, requested_mode=req.platform_mode)
+    hooks = generate_hook_ideas(req.brief, platform, limit=5)
+    created: List[Dict[str, Any]] = []
+    if req.save_to_board:
+        cards = [_normalize_idea_card(card) for card in _read_idea_cards()]
+        now = datetime.utcnow().isoformat()
+        for item in hooks:
+            card = _normalize_idea_card({
+                "id": f"idea_{uuid.uuid4().hex[:10]}",
+                "title": item.get("caption") or item.get("hook") or "TikTok hook",
+                "body": f"{item.get('hook', '')} Audio direction: {item.get('audio', '')}".strip(),
+                "type": "hook",
+                "campaign_id": req.campaign_id,
+                "stage": "spark",
+                "tags": ["tiktok", "hook", "audio"],
+                "created_at": now,
+                "updated_at": now,
+            })
+            cards.append(card)
+            created.append(card)
+        _write_idea_cards(cards)
+    return {"status": "ok", "platform": platform, "hooks": hooks, "created": created}
+
+
 @app.post("/api/hermes/run-campaign")
 async def api_hermes_run_campaign(req: RunCampaignRequest):
     async def _stream():
@@ -2801,11 +2927,105 @@ async def api_hermes_run_campaign(req: RunCampaignRequest):
             identity_pack=req.identity_pack.model_dump() if req.identity_pack else None,
             campaign_id=req.campaign_id,
             append_to_campaign=req.append_to_campaign,
+            platform_mode=req.platform_mode,
+            series_continuity=req.series_continuity,
         )
         async for event in service.stream_campaign(payload):
             yield json.dumps(event) + "\n"
 
     return StreamingResponse(_stream(), media_type="application/x-ndjson")
+
+
+@app.get("/api/local-higgsfield/styles")
+async def api_local_higgsfield_styles():
+    """Higgsfield-like style presets implemented locally through Forge."""
+    return {"available_styles": _make_local_higgsfield_adapter().list_styles()}
+
+
+@app.get("/api/local-higgsfield/motions")
+async def api_local_higgsfield_motions():
+    """Higgsfield-like motion presets mapped to local LTX/ComfyUI prompts."""
+    return {"available_motions": _make_local_higgsfield_adapter().list_motions()}
+
+
+@app.post("/api/local-higgsfield/generate-image")
+async def api_local_higgsfield_generate_image(req: LocalHiggsfieldImageRequest):
+    prompt = (req.prompt or "").strip()
+    if not prompt:
+        raise HTTPException(status_code=400, detail="prompt is required")
+    adapter = _make_local_higgsfield_adapter()
+    return await adapter.generate_image_soul(
+        prompt=prompt,
+        width_and_height=req.width_and_height,
+        enhance_prompt=req.enhance_prompt,
+        quality=req.quality,
+        batch_size=req.batch_size,
+        style_id=req.style_id,
+        style_strength=req.style_strength,
+        seed=req.seed,
+        custom_reference_id=req.custom_reference_id,
+        custom_reference_strength=req.custom_reference_strength,
+        image_reference_url=req.image_reference_url,
+        wait_for_output=req.wait_for_output,
+    )
+
+
+@app.post("/api/local-higgsfield/generate-video")
+async def api_local_higgsfield_generate_video(req: LocalHiggsfieldVideoRequest):
+    if not (req.input_image_url or "").strip():
+        raise HTTPException(status_code=400, detail="input_image_url is required")
+    if not (req.prompt or "").strip():
+        raise HTTPException(status_code=400, detail="prompt is required")
+    motions = [m.model_dump() for m in req.motions]
+    adapter = _make_local_higgsfield_adapter()
+    return await adapter.generate_video_dop(
+        input_image_url=req.input_image_url,
+        prompt=req.prompt,
+        model=req.model,
+        seed=req.seed,
+        motions=motions,
+        input_image_end_url=req.input_image_end_url,
+        enhance_prompt=req.enhance_prompt,
+        wait_for_output=req.wait_for_output,
+    )
+
+
+@app.get("/api/local-higgsfield/jobs/{job_set_id}")
+async def api_local_higgsfield_job_status(job_set_id: str):
+    try:
+        return await _make_local_higgsfield_adapter().get_job_status(job_set_id)
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@app.post("/api/local-higgsfield/characters")
+async def api_local_higgsfield_create_character(req: LocalHiggsfieldCharacterRequest):
+    if not (req.name or "").strip():
+        raise HTTPException(status_code=400, detail="name is required")
+    if not req.image_urls:
+        raise HTTPException(status_code=400, detail="image_urls is required")
+    return await _make_local_higgsfield_adapter().create_character(name=req.name, image_urls=req.image_urls)
+
+
+@app.get("/api/local-higgsfield/characters")
+async def api_local_higgsfield_list_characters():
+    return _make_local_higgsfield_adapter().list_characters()
+
+
+@app.get("/api/local-higgsfield/characters/{reference_id}")
+async def api_local_higgsfield_get_character(reference_id: str):
+    try:
+        return _make_local_higgsfield_adapter().get_character(reference_id)
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@app.delete("/api/local-higgsfield/characters/{reference_id}")
+async def api_local_higgsfield_delete_character(reference_id: str):
+    try:
+        return _make_local_higgsfield_adapter().delete_character(reference_id)
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
 
 @app.post("/api/audit/reprocess")
@@ -2822,6 +3042,25 @@ async def api_audit_remediate(req: RemediateRequest):
 
 @app.post("/api/video/process")
 async def api_video_process(req: VideoProcessRequest):
+    campaign_id_for_platform = (_ACTIVE_CAMPAIGN or "").strip()
+    platform_brief = ""
+    if campaign_id_for_platform:
+        manifest_path = MEDIA_IMAGES / campaign_id_for_platform / "_campaign.json"
+        if manifest_path.exists():
+            try:
+                manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+                platform_brief = str(manifest.get("brief") or "")
+            except Exception:
+                platform_brief = ""
+    if not platform_brief:
+        platform_brief = str(req.prompt or "")
+    platform_skill = detect_platform_skill(platform_brief, requested_mode=req.platform_mode)
+    if platform_skill.get("active"):
+        constraints = platform_skill.get("constraints") or {}
+        if int(req.duration or 0) < int(constraints.get("duration_min_sec", 8)):
+            req.duration = int(constraints.get("duration_default_sec", 12))
+        if not req.fps:
+            req.fps = int(constraints.get("fps", 24))
     service = HermesVideoService(
         media_videos=MEDIA_VIDEOS,
         active_campaign_getter=lambda: _ACTIVE_CAMPAIGN,
@@ -2836,6 +3075,7 @@ async def api_video_process(req: VideoProcessRequest):
         duration=int(req.duration or 0),
         fps=int(req.fps or 0),
         prompt=str(req.prompt or ""),
+        platform_skill=platform_skill,
         min_audit_score=float(req.min_audit_score),
         min_audit_confidence=float(req.min_audit_confidence),
         require_audit_pass=bool(req.require_audit_pass),
@@ -2876,6 +3116,13 @@ async def api_video_generate_prompts(req: VideoGeneratePromptsRequest):
                 bible_text = brief
         except Exception:
             pass
+    platform_skill = detect_platform_skill(bible_text, requested_mode=req.platform_mode)
+    if platform_skill.get("active"):
+        constraints = platform_skill.get("constraints") or {}
+        if duration < int(constraints.get("duration_min_sec", 8)):
+            duration = int(constraints.get("duration_default_sec", 12))
+        if not fps:
+            fps = int(constraints.get("fps", 24))
 
     service = HermesVideoService(
         media_videos=MEDIA_VIDEOS,
@@ -2893,6 +3140,7 @@ async def api_video_generate_prompts(req: VideoGeneratePromptsRequest):
                 fps=fps,
                 workflow_id=workflow_id,
                 bible_text=bible_text,
+                platform_skill=platform_skill,
             )
 
             if result.get("status") == "error":
@@ -2988,6 +3236,91 @@ async def api_video_generate_prompts(req: VideoGeneratePromptsRequest):
             "X-Accel-Buffering": "no",
         },
     )
+
+
+@app.post("/api/export/carousel")
+async def api_export_carousel(req: CarouselExportRequest):
+    campaign_id = (req.campaign_id or _ACTIVE_CAMPAIGN or "carousel").strip() or "carousel"
+    selected_ids = {str(x) for x in (req.shot_ids or []) if str(x).strip()}
+    shots = [
+        s for s in _SHOTS_STORE
+        if (not selected_ids or str(s.get("id") or "") in selected_ids or str(s.get("shot_id") or "") in selected_ids)
+        and (not req.campaign_id or str(s.get("campaign_id") or "") == req.campaign_id)
+    ]
+    if not shots:
+        raise HTTPException(status_code=400, detail="No matching shots to export")
+
+    manifest_path = MEDIA_IMAGES / campaign_id / "_campaign.json"
+    brief = ""
+    if manifest_path.exists():
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            brief = str(manifest.get("brief") or "")
+        except Exception:
+            brief = ""
+    if not brief:
+        brief = str(shots[0].get("campaign_brief") or "")
+    platform = detect_platform_skill(brief, requested_mode=req.platform_mode)
+
+    export_dir = MEDIA_ROOT / "exports"
+    export_dir.mkdir(parents=True, exist_ok=True)
+    safe_campaign = re.sub(r"[^a-zA-Z0-9_.-]+", "_", campaign_id).strip("_") or "carousel"
+    zip_name = f"{safe_campaign}_tiktok_carousel_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.zip"
+    zip_path = export_dir / zip_name
+    caption_text = carousel_caption_text(brief, platform)
+    manifest: Dict[str, Any] = {
+        "campaign_id": campaign_id,
+        "platform": platform,
+        "created_at": datetime.utcnow().isoformat(),
+        "items": [],
+    }
+
+    def _path_from_shot_url(value: str) -> Optional[Path]:
+        if not value:
+            return None
+        p = _resolve_image_path(value)
+        if p and p.exists():
+            return p
+        if value.startswith("/media-assets/"):
+            candidate = MEDIA_ROOT / value.replace("/media-assets/", "", 1).lstrip("/")
+            return candidate if candidate.exists() else None
+        return None
+
+    with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr("captions.txt", caption_text)
+        for idx, shot in enumerate(shots, start=1):
+            media_paths: List[Path] = []
+            for key in ("image_path", "video_path"):
+                raw = str(shot.get(key) or "")
+                if raw and Path(raw).exists():
+                    media_paths.append(Path(raw))
+            for key in ("image_url", "video_url"):
+                p = _path_from_shot_url(str(shot.get(key) or ""))
+                if p and p.exists():
+                    media_paths.append(p)
+            unique: List[Path] = []
+            for p in media_paths:
+                if p not in unique:
+                    unique.append(p)
+            for p in unique:
+                folder = "clips" if p.suffix.lower() in {".mp4", ".mov", ".webm", ".m4v"} else "stills"
+                arcname = f"{folder}/{idx:02d}_{p.name}"
+                zf.write(p, arcname)
+                manifest["items"].append({
+                    "shot_id": shot.get("shot_id") or shot.get("id"),
+                    "source": str(p),
+                    "archive_path": arcname,
+                })
+        zf.writestr("manifest.json", json.dumps(manifest, ensure_ascii=True, indent=2))
+
+    return {
+        "status": "ok",
+        "campaign_id": campaign_id,
+        "count": len(manifest["items"]),
+        "zip_url": f"/media-assets/exports/{zip_name}",
+        "zip_path": str(zip_path),
+        "caption_preview": caption_text,
+    }
 
 
 @app.post("/api/import/sienna-batch")

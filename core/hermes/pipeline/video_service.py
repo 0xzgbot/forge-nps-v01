@@ -8,6 +8,7 @@ import httpx
 
 from core.bridge.runtime_config import get_raw_config
 from core.dispatch.comfy_client import ComfyUIClient
+from core.hermes.platform_skills import platform_prompt_clause
 from .profile_cli import HermesProfileCLI
 from .role_skill_mapper import role_skill_scope
 
@@ -155,6 +156,7 @@ class HermesVideoService:
         duration: int = 4,
         fps: int = 24,
         prompt: str = "",
+        platform_skill: Optional[Dict[str, Any]] = None,
         min_audit_score: float = 0.85,
         min_audit_confidence: float = 0.70,
         require_audit_pass: bool = True,
@@ -236,9 +238,13 @@ class HermesVideoService:
                 })
                 continue
 
+            shot_platform = platform_skill if isinstance(platform_skill, dict) and platform_skill.get("active") else shot.get("platform_skill", {})
             prompt_text = (prompt or "").strip() or str(
                 shot.get("video_prompt") or shot.get("compiled_prompt") or shot.get("prompt") or shot.get("campaign_brief") or ""
             )
+            platform_clause = platform_prompt_clause(shot_platform if isinstance(shot_platform, dict) else {})
+            if platform_clause and platform_clause not in prompt_text:
+                prompt_text = f"{prompt_text}\n\n{platform_clause}".strip()
             if duration:
                 prompt_text = f"{prompt_text}\n\nvideo_duration_seconds={int(duration)}"
             if fps:
@@ -251,6 +257,8 @@ class HermesVideoService:
                 output_dir=str(output_dir),
                 image_path=image_path,
                 wait_for_output=False,
+                width=(shot_platform.get("constraints") or {}).get("width") if isinstance(shot_platform, dict) and shot_platform.get("active") else None,
+                height=(shot_platform.get("constraints") or {}).get("height") if isinstance(shot_platform, dict) and shot_platform.get("active") else None,
             )
             if submit.get("status") != "success":
                 results.append(
@@ -291,6 +299,7 @@ class HermesVideoService:
         fps: int = 24,
         workflow_id: str = "04_ltx2.3_image_to_video",
         bible_text: str = "",
+        platform_skill: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
         Orchestrate Vision analysis plus Hermes profile agents to generate LTX video prompts.
@@ -474,6 +483,7 @@ class HermesVideoService:
             "shots": analysis_results,
             "fps": fps,
             "workflow_id": workflow_id,
+            "platform_skill": platform_skill or {},
         }
         prompts_data = {}
         prompt_raw_text = ""
@@ -485,6 +495,7 @@ class HermesVideoService:
             "duration_plan": prompt_payload["duration_plan"],
             "fps": fps,
             "workflow_id": workflow_id,
+            "platform_skill": platform_skill or {},
             "allowed_skill_patterns": compiler_scope.get("patterns", []),
             "instructions": (
                 "Return strict JSON only with shape: "
@@ -496,6 +507,12 @@ class HermesVideoService:
                 "parallax by itself. Include specific visible subjects, exact environment, camera "
                 "movement, subject/environment motion, lighting continuity, temporal pacing, and "
                 "concrete negative constraints."
+                + (
+                    " Apply the provided platform_skill exactly, including 9:16 framing, first-3-second hook, "
+                    "caption-safe bottom third, and 8-15s TikTok pacing."
+                    if isinstance(platform_skill, dict) and platform_skill.get("active")
+                    else ""
+                )
             ),
         }
         compiler_out = await self.profile_cli.run_json("compiler", compiler_task)
@@ -539,7 +556,8 @@ class HermesVideoService:
                         target_id = selected_id
                         break
             if target_id:
-                normalized_prompts[target_id] = val
+                platform_clause = platform_prompt_clause(platform_skill or {})
+                normalized_prompts[target_id] = f"{val}\n\n{platform_clause}".strip() if platform_clause else val
             else:
                 unmapped_keys.append(k)
 

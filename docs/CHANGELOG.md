@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-05-07 - TikTok platform skill, hooks, and carousel export
+
+- Added prompt-driven TikTok platform detection through `core/hermes/platform_skills.py`.
+- TikTok/vertical-short briefs now activate 1080x1920, 9:16, 8-15s, hook-first, bottom-third caption-safe constraints.
+- Added visible dashboard platform state with Auto Detect, Force TikTok 9:16, and Disable Platform Skill modes.
+- Added optional Series Continuity control; TikTok briefs mentioning a series, recurring character, or girl-next-door character automatically receive continuity-lock guidance.
+- Added TikTok hook generation in the Ideas tab, backed by `data/platform_skills/wholesome_audio_ideas.json`.
+- Added new skill pack entries: `tiktok_vertical_platform`, `girl_next_door_realism`, `sunlit_travel_cinematography`, `heartwarming_storytelling`, and `soft_pastel_animation_lighting`.
+- Added low-watch-time review detection that can revise the first shot with stronger first-3-second hook guidance.
+- Added one-click carousel export for selected stills/clips with `captions.txt` and `manifest.json`.
+
 ## 2026-05-05 / 2026-05-06 - Dashboard UI, profile tooling, and script fallback coverage
 
 This entry summarizes the Forge NPS workspace changes made in the current dashboard refresh session.

@@ -4,8 +4,10 @@
     "director_planner": {
       "allow": [
         "story_spine_narrative",
+        "heartwarming_storytelling",
         "cinematic_continuity",
         "cinematic_consistency_protocol",
+        "tiktok_vertical_platform",
         "ltx25-beat-based-scripting",
         "composition_drift",
         "ensemble_group_dynamics"
@@ -29,6 +31,11 @@
         "style_suffix_library",
         "resolution_aspect_ratio",
         "quality_token_sets",
+        "tiktok_vertical_platform",
+        "girl_next_door_realism",
+        "sunlit_travel_cinematography",
+        "heartwarming_storytelling",
+        "soft_pastel_animation_lighting",
         "flux-ltx-prompt-engineering-standard",
         "flux-dir-command-protocol",
         "workflow_*",
@@ -42,6 +49,8 @@
     "continuity_guard": {
       "allow": [
         "character_consistency",
+        "girl_next_door_realism",
+        "heartwarming_storytelling",
         "ltx23_character_consistency",
         "cinematic_continuity",
         "cinematic_consistency_protocol",
@@ -57,6 +66,8 @@
     "remediation_reprompter": {
       "allow": [
         "iterative_prompt_refinement",
+        "tiktok_vertical_platform",
+        "heartwarming_storytelling",
         "anatomical_errors",
         "character_consistency",
         "cinematic_continuity",

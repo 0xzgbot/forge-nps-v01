@@ -17,6 +17,8 @@ let campaignRecoveryTimer = null;
 let campaignMediaRefreshTimer = null;
 let configDirty = {}; // dot_key -> new_value
 let currentConfig = {};
+let currentPlatformSkill = { active: false, id: "", label: "No platform skill", constraints: {} };
+let platformDetectTimer = null;
 
 // Spark state
 let sparkRenderResults = {};
@@ -113,6 +115,7 @@ window.addEventListener("DOMContentLoaded", () => {
     if (csr) campaignSort.reverse = !!csr.checked;
     mediaSort = { key: "time", reverse: true };
     initModelControls();
+    initPlatformControls();
     syncInlineMediaSortControls();
     initMediaThumbSizeControl();
     initDashboardResizer();
@@ -125,6 +128,66 @@ window.addEventListener("DOMContentLoaded", () => {
 });
 
 function id(s) { return document.getElementById(s); }
+
+function initPlatformControls() {
+    const briefEl = document.getElementById("brief-input");
+    if (briefEl) {
+        briefEl.addEventListener("input", () => {
+            if (platformDetectTimer) clearTimeout(platformDetectTimer);
+            platformDetectTimer = setTimeout(updatePlatformDetection, 250);
+        });
+    }
+    updatePlatformDetection();
+}
+
+async function updatePlatformDetection() {
+    const brief = ($briefInput?.value || "").trim();
+    const mode = document.getElementById("platform-mode")?.value || "auto";
+    const seriesEl = document.getElementById("series-continuity");
+    const seriesContinuity = seriesEl?.checked ? true : null;
+    const pill = document.getElementById("platform-status-pill");
+    if (!pill) return;
+    if (!brief && mode === "auto") {
+        currentPlatformSkill = { active: false, id: "", label: "No platform skill", constraints: {} };
+        pill.textContent = "Platform skill: Auto";
+        pill.className = "platform-status-pill off";
+        return;
+    }
+    try {
+        const resp = await fetch("/api/platform/detect", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ brief, platform_mode: mode, series_continuity: seriesContinuity }),
+        });
+        if (!resp.ok) throw new Error("HTTP " + resp.status);
+        const data = await resp.json();
+        currentPlatformSkill = data.platform || { active: false, id: "", label: "No platform skill", constraints: {} };
+        renderPlatformPill(currentPlatformSkill);
+        if (currentPlatformSkill.active && currentPlatformSkill.constraints) {
+            const vd = document.getElementById("video-duration");
+            if (vd && Number(vd.value || 0) < Number(currentPlatformSkill.constraints.duration_min_sec || 8)) {
+                vd.value = String(currentPlatformSkill.constraints.duration_default_sec || 12);
+            }
+        }
+    } catch (e) {
+        pill.textContent = "Platform skill: detection unavailable";
+        pill.className = "platform-status-pill off";
+    }
+}
+
+function renderPlatformPill(platform) {
+    const pill = document.getElementById("platform-status-pill");
+    if (!pill) return;
+    if (platform && platform.active) {
+        const constraints = platform.constraints || {};
+        const series = platform.series_continuity ? " · series lock" : "";
+        pill.textContent = "TikTok Vertical Active · " + (constraints.width || 1080) + "x" + (constraints.height || 1920) + " · 8-15s" + series;
+        pill.className = "platform-status-pill active";
+    } else {
+        pill.textContent = "Platform skill: Auto";
+        pill.className = "platform-status-pill off";
+    }
+}
 
 function initModelControls() {
     const flux2El = document.getElementById("model-flux2");
@@ -1092,6 +1155,44 @@ async function createIdeaCard(event) {
     }
     form.reset();
     await loadIdeaBoard();
+}
+
+async function generateHookIdeas(saveToBoard) {
+    const statusEl = document.getElementById("idea-board-status");
+    const hookInput = document.getElementById("hook-brief-input");
+    const campaignId = document.getElementById("idea-board-filter")?.value || currentCampaignId || "";
+    const brief = (hookInput?.value || $briefInput?.value || "").trim();
+    if (!brief) {
+        if (statusEl) statusEl.textContent = "Enter a hook brief or write a prompt on Home.";
+        return;
+    }
+    if (statusEl) statusEl.textContent = saveToBoard ? "Generating and saving TikTok hooks..." : "Generating hook preview...";
+    try {
+        const resp = await fetch("/api/ideas/hooks", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                brief,
+                campaign_id: campaignId,
+                platform_mode: "tiktok",
+                save_to_board: !!saveToBoard,
+            }),
+        });
+        if (!resp.ok) throw new Error("HTTP " + resp.status);
+        const data = await resp.json();
+        const hooks = Array.isArray(data.hooks) ? data.hooks : [];
+        if (saveToBoard) {
+            if (statusEl) statusEl.textContent = "Saved " + hooks.length + " TikTok hook idea(s).";
+            await loadIdeaBoard();
+        } else {
+            if (statusEl) {
+                statusEl.textContent = hooks.map((h) => (h.caption || h.hook || "Hook") + " / " + (h.audio || "audio direction")).join("  |  ");
+            }
+        }
+    } catch (e) {
+        if (statusEl) statusEl.textContent = "Hook generation failed: " + (e?.message || e);
+        addLogEntry("error", "Hook generation failed: " + (e?.message || e));
+    }
 }
 
 async function moveIdeaCard(cardId, stage) {
@@ -2270,6 +2371,7 @@ async function runCampaign() {
         addLogEntry("error", "Please enter a prompt");
         return;
     }
+    await updatePlatformDetection();
 
     const length = $lengthSelect ? $lengthSelect.value : "";
     const klein = document.getElementById("model-klein")?.checked;
@@ -2288,6 +2390,11 @@ async function runCampaign() {
     if (klein) workflow_ids.push(workflowMap.klein);
     if (flux2) workflow_ids.push(turbo ? workflowMap.flux2.turbo : workflowMap.flux2.standard);
     if (turbo) addLogEntry("system", "Turbo mode enabled for Flux2.Dev.");
+    const platformMode = document.getElementById("platform-mode")?.value || "auto";
+    const seriesContinuity = !!document.getElementById("series-continuity")?.checked;
+    if (currentPlatformSkill && currentPlatformSkill.active) {
+        addLogEntry("system", "Platform skill active: " + (currentPlatformSkill.summary || currentPlatformSkill.label || "TikTok vertical"));
+    }
     // De-dupe in case multiple toggles currently map to the same numbered workflow.
     const dedupedWorkflows = [...new Set(workflow_ids)];
     if (!dedupedWorkflows.length) {
@@ -2322,6 +2429,8 @@ async function runCampaign() {
                 identity_pack: identity_pack,
                 campaign_id: selectedCampaignId,
                 append_to_campaign: appendToCampaign,
+                platform_mode: platformMode,
+                series_continuity: seriesContinuity,
             }),
             signal: campaignAbortController.signal,
         });
@@ -2438,6 +2547,12 @@ function handleCampaignEvent(event) {
 
         case "compiler":
             addLogEntry("hermes", "[compiler] " + text);
+            break;
+
+        case "platform_skill":
+            currentPlatformSkill = event.platform || currentPlatformSkill;
+            renderPlatformPill(currentPlatformSkill);
+            addLogEntry("system", text || "Platform skill active.");
             break;
 
         case "spark":
@@ -3644,6 +3759,7 @@ async function generateVideoPrompts() {
                 duration,
                 fps,
                 workflow_id: workflowId,
+                platform_mode: document.getElementById("platform-mode")?.value || "auto",
             }),
         });
         if (!resp.ok) throw new Error("HTTP " + resp.status);
@@ -3733,6 +3849,7 @@ async function processSelectedVideos() {
                 fps,
                 workflow_id: workflowId,
                 prompt: videoPrompt,
+                platform_mode: document.getElementById("platform-mode")?.value || "auto",
                 min_audit_score: 0,
                 min_audit_confidence: 0,
                 require_audit_pass: false,
@@ -3758,6 +3875,43 @@ async function processSelectedVideos() {
     } finally {
         $startBatchBtn.disabled = false;
         $startBatchBtn.textContent = "Process";
+    }
+}
+
+async function exportCarousel() {
+    const selected = Array.from(videoSelection);
+    if (!selected.length) {
+        $sparkStatusText.textContent = "Select at least one image or clip for carousel export.";
+        return;
+    }
+    const btn = document.getElementById("carousel-export-btn");
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = "Exporting...";
+    }
+    try {
+        const resp = await fetch("/api/export/carousel", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                shot_ids: selected,
+                campaign_id: currentCampaignId || "",
+                platform_mode: document.getElementById("platform-mode")?.value || "tiktok",
+            }),
+        });
+        const data = await resp.json();
+        if (!resp.ok || data.status !== "ok") throw new Error(data.detail || data.error || "Export failed");
+        $sparkStatusText.textContent = "Carousel export ready: " + data.count + " file(s)";
+        $sparkProgress.innerHTML = '<a href="' + escapeHtml(data.zip_url || "#") + '" target="_blank" rel="noopener">Open ZIP</a>';
+        addLogEntry("system", "Carousel export: " + (data.zip_url || data.zip_path || "ready"));
+    } catch (e) {
+        $sparkStatusText.textContent = "Carousel export failed: " + (e?.message || e);
+        addLogEntry("error", "Carousel export failed: " + (e?.message || e));
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = "Export Carousel";
+        }
     }
 }
 
