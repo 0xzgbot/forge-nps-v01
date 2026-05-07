@@ -135,4 +135,4 @@ Fallbacks are explicit and surfaced to the caller.
 
 ## Contract Reference
 
-Event stream types, shot fields, memory events, allowed states, and fallback policy are defined in [PIPELINE_CONTRACT_SUMMARY.md](~/Desktop/forge_nps_v01/PIPELINE_CONTRACT_SUMMARY.md) and [data/contracts/pipeline_contract.json](~/Desktop/forge_nps_v01/data/contracts/pipeline_contract.json).
+Event stream types, shot fields, memory events, allowed states, and fallback policy are defined in [PIPELINE_CONTRACT_SUMMARY.md](PIPELINE_CONTRACT_SUMMARY.md) and [data/contracts/pipeline_contract.json](../data/contracts/pipeline_contract.json).

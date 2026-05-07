@@ -89,7 +89,7 @@ Current local workspace note:
 
 ### Documentation and Design Assets
 
-- Added [DESIGN.md](../DESIGN.md) for Forge NPS product-launch video visual identity.
+- Added [DESIGN.md](DESIGN.md) for Forge NPS product-launch video visual identity.
 - Added this changelog and linked it from the documentation index and README.
 
 ### Validation Run

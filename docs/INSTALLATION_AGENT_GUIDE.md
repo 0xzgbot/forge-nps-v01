@@ -339,13 +339,7 @@ Rules:
 - Keep fixes scoped.
 - Commit and push completed fixes when requested or when preserving operational state matters.
 
-Current expected untracked local file may include:
-
-```text
-CAMPAIGN_IDEAS_BIBLE.md
-```
-
-Do not touch it unless asked.
+Keep generated local outputs, secrets, logs, and scratch files untracked unless the user explicitly asks to preserve them.
 
 ## Final Demo Readiness Checklist
 

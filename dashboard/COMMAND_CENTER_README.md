@@ -6,7 +6,7 @@ The dashboard is the FastAPI UI/API surface for Forge NPS.
 - Default port: `7000`
 - UI: `http://localhost:7000`
 
-For full installation and service setup, use [INSTALLATION_AGENT_GUIDE.md](~/Desktop/forge_nps_v01/INSTALLATION_AGENT_GUIDE.md).
+For full installation and service setup, use [INSTALLATION_AGENT_GUIDE.md](../docs/INSTALLATION_AGENT_GUIDE.md).
 
 ## Startup Behavior
 
@@ -49,7 +49,7 @@ Uvicorn running on http://0.0.0.0:7000
 | `POST` | `/api/lmstudio/load` | Ask LM Studio to load selected model using LM Studio defaults. |
 | `POST` | `/api/test/comfyui` | Test ComfyUI host health. |
 
-Legacy dispatch/render endpoints are intentionally disabled. See [PIPELINE_CONTRACT_SUMMARY.md](~/Desktop/forge_nps_v01/PIPELINE_CONTRACT_SUMMARY.md).
+Legacy dispatch/render endpoints are intentionally disabled. See [PIPELINE_CONTRACT_SUMMARY.md](../docs/PIPELINE_CONTRACT_SUMMARY.md).
 
 ## Campaign Stream
 

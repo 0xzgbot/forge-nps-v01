@@ -25,13 +25,13 @@
   ·
   <a href="marketing/app-ui.html"><strong>App UI Concept</strong></a>
   ·
-  <a href="INSTALLATION_AGENT_GUIDE.md"><strong>Install Guide</strong></a>
+  <a href="docs/INSTALLATION_AGENT_GUIDE.md"><strong>Install Guide</strong></a>
   ·
   <a href="docs/GEMMA4_MTP_VLLM.md"><strong>Gemma 4 MTP / vLLM</strong></a>
   ·
   <a href="docs/CHANGELOG.md"><strong>Changelog</strong></a>
   ·
-  <a href="PIPELINE_CONTRACT_SUMMARY.md"><strong>Pipeline Contract</strong></a>
+  <a href="docs/PIPELINE_CONTRACT_SUMMARY.md"><strong>Pipeline Contract</strong></a>
 </p>
 
 <p align="center">
@@ -142,7 +142,7 @@ Forge NPS extends Hermes with a curated, multi-layer skills library.
 
 Every shot record carries a `skills_used` list, so the pipeline tracks which knowledge fired on which render.
 
-Full catalog: [SKILLS_INDEX.md](SKILLS_INDEX.md)
+Full catalog: [docs/SKILLS_INDEX.md](docs/SKILLS_INDEX.md)
 
 ## Canonical Pipeline
 
@@ -170,7 +170,7 @@ flowchart LR
 6. `POST /api/audit/remediate`
 7. `GET /api/memory/health`
 
-Legacy dispatch and render routes are intentionally disabled and return `410 legacy_disabled`; see [PIPELINE_CONTRACT_SUMMARY.md](PIPELINE_CONTRACT_SUMMARY.md).
+Legacy dispatch and render routes are intentionally disabled and return `410 legacy_disabled`; see [docs/PIPELINE_CONTRACT_SUMMARY.md](docs/PIPELINE_CONTRACT_SUMMARY.md).
 
 ## Quick Start
 
@@ -232,19 +232,19 @@ python3 -m pytest tests/test_profile_cli.py
 curl -sS http://localhost:7000/api/stats
 ```
 
-Run the full pre-demo checklist in [STABILITY_CHECKLIST.md](STABILITY_CHECKLIST.md).
+Run the full pre-demo checklist in [docs/STABILITY_CHECKLIST.md](docs/STABILITY_CHECKLIST.md).
 
 ## Active Documentation
 
 | File | Purpose |
 | --- | --- |
-| [INSTALLATION_AGENT_GUIDE.md](INSTALLATION_AGENT_GUIDE.md) | Full setup/runbook for another agent or engineer. |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | Current runtime architecture, service boundaries, and data flow. |
+| [docs/INSTALLATION_AGENT_GUIDE.md](docs/INSTALLATION_AGENT_GUIDE.md) | Full setup/runbook for another agent or engineer. |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Current runtime architecture, service boundaries, and data flow. |
 | [docs/CHANGELOG.md](docs/CHANGELOG.md) | Dated implementation notes for the dashboard/profile tooling refresh. |
-| [PIPELINE_CONTRACT_SUMMARY.md](PIPELINE_CONTRACT_SUMMARY.md) | Event, shot, memory, state, and fallback contract. |
-| [STABILITY_CHECKLIST.md](STABILITY_CHECKLIST.md) | Pre-demo health and smoke checklist. |
-| [SUBMISSION_GUIDE.md](SUBMISSION_GUIDE.md) | Judge-facing proof points and demo script. |
-| [SKILLS_INDEX.md](SKILLS_INDEX.md) | Full categorized index of all 127 skills and profile-mounted skill sets. |
+| [docs/PIPELINE_CONTRACT_SUMMARY.md](docs/PIPELINE_CONTRACT_SUMMARY.md) | Event, shot, memory, state, and fallback contract. |
+| [docs/STABILITY_CHECKLIST.md](docs/STABILITY_CHECKLIST.md) | Pre-demo health and smoke checklist. |
+| [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md) | Demo script and judge-facing proof points. |
+| [docs/SKILLS_INDEX.md](docs/SKILLS_INDEX.md) | Full categorized index of all 127 skills and profile-mounted skill sets. |
 | [dashboard/COMMAND_CENTER_README.md](dashboard/COMMAND_CENTER_README.md) | Dashboard-specific API/UI reference. |
 | [data/contracts/pipeline_contract.json](data/contracts/pipeline_contract.json) | Machine-readable pipeline contract. |
 
