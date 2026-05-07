@@ -4102,6 +4102,39 @@ function mapMemoryActorFromEventType(eventType) {
   return "memory";
 }
 
+function memoryNodeColor(ele) {
+  const type = String(ele.data("type") || "").toLowerCase();
+  const eventType = String(ele.data("event_type") || "").toLowerCase();
+  const retry = eventType === "retry_linked" || String(ele.data("retry_of") || "");
+  if (ele.data("success") === false) return "#ff4d6d";
+  if (retry) return "#d16cff";
+  if (type === "session") return "#ffc857";
+  if (type === "insight") return "#b388ff";
+  if (type === "concept") return "#ff5ab4";
+  if (eventType === "shot_planned") return "#a8b3bd";
+  if (eventType.startsWith("render_")) return "#00d7ff";
+  if (eventType.startsWith("audit_")) return "#ffb74d";
+  if (eventType.startsWith("remediation_")) return "#8a7dff";
+  if (eventType === "final_outcome" || ele.data("success") === true) return "#75ff9b";
+  if (eventType === "import_completed") return "#7ce7d0";
+  return MEM_TYPE_COLOR[type] || "#6ea8fe";
+}
+
+function memoryEdgeColor(ele) {
+  const type = String(ele.data("type") || "").toLowerCase();
+  if (type === "learned_from") return "#b388ff";
+  if (type.includes("retry")) return "#d16cff";
+  if (type.includes("audit")) return "#ffb74d";
+  if (type.includes("outcome")) return "#75ff9b";
+  return "#40627f";
+}
+
+function memoryNodeLabel(ele) {
+  const raw = String(ele.data("label") || ele.data("id") || "");
+  if (raw.length <= 30) return raw;
+  return raw.slice(0, 27) + "...";
+}
+
 function populateMemoryCampaignFilter(nodes) {
   const el = document.getElementById("mem-filter-campaign");
   if (!el) return;
@@ -4248,39 +4281,56 @@ function initMemoryGraph(nodes, edges) {
       {
         selector: 'node',
         style: {
-          'background-color': (n) => MEM_TYPE_COLOR[n.data('type')] || '#555',
-          'label': 'data(label)',
-          'color': '#e0e0e0',
-          'font-size': '9px',
+          'background-color': memoryNodeColor,
+          'background-blacken': -0.08,
+          'label': memoryNodeLabel,
+          'color': '#dffbff',
+          'font-family': 'JetBrains Mono, ui-monospace, monospace',
+          'font-size': '9.5px',
+          'font-weight': 500,
+          'text-wrap': 'wrap',
+          'text-max-width': '92px',
+          'text-outline-color': '#05090f',
+          'text-outline-width': 3,
+          'text-background-color': 'rgba(4, 8, 13, 0.72)',
+          'text-background-opacity': 0.72,
+          'text-background-padding': '3px',
+          'text-margin-y': 8,
           'text-valign': 'bottom',
           'text-halign': 'center',
           'width': (n) => {
             const base = Number(n.data('size') || (n.data('type') === 'session' ? 28 : 18));
             const conf = Number(n.data('confidence') || 0.5);
             const imp = Number(n.data('importance') || 1);
-            return Math.max(14, Math.min(56, base + (conf * 8) + (imp * 3)));
+            return Math.max(18, Math.min(62, base + 2 + (conf * 9) + (imp * 3)));
           },
           'height': (n) => {
             const base = Number(n.data('size') || (n.data('type') === 'session' ? 28 : 18));
             const conf = Number(n.data('confidence') || 0.5);
             const imp = Number(n.data('importance') || 1);
-            return Math.max(14, Math.min(56, base + (conf * 8) + (imp * 3)));
+            return Math.max(18, Math.min(62, base + 2 + (conf * 9) + (imp * 3)));
           },
-          'shape': (n) => ({ session: 'diamond', insight: 'star', concept: 'rectangle' }[n.data('type')] || 'ellipse'),
+          'shape': (n) => ({ session: 'diamond', insight: 'star', concept: 'round-rectangle' }[n.data('type')] || 'ellipse'),
           'border-width': (n) => {
             const et = String(n.data('event_type') || "");
-            if (et === "retry_linked" || String(n.data('retry_of') || "")) return 3;
-            if (n.data('success') === false) return 3;
-            if (n.data('success') === true) return 2;
-            return 1;
+            if (et === "retry_linked" || String(n.data('retry_of') || "")) return 4;
+            if (n.data('success') === false) return 4;
+            if (n.data('success') === true) return 3;
+            return 2;
           },
           'border-color': (n) => {
             const et = String(n.data('event_type') || "");
-            if (et === "retry_linked" || String(n.data('retry_of') || "")) return '#ab47bc';
-            if (n.data('success') === false) return '#d32f2f';
-            if (n.data('success') === true) return '#2e7d32';
-            return '#323232';
+            if (et === "retry_linked" || String(n.data('retry_of') || "")) return '#f0a5ff';
+            if (n.data('success') === false) return '#ffd1dc';
+            if (n.data('success') === true) return '#ceffd9';
+            return memoryNodeColor(n);
           },
+          'border-opacity': 0.86,
+          'shadow-blur': 22,
+          'shadow-color': memoryNodeColor,
+          'shadow-opacity': 0.32,
+          'shadow-offset-x': 0,
+          'shadow-offset-y': 0,
         }
       },
       {
@@ -4288,10 +4338,12 @@ function initMemoryGraph(nodes, edges) {
         style: {
           'background-color': '#00bcd4',
           'border-color': '#80deea',
-          'border-width': 2,
+          'border-width': 3,
           'shape': 'round-rectangle',
           'font-size': '10px',
           'color': '#dffbff',
+          'shadow-color': '#00d7ff',
+          'shadow-opacity': 0.44,
         }
       },
       {
@@ -4306,10 +4358,14 @@ function initMemoryGraph(nodes, edges) {
       {
         selector: 'edge',
         style: {
-          'line-color': '#2a2a2a',
-          'width': (e) => Math.min(7, 1 + Number(e.data('weight') || 1)),
-          'target-arrow-color': '#333', 'target-arrow-shape': 'triangle',
+          'line-color': memoryEdgeColor,
+          'opacity': 0.58,
+          'width': (e) => Math.min(6, 1.15 + (Number(e.data('weight') || 1) * 0.8)),
+          'target-arrow-color': memoryEdgeColor,
+          'target-arrow-shape': 'triangle',
+          'arrow-scale': 0.72,
           'curve-style': 'bezier',
+          'control-point-step-size': 42,
         }
       },
       {
@@ -4321,13 +4377,27 @@ function initMemoryGraph(nodes, edges) {
           'opacity': 0.85,
         }
       },
-      { selector: ':selected', style: { 'border-width': 2, 'border-color': '#fff' } },
+      { selector: ':selected', style: { 'border-width': 5, 'border-color': '#fff', 'shadow-opacity': 0.72 } },
       { selector: '.memory-dim', style: { 'opacity': 0.12 } },
     ],
-    layout: { name: 'cose', padding: 20, animate: false },
+    layout: {
+      name: 'cose',
+      padding: 46,
+      animate: false,
+      nodeRepulsion: 9400,
+      idealEdgeLength: 92,
+      edgeElasticity: 112,
+      nestingFactor: 5,
+      gravity: 74,
+      numIter: 1200,
+      initialTemp: 220,
+      coolingFactor: 0.95,
+      minTemp: 1.0,
+    },
     userPanningEnabled: true,
     userZoomingEnabled: true,
   });
+  setMemoryLayoutChrome("force");
   const lanesEnabled = !!document.getElementById("mem-view-lanes")?.checked;
   if (lanesEnabled) applyMemoryLaneLayout();
   attachMemorySelectionHandlers();
@@ -4336,7 +4406,41 @@ function initMemoryGraph(nodes, edges) {
 
 function memoryCyLayout(name) {
   if (!window._memoryCy) return;
-  window._memoryCy.layout({ name, padding: 20, animate: true, animationDuration: 400 }).run();
+  const lanes = document.getElementById("mem-view-lanes");
+  if (lanes) {
+    lanes.checked = false;
+    lanes.parentElement?.classList.remove("active");
+  }
+  const layoutKey = name === "cose" ? "force" : name === "breadthfirst" ? "tree" : name;
+  const options = {
+    name,
+    padding: name === "cose" ? 46 : 28,
+    animate: true,
+    animationDuration: 480,
+  };
+  if (name === "cose") {
+    Object.assign(options, {
+      nodeRepulsion: 9400,
+      idealEdgeLength: 92,
+      edgeElasticity: 112,
+      nestingFactor: 5,
+      gravity: 74,
+      numIter: 1200,
+      initialTemp: 220,
+      coolingFactor: 0.95,
+      minTemp: 1.0,
+    });
+  }
+  window._memoryCy.layout(options).run();
+  setMemoryLayoutChrome(layoutKey);
+}
+
+function setMemoryLayoutChrome(layoutKey) {
+  document.querySelectorAll(".memory-view .graph-toolbar button[data-layout]").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.layout === layoutKey);
+  });
+  const wrap = document.querySelector(".memory-view .graph-wrap");
+  if (wrap) wrap.dataset.layout = layoutKey;
 }
 
 function flashEdges(edges) {
@@ -4385,6 +4489,7 @@ function flashLatestInsight() {
 
 function applyMemoryLaneLayout() {
   if (!window._memoryCy) return;
+  setMemoryLayoutChrome("lanes");
   const phaseX = { kimi: 80, hermes: 320, spark: 560, audit: 800, memory: 1040 };
   const nodes = window._memoryCy.nodes();
   const sorted = [...nodes].sort((a, b) => {

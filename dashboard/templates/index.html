@@ -2479,6 +2479,71 @@
             box-shadow: 0 0 16px rgba(255, 106, 42, 0.13);
         }
 
+        .memory-view .graph-wrap {
+            isolation: isolate;
+            background:
+                linear-gradient(rgba(255, 200, 87, 0.055) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(110, 168, 254, 0.05) 1px, transparent 1px),
+                repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.018) 0 1px, transparent 1px 5px),
+                linear-gradient(180deg, rgba(5, 13, 20, 0.98), rgba(4, 7, 12, 0.99)) !important;
+            background-size: 56px 56px, 56px 56px, auto, auto !important;
+            border-color: rgba(110, 168, 254, 0.22) !important;
+            box-shadow:
+                0 24px 70px rgba(0, 0, 0, 0.42),
+                inset 0 0 0 1px rgba(255, 255, 255, 0.035),
+                inset 0 0 70px rgba(0, 188, 212, 0.045) !important;
+        }
+        .memory-view .graph-wrap::before {
+            z-index: 4;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(110, 168, 254, 0.85), rgba(255, 200, 87, 0.75), transparent);
+            box-shadow: 0 0 24px rgba(110, 168, 254, 0.28);
+        }
+        .memory-view .graph-wrap::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+            pointer-events: none;
+            background:
+                linear-gradient(115deg, transparent 0 43%, rgba(110, 168, 254, 0.055) 48%, transparent 54%),
+                radial-gradient(ellipse at center, transparent 0 52%, rgba(0, 0, 0, 0.38) 100%);
+            mix-blend-mode: screen;
+        }
+        .memory-view .graph-canvas {
+            z-index: 2;
+        }
+        .memory-view .graph-heat {
+            z-index: 3;
+            opacity: 0.24;
+            mix-blend-mode: screen;
+        }
+        .memory-view .graph-toolbar {
+            top: 12px;
+            right: 12px;
+            gap: 5px;
+            padding: 5px;
+            border: 1px solid rgba(110, 168, 254, 0.18);
+            border-radius: var(--r-sm);
+            background: rgba(4, 8, 13, 0.72);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+            backdrop-filter: blur(14px);
+        }
+        .memory-view .graph-toolbar button {
+            min-width: 46px;
+            padding: 6px 9px !important;
+            border-color: rgba(110, 168, 254, 0.24) !important;
+            background: rgba(5, 13, 20, 0.72) !important;
+            color: #AFC7F7 !important;
+        }
+        .memory-view .graph-toolbar button.active,
+        .memory-view .graph-toolbar button[data-layout="force"].active {
+            border-color: rgba(0, 229, 255, 0.62) !important;
+            color: #DFFBFF !important;
+            background: linear-gradient(180deg, rgba(0, 188, 212, 0.18), rgba(110, 168, 254, 0.08)) !important;
+            box-shadow: 0 0 18px rgba(0, 188, 212, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+        }
+
         #campaign-status-box,
         .spark-status {
             border: 1px solid rgba(214, 168, 79, 0.2) !important;
@@ -3635,9 +3700,9 @@
         <div id="memory-heat-overlay" class="graph-heat"></div>
         <div id="cy-canvas" class="graph-canvas"></div>
         <div class="graph-toolbar">
-          <button onclick="memoryCyLayout('cose')">Force</button>
-          <button onclick="memoryCyLayout('breadthfirst')">Tree</button>
-          <button onclick="memoryCyLayout('circle')">Circle</button>
+          <button class="active" data-layout="force" onclick="memoryCyLayout('cose')">Force</button>
+          <button data-layout="tree" onclick="memoryCyLayout('breadthfirst')">Tree</button>
+          <button data-layout="circle" onclick="memoryCyLayout('circle')">Circle</button>
           <button onclick="window._memoryCy && window._memoryCy.fit()">Fit</button>
         </div>
       </div>
