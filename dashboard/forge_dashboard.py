@@ -4997,10 +4997,11 @@ def _default_character_workflow_path(workflow_id: str = "") -> Optional[Path]:
 
 def _character_host_from_config() -> str:
     cfg = get_raw_config()
+    comfyui = cfg.get("comfyui", {}) if isinstance(cfg.get("comfyui"), dict) else {}
     host = (
         os.getenv("COMFYUI_PRIMARY", "")
         or str(cfg.get("COMFYUI_PRIMARY", ""))
-        or str((cfg.get("comfyui", {}) if isinstance(cfg.get("comfyui"), dict) else {}).get("primary", ""))
+        or str(comfyui.get("primary", ""))
         or ""
     ).strip().rstrip("/")
     if host and not host.startswith(("http://", "https://")):
