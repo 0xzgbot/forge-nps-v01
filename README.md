@@ -58,6 +58,8 @@ The current dashboard refresh is documented in [docs/CHANGELOG.md](docs/CHANGELO
 - **Anchor/Anchors** visible copy now reads **Character/Characters** while backend anchor fields remain compatible.
 - The standalone **Models** tab, visible **Re-Audit Selected** controls, and world-bible path input were removed from the dashboard.
 - The **Ideas** tab can use `/api/hermes/idea-board` or fall back to `/api/shots` on older running backends.
+- TikTok/vertical-short prompts now auto-activate a **TikTok Vertical** platform skill: 1080x1920, 9:16 framing, 8-15s pacing, hook-first guidance, caption-safe bottom third, and optional series continuity.
+- The Ideas tab can generate/save TikTok hook cards with local audio-direction ideas, and the Video tab can export selected stills/clips as a ready carousel ZIP.
 - vLLM / Gemma 4 MTP profile tooling and tests were added.
 
 ## Why It Matters

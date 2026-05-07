@@ -35,6 +35,9 @@ Uvicorn running on http://0.0.0.0:7000
 | `POST` | `/api/hermes/chat` | Stream Hermes live chat response. |
 | `POST` | `/api/hermes/run-campaign` | Run full campaign pipeline as NDJSON stream. |
 | `POST` | `/api/hermes/cancel` | Cancel active campaign stream. |
+| `POST` | `/api/platform/detect` | Detect active platform skill such as TikTok Vertical from prompt text. |
+| `POST` | `/api/ideas/hooks` | Generate optional TikTok hook/audio-direction cards. |
+| `POST` | `/api/export/carousel` | Zip selected stills/clips with captions and manifest for social posting. |
 | `GET` | `/api/shots` | Return current shot store. |
 | `GET` | `/api/campaigns` | Return campaign index. |
 | `POST` | `/api/audit/reprocess` | Re-audit selected shot IDs. |

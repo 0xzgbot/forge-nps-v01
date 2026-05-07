@@ -142,6 +142,39 @@
         }
         #brief-input:focus { outline: none; border-color: #3D5AFE; }
         #brief-actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+        .platform-detect-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .platform-status-pill {
+            display: inline-flex;
+            align-items: center;
+            min-height: 32px;
+            padding: 7px 12px;
+            border: 1px solid #263648;
+            border-radius: 999px;
+            background: #101a26;
+            color: #9fb7d7;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+        }
+        .platform-status-pill.active {
+            border-color: rgba(155, 229, 100, 0.42);
+            background: rgba(18, 45, 31, 0.72);
+            color: #bff5a6;
+        }
+        .platform-status-pill.off {
+            border-color: rgba(110, 120, 130, 0.32);
+            background: rgba(8, 10, 14, 0.72);
+            color: #77818c;
+        }
+        .platform-mode-select {
+            min-height: 32px;
+            padding: 6px 10px;
+            font-size: 11px;
+        }
         .model-combo {
             display: flex;
             align-items: center;
@@ -524,6 +557,23 @@
             padding: 12px 24px;
             border-bottom: 1px solid #222;
             background: #101010;
+        }
+        .idea-hook-bar {
+            display: grid;
+            grid-template-columns: minmax(260px, 1fr) auto auto;
+            gap: 10px;
+            padding: 12px 24px;
+            border-bottom: 1px solid #222;
+            background: #0d1117;
+        }
+        .idea-hook-bar input {
+            min-width: 0;
+            background: #222;
+            border: 1px solid #444;
+            border-radius: 4px;
+            color: #E0E0E0;
+            padding: 9px 10px;
+            font-size: 12px;
         }
         .idea-create-bar input,
         .idea-create-bar select {
@@ -2742,6 +2792,9 @@
             .idea-create-bar {
                 grid-template-columns: 1fr;
             }
+            .idea-hook-bar {
+                grid-template-columns: 1fr;
+            }
             #idea-board-filter {
                 flex: 1;
                 min-width: 160px;
@@ -2830,6 +2883,15 @@
             <div id="brief-panel">
             <label>Prompt</label>
                 <textarea id="brief-input" placeholder="Describe your cinematic vision... (e.g. A lone astronaut discovers a glowing garden on an alien moon, bathed in twin-sunset light)"></textarea>
+                <div class="platform-detect-row">
+                    <span id="platform-status-pill" class="platform-status-pill off">Platform skill: Auto</span>
+                    <select id="platform-mode" class="platform-mode-select" onchange="updatePlatformDetection()">
+                        <option value="auto">Auto Detect</option>
+                        <option value="tiktok">Force TikTok 9:16</option>
+                        <option value="off">Disable Platform Skill</option>
+                    </select>
+                    <label class="model-checkbox"><input type="checkbox" id="series-continuity" onchange="updatePlatformDetection()"> Series Continuity</label>
+                </div>
                 <div id="brief-actions">
                     <button class="btn" id="run-campaign-btn" onclick="runCampaign()">Generate Images</button>
                     <input type="text" id="dashboard-selected-count" value="0 selected" readonly style="width:120px;background:#222;border:1px solid #444;border-radius:4px;color:#ccc;padding:8px 10px;font-size:12px;">
@@ -2913,6 +2975,11 @@
                 <input name="body" type="text" placeholder="One-line note, reference, or angle">
                 <button class="btn" type="submit">Add Idea</button>
             </form>
+            <div class="idea-hook-bar">
+                <input id="hook-brief-input" type="text" placeholder="Hook brief, or leave blank to use the Home prompt">
+                <button class="btn btn-secondary" type="button" onclick="generateHookIdeas(false)">Preview Hooks</button>
+                <button class="btn" type="button" onclick="generateHookIdeas(true)">Save TikTok Hooks</button>
+            </div>
             <div id="idea-board-status" class="idea-board-status">Loading idea board...</div>
             <div id="idea-board" class="idea-board" aria-label="Creative idea board"></div>
         </div>
@@ -3330,6 +3397,7 @@
                     <label>Action</label>
                     <button class="btn btn-secondary" id="generate-prompts-btn" onclick="generateVideoPrompts()">Generate Prompts</button>
                     <button class="btn" id="start-batch-btn" onclick="processSelectedVideos()">Process</button>
+                    <button class="btn btn-secondary" id="carousel-export-btn" onclick="exportCarousel()">Export Carousel</button>
                 </div>
             </div>
         </div>

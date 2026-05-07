@@ -5,6 +5,7 @@ import fnmatch
 from typing import Any, Dict, List, Optional, Tuple
 
 from core.skills.skill_loader import SkillLoader
+from core.hermes.platform_skills import platform_prompt_clause
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -283,6 +284,7 @@ def compile_prompt_artifact(
     """
     shot_meta = shot_meta or {}
     identity_pack = shot_meta.get("identity_pack") or {}
+    platform_skill = shot_meta.get("platform_skill") if isinstance(shot_meta.get("platform_skill"), dict) else {}
     plan = kimi_plan or {}
     profile, warnings = _load_profile(workflow_id)
     model_family = _safe_text(profile.get("model_family"))
@@ -297,6 +299,7 @@ def compile_prompt_artifact(
                 _safe_text(plan.get("visual_brief")),
                 _safe_text(plan.get("narrative_intent")),
                 _safe_text(plan.get("environment")),
+                platform_prompt_clause(platform_skill),
                 _safe_text(model_standard.get("name")),
             ]
         )
@@ -307,6 +310,10 @@ def compile_prompt_artifact(
         warnings.append("skills_unavailable")
 
     skills_used = _extract_skill_names(matched_skills)
+    for skill_name in (platform_skill.get("skills") or []) if isinstance(platform_skill, dict) else []:
+        skill_name = _safe_text(skill_name)
+        if skill_name and skill_name not in skills_used:
+            skills_used.append(skill_name)
     skill_modifiers = []
     for s in matched_skills[:3]:
         kws = s.get("keywords", [])[:4]
@@ -346,6 +353,7 @@ def compile_prompt_artifact(
         if identity_type == "product":
             id_lines.append("product continuity: preserve exact geometry, proportions, logo placement, materials, and finish across shots")
     identity_clause = "; ".join([x for x in id_lines if x])
+    platform_clause = platform_prompt_clause(platform_skill)
 
     sections = {
         "Subject/Action": subject_action,
@@ -356,6 +364,7 @@ def compile_prompt_artifact(
         "Identity Continuity": identity_clause or "none",
         "Style/Quality": style_quality,
         "Model Standard": standard_clause,
+        "Platform Skill": platform_clause or "none",
         "Skill Modifiers": skill_line or "none",
         "Model Profile Suffix": suffix,
     }
@@ -369,6 +378,7 @@ def compile_prompt_artifact(
         sections["Identity Continuity"],
         sections["Style/Quality"],
         sections["Model Standard"],
+        sections["Platform Skill"],
     ]
     if skill_line:
         parts.append(f"skill cues: {skill_line}")

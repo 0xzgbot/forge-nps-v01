@@ -12,6 +12,12 @@ from typing import Any, AsyncIterator, Awaitable, Callable, Dict, List, Optional
 from core.dispatch.comfy_client import ComfyUIClient
 from core.prompts.prompt_compiler import compile_prompt_artifact
 from core.bridge.runtime_config import get_raw_config
+from core.hermes.platform_skills import (
+    apply_viral_hook_remediation_to_first_shot,
+    detect_platform_skill,
+    enrich_brief_with_platform,
+    review_flags_low_watch_time,
+)
 
 from .director_service import KimiDirectorService
 from .profile_cli import HermesProfileCLI
@@ -28,6 +34,8 @@ class CampaignRequest:
     identity_pack: Optional[Dict[str, Any]] = None
     campaign_id: str = ""
     append_to_campaign: bool = False
+    platform_mode: str = "auto"
+    series_continuity: Optional[bool] = None
 
 
 class HermesCampaignService:
@@ -158,6 +166,7 @@ class HermesCampaignService:
         brief: str,
         workflow_ids: List[str],
         identity_pack: Optional[Dict[str, Any]] = None,
+        platform_skill: Optional[Dict[str, Any]] = None,
     ) -> None:
         """Persist campaign metadata so full briefs survive restarts/reindex."""
         try:
@@ -171,6 +180,8 @@ class HermesCampaignService:
             }
             if identity_pack:
                 manifest["identity_pack"] = identity_pack
+            if platform_skill:
+                manifest["platform_skill"] = platform_skill
             (folder / "_campaign.json").write_text(
                 json.dumps(manifest, ensure_ascii=True, indent=2),
                 encoding="utf-8",
@@ -246,6 +257,10 @@ class HermesCampaignService:
             "sections",
             "kimi_plan",
             "kimi_rationale",
+            "platform_skill",
+            "platform_id",
+            "platform_constraints",
+            "viral_hook_remediated",
         }
         metadata_path = path.parent / "_shot_metadata.json"
         try:
@@ -294,6 +309,12 @@ class HermesCampaignService:
         campaign_id = requested_id if can_append else self._build_campaign_id(req.brief)
         self.active_campaign_setter(campaign_id)
         workflow_ids = req.workflow_ids or ["01_flux2_text_to_image"]
+        platform_skill = detect_platform_skill(
+            req.brief,
+            requested_mode=req.platform_mode or "auto",
+            series_continuity=req.series_continuity,
+        )
+        platform_brief = enrich_brief_with_platform(req.brief, platform_skill)
         if can_append:
             existing = self.campaigns.get(campaign_id, {}) if isinstance(self.campaigns.get(campaign_id, {}), dict) else {}
             manifest = self._load_campaign_manifest(campaign_id)
@@ -308,6 +329,7 @@ class HermesCampaignService:
                 "updated_at": self.now_iso(),
                 "workflow_ids": merged_workflows,
                 "identity_pack": req.identity_pack or existing.get("identity_pack", {}) or manifest.get("identity_pack", {}) or {},
+                "platform_skill": platform_skill if platform_skill.get("active") else existing.get("platform_skill", {}) or manifest.get("platform_skill", {}) or {},
             }
             workflow_ids = merged_workflows
         else:
@@ -316,8 +338,9 @@ class HermesCampaignService:
                 "started_at": self.now_iso(),
                 "workflow_ids": workflow_ids,
                 "identity_pack": req.identity_pack or {},
+                "platform_skill": platform_skill if platform_skill.get("active") else {},
             }
-        self._write_campaign_manifest(campaign_id, req.brief, workflow_ids, req.identity_pack)
+        self._write_campaign_manifest(campaign_id, req.brief, workflow_ids, req.identity_pack, platform_skill)
         pipeline_t0 = time.perf_counter()
 
         def elapsed_ms() -> int:
@@ -330,6 +353,13 @@ class HermesCampaignService:
         yield {"type": "profile", "profile_color_key": "profile_continuity_lmstudio", "text": "Hermes / Continuity Guard online"}
         yield {"type": "profile", "profile_color_key": "profile_remediation_lmstudio", "text": "Hermes / Remediation Reprompter online"}
         yield {"type": "profile", "profile_color_key": "profile_audit_kimi", "text": "Kimi / Audit Judge online"}
+        if platform_skill.get("active"):
+            yield {
+                "type": "platform_skill",
+                "campaign_id": campaign_id,
+                "platform": platform_skill,
+                "text": platform_skill.get("summary", "Platform skill active."),
+            }
 
         # If appending to an existing campaign, continue shot numbering.
         shot_index_offset = 0
@@ -358,11 +388,12 @@ class HermesCampaignService:
         intake_task = {
             "task": "campaign_intake",
             "campaign_id": campaign_id,
-            "brief": req.brief,
+            "brief": platform_brief,
             "length": req.length or "unspecified",
             "target_shots": target_shots,
             "workflow_ids": workflow_ids,
             "identity_pack": req.identity_pack or {},
+            "platform_skill": platform_skill,
             "world_bible_excerpt": bible_text[:4000] if bible_text else "none",
             "required_output_schema": {
                 "director_brief": "string",
@@ -395,10 +426,10 @@ class HermesCampaignService:
         }
         yield {"type": "profile", "profile_color_key": "profile_compiler_lmstudio", "text": "Hermes / Campaign Intake complete."}
 
-        planning_brief = req.brief
+        planning_brief = platform_brief
         intake_context = json.dumps(self.campaigns[campaign_id]["hermes_intake"], ensure_ascii=True)
         if intake_context and intake_context != "{}":
-            planning_brief = f"{req.brief}\n\nHermes campaign intake:\n{intake_context[:4000]}"
+            planning_brief = f"{platform_brief}\n\nHermes campaign intake:\n{intake_context[:4000]}"
 
         yield {"type": "kimi", "text": "Generating shot list..."}
         use_fallback = os.getenv("FORGE_DEV_FALLBACK", "false").lower() == "true"
@@ -518,6 +549,14 @@ class HermesCampaignService:
                 needs_revision = status in {"warn", "fail"} or bool(
                     review.get("coverage_gaps") or review.get("continuity_risks") or review.get("renderability_risks")
                 )
+            if platform_skill.get("active") and review_flags_low_watch_time(review):
+                if apply_viral_hook_remediation_to_first_shot(kimi_shots):
+                    self.campaigns[campaign_id]["viral_hook_remediation_applied"] = True
+                    yield {
+                        "type": "remediation",
+                        "campaign_id": campaign_id,
+                        "text": "TikTok hook remediation applied to the first shot for low watch-time risk.",
+                    }
             if needs_revision:
                 yield {"type": "kimi", "text": "Director revision pass running..."}
                 try:
@@ -597,7 +636,7 @@ class HermesCampaignService:
 
                 compiler_scope = role_skill_scope("prompt_compiler")
                 artifact = compile_prompt_artifact(
-                    raw_concept=req.brief,
+                    raw_concept=platform_brief,
                     workflow_id=workflow_id,
                     kimi_plan=effective_shot,
                     character_names=effective_shot.get("characters", []),
@@ -606,6 +645,7 @@ class HermesCampaignService:
                         "shot_id": effective_shot["shot_id"],
                         "sequence": effective_shot["sequence"],
                         "identity_pack": req.identity_pack or {},
+                        "platform_skill": platform_skill,
                     },
                     role_key="prompt_compiler",
                     allowed_skill_patterns=compiler_scope.get("patterns", []),
@@ -620,6 +660,7 @@ class HermesCampaignService:
                     "constraints": effective_shot.get("constraints", ""),
                     "compiled_prompt": artifact.get("compiled_prompt", ""),
                     "negative_prompt": artifact.get("negative_prompt", ""),
+                    "platform_skill": platform_skill,
                 }
                 refined = await self.profile_cli.run_json("compiler", refinement_task)
                 if not isinstance(refined, dict):
@@ -673,6 +714,9 @@ class HermesCampaignService:
                     "id": record_id,
                     "campaign_id": campaign_id,
                     "campaign_brief": req.brief,
+                    "platform_skill": platform_skill if platform_skill.get("active") else {},
+                    "platform_id": platform_skill.get("id", "") if platform_skill.get("active") else "",
+                    "platform_constraints": platform_skill.get("constraints", {}) if platform_skill.get("active") else {},
                     "shot_id": effective_shot["shot_id"],
                     "sequence": effective_shot["sequence"],
                     "workflow_id": workflow_id,
@@ -738,6 +782,8 @@ class HermesCampaignService:
                         workflow_path=str(wf),
                         seed=shot_record["seed"],
                         output_dir=str(self.media_images / campaign_id),
+                        width=(platform_skill.get("constraints") or {}).get("width") if platform_skill.get("active") else None,
+                        height=(platform_skill.get("constraints") or {}).get("height") if platform_skill.get("active") else None,
                     )
                 except Exception as e:
                     transition_shot(shot_record, "final_fail")
