@@ -2794,13 +2794,36 @@ async function sendScriptChat() {
 // ---------------------------------------------------------------------------
 let characterManagerCache = [];
 
+function normalizeCharacters(payload) {
+    if (Array.isArray(payload)) return payload;
+    if (Array.isArray(payload?.characters)) return payload.characters;
+    return [];
+}
+
+function characterName(char) {
+    return String(char?.name || char?.id || "Unnamed").trim();
+}
+
+function characterId(char) {
+    return String(char?.id || characterName(char)).trim().toLowerCase().replace(/\s+/g, "_");
+}
+
+function characterImage(char) {
+    return char?.anchor_url || char?.anchor_src || "";
+}
+
+function characterDnaText(char) {
+    const dna = char?.dna && typeof char.dna === "object" ? char.dna : {};
+    return JSON.stringify(dna, null, 2);
+}
+
 async function loadCharacters() {
     const charList = document.getElementById("char-list");
     if (!charList) return;
     try {
         const resp = await fetch("/api/characters");
         const data = await resp.json();
-        const chars = Array.isArray(data) ? data : (data.characters || []);
+        const chars = normalizeCharacters(data);
 
         if (!chars.length) {
             charList.innerHTML = '<div style="color:#666; font-size:12px;">No characters yet</div>';
@@ -2808,11 +2831,11 @@ async function loadCharacters() {
         }
 
         charList.innerHTML = chars.map(c => {
-            const img = c.anchor_url || c.anchor_src || "";
+            const img = characterImage(c);
             return (
             '<div class="char-card">' +
-            (img ? '<img src="' + escapeHtml(img) + '" alt="' + escapeHtml(c.name) + '">' : '<div class="char-card-fallback"></div>') +
-            '<span class="char-name">' + escapeHtml(c.name) + "</span>" +
+            (img ? '<img src="' + escapeHtml(img) + '" alt="' + escapeHtml(characterName(c)) + '">' : '<div class="char-card-fallback"></div>') +
+            '<span class="char-name">' + escapeHtml(characterName(c)) + "</span>" +
             "</div>"
             );
         }).join("");
@@ -4859,29 +4882,6 @@ let shellState = {
 
 function getShellView() {
     return document.getElementById("view");
-}
-
-function normalizeCharacters(payload) {
-    if (Array.isArray(payload)) return payload;
-    if (Array.isArray(payload?.characters)) return payload.characters;
-    return [];
-}
-
-function characterName(char) {
-    return String(char?.name || char?.id || "Unnamed").trim();
-}
-
-function characterId(char) {
-    return String(char?.id || characterName(char)).trim().toLowerCase().replace(/\s+/g, "_");
-}
-
-function characterImage(char) {
-    return char?.anchor_url || char?.anchor_src || "";
-}
-
-function characterDnaText(char) {
-    const dna = char?.dna && typeof char.dna === "object" ? char.dna : {};
-    return JSON.stringify(dna, null, 2);
 }
 
 function normalizeProducts(payload) {
