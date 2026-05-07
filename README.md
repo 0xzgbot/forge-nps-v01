@@ -2,6 +2,14 @@
   <img src="marketing/assets/forge-hero-brain.png" alt="Forge NPS cinematic AI production command center" width="100%">
 </p>
 
+<p align="center">
+  <video src="marketing/assets/the-forge-demo.mp4" controls muted playsinline width="100%"></video>
+</p>
+
+<p align="center">
+  <a href="marketing/assets/the-forge-demo.mp4"><strong>Watch the Forge demo video</strong></a>
+</p>
+
 <h1 align="center">Forge NPS</h1>
 
 <p align="center">
