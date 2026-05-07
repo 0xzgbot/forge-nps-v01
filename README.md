@@ -4,6 +4,8 @@
 
 <p align="center">
   <img src="marketing/assets/the-forge-demo-preview.gif" alt="Forge NPS demo video preview" width="100%">
+  <br>
+  <a href="marketing/assets/the-forge-demo.mp4"><strong>Watch full demo with sound</strong></a>
 </p>
 
 <h1 align="center">Forge NPS</h1>
