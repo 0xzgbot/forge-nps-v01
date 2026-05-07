@@ -46,7 +46,7 @@ Cinematic, professional, tech-forward, modern, sleek, intelligent, controlled, p
 
 ## References
 
-- Marketing Site: [marketing/index.html](marketing/index.html)
-- Brand Bible: [README.md](README.md)
+- Marketing Site: [marketing/index.html](../marketing/index.html)
+- Brand Bible: [README.md](../README.md)
 - Architecture: [ARCHITECTURE.md](ARCHITECTURE.md)
-- Color Palette: [marketing/styles.css](marketing/styles.css)
+- Color Palette: [marketing/styles.css](../marketing/styles.css)

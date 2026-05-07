@@ -1,19 +1,17 @@
 # Docs Directory
 
-Primary operational docs live at the repo root:
+Primary operational docs live here so the repository root stays readable on GitHub:
 
-- [README.md](/Users/zgbot/Desktop/forge_nps_v01/README.md)
-- [INSTALLATION_AGENT_GUIDE.md](/Users/zgbot/Desktop/forge_nps_v01/INSTALLATION_AGENT_GUIDE.md)
-- [ARCHITECTURE.md](/Users/zgbot/Desktop/forge_nps_v01/ARCHITECTURE.md)
-- [PIPELINE_CONTRACT_SUMMARY.md](/Users/zgbot/Desktop/forge_nps_v01/PIPELINE_CONTRACT_SUMMARY.md)
-- [docs/CHANGELOG.md](/Users/zgbot/Desktop/forge_nps_v01/docs/CHANGELOG.md)
-- [docs/GEMMA4_MTP_VLLM.md](/Users/zgbot/Desktop/forge_nps_v01/docs/GEMMA4_MTP_VLLM.md)
-- [STABILITY_CHECKLIST.md](/Users/zgbot/Desktop/forge_nps_v01/STABILITY_CHECKLIST.md)
-- [SUBMISSION_GUIDE.md](/Users/zgbot/Desktop/forge_nps_v01/SUBMISSION_GUIDE.md)
-
-Files that remain directly under `docs/` are supporting submission/design materials, not runtime runbooks.
+- [README.md](../README.md)
+- [INSTALLATION_AGENT_GUIDE.md](INSTALLATION_AGENT_GUIDE.md)
+- [ARCHITECTURE.md](ARCHITECTURE.md)
+- [PIPELINE_CONTRACT_SUMMARY.md](PIPELINE_CONTRACT_SUMMARY.md)
+- [CHANGELOG.md](CHANGELOG.md)
+- [GEMMA4_MTP_VLLM.md](GEMMA4_MTP_VLLM.md)
+- [STABILITY_CHECKLIST.md](STABILITY_CHECKLIST.md)
+- [DEMO_SCRIPT.md](DEMO_SCRIPT.md)
 
 Current refresh notes:
 
-- [CHANGELOG.md](/Users/zgbot/Desktop/forge_nps_v01/docs/CHANGELOG.md) records the May 2026 dashboard, Idea Board, character terminology, script fallback, and profile tooling changes.
-- [GEMMA4_MTP_VLLM.md](/Users/zgbot/Desktop/forge_nps_v01/docs/GEMMA4_MTP_VLLM.md) records the vLLM / Gemma 4 MTP launch and smoke-test path.
+- [CHANGELOG.md](CHANGELOG.md) records the May 2026 dashboard, Idea Board, character terminology, script fallback, and profile tooling changes.
+- [GEMMA4_MTP_VLLM.md](GEMMA4_MTP_VLLM.md) records the vLLM / Gemma 4 MTP launch and smoke-test path.
