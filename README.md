@@ -192,7 +192,7 @@ http://localhost:7000
 Minimum environment/config values:
 
 ```bash
-KIMI_API_KEY=nvapi-...
+KIMI_API_KEY=your_api_key_here
 NIM_ENDPOINT=https://integrate.api.nvidia.com/v1/chat/completions
 KIMI_INSTRUCT_MODEL=moonshotai/kimi-k2-instruct
 KIMI_THINKING_MODEL=moonshotai/kimi-k2.6
@@ -212,7 +212,7 @@ COMFYUI_PRIMARY=http://localhost:8188
 FORGE_MEDIA_ROOT=/Users/zgbot/Desktop/FORGE_NPS_MEDIA
 ```
 
-`data/config.json` can override `.env` because the Settings page persists there.
+`data/config.json` can override `.env` because the Settings page persists there. It is intentionally ignored by git. Use [data/config.example.json](data/config.example.json) as the tracked reference shape, and keep real local IPs/API keys only in `.env` or local `data/config.json`.
 
 ## Verification
 

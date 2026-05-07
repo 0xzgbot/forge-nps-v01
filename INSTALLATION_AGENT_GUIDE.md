@@ -69,7 +69,7 @@ cp .env.template .env
 Required values:
 
 ```bash
-KIMI_API_KEY=nvapi-...
+KIMI_API_KEY=your_api_key_here
 NIM_ENDPOINT=https://integrate.api.nvidia.com/v1/chat/completions
 KIMI_INSTRUCT_MODEL=moonshotai/kimi-k2-instruct
 KIMI_THINKING_MODEL=moonshotai/kimi-k2.6
@@ -88,7 +88,8 @@ FORGE_MEDIA_ROOT=/Users/zgbot/Desktop/FORGE_NPS_MEDIA
 Notes:
 
 - `data/config.json` can override `.env` values because the Settings page persists there.
-- Do not commit real API keys unless the repo owner explicitly accepts that risk.
+- `data/config.json` is ignored by git; [data/config.example.json](data/config.example.json) is the tracked reference shape.
+- Do not commit real API keys, private IPs, or machine-specific endpoint URLs unless the repo owner explicitly accepts that risk.
 - If settings appear wrong in the UI, inspect both `.env` and `data/config.json`.
 - The LM Studio host can be saved as `http://host` plus `LMSTUDIO_PORT=1234`; the app normalizes it.
 
@@ -306,6 +307,12 @@ cat /Users/zgbot/Desktop/forge_nps_v01/data/config.json
 ```
 
 The Settings page writes to `data/config.json`; runtime config overlays that on top of `.env`.
+
+If the file does not exist yet, seed it from the tracked example:
+
+```bash
+cp data/config.example.json data/config.json
+```
 
 ### ComfyUI Renders Exist But Are Missing In App
 
