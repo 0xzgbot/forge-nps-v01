@@ -51,12 +51,31 @@ Forge NPS is a multi-service app. The dashboard coordinates external Kimi/NVIDIA
 8. Failed shots can be re-audited or remediated into linked retries.
 9. Memory records canonical pipeline events and outcomes.
 
+## Dashboard Workspaces
+
+| Workspace | Runtime Role |
+|-----------|--------------|
+| Home | Prompt intake, generation controls, campaign selection, log and media review. |
+| Ideas | Hermes/shot-store kanban board grouped by intake, planning, prompt compile, render, audit, revise, and approved stages. |
+| Characters | Identity asset management, character image upload, DNA editing, character render prompts, and character render history. |
+| Script | Script package generation, Director shot-list generation, and fallback coverage generation. |
+| Products | Product-oriented prompt and asset workspace. |
+| Renders | Image/video processing, failed render remediation, media refresh, and video workflow dispatch. |
+| Memory | Provenance graph, insights, playback, and campaign/event filtering. |
+| Settings | Provider, endpoint, ComfyUI/Spark, LM Studio, Kimi/NIM, and profile configuration. |
+
 ## Canonical Endpoints
 
 - `POST /api/hermes/run-campaign`
 - `POST /api/hermes/cancel`
+- `GET /api/hermes/idea-board`
 - `GET /api/shots`
 - `GET /api/campaigns`
+- `POST /api/script/develop`
+- `POST /api/director/generate`
+- `GET /api/characters`
+- `POST /api/characters`
+- `POST /api/characters/spark-render`
 - `POST /api/audit/reprocess`
 - `POST /api/audit/remediate`
 - `GET /api/memory/health`
@@ -103,6 +122,16 @@ Legacy routes are intentionally disabled and return `410 legacy_disabled`:
 Compatibility shim:
 
 - `/api/renders/audit-batch` forwards to canonical re-audit only when `shot_ids` is provided.
+
+## Fallback Behavior
+
+Fallbacks are explicit and surfaced to the caller.
+
+- The Ideas workspace calls `GET /api/hermes/idea-board` when available. If the running backend does not expose that route, the frontend builds a compatible board from `GET /api/shots`.
+- The backend idea-board route asks Hermes for a board if Hermes exposes a compatible method, otherwise it builds the board from `_SHOTS_STORE`.
+- Script development can return a deterministic fallback package if the Director API is unavailable.
+- Director shot-list generation can derive fallback coverage from a locked script package after Director API failure, preserving scene IDs, beat IDs, continuity locks, screen direction, and edit role.
+- Profile calls normalize OpenAI-compatible base URLs without rewriting explicit vLLM ports such as `:8000`.
 
 ## Contract Reference
 

@@ -51,6 +51,13 @@ components:
     textColor: "#FFFFFF"
     rounded: "{rounded.sm}"
     padding: "10px 20px"
+  prompt-input:
+    backgroundColor: "#13243a"
+    textColor: "#eef6ff"
+    minHeight: "132px"
+    rounded: "{rounded.sm}"
+  model-combo:
+    description: "Flux2.Dev and Turbo share one pill. Turbo is disabled unless Flux2.Dev is checked."
 ---
 
 ## Overview
@@ -76,3 +83,29 @@ We utilize a dual-font system to separate "Intent" from "Data":
 `sidebar` acts as the structural anchor, utilizing a slightly elevated surface color to distinguish it from the main content void. 
 
 All interactive elements follow the `{rounded.sm}` standard to maintain a sharp, professional edge, avoiding the "bubbly" consumer-app aesthetic.
+
+## Current Dashboard Refresh
+
+The active dashboard language is production-oriented rather than agency-brief-oriented:
+
+- The main textarea is labeled **Prompt**, not Creative Brief.
+- The primary generation command is **Generate Images**.
+- The prompt field is intentionally larger than default inputs and uses a lighter dark-blue surface for emphasis.
+- **Flux2.Dev** and **Turbo** share one pill. Turbo remains a dependent option and is disabled unless Flux2.Dev is active.
+- **Flux2 Klein** remains a separate peer model toggle.
+- Visible **Anchor/Anchors** terminology has been replaced with **Character/Characters**. Internal `anchor` field names stay unchanged where needed for API compatibility.
+
+Navigation now favors operational workspaces:
+
+- Home
+- Ideas
+- Characters
+- Script
+- Products
+- Renders
+- Memory
+- Settings
+
+The standalone Models tab was removed. Provider and model configuration lives in Settings.
+
+The Ideas workspace uses a kanban layout grouped by pipeline stage. It should degrade gracefully: if the Hermes idea-board endpoint is unavailable, the frontend builds the board from `/api/shots`.

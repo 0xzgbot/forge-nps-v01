@@ -2164,6 +2164,95 @@ def _fallback_script_package(req: ScriptDevelopRequest) -> Dict[str, Any]:
     }
 
 
+def _package_from_shotlist_brief(brief: str) -> Optional[Dict[str, Any]]:
+    text = brief or ""
+    marker = "LOCKED SCRIPT PACKAGE FOR SHOTLIST GENERATION:"
+    start = text.find(marker)
+    if start < 0:
+        return None
+    json_start = text.find("{", start)
+    if json_start < 0:
+        return None
+    try:
+        parsed, _end = json.JSONDecoder().raw_decode(text[json_start:])
+    except Exception:
+        return None
+    return parsed if isinstance(parsed, dict) else None
+
+
+def _fallback_director_shots_from_brief(brief: str, campaign_id: str, target_shots: int) -> List[Dict[str, Any]]:
+    package = _package_from_shotlist_brief(brief)
+    source_scenes: List[Dict[str, Any]] = []
+    if package:
+        acts = package.get("script", {}).get("acts", [])
+        if isinstance(acts, list):
+            for act in acts:
+                scenes = act.get("scenes", []) if isinstance(act, dict) else []
+                if isinstance(scenes, list):
+                    source_scenes.extend([s for s in scenes if isinstance(s, dict)])
+    if not source_scenes:
+        source_scenes = [{
+            "scene_id": "SC_001",
+            "title": "Brief Coverage",
+            "duration_sec": 30,
+            "location": "environment established by the brief",
+            "time_of_day": "consistent production lighting",
+            "emotional_turn": "make the prompt readable as a sequence",
+            "beats": [{"beat_id": "SC_001_B01", "action": _short_text(brief, 260), "characters": ["Hero"], "continuity": {}}],
+        }]
+
+    coverage_cycle = [
+        ("ESTABLISH", "wide establishing shot", "orient geography and lighting"),
+        ("MASTER", "locked master shot", "preserve blocking and screen direction"),
+        ("DETAIL", "insert detail", "anchor prop, hand, or environment state"),
+        ("REACTION", "close reaction shot", "make the emotional turn readable"),
+        ("TRANSITION", "transition plate", "bridge into the next beat"),
+    ]
+    planned: List[Dict[str, Any]] = []
+    for scene in source_scenes:
+        beats = scene.get("beats", [])
+        if not isinstance(beats, list) or not beats:
+            beats = [{"beat_id": f"{scene.get('scene_id', 'SC')}_B01", "action": scene.get("emotional_turn", ""), "characters": [], "continuity": {}}]
+        for beat in beats:
+            if not isinstance(beat, dict):
+                continue
+            role, coverage, purpose = coverage_cycle[len(planned) % len(coverage_cycle)]
+            continuity = beat.get("continuity", {}) if isinstance(beat.get("continuity"), dict) else {}
+            characters = beat.get("characters", []) if isinstance(beat.get("characters"), list) else []
+            scene_id = str(scene.get("scene_id") or "SC_001")
+            beat_id = str(beat.get("beat_id") or f"{scene_id}_B01")
+            shot_num = len(planned) + 1
+            visual = (
+                f"{coverage} for {scene_id}/{beat_id}: {beat.get('action') or scene.get('emotional_turn') or 'story beat'}. "
+                f"Location: {scene.get('location', 'locked location')}. Time/light: {scene.get('time_of_day', 'locked light')}. "
+                f"Continuity: wardrobe {continuity.get('wardrobe', 'locked')}; props {', '.join(continuity.get('props', [])) if isinstance(continuity.get('props'), list) else continuity.get('props', 'locked')}; "
+                f"screen direction {continuity.get('screen_direction', 'match prior axis')}. "
+                f"Edit role: {role}; purpose: {purpose}; transition should motivate the next beat."
+            )
+            planned.append({
+                "shot_id": f"{scene_id}_{beat_id}_SH_{shot_num:03d}".replace("__", "_"),
+                "sequence": shot_num,
+                "narrative_intent": f"{role}: {purpose}",
+                "visual_brief": visual,
+                "characters": characters,
+                "environment": str(scene.get("location") or ""),
+                "camera_direction": coverage,
+                "lighting_direction": str(scene.get("time_of_day") or "match scene lighting"),
+                "rationale": "Fallback coverage generated from locked script package after Director API failure.",
+                "constraints": "Preserve scene continuity, wardrobe, prop state, screen direction, and edit role.",
+            })
+            if len(planned) >= target_shots:
+                return planned
+
+    while len(planned) < target_shots and planned:
+        clone = dict(planned[len(planned) % len(planned)])
+        clone["sequence"] = len(planned) + 1
+        clone["shot_id"] = f"SHOT_{len(planned) + 1:03d}"
+        clone["narrative_intent"] = "SUPPLEMENTAL COVERAGE: continuity-safe alternate angle"
+        planned.append(clone)
+    return planned[:target_shots]
+
+
 async def _request_script_package(req: ScriptDevelopRequest) -> Dict[str, Any]:
     director = KimiDirectorService()
     if not director.api_key:
@@ -2353,7 +2442,15 @@ async def _stream_director_shot_generation(req: DirectorGenerateRequest) -> Asyn
             yield _script_director_event({"type": "shot", "shot": shot, "index": idx, "total": total})
         yield _script_director_event({"type": "done", "text": f"Shot list ready: {total} shots", "count": total})
     except Exception as e:
-        yield _script_director_event({"type": "error", "text": str(e)[:500]})
+        yield _script_director_event({"type": "status", "text": f"Director API unavailable; using package fallback coverage: {str(e)[:180]}"})
+        fallback_plan = _fallback_director_shots_from_brief(brief, campaign_id, target_shots)
+        script_shots = [_script_shot_from_director_plan(s, campaign_id) for s in fallback_plan]
+        _SHOTS_STORE[:] = [s for s in _SHOTS_STORE if str(s.get("source") or "") != "script_director"]
+        _SHOTS_STORE.extend(script_shots)
+        total = len(script_shots)
+        for idx, shot in enumerate(script_shots, start=1):
+            yield _script_director_event({"type": "shot", "shot": shot, "index": idx, "total": total})
+        yield _script_director_event({"type": "done", "text": f"Fallback coverage ready: {total} shots", "count": total})
 
 
 @app.post("/api/director/generate")
