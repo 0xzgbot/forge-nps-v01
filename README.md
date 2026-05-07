@@ -3,9 +3,7 @@
 </p>
 
 <p align="center">
-  <video controls muted playsinline preload="metadata" poster="marketing/assets/forge-hero-brain.png" width="100%">
-    <source src="marketing/assets/the-forge-demo.mp4" type="video/mp4">
-  </video>
+  <img src="marketing/assets/the-forge-demo-preview.gif" alt="Forge NPS demo video preview" width="100%">
 </p>
 
 <h1 align="center">Forge NPS</h1>
