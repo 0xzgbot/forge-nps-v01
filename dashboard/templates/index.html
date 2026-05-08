@@ -1793,6 +1793,33 @@
             gap: 14px;
             align-items: start;
         }
+        .character-roster-wrap.roster-collapsed {
+            grid-template-columns: 118px 1fr;
+        }
+        .character-roster-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+        .character-roster-wrap.roster-collapsed #character-manager-content {
+            display: none;
+        }
+        .character-roster-wrap.roster-collapsed .character-roster-panel {
+            position: sticky;
+            top: 12px;
+        }
+        .character-roster-wrap.roster-collapsed .character-roster-header {
+            justify-content: center;
+            min-height: 68px;
+            padding: 10px;
+            background: #111;
+            border: 1px solid #333;
+            border-radius: 8px;
+        }
+        .character-roster-wrap.roster-collapsed .character-roster-title {
+            display: none;
+        }
         .character-create-compact {
             display: flex;
             gap: 12px;
@@ -1905,7 +1932,8 @@
         }
         @media (max-width: 1180px) {
             .character-forge-grid,
-            .character-roster-wrap {
+            .character-roster-wrap,
+            .character-roster-wrap.roster-collapsed {
                 grid-template-columns: 1fr;
             }
         }
@@ -3580,9 +3608,9 @@
                         </div>
                     </section>
                 </div>
-                <div class="character-roster-wrap">
-                    <section>
-                        <div class="character-manager-status">Character Roster</div>
+                <div class="character-roster-wrap" id="character-roster-wrap">
+                    <section class="character-roster-panel">
+                        <div class="character-manager-status character-roster-header"><span class="character-roster-title">Character Roster</span><button class="btn btn-secondary" type="button" id="character-roster-toggle" onclick="toggleTemplateCharacterRoster()">Hide</button></div>
                         <div id="character-manager-content" class="character-grid">
                             <div class="character-manager-status">Loading characters...</div>
                         </div>
