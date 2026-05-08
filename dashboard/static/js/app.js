@@ -2911,6 +2911,18 @@ async function loadCharacterManager() {
     }
 }
 
+function toggleTemplateCharacterRoster() {
+    const wrap = document.getElementById("character-roster-wrap");
+    const toggle = document.getElementById("character-roster-toggle");
+    if (!wrap) return;
+    const collapsed = !wrap.classList.contains("roster-collapsed");
+    wrap.classList.toggle("roster-collapsed", collapsed);
+    if (toggle) {
+        toggle.textContent = collapsed ? "Show" : "Hide";
+        toggle.setAttribute("aria-expanded", String(!collapsed));
+    }
+}
+
 async function createCharacterFromManager(event) {
     if (event && event.preventDefault) event.preventDefault();
     const status = document.getElementById("character-manager-status");
@@ -4899,6 +4911,7 @@ let shellState = {
     view: "home",
     characters: [],
     selectedCharacterId: "",
+    charactersRosterCollapsed: false,
     products: [],
     selectedProductId: "",
     productBanks: {},
@@ -5540,15 +5553,21 @@ async function renderCharactersContent() {
 
     const selected = shellState.characters.find((c) => c.id === shellState.selectedCharacterId) || shellState.characters[0];
     shellState.selectedCharacterId = selected.id;
+    const collapsed = !!shellState.charactersRosterCollapsed;
     content.innerHTML =
-        '<div class="character-tab-grid">' +
-            '<aside class="character-sidebar">' +
-                '<div class="section-head"><h2>Roster</h2><div class="bar"></div><span class="meta">' + shellState.characters.length + '</span></div>' +
+        '<div class="character-tab-grid' + (collapsed ? ' roster-collapsed' : '') + '">' +
+            '<aside class="character-sidebar" aria-label="Character roster">' +
+                '<div class="section-head character-roster-head"><h2>Roster</h2><div class="bar"></div><span class="meta">' + shellState.characters.length + '</span><button class="btn btn-ghost character-roster-toggle" type="button" aria-expanded="' + String(!collapsed) + '" onclick="toggleCharacterRoster()">' + (collapsed ? "Show" : "Hide") + '</button></div>' +
                 '<div class="char-selector">' + shellState.characters.map(renderCharacterPick).join("") + '</div>' +
             '</aside>' +
             '<section class="character-workspace">' + renderCharacterDetail(selected) + '</section>' +
         '</div>';
     await loadCharacterVariations(selected.id);
+}
+
+async function toggleCharacterRoster() {
+    shellState.charactersRosterCollapsed = !shellState.charactersRosterCollapsed;
+    await renderCharactersContent();
 }
 
 function renderCharacterPick(char) {

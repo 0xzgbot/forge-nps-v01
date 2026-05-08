@@ -131,10 +131,41 @@
   gap: 14px;
   align-items: start;
 }
+.character-tab-grid.roster-collapsed {
+  grid-template-columns: 118px 1fr;
+}
 @media (max-width: 1100px) { .character-tab-grid { grid-template-columns: 1fr; } }
 .character-sidebar {
   min-width: 0;
 }
+.character-roster-head {
+  gap: 8px;
+}
+.character-roster-toggle {
+  flex: 0 0 auto;
+}
+.character-tab-grid.roster-collapsed .character-sidebar .bar,
+.character-tab-grid.roster-collapsed .character-sidebar .meta,
+.character-tab-grid.roster-collapsed .character-sidebar .char-selector {
+  display: none;
+}
+.character-tab-grid.roster-collapsed .character-sidebar {
+  position: sticky;
+  top: 12px;
+}
+.character-tab-grid.roster-collapsed .character-roster-head {
+  min-height: 68px;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--bg-elev);
+}
+.character-tab-grid.roster-collapsed .character-roster-head h2 {
+  display: none;
+}
+@media (max-width: 1100px) { .character-tab-grid.roster-collapsed { grid-template-columns: 1fr; } }
 .character-workspace {
   min-width: 0;
   display: flex;
