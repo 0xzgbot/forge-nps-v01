@@ -1486,14 +1486,17 @@ async function testVision() {
                 endpoint: document.getElementById("cfg-vision-endpoint-api1")?.value || "",
                 model: document.getElementById("cfg-visual-model")?.value || "",
                 api_key: document.getElementById("cfg-kimi-api-key")?.value || "",
+                host: document.getElementById("cfg-lmstudio-host")?.value || "",
+                port: document.getElementById("cfg-lmstudio-port")?.value || "",
             }),
         });
         const data = await resp.json();
         if (data.status === "ok") {
-            $result.textContent = "Vision OK: " + data.model + " (" + data.latency_ms + "ms)";
+            const endpoint = data.endpoint ? " via " + data.endpoint : "";
+            $result.textContent = "Vision OK: " + data.model + " (" + data.latency_ms + "ms)" + endpoint;
             $result.className = "test-result ok";
         } else {
-            $result.textContent = "Vision failed: " + (data.error || "unknown error");
+            $result.textContent = "Vision failed: " + formatEndpointError(data);
             $result.className = "test-result err";
         }
     } catch (e) {
@@ -1511,24 +1514,29 @@ async function testLMStudio() {
     const $modelsSelect = document.getElementById("lmstudio-models-select");
     const host = document.getElementById("cfg-lmstudio-host").value;
     const port = document.getElementById("cfg-lmstudio-port").value;
+    const displayTarget = [host || "localhost", port].filter(Boolean).join(":");
 
-    $result.textContent = "Connecting to " + host + ":" + port + "...";
+    $result.textContent = "Connecting to " + displayTarget + "...";
     $result.className = "test-result loading";
-    $modelsList.style.display = "none";
+    if ($modelsList) $modelsList.style.display = "none";
 
     try {
-        const url = "/api/lmstudio/status?host=" + encodeURIComponent(host) + "&port=" + encodeURIComponent(port);
+        const params = new URLSearchParams();
+        if (host) params.set("host", host);
+        if (port) params.set("port", port);
+        const url = "/api/lmstudio/status" + (params.toString() ? "?" + params.toString() : "");
         const resp = await fetch(url);
         const data = await resp.json();
 
         if (data.status === "ok") {
             const loaded = data.loaded_models || [];
             const available = data.available_models || [];
-            $result.textContent = "Reachable: " + loaded.length + " loaded / " + available.length + " available (" + data.latency_ms + "ms)";
+            const base = data.base_url ? " at " + data.base_url : "";
+            $result.textContent = "Reachable" + base + ": " + loaded.length + " loaded / " + available.length + " available (" + data.latency_ms + "ms)";
             $result.className = loaded.length ? "test-result ok" : "test-result loading";
 
             // Populate model dropdown
-            if (available.length > 0) {
+            if ($modelsSelect && $modelsList && available.length > 0) {
                 $modelsSelect.innerHTML = available.map(m =>
                     '<option value="' + escapeHtml(m.key) + '">' + escapeHtml((m.vision ? "VISION " : "") + (m.display_name || m.key) + " - " + m.key) + '</option>'
                 ).join("");
@@ -1537,13 +1545,31 @@ async function testLMStudio() {
                 $modelsList.style.display = "block";
             }
         } else {
-            $result.textContent = "Failed: " + (data.error || "unknown error");
+            $result.textContent = "Failed: " + formatEndpointError(data);
             $result.className = "test-result err";
         }
     } catch (e) {
         $result.textContent = "Error: " + e.message;
         $result.className = "test-result err";
     }
+}
+
+function formatEndpointError(data) {
+    if (!data) return "unknown error";
+    const parts = [];
+    if (data.error) parts.push(data.error);
+    if (data.base_url) parts.push("base: " + data.base_url);
+    if (Array.isArray(data.attempted) && data.attempted.length) {
+        parts.push("tried: " + data.attempted.join(", "));
+    }
+    if (Array.isArray(data.errors) && data.errors.length) {
+        const tail = data.errors.slice(-3).map((e) => {
+            if (typeof e === "string") return e;
+            return (e.url || e.base_url || e.endpoint || "endpoint") + " -> " + (e.error || "failed");
+        });
+        parts.push(tail.join(" | "));
+    }
+    return parts.filter(Boolean).join(" | ") || "unknown error";
 }
 
 function getLMStudioLoadPayload() {

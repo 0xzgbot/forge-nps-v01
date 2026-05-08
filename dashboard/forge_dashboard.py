@@ -119,8 +119,6 @@ def _normalize_lmstudio_base_url(host: str = "", port: Any = None) -> str:
     value = (host or str(cfg.get("LMSTUDIO_HOST", "") or "") or os.getenv("LMSTUDIO_HOST", "") or "http://localhost").strip().rstrip("/")
     if not value.startswith(("http://", "https://")):
         value = "http://" + value
-    if value.endswith("/v1"):
-        value = value[:-3].rstrip("/")
     raw_port = port if port not in (None, "", 0, "0") else (str(cfg.get("LMSTUDIO_PORT", "") or "") or os.getenv("LMSTUDIO_PORT", "") or "1234")
     port_text = str(raw_port or "").strip()
     parts = urlsplit(value)
@@ -131,7 +129,37 @@ def _normalize_lmstudio_base_url(host: str = "", port: Any = None) -> str:
         has_port = ":" in netloc.rsplit("@", 1)[-1]
     if port_text and not has_port:
         netloc = f"{netloc}:{port_text}"
-    return urlunsplit((parts.scheme, netloc, parts.path.rstrip("/"), "", ""))
+    path = parts.path.rstrip("/")
+    for suffix in ("/v1/chat/completions", "/chat/completions", "/v1"):
+        if path.endswith(suffix):
+            path = path[: -len(suffix)].rstrip("/")
+            break
+    return urlunsplit((parts.scheme, netloc, path, "", ""))
+
+
+def _lmstudio_base_candidates(host: str = "", port: Any = None) -> List[str]:
+    cfg = get_raw_config()
+    primary = _normalize_lmstudio_base_url(host, port)
+    candidates = [primary]
+    parsed = urlsplit(primary)
+    try:
+        detected_port = parsed.port
+    except ValueError:
+        detected_port = None
+    fallback_port = str(
+        port
+        if port not in (None, "", 0, "0")
+        else (detected_port or cfg.get("LMSTUDIO_PORT", "") or os.getenv("LMSTUDIO_PORT", "") or "1234")
+    ).strip()
+    for local_host in ("127.0.0.1", "localhost"):
+        candidates.append(_normalize_lmstudio_base_url(f"http://{local_host}", fallback_port))
+    deduped: List[str] = []
+    seen = set()
+    for candidate in candidates:
+        if candidate and candidate not in seen:
+            seen.add(candidate)
+            deduped.append(candidate)
+    return deduped
 
 
 class NexusQueryRequest(BaseModel):
@@ -4439,6 +4467,8 @@ class KimiTestRequest(BaseModel):
     api_key: str = ""
     endpoint: str = ""
     model: str = ""
+    host: str = ""
+    port: Any = ""
 
 
 async def _test_chat_completion(endpoint: str, api_key: str, model: str) -> Dict[str, Any]:
@@ -4482,6 +4512,21 @@ async def _test_vision_completion(endpoint: str, api_key: str, model: str) -> Di
         return {"status": "error", "error": "missing endpoint"}
     if not model:
         return {"status": "error", "error": "missing model"}
+    def encode_vision_probe_image(path: Optional[Path] = None) -> tuple[str, str]:
+        if path:
+            with Image.open(path) as img:
+                img.load()
+                width, height = img.size
+                if width > 224 and height > 224:
+                    return base64.b64encode(path.read_bytes()).decode("utf-8"), _image_mime_type(str(path))
+                scale = max(512 / max(width, 1), 512 / max(height, 1))
+                resized = img.convert("RGB").resize((max(512, int(width * scale)), max(512, int(height * scale))))
+        else:
+            resized = Image.new("RGB", (512, 512), color=(28, 45, 72))
+        buffer = io.BytesIO()
+        resized.save(buffer, format="PNG")
+        return base64.b64encode(buffer.getvalue()).decode("utf-8"), "image/png"
+
     image_b64 = ""
     mime_type = "image/png"
     for root in [MEDIA_IMAGES, MEDIA_ROOT / "imports", MEDIA_ROOT / "legacy"]:
@@ -4490,17 +4535,14 @@ async def _test_vision_completion(endpoint: str, api_key: str, model: str) -> Di
                 f for f in sorted(root.rglob("*"))
                 if f.is_file() and f.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"}
             )
-            image_b64 = base64.b64encode(candidate.read_bytes()).decode("utf-8")
-            mime_type = _image_mime_type(str(candidate))
+            image_b64, mime_type = encode_vision_probe_image(candidate)
             break
         except StopIteration:
             continue
         except Exception:
             continue
     if not image_b64:
-        image_b64 = (
-            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII="
-        )
+        image_b64, mime_type = encode_vision_probe_image()
     payload = {
         "model": model,
         "messages": [
@@ -4596,67 +4638,102 @@ async def api_test_vision_post(req: KimiTestRequest):
     endpoint = (req.endpoint or str(cfg.get("KIMI_VISUAL_ENDPOINT_API1", "") or cfg.get("NIM_ENDPOINT", "") or "")).strip()
     api_key = (req.api_key or str(cfg.get("KIMI_API_KEY", "") or "")).strip()
     model = (req.model or str(cfg.get("KIMI_VISUAL_MODEL", "") or cfg.get("LMSTUDIO_VISION_MODEL", "") or "")).strip()
-    if endpoint.startswith("https://") and not api_key:
-        return {"status": "error", "error": "missing api key"}
-    return await _test_vision_completion(endpoint, api_key, model)
+    candidates: List[str] = []
+    if endpoint:
+        candidates.append(endpoint)
+    for base in _lmstudio_base_candidates(req.host or str(cfg.get("LMSTUDIO_HOST", "") or ""), req.port or cfg.get("LMSTUDIO_PORT", "")):
+        candidates.append(f"{base}/v1")
+    deduped: List[str] = []
+    seen = set()
+    for candidate in candidates:
+        normalized = candidate.strip().rstrip("/")
+        if normalized and normalized not in seen:
+            seen.add(normalized)
+            deduped.append(normalized)
+    errors: List[Dict[str, str]] = []
+    for candidate in deduped:
+        if candidate.startswith("https://") and not api_key:
+            errors.append({"endpoint": candidate, "error": "missing api key"})
+            continue
+        result = await _test_vision_completion(candidate, api_key, model)
+        if result.get("status") == "ok":
+            result["attempted"] = deduped
+            return result
+        errors.append({"endpoint": result.get("endpoint", candidate), "error": str(result.get("error", "unknown error"))})
+    return {
+        "status": "error",
+        "error": errors[-1]["error"] if errors else "missing endpoint",
+        "attempted": deduped,
+        "errors": errors,
+        "model": model,
+    }
 
 
 @app.get("/api/test/lmstudio")
 async def api_test_lmstudio(host: str = "", port: int = 0):
-    base = _normalize_lmstudio_base_url(host, port)
-    url = f"{base}/v1/models"
+    bases = _lmstudio_base_candidates(host, port)
     t0 = time.time()
-    try:
-        async with httpx.AsyncClient(timeout=8.0) as client:
-            r = await client.get(url)
-        if r.status_code >= 400:
-            return {"status": "error", "error": f"http {r.status_code}: {r.text[:200]}", "models": []}
-        data = r.json()
-        models = [m.get("id") for m in data.get("data", []) if isinstance(m, dict) and m.get("id")]
-        return {"status": "ok", "models": models, "latency_ms": int((time.time() - t0) * 1000), "message": f"{len(models)} model(s)"}
-    except Exception as e:
-        return {"status": "error", "error": str(e), "models": []}
+    errors: List[Dict[str, str]] = []
+    for base in bases:
+        url = f"{base}/v1/models"
+        try:
+            async with httpx.AsyncClient(timeout=4.0) as client:
+                r = await client.get(url)
+            if r.status_code >= 400:
+                errors.append({"url": url, "error": f"http {r.status_code}: {r.text[:200]}"})
+                continue
+            data = r.json()
+            models = [m.get("id") for m in data.get("data", []) if isinstance(m, dict) and m.get("id")]
+            return {"status": "ok", "base_url": base, "models": models, "latency_ms": int((time.time() - t0) * 1000), "message": f"{len(models)} model(s)", "attempted": bases}
+        except Exception as e:
+            errors.append({"url": url, "error": str(e).strip() or e.__class__.__name__})
+    return {"status": "error", "error": errors[-1]["error"] if errors else "unreachable", "models": [], "attempted": bases, "errors": errors}
 
 
 @app.get("/api/lmstudio/status")
 async def api_lmstudio_status(host: str = "", port: int = 0):
-    base = _normalize_lmstudio_base_url(host, port)
     t0 = time.time()
-    try:
-        async with httpx.AsyncClient(timeout=8.0) as client:
-            loaded_resp = await client.get(f"{base}/v1/models")
-            available_resp = await client.get(f"{base}/api/v1/models")
-        if loaded_resp.status_code >= 400:
-            return {"status": "error", "error": f"http {loaded_resp.status_code}: {loaded_resp.text[:200]}", "base_url": base}
-        loaded_data = loaded_resp.json()
-        loaded = [m.get("id") for m in loaded_data.get("data", []) if isinstance(m, dict) and m.get("id")]
-        available: List[Dict[str, Any]] = []
-        if available_resp.status_code < 400:
-            available_data = available_resp.json()
-            available = [
-                {
-                    "key": m.get("key"),
-                    "display_name": m.get("display_name"),
-                    "type": m.get("type"),
-                    "vision": bool((m.get("capabilities") or {}).get("vision")),
-                    "loaded_instances": m.get("loaded_instances") or [],
-                }
-                for m in available_data.get("models", [])
-                if isinstance(m, dict) and m.get("key")
-            ]
-        return {
-            "status": "ok",
-            "base_url": base,
-            "loaded_models": loaded,
-            "available_models": available,
-            "loaded_count": len(loaded),
-            "available_count": len(available),
-            "hermes_usable": bool(loaded),
-            "vision_usable": bool(loaded),
-            "latency_ms": int((time.time() - t0) * 1000),
-        }
-    except Exception as e:
-        return {"status": "error", "error": str(e), "base_url": base}
+    bases = _lmstudio_base_candidates(host, port)
+    errors: List[Dict[str, str]] = []
+    for base in bases:
+        try:
+            async with httpx.AsyncClient(timeout=4.0) as client:
+                loaded_resp = await client.get(f"{base}/v1/models")
+                available_resp = await client.get(f"{base}/api/v1/models")
+            if loaded_resp.status_code >= 400:
+                errors.append({"base_url": base, "error": f"http {loaded_resp.status_code}: {loaded_resp.text[:200]}"})
+                continue
+            loaded_data = loaded_resp.json()
+            loaded = [m.get("id") for m in loaded_data.get("data", []) if isinstance(m, dict) and m.get("id")]
+            available: List[Dict[str, Any]] = []
+            if available_resp.status_code < 400:
+                available_data = available_resp.json()
+                available = [
+                    {
+                        "key": m.get("key"),
+                        "display_name": m.get("display_name"),
+                        "type": m.get("type"),
+                        "vision": bool((m.get("capabilities") or {}).get("vision")),
+                        "loaded_instances": m.get("loaded_instances") or [],
+                    }
+                    for m in available_data.get("models", [])
+                    if isinstance(m, dict) and m.get("key")
+                ]
+            return {
+                "status": "ok",
+                "base_url": base,
+                "attempted": bases,
+                "loaded_models": loaded,
+                "available_models": available,
+                "loaded_count": len(loaded),
+                "available_count": len(available),
+                "hermes_usable": bool(loaded),
+                "vision_usable": bool(loaded),
+                "latency_ms": int((time.time() - t0) * 1000),
+            }
+        except Exception as e:
+            errors.append({"base_url": base, "error": str(e).strip() or e.__class__.__name__})
+    return {"status": "error", "error": errors[-1]["error"] if errors else "unreachable", "base_url": bases[0] if bases else "", "attempted": bases, "errors": errors}
 
 
 @app.post("/api/lmstudio/load")
