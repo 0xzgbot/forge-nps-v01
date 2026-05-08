@@ -74,14 +74,10 @@ Current local workspace note:
 - Added local director fallback coverage from a locked script package for shot-list generation after Director API failure.
 - The fallback coverage preserves scene IDs, beat IDs, wardrobe, props, screen direction, locations, time of day, and edit role.
 
-### Profile / vLLM Tooling
+### Profile Endpoint Tooling
 
-- Added vLLM / Gemma 4 MTP environment examples to `.env.template`.
-- Added [docs/GEMMA4_MTP_VLLM.md](GEMMA4_MTP_VLLM.md) with launch presets, smoke tests, and Forge environment wiring.
-- Added `scripts/launch_vllm_gemma4_mtp.sh` for DGX Spark and dual-3090 vLLM launch presets.
-- Added `scripts/benchmark_vllm_endpoint.py` for OpenAI-compatible endpoint latency/throughput smoke testing.
-- Updated `core/hermes/pipeline/profile_cli.py` so OpenAI-compatible base URL normalization preserves explicit vLLM ports such as `:8000`.
-- Added `tests/test_profile_cli.py` for profile base URL normalization and explicit vLLM preference.
+- Updated `core/hermes/pipeline/profile_cli.py` so OpenAI-compatible base URL normalization preserves explicit custom endpoint ports.
+- Added `tests/test_profile_cli.py` for profile base URL normalization and explicit custom endpoint preference.
 
 ### Prompt Builder and Product Banks
 
@@ -98,7 +94,7 @@ The following checks were run before the latest pushed commit:
 
 ```bash
 node --check dashboard/static/js/app.js
-python3 -m py_compile core/hermes/pipeline/profile_cli.py dashboard/api/prompt_builder.py dashboard/forge_dashboard.py scripts/benchmark_vllm_endpoint.py
+python3 -m py_compile core/hermes/pipeline/profile_cli.py dashboard/api/prompt_builder.py dashboard/forge_dashboard.py
 python3 -m pytest tests/test_profile_cli.py
 ```
 

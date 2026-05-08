@@ -131,7 +131,7 @@ Fallbacks are explicit and surfaced to the caller.
 - The backend idea-board route asks Hermes for a board if Hermes exposes a compatible method, otherwise it builds the board from `_SHOTS_STORE`.
 - Script development can return a deterministic fallback package if the Director API is unavailable.
 - Director shot-list generation can derive fallback coverage from a locked script package after Director API failure, preserving scene IDs, beat IDs, continuity locks, screen direction, and edit role.
-- Profile calls normalize OpenAI-compatible base URLs without rewriting explicit vLLM ports such as `:8000`.
+- Profile calls normalize OpenAI-compatible base URLs without rewriting explicit custom endpoint ports.
 
 ## Contract Reference
 
