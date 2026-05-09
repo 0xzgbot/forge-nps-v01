@@ -2626,6 +2626,128 @@ def _assemble_storyboard_page(req: ScriptStoryboardAssembleRequest) -> Dict[str,
     }
 
 
+def _storyboard_slug(value: str) -> str:
+    slug = re.sub(r"[^a-zA-Z0-9]+", "_", value or "").strip("_").lower()
+    return slug[:42] or f"storyboard_{uuid.uuid4().hex[:8]}"
+
+
+def _storyboard_edit_role(sequence: int, total: int, panel: Dict[str, Any]) -> str:
+    text = f"{panel.get('caption', '')} {panel.get('camera', '')} {panel.get('visual_prompt', '')}".lower()
+    if sequence == 1 or "establish" in text or "wide" in text:
+        return "establish geography and screen direction"
+    if sequence == total or "closing" in text or "final" in text:
+        return "transition out / end frame"
+    if "insert" in text or "detail" in text or "prop" in text:
+        return "insert detail for edit emphasis"
+    if "reaction" in text or "close-up" in text:
+        return "performance reaction beat"
+    if "reveal" in text or "threshold" in text:
+        return "reveal / escalation beat"
+    if "over-the-shoulder" in text or "confrontation" in text:
+        return "shot reverse / confrontation coverage"
+    return "continuity coverage beat"
+
+
+def _storyboard_motion_prompt(panel: Dict[str, Any], sequence: int, total: int, edit_role: str) -> str:
+    camera = str(panel.get("camera") or "subtle cinematic camera move").strip()
+    action = _short_text(str(panel.get("visual_prompt") or panel.get("caption") or "Continue the scene from this frame."), 420)
+    continuity = _short_text(str(panel.get("continuity") or "preserve wardrobe, subject identity, props, lighting, and screen direction"), 240)
+    return (
+        f"Use this image as the first frame for shot {sequence} of {total}. "
+        f"Animate the scripted beat: {action} "
+        f"Camera direction: {camera}; controlled cinematic motion, no abrupt reframing. "
+        f"Edit role: {edit_role}. "
+        f"Continuity lock: {continuity}. "
+        "Preserve character identity, wardrobe, props, lighting, lens feel, and location geometry. "
+        "Natural motion only, no morphing, no new characters, no text overlays, no cuts inside the clip."
+    )
+
+
+def _export_storyboard_video_shots(req: ScriptStoryboardVideoExportRequest) -> Dict[str, Any]:
+    board = req.board if isinstance(req.board, dict) else {}
+    panels = board.get("panels") if isinstance(board.get("panels"), list) else []
+    urls = [u for u in req.panel_image_urls if (u or "").strip()]
+    if not panels:
+        raise HTTPException(status_code=400, detail="board.panels required")
+    if len(urls) != len(panels):
+        raise HTTPException(status_code=400, detail="panel_image_urls must match board.panels length")
+
+    title = (req.title or board.get("title") or "Storyboard").strip() or "Storyboard"
+    campaign_id = (req.campaign_id or f"storyboard_{_storyboard_slug(title)}_{uuid.uuid4().hex[:8]}").strip()
+    duration = max(1.0, min(float(req.duration_seconds or 4.0), 20.0))
+    if req.replace_existing:
+        _SHOTS_STORE[:] = [
+            shot for shot in _SHOTS_STORE
+            if not (
+                str(shot.get("source") or "") == "storyboard_start_frame"
+                and str(shot.get("campaign_id") or "") == campaign_id
+            )
+        ]
+
+    created: List[Dict[str, Any]] = []
+    total = len(panels)
+    for index, (panel, url) in enumerate(zip(panels, urls), start=1):
+        if not isinstance(panel, dict):
+            panel = {}
+        image_path = _resolve_image_path(url)
+        edit_role = _storyboard_edit_role(index, total, panel)
+        shot_id = f"SB_{index:03d}"
+        record_id = f"{campaign_id}__{shot_id}"
+        visual = _short_text(str(panel.get("visual_prompt") or panel.get("caption") or f"Storyboard panel {index}"), 900)
+        video_prompt = _storyboard_motion_prompt(panel, index, total, edit_role)
+        shot = {
+            "id": record_id,
+            "shot_id": shot_id,
+            "source": "storyboard_start_frame",
+            "campaign_id": campaign_id,
+            "campaign_title": title,
+            "n": index,
+            "sequence": index,
+            "status": "rendered",
+            "intent": "video",
+            "description": visual,
+            "prompt": visual,
+            "image_url": url,
+            "image_path": str(image_path) if image_path else "",
+            "start_frame_url": url,
+            "video_prompt": video_prompt,
+            "video_prompt_source": "storyboard_export",
+            "duration_sec": duration,
+            "scene_id": str(panel.get("scene_id") or ""),
+            "beat_id": str(panel.get("beat_id") or ""),
+            "panel_id": str(panel.get("panel_id") or f"PANEL_{index:03d}"),
+            "storyboard_board_id": str(board.get("board_id") or ""),
+            "storyboard_panel_index": index,
+            "camera_direction": str(panel.get("camera") or ""),
+            "lighting_direction": str(panel.get("lighting") or ""),
+            "mood": str(panel.get("mood") or ""),
+            "environment": str(panel.get("location") or ""),
+            "characters": panel.get("characters", []) if isinstance(panel.get("characters"), list) else [],
+            "constraints": str(panel.get("continuity") or ""),
+            "edit_role": edit_role,
+            "seed": random.randint(100000, 999999),
+            "created_at": _now_iso(),
+        }
+        _SHOTS_STORE.append(shot)
+        created.append(shot)
+
+    _record_pipeline_event(
+        "storyboard_export_video_shots",
+        campaign_id=campaign_id,
+        source="script",
+        success=True,
+        extra={"shot_count": len(created), "title": title},
+    )
+    return {
+        "status": "ok",
+        "campaign_id": campaign_id,
+        "title": title,
+        "count": len(created),
+        "shot_ids": [shot["id"] for shot in created],
+        "shots": created,
+    }
+
+
 def _build_storyboard_boards(req: ScriptStoryboardRequest) -> Dict[str, Any]:
     panels_per_board = max(1, min(int(req.panels_per_board or 9), 9))
     target_panels = req.target_panels
