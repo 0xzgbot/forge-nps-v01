@@ -7,6 +7,7 @@ Serves variation bank items and generates recipes from user selections.
 import json
 import random
 import hashlib
+import re
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 
@@ -29,6 +30,28 @@ def load_banks(mode: str = "character") -> Dict[str, List[str]]:
         lines = [line.strip() for line in bank_file.read_text().split("\n") if line.strip()]
         banks[name] = lines
     return banks
+
+
+def save_banks(mode: str = "character", banks: Optional[Dict[str, Any]] = None) -> Dict[str, int]:
+    """Persist editable variation bank files."""
+    target_dir = BANKS_DIR if mode == "character" else PRODUCT_BANKS_DIR
+    target_dir.mkdir(parents=True, exist_ok=True)
+    saved: Dict[str, int] = {}
+    for raw_name, raw_value in (banks or {}).items():
+        name = re.sub(r"[^a-z0-9_]+", "_", str(raw_name).strip().lower()).strip("_")
+        if not name:
+            continue
+        if name.endswith("_bank"):
+            name = name[:-5]
+        path = target_dir / f"{name}_bank.txt"
+        if isinstance(raw_value, list):
+            lines = [str(item).strip() for item in raw_value]
+        else:
+            lines = [line.strip() for line in str(raw_value or "").splitlines()]
+        cleaned = [line for line in lines if line]
+        path.write_text("\n".join(cleaned) + ("\n" if cleaned else ""), encoding="utf-8")
+        saved[name] = len(cleaned)
+    return saved
 
 
 def get_character_descriptor(name: Optional[str] = None) -> str:

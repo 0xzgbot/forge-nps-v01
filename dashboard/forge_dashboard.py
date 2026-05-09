@@ -35,7 +35,7 @@ from core.hermes.memory.semantic_memory import SemanticMemory
 from core.skills.skill_registry import SkillRegistry
 from forge_nexus.mcp.handlers import ForgeMCPHandlers
 import asyncio
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from .memory_api import (
     get_memory_stats,
@@ -44,7 +44,7 @@ from .memory_api import (
     search_memory,
     get_memory_health,
 )
-from .api.prompt_builder import load_banks, build_recipe, generate_random_recipe
+from .api.prompt_builder import load_banks, build_recipe, generate_random_recipe, save_banks
 from .api.spark_monitor import monitor as spark_monitor
 from core.dispatch.comfy_client import ComfyUIClient
 from core.affiliate.local_higgsfield import LocalHiggsfieldAdapter
@@ -700,6 +700,18 @@ async def test_api_models():
 async def api_banks(mode: str = Query("character")):
     """Load all variation bank items."""
     return load_banks(mode)
+
+
+class SaveBanksRequest(BaseModel):
+    mode: str = "character"
+    banks: Dict[str, Any]
+
+
+@app.post("/api/banks")
+async def api_save_banks(req: SaveBanksRequest):
+    """Save editable variation bank items."""
+    saved = save_banks(req.mode, req.banks)
+    return {"status": "success", "saved": saved}
 
 
 class BuildRecipeRequest(BaseModel):
@@ -4137,6 +4149,7 @@ class FullImageAuditSchema(BaseModel):
 
 
 _AUDIT_CHECK_KEYS = [
+    "framing_ok",
     "hands_ok",
     "limbs_ok",
     "face_ok",
@@ -4145,8 +4158,9 @@ _AUDIT_CHECK_KEYS = [
     "text_artifacts_ok",
     "prompt_adherence_ok",
 ]
-_AUDIT_CRITICAL_CHECKS = {"hands_ok", "limbs_ok", "reflection_ok", "vehicle_geometry_ok"}
+_AUDIT_CRITICAL_CHECKS = {"framing_ok", "hands_ok", "limbs_ok", "reflection_ok", "vehicle_geometry_ok"}
 _AUDIT_CHECK_WEIGHTS = {
+    "framing_ok": 3.0,
     "hands_ok": 3.0,
     "limbs_ok": 3.0,
     "face_ok": 2.0,
@@ -4156,6 +4170,30 @@ _AUDIT_CHECK_WEIGHTS = {
     "prompt_adherence_ok": 2.0,
 }
 _AUDIT_KEYWORD_TO_CHECK = {
+    "framing_ok": [
+        "not full body",
+        "not a full-body",
+        "not strictly full-body",
+        "not strictly full body",
+        "full-body requirement",
+        "full body requirement",
+        "head-to-toe",
+        "head to toe",
+        "feet are cut",
+        "feet cut",
+        "feet not visible",
+        "shoes not visible",
+        "cut off",
+        "cuts off",
+        "cropped",
+        "mid-thigh",
+        "mid thigh",
+        "below the knees",
+        "at the knees",
+        "at shins",
+        "at the shins",
+        "ankles",
+    ],
     "hands_ok": ["finger", "thumb", "hand", "extra fingers", "missing fingers"],
     "limbs_ok": ["extra arm", "extra limb", "arm sticking", "arm through", "deformed anatomy", "broken limb"],
     "reflection_ok": ["reflection", "mirror", "window reflection", "inconsistent reflection"],
@@ -4203,7 +4241,24 @@ def _merge_checks(primary: Dict[str, Any], secondary: Dict[str, Any]) -> Dict[st
     return merged
 
 
-def _apply_keyword_fails(checks: Dict[str, bool], issues: List[str], feedback: str) -> Dict[str, bool]:
+def _requires_full_body(prompt: str) -> bool:
+    text = str(prompt or "").lower()
+    return any(
+        phrase in text
+        for phrase in (
+            "full-body",
+            "full body",
+            "full-length",
+            "full length",
+            "head-to-toe",
+            "head to toe",
+            "feet fully visible",
+            "both feet",
+        )
+    )
+
+
+def _apply_keyword_fails(checks: Dict[str, bool], issues: List[str], feedback: str, prompt: str = "") -> Dict[str, bool]:
     merged_text = " ".join(issues + [feedback]).lower()
     if not merged_text:
         return checks
@@ -4220,6 +4275,24 @@ def _apply_keyword_fails(checks: Dict[str, bool], issues: List[str], feedback: s
             continue
         if any(k in merged_text for k in keywords):
             checks[check_key] = False
+    if _requires_full_body(prompt) and any(
+        p in merged_text
+        for p in (
+            "not full body",
+            "not a full-body",
+            "full-body requirement",
+            "full body requirement",
+            "cut off",
+            "cuts off",
+            "cropped",
+            "feet",
+            "knees",
+            "shins",
+            "thigh",
+        )
+    ):
+        checks["framing_ok"] = False
+        checks["prompt_adherence_ok"] = False
     return checks
 
 
@@ -4248,7 +4321,7 @@ def _extract_checks(raw: Dict[str, Any]) -> Dict[str, Any]:
     return {}
 
 
-def _aggregate_audit_results(pass_a: Dict[str, Any], pass_b: Dict[str, Any]) -> Dict[str, Any]:
+def _aggregate_audit_results(pass_a: Dict[str, Any], pass_b: Dict[str, Any], prompt: str = "") -> Dict[str, Any]:
     score_a = _safe_float(pass_a.get("overall_score", pass_a.get("score", 0)), 0.0)
     score_b = _safe_float(pass_b.get("overall_score", pass_b.get("score", 0)), 0.0)
     score_model = max(score_a, score_b)
@@ -4263,7 +4336,7 @@ def _aggregate_audit_results(pass_a: Dict[str, Any], pass_b: Dict[str, Any]) -> 
     critical = _normalize_issue_list(pass_a.get("critical_failures")) + _normalize_issue_list(pass_b.get("critical_failures"))
     feedback = " | ".join([x for x in [pass_a.get("feedback"), pass_b.get("feedback")] if isinstance(x, str) and x.strip()]).strip()
 
-    checks = _apply_keyword_fails(checks, issues + noncritical + critical, feedback)
+    checks = _apply_keyword_fails(checks, issues + noncritical + critical, feedback, prompt)
     merged_audit_text = " ".join(issues + noncritical + critical + [feedback]).lower()
     if any(p in merged_audit_text for p in ("hands are not visible", "hands not visible", "no hands visible", "hand is not visible", "hand not visible", "not visible on controls")):
         checks["hands_ok"] = True
@@ -4461,9 +4534,10 @@ async def audit_render_with_kimi_vl(image_path: str, prompt: str = "", campaign:
             "Return ONLY minified JSON, no markdown, no explanation. "
             f"Audit this image for campaign '{campaign}'. Prompt excerpt: {prompt[:180] if prompt else 'N/A'}. "
             "Schema: {\"overall_score\":0-100,\"model_passed\":true/false,\"confidence\":0-1,"
-            "\"checks\":{\"hands_ok\":true,\"limbs_ok\":true,\"face_ok\":true,\"reflection_ok\":true,"
+            "\"checks\":{\"framing_ok\":true,\"hands_ok\":true,\"limbs_ok\":true,\"face_ok\":true,\"reflection_ok\":true,"
             "\"vehicle_geometry_ok\":true,\"text_artifacts_ok\":true,\"prompt_adherence_ok\":true},"
             "\"critical_failures\":[],\"noncritical_issues\":[],\"issues\":[],\"feedback\":\"short\"}. "
+            "If the prompt asks for full-body, full-length, or head-to-toe framing, framing_ok MUST be false and model_passed MUST be false when feet, shoes, legs, knees, shins, or ankles are cropped or not visible. "
             "Fail only visible hard defects. If hands/faces/reflections/vehicles are not visible or not applicable, mark that check true."
         )
 
@@ -4476,7 +4550,7 @@ async def audit_render_with_kimi_vl(image_path: str, prompt: str = "", campaign:
             user_prompt=audit_user_prompt,
             task_description=f"Compact audit for {campaign}",
         )
-        result = _aggregate_audit_results(audit_pass, {})
+        result = _aggregate_audit_results(audit_pass, {}, prompt)
         result["audit_backend"] = "vision_config"
         result["audit_endpoint"] = endpoint
         result["audit_model"] = model
@@ -4915,6 +4989,7 @@ async def api_config():
     endpoint = str(cfg.get("NIM_ENDPOINT", "") or "")
     comfy_primary = str(cfg.get("COMFYUI_PRIMARY", "") or "")
     comfy_secondary = str(cfg.get("COMFYUI_SECONDARY", "") or "")
+    spark_workflow_file = str(cfg.get("SPARK_WORKFLOW_FILE", "") or "")
     lm_host = str(cfg.get("LMSTUDIO_HOST", "") or "")
     lm_port = str(cfg.get("LMSTUDIO_PORT", "") or "")
     lm_model = str(cfg.get("LMSTUDIO_CHAT_MODEL", "") or "")
@@ -4962,7 +5037,7 @@ async def api_config():
         "spark": {
             "primary": comfy_primary,
             "secondary": comfy_secondary,
-            "workflow_file": "",
+            "workflow_file": spark_workflow_file,
         },
     }
 
@@ -5027,6 +5102,7 @@ async def api_config_save(req: FlatConfigUpdateRequest):
         "comfyui.secondary": "COMFYUI_SECONDARY",
         "spark.primary": "COMFYUI_PRIMARY",
         "spark.secondary": "COMFYUI_SECONDARY",
+        "spark.workflow_file": "SPARK_WORKFLOW_FILE",
     }
     for k, v in (updates or {}).items():
         mapped[key_map.get(k, k)] = v
@@ -6222,6 +6298,7 @@ class CharacterSparkRenderRequest(BaseModel):
     save_character: bool = True
     character_id: Optional[str] = ""
     reference_image_url: Optional[str] = ""
+    reference_image_urls: List[str] = Field(default_factory=list)
 
 
 class CharacterRolePromptRequest(BaseModel):
@@ -6450,6 +6527,31 @@ def _latest_character_generated_reference(char: Dict[str, Any]) -> str:
     return ""
 
 
+def _character_reference_urls(char: Dict[str, Any], *, limit: int = 10) -> List[str]:
+    urls: List[str] = []
+
+    def add(url: Any) -> None:
+        clean = str(url or "").strip()
+        if clean and clean not in urls and len(urls) < limit:
+            urls.append(clean)
+
+    add(_latest_character_generated_reference(char))
+    approved = char.get("approved_assets") if isinstance(char.get("approved_assets"), list) else []
+    for asset in reversed(approved):
+        if isinstance(asset, dict) and asset.get("type") == "character":
+            add(asset.get("url"))
+    for key in ("master_references", "reference_uploads", "sheet_panels"):
+        refs = char.get(key) if isinstance(char.get(key), list) else []
+        for ref in refs:
+            if not isinstance(ref, dict):
+                continue
+            url = str(ref.get("url") or "").strip()
+            if re.search(r"\.(mp4|mov|webm)(\?|$)", url, re.IGNORECASE):
+                continue
+            add(url)
+    return urls[:limit]
+
+
 def _workflow_has_image_input(workflow_path: Path) -> bool:
     try:
         text = workflow_path.read_text(encoding="utf-8", errors="ignore")
@@ -6494,19 +6596,29 @@ async def api_character_spark_render(req: CharacterSparkRenderRequest):
         raise HTTPException(status_code=404, detail="No text-to-image workflow file found for character rendering")
 
     reference_url = ""
-    reference_path: Optional[Path] = None
+    reference_urls: List[str] = []
+    reference_paths: List[Path] = []
     if requested_type in {"sheet", "variation"}:
-        reference_url = (req.reference_image_url or "").strip() or _latest_character_generated_reference(selected_char or {})
-        if not reference_url:
+        for url in list(req.reference_image_urls or []) + [(req.reference_image_url or "").strip()] + _character_reference_urls(selected_char or {}):
+            clean = str(url or "").strip()
+            if clean and clean not in reference_urls and len(reference_urls) < 10:
+                reference_urls.append(clean)
+        reference_url = reference_urls[0] if reference_urls else ""
+        if not reference_urls:
             raise HTTPException(status_code=400, detail="Selected character has no generated image to use as a reference")
-        reference_path = _resolve_image_path(reference_url)
-        if not reference_path:
-            raise HTTPException(status_code=404, detail="Selected character reference image could not be resolved locally")
+        for url in reference_urls:
+            resolved = _resolve_image_path(url)
+            if resolved:
+                reference_paths.append(resolved)
+        if not reference_paths:
+            raise HTTPException(status_code=404, detail="Selected character reference images could not be resolved locally")
         reference_instruction = (
-            " Use the supplied reference image as the identity lock. Match the exact same person, face, age, hair, body proportions, "
-            "skin tone, expression family, and signature wardrobe cues from the reference image. Do not invent a new character."
+            " Use the supplied reference images as the identity lock. Reference image 1 is the primary latest character portrait. "
+            "Match the exact same person, face, age, hair, body proportions, skin tone, expression family, and signature wardrobe cues. "
+            "Do not invent a new character."
         )
         prompt = _with_character_no_text_rule(prompt + reference_instruction)
+    workflow_accepts_references = bool(reference_paths) and _workflow_has_image_input(workflow_path)
 
     client = ComfyUIClient(host)
     ok, info = await client.check_health()
@@ -6523,7 +6635,7 @@ async def api_character_spark_render(req: CharacterSparkRenderRequest):
         workflow_path=str(workflow_path),
         seed=seed,
         output_dir=str(output_dir),
-        image_path=str(reference_path) if reference_path else None,
+        image_paths=[str(path) for path in reference_paths],
         wait_for_output=True,
     )
     if result.get("status") != "success":
@@ -6567,7 +6679,9 @@ async def api_character_spark_render(req: CharacterSparkRenderRequest):
         "workflow_id": req.workflow_id,
         "image_urls": image_urls,
         "reference_image_url": reference_url,
-        "reference_image_used": bool(reference_path) and _workflow_has_image_input(workflow_path),
+        "reference_image_urls": reference_urls,
+        "reference_image_used": workflow_accepts_references,
+        "reference_image_count": len(reference_paths),
         "created_at": _now_iso(),
     })
     if image_urls:
@@ -6579,7 +6693,9 @@ async def api_character_spark_render(req: CharacterSparkRenderRequest):
             "seed": seed,
             "workflow_id": req.workflow_id,
             "reference_image_url": reference_url,
-            "reference_image_used": bool(reference_path) and _workflow_has_image_input(workflow_path),
+            "reference_image_urls": reference_urls,
+            "reference_image_used": workflow_accepts_references,
+            "reference_image_count": len(reference_paths),
             "created_at": _now_iso(),
         }
         char.setdefault("approved_assets" if requested_type == "character" else "candidate_assets", []).append(asset)
@@ -6611,7 +6727,9 @@ async def api_character_spark_render(req: CharacterSparkRenderRequest):
         "prompt_id": result.get("prompt_id"),
         "image_urls": image_urls,
         "reference_image_url": reference_url,
-        "reference_image_used": bool(reference_path) and _workflow_has_image_input(workflow_path),
+        "reference_image_urls": reference_urls,
+        "reference_image_used": workflow_accepts_references,
+        "reference_image_count": len(reference_paths),
     }, indent=2), encoding="utf-8")
 
     return {
@@ -6624,7 +6742,9 @@ async def api_character_spark_render(req: CharacterSparkRenderRequest):
         "anchor_url": anchor_url or char.get("anchor_url", ""),
         "saved_files": saved_files,
         "reference_image_url": reference_url,
-        "reference_image_used": bool(reference_path) and _workflow_has_image_input(workflow_path),
+        "reference_image_urls": reference_urls,
+        "reference_image_used": workflow_accepts_references,
+        "reference_image_count": len(reference_paths),
     }
 
 

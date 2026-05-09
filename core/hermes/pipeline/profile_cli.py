@@ -17,7 +17,7 @@ class HermesProfileCLI:
 
     def __init__(self) -> None:
         self.runner = os.getenv("FORGE_PROFILE_CLI_RUNNER", "forgehermes").strip() or "forgehermes"
-        self.timeout_sec = float(os.getenv("FORGE_PROFILE_CLI_TIMEOUT_SEC", "120"))
+        self.timeout_sec = float(os.getenv("FORGE_PROFILE_CLI_TIMEOUT_SEC", "600"))
         self.last_error = ""
         self.profile_map = {
             "compiler": os.getenv("FORGE_PROFILE_COMPILER", "compiler"),

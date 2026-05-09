@@ -3125,6 +3125,15 @@
         .settings-span-2 {
             grid-column: span 2;
         }
+        .settings-bank-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+        .settings-bank-grid textarea {
+            min-height: 156px;
+            resize: vertical;
+        }
         .settings-result-grid {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3160,6 +3169,7 @@
         @media (max-width: 1200px) {
             .settings-flow-grid,
             .settings-form-grid,
+            .settings-bank-grid,
             .settings-result-grid {
                 grid-template-columns: 1fr !important;
             }
@@ -3520,8 +3530,16 @@
                 <p class="card-desc">Spark and ComfyUI endpoints used by image and video generation.</p>
                 <div class="settings-form-grid settings-form-grid-single">
                     <div class="form-row">
-                        <label>Spark WebSocket</label>
+                        <label>Spark Primary WebSocket</label>
                         <input type="text" id="cfg-spark-primary" placeholder="ws://localhost:8000" onchange="markDirty('spark.primary')">
+                    </div>
+                    <div class="form-row">
+                        <label>Spark Secondary WebSocket</label>
+                        <input type="text" id="cfg-spark-secondary" placeholder="ws://localhost:8001" onchange="markDirty('spark.secondary')">
+                    </div>
+                    <div class="form-row">
+                        <label>Spark Workflow File</label>
+                        <input type="text" id="cfg-spark-workflow" placeholder="workflows/01_flux2_text_to_image.json" onchange="markDirty('spark.workflow_file')">
                     </div>
                     <div class="form-row">
                         <label>ComfyUI Primary</label>
@@ -3541,6 +3559,63 @@
                     <span class="server-status-item"><span class="server-dot" id="server-dot-spark"></span>Spark</span>
                 </div>
                 <div id="comfyui-test-result" class="test-result"></div>
+            </div>
+
+            <div class="settings-card settings-card-wide bank-editor-card">
+                <h3><span class="settings-step">4</span> Bank Editor</h3>
+                <p class="card-desc">Default prompt bank entries used by character variation templates.</p>
+                <div class="settings-bank-grid">
+                    <div class="form-row">
+                        <label>Pose Bank</label>
+                        <textarea id="cfg-bank-pose" rows="7" spellcheck="false">standing neutral
+sitting
+walking
+running
+jumping
+leaning
+lying down
+profile view
+back view</textarea>
+                    </div>
+                    <div class="form-row">
+                        <label>View Bank</label>
+                        <textarea id="cfg-bank-view" rows="7" spellcheck="false">front view
+side view
+three-quarter view
+bird's eye view
+worm's eye view
+close up
+medium shot
+full body</textarea>
+                    </div>
+                    <div class="form-row">
+                        <label>Lighting Bank</label>
+                        <textarea id="cfg-bank-lighting" rows="7" spellcheck="false">golden hour
+cinematic lighting
+soft studio light
+hard shadows
+neon glow
+moonlight
+overcast
+high key
+low key</textarea>
+                    </div>
+                    <div class="form-row">
+                        <label>Background Bank</label>
+                        <textarea id="cfg-bank-background" rows="7" spellcheck="false">urban street
+lush forest
+minimalist white studio
+cyberpunk cityscape
+desert dunes
+cozy interior
+mountain range
+beach</textarea>
+                    </div>
+                </div>
+                <div class="card-actions">
+                    <button class="btn btn-secondary" onclick="savePromptBanks()">Save Banks</button>
+                </div>
+                <div id="settings-bank-result" class="test-result"></div>
             </div>
 
         </div>
@@ -3973,6 +4048,7 @@
                                 <label>Workflow</label>
                                 <select id="char-forge-workflow">
                                     <option value="01_flux2_text_to_image">FLUX2 Text to Image</option>
+                                    <option value="02_flux2_multi_reference_character_sheet">FLUX2 Multi-Reference Sheet</option>
                                     <option value="08_flux2_klein_9b_text_to_image">FLUX2 Klein 9B</option>
                                 </select>
                             </div>
