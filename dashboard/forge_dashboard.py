@@ -3085,6 +3085,11 @@ async def api_script_storyboard_assemble(req: ScriptStoryboardAssembleRequest):
     return _assemble_storyboard_page(req)
 
 
+@app.post("/api/script/storyboard/export-video-shots")
+async def api_script_storyboard_export_video_shots(req: ScriptStoryboardVideoExportRequest):
+    return _export_storyboard_video_shots(req)
+
+
 @app.patch("/api/shots/{shot_id}")
 async def api_update_script_shot_description(shot_id: str, req: ShotDescriptionUpdateRequest):
     desc = (req.description or "").strip()
@@ -3269,9 +3274,12 @@ class ImportBatchRequest(BaseModel):
 
 class VideoProcessRequest(BaseModel):
     shot_ids: List[str]
-    duration: int = 4
+    duration: int = 5
     fps: int = 24
     workflow_id: str = "02_ltx2.3_T2V_I2V_distilled"
+    mode: str = "videos"
+    resolution: str = "540p"
+    aspect_ratio: str = "16:9"
     prompt: str = ""
     platform_mode: str = "auto"
     min_audit_score: float = 0.85
@@ -3282,10 +3290,13 @@ class VideoProcessRequest(BaseModel):
 
 class VideoGeneratePromptsRequest(BaseModel):
     shot_ids: List[str]
-    duration: int = 4
+    duration: int = 5
     fps: int = 24
     campaign_id: str = ""
     workflow_id: str = "04_ltx2.3_image_to_video"
+    mode: str = "videos"
+    resolution: str = "540p"
+    aspect_ratio: str = "16:9"
     platform_mode: str = "auto"
 
 
@@ -3389,6 +3400,19 @@ def _resolve_image_path(image_url: str) -> Optional[Path]:
         ex = MEDIA_ROOT / rel
         if ex.exists():
             return ex
+    if image_url.startswith("/api/characters/reference/"):
+        rel = image_url.replace("/api/characters/reference/", "", 1).lstrip("/")
+        parts = rel.split("/", 1)
+        if len(parts) == 2:
+            ex = CHARACTER_BANKS_DIR / "references" / _character_slug(parts[0]) / Path(parts[1]).name
+            if ex.exists():
+                return ex
+    if image_url.startswith("/api/characters/anchor/"):
+        safe_name = _character_slug(image_url.replace("/api/characters/anchor/", "", 1).lstrip("/"))
+        for ext in (".jpg", ".jpeg", ".png", ".webp"):
+            ex = CHARACTERS_ANCHORS_DIR / f"{safe_name}{ext}"
+            if ex.exists():
+                return ex
     c2 = MEDIA_IMAGES / Path(image_url).name
     if c2.exists():
         return c2
@@ -5567,6 +5591,8 @@ def _default_character_profile(char: Dict[str, Any]) -> Dict[str, Any]:
         "outfits": char.get("outfits") if isinstance(char.get("outfits"), list) else [],
         "approved_assets": char.get("approved_assets") if isinstance(char.get("approved_assets"), list) else [],
         "rejected_assets": char.get("rejected_assets") if isinstance(char.get("rejected_assets"), list) else [],
+        "character_sheets": char.get("character_sheets") if isinstance(char.get("character_sheets"), list) else [],
+        "sheet_panels": char.get("sheet_panels") if isinstance(char.get("sheet_panels"), list) else [],
         "version_history": char.get("version_history") if isinstance(char.get("version_history"), list) else [{
             "version": "v1",
             "label": "Initial profile",
@@ -5772,6 +5798,36 @@ class CharacterAuditRequest(BaseModel):
     seed: Optional[int] = None
 
 
+class CharacterSheetExtractRequest(BaseModel):
+    image_url: str
+    rows: int = 2
+    columns: int = 4
+    panel_types: List[str] = []
+    make_master: bool = False
+    source_prompt_id: str = ""
+    notes: str = ""
+
+
+CHARACTER_SHEET_PANEL_TYPES = [
+    "front_full_body",
+    "three_quarter_left",
+    "three_quarter_right",
+    "side_profile",
+    "rear_full_body",
+    "portrait_closeup",
+    "hands_detail",
+    "footwear_detail",
+    "neutral_expression",
+    "smile_expression",
+    "serious_expression",
+    "outfit_detail",
+    "side_full_body",
+    "back_detail",
+    "action_pose",
+    "lighting_variant",
+]
+
+
 @app.post("/api/characters/save-dna")
 async def api_save_character_dna(req: SaveDNARequest):
     """Persist updated character DNA to disk."""
@@ -5878,6 +5934,129 @@ async def api_upload_character_reference(
     return _persist_normalized_character(cid, normalized)
 
 
+def _character_reference_url(cid: str, filename: str) -> str:
+    return f"/api/characters/reference/{cid}/{filename}"
+
+
+def _sheet_panel_type(index: int, custom_types: List[str]) -> str:
+    if index < len(custom_types):
+        explicit = _character_slug(custom_types[index])
+        if explicit:
+            return explicit
+    if index < len(CHARACTER_SHEET_PANEL_TYPES):
+        return CHARACTER_SHEET_PANEL_TYPES[index]
+    return f"panel_{index + 1:02d}"
+
+
+@app.post("/api/characters/{char_id}/sheet-panels")
+async def api_extract_character_sheet_panels(char_id: str, req: CharacterSheetExtractRequest):
+    cid = _character_slug(char_id)
+    char = _CHARACTERS_STORE.get(cid)
+    if not char:
+        raise HTTPException(status_code=404, detail=f"Character '{char_id}' not found")
+    source_path = _resolve_image_path(req.image_url)
+    if not source_path or not source_path.exists():
+        raise HTTPException(status_code=404, detail="Character sheet image could not be resolved locally")
+    if source_path.suffix.lower() not in {".png", ".jpg", ".jpeg", ".webp"}:
+        raise HTTPException(status_code=400, detail="Character sheet must be an image file")
+
+    rows = max(1, min(int(req.rows or 2), 4))
+    columns = max(1, min(int(req.columns or 4), 4))
+    max_panels = rows * columns
+    ref_dir = CHARACTER_BANKS_DIR / "references" / cid
+    ref_dir.mkdir(parents=True, exist_ok=True)
+    extracted_at = _now_iso()
+    stamp = str(int(time.time()))
+    panel_records: List[Dict[str, Any]] = []
+
+    with Image.open(source_path) as source:
+        image = source.convert("RGB")
+        width, height = image.size
+        cell_w = width // columns
+        cell_h = height // rows
+        if cell_w < 32 or cell_h < 32:
+            raise HTTPException(status_code=400, detail="Sheet grid cells are too small to extract useful references")
+        for row in range(rows):
+            for col in range(columns):
+                index = row * columns + col
+                if index >= max_panels:
+                    break
+                left = col * cell_w
+                top = row * cell_h
+                right = width if col == columns - 1 else (col + 1) * cell_w
+                bottom = height if row == rows - 1 else (row + 1) * cell_h
+                inset_x = max(0, int((right - left) * 0.015))
+                inset_y = max(0, int((bottom - top) * 0.015))
+                crop_box = (left + inset_x, top + inset_y, right - inset_x, bottom - inset_y)
+                panel_type = _sheet_panel_type(index, req.panel_types or [])
+                panel = image.crop(crop_box)
+                filename = f"sheet_{stamp}_{index + 1:02d}_{panel_type}.png"
+                dest = ref_dir / filename
+                panel.save(dest, format="PNG")
+                url = _character_reference_url(cid, filename)
+                panel_records.append({
+                    "id": f"sheet_{stamp}_{index + 1:02d}",
+                    "url": url,
+                    "type": panel_type,
+                    "source": "sheet_extract",
+                    "source_image_url": req.image_url,
+                    "source_prompt_id": req.source_prompt_id or "",
+                    "panel_index": index,
+                    "row": row,
+                    "column": col,
+                    "bbox": list(crop_box),
+                    "notes": req.notes or "extracted from character sheet",
+                    "created_at": extracted_at,
+                })
+
+    normalized = _normalize_character(cid, char)
+    existing_uploads = [r for r in normalized.get("reference_uploads", []) if isinstance(r, dict)]
+    existing_panels = [r for r in normalized.get("sheet_panels", []) if isinstance(r, dict)]
+    normalized["reference_uploads"] = existing_uploads + panel_records
+    normalized["sheet_panels"] = existing_panels + panel_records
+    normalized.setdefault("character_sheets", []).append({
+        "id": f"sheet_{stamp}",
+        "url": req.image_url,
+        "source_path": str(source_path),
+        "rows": rows,
+        "columns": columns,
+        "panel_count": len(panel_records),
+        "panel_ids": [p["id"] for p in panel_records],
+        "source_prompt_id": req.source_prompt_id or "",
+        "created_at": extracted_at,
+    })
+    if req.make_master:
+        master_refs = [r for r in normalized.get("master_references", []) if isinstance(r, dict)]
+        master_types = {"face_closeup", "portrait_closeup", "front_full_body", "three_quarter_left", "side_profile"}
+        for panel in panel_records:
+            if len(master_refs) >= 5:
+                break
+            if panel["type"] in master_types and not any(r.get("url") == panel["url"] for r in master_refs):
+                master_refs.append({
+                    "id": f"master_{panel['id']}",
+                    "url": panel["url"],
+                    "type": panel["type"],
+                    "source": "sheet_extract",
+                    "locked": True,
+                    "score": int(normalized.get("score") or 0),
+                    "prompt_id": req.source_prompt_id or "",
+                    "notes": "promoted from extracted character sheet panel",
+                    "created_at": extracted_at,
+                })
+        normalized["master_references"] = master_refs[:5]
+        if not normalized.get("anchor_url") and master_refs:
+            normalized["anchor_url"] = master_refs[0].get("url", "")
+    saved = _persist_normalized_character(cid, normalized)
+    return {
+        "status": "ok",
+        "character": saved,
+        "sheet_url": req.image_url,
+        "rows": rows,
+        "columns": columns,
+        "panels": panel_records,
+    }
+
+
 def _infer_reference_type(filename: str) -> str:
     lower = filename.lower()
     if any(token in lower for token in ["face", "head", "close"]):
@@ -5982,6 +6161,8 @@ async def api_export_character_package(char_id: str):
         "exported_at": _now_iso(),
         "character": normalized,
         "references": normalized.get("master_references", []) + normalized.get("reference_uploads", []),
+        "character_sheets": normalized.get("character_sheets", []),
+        "sheet_panels": normalized.get("sheet_panels", []),
         "prompts": {
             "base": normalized.get("anchor_prompt", ""),
             "negative": (normalized.get("prompt_rules") or {}).get("negative_lock", CHARACTER_NO_TEXT_PROMPT_RULE),
@@ -6039,6 +6220,187 @@ class CharacterSparkRenderRequest(BaseModel):
     workflow_id: str = "01_flux2_text_to_image"
     seed: Optional[int] = None
     save_character: bool = True
+    character_id: Optional[str] = ""
+    reference_image_url: Optional[str] = ""
+
+
+class CharacterRolePromptRequest(BaseModel):
+    role: str
+    name: Optional[str] = ""
+    gender: Optional[str] = ""
+
+
+def _configured_kimi_director() -> Dict[str, str]:
+    cfg = get_raw_config()
+    active = str(cfg.get("KIMI_DIRECTOR_ENDPOINT_ACTIVE", "api1") or "api1").strip().lower()
+    endpoint = ""
+    if active == "api2":
+        endpoint = str(cfg.get("KIMI_DIRECTOR_ENDPOINT_API2", "") or "").strip()
+    if not endpoint:
+        endpoint = str(
+            cfg.get("KIMI_DIRECTOR_ENDPOINT_API1", "")
+            or cfg.get("KIMI_ENDPOINT", "")
+            or cfg.get("NIM_ENDPOINT", "")
+            or ""
+        ).strip()
+    if endpoint and not endpoint.rstrip("/").endswith("/chat/completions"):
+        endpoint = endpoint.rstrip("/") + "/chat/completions"
+    return {
+        "endpoint": endpoint,
+        "api_key": str(cfg.get("KIMI_API_KEY", "") or os.getenv("KIMI_API_KEY", "") or "").strip(),
+        "model": str(cfg.get("KIMI_INSTRUCT_MODEL", "") or os.getenv("KIMI_INSTRUCT_MODEL", "") or "moonshotai/kimi-k2-instruct").strip(),
+    }
+
+
+def _extract_json_object(text: str) -> Dict[str, Any]:
+    clean = (text or "").strip()
+    clean = re.sub(r"^```(?:json)?\s*", "", clean, flags=re.IGNORECASE).strip()
+    clean = re.sub(r"\s*```$", "", clean).strip()
+    try:
+        parsed = json.loads(clean)
+        return parsed if isinstance(parsed, dict) else {}
+    except Exception:
+        start = clean.find("{")
+        end = clean.rfind("}")
+        if start >= 0 and end > start:
+            try:
+                parsed = json.loads(clean[start:end + 1])
+                return parsed if isinstance(parsed, dict) else {}
+            except Exception:
+                return {}
+    return {}
+
+
+def _clean_string_list(value: Any, fallback: List[str], limit: int = 8) -> List[str]:
+    if isinstance(value, str):
+        parts = [p.strip() for p in re.split(r"[,;\n]+", value) if p.strip()]
+    elif isinstance(value, list):
+        parts = [str(p).strip() for p in value if str(p).strip()]
+    else:
+        parts = []
+    return (parts or fallback)[:limit]
+
+
+@app.post("/api/characters/role-prompt")
+async def api_character_role_prompt(req: CharacterRolePromptRequest):
+    role = (req.role or "").strip()
+    if not role:
+        raise HTTPException(status_code=400, detail="role is required")
+    gender = (req.gender or "").strip().lower()
+    if gender not in {"male", "female"}:
+        gender = ""
+
+    director = _configured_kimi_director()
+    endpoint = director["endpoint"]
+    api_key = director["api_key"]
+    model = director["model"]
+    if not endpoint:
+        raise HTTPException(status_code=503, detail="Kimi endpoint is not configured")
+    if endpoint.startswith("https://") and not api_key:
+        raise HTTPException(status_code=503, detail="Kimi API key is not configured")
+    if not model:
+        raise HTTPException(status_code=503, detail="Kimi model is not configured")
+
+    system_prompt = (
+        "You are Forge NPS Character Casting Director. Return only strict JSON. "
+        "Design a realistic adult character prompt plan for image generation. "
+        "Reason from the requested role instead of randomizing incompatible ages, wardrobe, locations, or body type. "
+        "When the role implies attractiveness, modeling, fitness, celebrity, or influencer work, make the person attractive and camera-ready while realistic. "
+        "Never include captions, labels, typography, letters, numbers, logos, watermarks, or visible text in any image prompt."
+    )
+    user_prompt = f"""
+Role / archetype: {role}
+Existing name, if any: {(req.name or '').strip() or 'none'}
+Gender selection: {gender or 'unspecified'}
+
+Return JSON with this exact shape:
+{{
+  "name": "realistic full name",
+  "role": "cleaned role",
+  "age": "specific adult age range",
+  "face": "face description",
+  "hair": "hair description",
+  "body": "body/build description",
+  "wardrobe": "main wardrobe description",
+  "style_notes": "attractiveness/casting/realism notes",
+  "locations": ["location 1", "location 2", "location 3", "location 4"],
+  "clothes": ["outfit 1", "outfit 2", "outfit 3", "outfit 4"],
+  "angles": ["front", "3/4 left", "3/4 right", "side profile", "rear", "full body", "portrait close-up", "hands detail"],
+  "base_prompt": "single complete photorealistic prompt",
+  "sheet_prompt": "multi-angle character sheet prompt",
+  "variation_prompt": "controlled variation grid prompt"
+}}
+
+Rules:
+- If role is "instagram fitness model" or similar, use a young adult range like early 20s to early 30s, athletic physique, premium activewear, gym/studio/social-media lifestyle locations.
+- Do not choose elderly ages unless the role asks for retired, elder, senior, grandparent, etc.
+- Make the character attractive when the role implies model/influencer/lead/cinematic talent, but keep skin texture and anatomy realistic.
+- Include adult-only wording if the role could be confused with teen styling.
+- Every prompt must include: no text, no captions, no labels, no typography, no letters, no numbers, no logos, no watermark.
+""".strip()
+    payload = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        "temperature": 0.55,
+        "max_tokens": 1400,
+        "response_format": {"type": "json_object"},
+        "chat_template_kwargs": {"thinking": False, "enable_thinking": False},
+    }
+    headers = {"Content-Type": "application/json"}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+
+    try:
+        async with httpx.AsyncClient(timeout=90.0) as client:
+            resp = await client.post(endpoint, headers=headers, json=payload)
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Kimi request failed: {e}") from e
+    if resp.status_code >= 400:
+        raise HTTPException(status_code=502, detail=f"Kimi returned HTTP {resp.status_code}: {resp.text[:240]}")
+
+    data = resp.json()
+    content = str(data.get("choices", [{}])[0].get("message", {}).get("content", "") or "").strip()
+    plan = _extract_json_object(content)
+    if not plan:
+        raise HTTPException(status_code=502, detail="Kimi did not return valid character JSON")
+
+    fallback_angles = ["front", "3/4 left", "3/4 right", "side profile", "rear", "full body", "portrait close-up", "hands detail"]
+    fallback_locations = ["neutral studio background", f"realistic setting suited to {role}", "sidewalk in natural daylight", "simple indoor room with practical lighting"]
+    fallback_clothes = ["main role-appropriate outfit", "casual everyday outfit", "work outfit variation", "simple jacket layer"]
+    name = str(plan.get("name") or req.name or "Generated Character").strip()
+    clean_role = str(plan.get("role") or role).strip()
+    base_prompt = str(plan.get("base_prompt") or "").strip()
+    if not base_prompt:
+        base_prompt = ", ".join([
+            f"Photorealistic character portrait of {name}",
+            f"role / archetype: {clean_role}",
+            str(plan.get("age") or "").strip(),
+            f"{gender} person" if gender else "",
+            str(plan.get("face") or "").strip(),
+            str(plan.get("hair") or "").strip(),
+            str(plan.get("body") or "").strip(),
+            str(plan.get("wardrobe") or "").strip(),
+            str(plan.get("style_notes") or "").strip(),
+            "realistic skin texture, stable anatomy, cinematic casting quality",
+        ]).strip(", ")
+
+    return {
+        "status": "ok",
+        "source": "kimi",
+        "model": model,
+        "name": name,
+        "role": clean_role,
+        "base_prompt": _with_character_no_text_rule(base_prompt),
+        "sheet_prompt": _with_character_no_text_rule(str(plan.get("sheet_prompt") or "").strip()),
+        "variation_prompt": _with_character_no_text_rule(str(plan.get("variation_prompt") or "").strip()),
+        "locations": _clean_string_list(plan.get("locations"), fallback_locations, 6),
+        "clothes": _clean_string_list(plan.get("clothes"), fallback_clothes, 6),
+        "angles": _clean_string_list(plan.get("angles"), fallback_angles, 10),
+        "raw": {k: plan.get(k) for k in ("age", "face", "hair", "body", "wardrobe", "style_notes")},
+    }
 
 
 def _default_character_workflow_path(workflow_id: str = "") -> Optional[Path]:
@@ -6069,20 +6431,58 @@ def _character_host_from_config() -> str:
     return host
 
 
+def _latest_character_generated_reference(char: Dict[str, Any]) -> str:
+    approved = char.get("approved_assets") if isinstance(char.get("approved_assets"), list) else []
+    for asset in reversed(approved):
+        if isinstance(asset, dict) and asset.get("type") == "character" and asset.get("url"):
+            return str(asset.get("url") or "")
+    history = char.get("render_history") if isinstance(char.get("render_history"), list) else []
+    for entry in reversed(history):
+        urls = entry.get("image_urls") if isinstance(entry, dict) else []
+        if entry.get("type") == "character" and isinstance(urls, list) and urls:
+            return str(urls[0] or "")
+    if char.get("anchor_url"):
+        return str(char.get("anchor_url") or "")
+    refs = char.get("master_references") if isinstance(char.get("master_references"), list) else []
+    for ref in refs:
+        if isinstance(ref, dict) and ref.get("url"):
+            return str(ref.get("url") or "")
+    return ""
+
+
+def _workflow_has_image_input(workflow_path: Path) -> bool:
+    try:
+        text = workflow_path.read_text(encoding="utf-8", errors="ignore")
+    except Exception:
+        return False
+    return any(marker in text for marker in ("LoadImage", "LoadImageMask", "VHS_LoadImagePath"))
+
+
 @app.post("/api/characters/spark-render")
 async def api_character_spark_render(req: CharacterSparkRenderRequest):
-    safe_name = _character_slug(req.name)
+    requested_type = (req.render_type or "character").strip().lower()
+    if requested_type == "anchor":
+        requested_type = "character"
+    if requested_type not in {"character", "sheet", "variation"}:
+        raise HTTPException(status_code=400, detail="render_type must be character, sheet, or variation")
+
+    selected_char: Optional[Dict[str, Any]] = None
+    selected_id = _character_slug(req.character_id or "")
+    if requested_type in {"sheet", "variation"}:
+        if not selected_id:
+            raise HTTPException(status_code=400, detail="Select a character before generating a character sheet or variation set")
+        selected_char = _CHARACTERS_STORE.get(selected_id)
+        if not selected_char:
+            raise HTTPException(status_code=404, detail=f"Character '{selected_id}' not found")
+        safe_name = selected_id
+    else:
+        safe_name = _character_slug(req.name)
     if not safe_name:
         raise HTTPException(status_code=400, detail="Character name is required")
     prompt = _with_character_no_text_rule(req.prompt)
     if not prompt:
         raise HTTPException(status_code=400, detail="Prompt is required")
 
-    requested_type = (req.render_type or "character").strip().lower()
-    if requested_type == "anchor":
-        requested_type = "character"
-    if requested_type not in {"character", "sheet", "variation"}:
-        raise HTTPException(status_code=400, detail="render_type must be character, sheet, or variation")
     storage_type = "anchor" if requested_type == "character" else requested_type
 
     host = _character_host_from_config()
@@ -6092,6 +6492,21 @@ async def api_character_spark_render(req: CharacterSparkRenderRequest):
     workflow_path = _default_character_workflow_path(req.workflow_id)
     if not workflow_path:
         raise HTTPException(status_code=404, detail="No text-to-image workflow file found for character rendering")
+
+    reference_url = ""
+    reference_path: Optional[Path] = None
+    if requested_type in {"sheet", "variation"}:
+        reference_url = (req.reference_image_url or "").strip() or _latest_character_generated_reference(selected_char or {})
+        if not reference_url:
+            raise HTTPException(status_code=400, detail="Selected character has no generated image to use as a reference")
+        reference_path = _resolve_image_path(reference_url)
+        if not reference_path:
+            raise HTTPException(status_code=404, detail="Selected character reference image could not be resolved locally")
+        reference_instruction = (
+            " Use the supplied reference image as the identity lock. Match the exact same person, face, age, hair, body proportions, "
+            "skin tone, expression family, and signature wardrobe cues from the reference image. Do not invent a new character."
+        )
+        prompt = _with_character_no_text_rule(prompt + reference_instruction)
 
     client = ComfyUIClient(host)
     ok, info = await client.check_health()
@@ -6108,6 +6523,7 @@ async def api_character_spark_render(req: CharacterSparkRenderRequest):
         workflow_path=str(workflow_path),
         seed=seed,
         output_dir=str(output_dir),
+        image_path=str(reference_path) if reference_path else None,
         wait_for_output=True,
     )
     if result.get("status") != "success":
@@ -6150,6 +6566,8 @@ async def api_character_spark_render(req: CharacterSparkRenderRequest):
         "seed": seed,
         "workflow_id": req.workflow_id,
         "image_urls": image_urls,
+        "reference_image_url": reference_url,
+        "reference_image_used": bool(reference_path) and _workflow_has_image_input(workflow_path),
         "created_at": _now_iso(),
     })
     if image_urls:
@@ -6160,6 +6578,8 @@ async def api_character_spark_render(req: CharacterSparkRenderRequest):
             "prompt_id": result.get("prompt_id"),
             "seed": seed,
             "workflow_id": req.workflow_id,
+            "reference_image_url": reference_url,
+            "reference_image_used": bool(reference_path) and _workflow_has_image_input(workflow_path),
             "created_at": _now_iso(),
         }
         char.setdefault("approved_assets" if requested_type == "character" else "candidate_assets", []).append(asset)
@@ -6190,6 +6610,8 @@ async def api_character_spark_render(req: CharacterSparkRenderRequest):
         "workflow_id": req.workflow_id,
         "prompt_id": result.get("prompt_id"),
         "image_urls": image_urls,
+        "reference_image_url": reference_url,
+        "reference_image_used": bool(reference_path) and _workflow_has_image_input(workflow_path),
     }, indent=2), encoding="utf-8")
 
     return {
@@ -6201,6 +6623,8 @@ async def api_character_spark_render(req: CharacterSparkRenderRequest):
         "image_urls": image_urls,
         "anchor_url": anchor_url or char.get("anchor_url", ""),
         "saved_files": saved_files,
+        "reference_image_url": reference_url,
+        "reference_image_used": bool(reference_path) and _workflow_has_image_input(workflow_path),
     }
 
 
