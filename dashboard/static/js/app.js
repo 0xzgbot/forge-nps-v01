@@ -1334,9 +1334,79 @@ async function loadConfig() {
         const spark = currentConfig.spark || {};
         const sparkPrimaryEl = document.getElementById("cfg-spark-primary");
         if (sparkPrimaryEl) sparkPrimaryEl.value = spark.primary || "";
+        const sparkSecondaryEl = document.getElementById("cfg-spark-secondary");
+        if (sparkSecondaryEl) sparkSecondaryEl.value = spark.secondary || "";
+        const sparkWorkflowEl = document.getElementById("cfg-spark-workflow");
+        if (sparkWorkflowEl) sparkWorkflowEl.value = spark.workflow_file || "";
+        loadSettingsBanks();
 
     } catch (e) {
         console.error("Failed to load config:", e);
+    }
+}
+
+const SETTINGS_BANK_FIELDS = {
+    pose: "cfg-bank-pose",
+    view: "cfg-bank-view",
+    lighting: "cfg-bank-lighting",
+    background: "cfg-bank-background",
+};
+
+async function loadSettingsBanks() {
+    const hasBankEditor = Object.values(SETTINGS_BANK_FIELDS).some((id) => document.getElementById(id));
+    if (!hasBankEditor) return;
+    try {
+        const resp = await fetch("/api/banks?mode=character");
+        if (!resp.ok) throw new Error("HTTP " + resp.status);
+        const banks = await resp.json();
+        Object.entries(SETTINGS_BANK_FIELDS).forEach(([name, id]) => {
+            const el = document.getElementById(id);
+            if (el && Array.isArray(banks[name])) el.value = banks[name].join("\n");
+        });
+    } catch (e) {
+        const status = document.getElementById("settings-bank-result");
+        if (status) {
+            status.textContent = "Bank load failed: " + (e?.message || e);
+            status.className = "test-result err";
+        }
+    }
+}
+
+function collectSettingsBanks() {
+    const banks = {};
+    Object.entries(SETTINGS_BANK_FIELDS).forEach(([name, id]) => {
+        const el = document.getElementById(id);
+        if (el) banks[name] = el.value;
+    });
+    return banks;
+}
+
+async function savePromptBanks() {
+    const status = document.getElementById("settings-bank-result");
+    if (status) {
+        status.textContent = "Saving banks...";
+        status.className = "test-result loading";
+    }
+    try {
+        const resp = await fetch("/api/banks", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ mode: "character", banks: collectSettingsBanks() }),
+        });
+        const result = await resp.json().catch(() => ({}));
+        if (!resp.ok || result.status !== "success") {
+            throw new Error(result.error || ("HTTP " + resp.status));
+        }
+        if (status) {
+            const count = Object.keys(result.saved || {}).length;
+            status.textContent = "Saved " + count + " bank(s)";
+            status.className = "test-result ok";
+        }
+    } catch (e) {
+        if (status) {
+            status.textContent = "Bank save failed: " + (e?.message || e);
+            status.className = "test-result err";
+        }
     }
 }
 
@@ -1380,6 +1450,8 @@ function markDirty(dotKey) {
         'comfyui.primary': () => fieldValue("cfg-comfyui-primary"),
         'comfyui.secondary': () => fieldValue("cfg-comfyui-secondary"),
         'spark.primary': () => fieldValue("cfg-spark-primary"),
+        'spark.secondary': () => fieldValue("cfg-spark-secondary"),
+        'spark.workflow_file': () => fieldValue("cfg-spark-workflow"),
     };
 
     if (fieldMap[dotKey]) {
@@ -1403,6 +1475,8 @@ function collectAllSettings() {
         'comfyui.primary',
         'comfyui.secondary',
         'spark.primary',
+        'spark.secondary',
+        'spark.workflow_file',
     ];
     const previous = { ...configDirty };
     configDirty = {};
@@ -3405,6 +3479,26 @@ function latestCharacterGeneratedImage(char) {
     return characterImage(char);
 }
 
+function characterReferenceImageUrlsForForge(char) {
+    const urls = [];
+    const addUrl = (url) => {
+        const clean = String(url || "").trim();
+        if (!clean || urls.includes(clean) || urls.length >= 10) return;
+        if (/\.(mp4|mov|webm)(\?|$)/i.test(clean)) return;
+        urls.push(clean);
+    };
+    addUrl(latestCharacterGeneratedImage(char));
+    const approved = Array.isArray(char?.approved_assets) ? char.approved_assets : [];
+    [...approved].reverse().forEach((asset) => {
+        if (asset?.type === "character") addUrl(asset.url);
+    });
+    ["master_references", "reference_uploads", "sheet_panels"].forEach((key) => {
+        const refs = Array.isArray(char?.[key]) ? char[key] : [];
+        refs.forEach((ref) => addUrl(ref?.url || ref?.image_url || ref));
+    });
+    return urls.slice(0, 10);
+}
+
 function selectedCharacterForForge() {
     const selectedId = characterForgeSelectedId || "";
     return characterManagerCache.find((c) => characterId(c) === selectedId)
@@ -3415,20 +3509,20 @@ function selectedCharacterForForge() {
 function syncCharacterForgeSelectionUi() {
     const selected = selectedCharacterForForge();
     const selectedId = selected ? characterId(selected) : "";
-    const refUrl = selected ? latestCharacterGeneratedImage(selected) : "";
+    const refUrls = selected ? characterReferenceImageUrlsForForge(selected) : [];
     document.querySelectorAll(".character-card-live").forEach((card) => {
         card.classList.toggle("selected", !!selectedId && card.dataset.characterId === selectedId);
     });
     const sheetBtn = document.getElementById("char-forge-sheet-btn");
     const variationBtn = document.getElementById("char-forge-variation-btn");
-    const enabled = !!(selectedId && refUrl);
+    const enabled = !!(selectedId && refUrls.length);
     if (sheetBtn) {
         sheetBtn.disabled = !enabled;
-        sheetBtn.title = enabled ? "Uses the selected character image as the sheet reference." : "Select one character with a generated image first.";
+        sheetBtn.title = enabled ? "Uses the selected character images as sheet references." : "Select one character with a generated image first.";
     }
     if (variationBtn) {
         variationBtn.disabled = !enabled;
-        variationBtn.title = enabled ? "Uses the selected character image as the variation reference." : "Select one character with a generated image first.";
+        variationBtn.title = enabled ? "Uses the selected character images as variation references." : "Select one character with a generated image first.";
     }
 }
 
@@ -4248,7 +4342,8 @@ function promptForCharacterRender(kind) {
 async function renderCharacterOnSpark(kind) {
     const status = document.getElementById("character-manager-status");
     const selected = selectedCharacterForForge();
-    const selectedReferenceUrl = selected ? latestCharacterGeneratedImage(selected) : "";
+    const selectedReferenceUrls = selected ? characterReferenceImageUrlsForForge(selected) : [];
+    const selectedReferenceUrl = selectedReferenceUrls[0] || "";
     if ((kind === "sheet" || kind === "variation") && !selected) {
         if (status) status.textContent = "Select one character before generating a " + kind + ".";
         syncCharacterForgeSelectionUi();
@@ -4272,6 +4367,11 @@ async function renderCharacterOnSpark(kind) {
         if (status) status.textContent = "Prompt is required before Spark generation.";
         return;
     }
+    const workflowId = (kind === "sheet" || kind === "variation")
+        ? "02_flux2_multi_reference_character_sheet"
+        : (characterForgeValue("char-forge-workflow") || "01_flux2_text_to_image");
+    const workflowEl = document.getElementById("char-forge-workflow");
+    if (workflowEl && (kind === "sheet" || kind === "variation")) workflowEl.value = workflowId;
     if (status) status.textContent = "Sending " + kind + " prompt to Spark...";
     try {
         const resp = await fetch("/api/characters/spark-render", {
@@ -4282,11 +4382,12 @@ async function renderCharacterOnSpark(kind) {
                 role: selected?.role || characterForgeValue("char-forge-role"),
                 prompt,
                 render_type: kind,
-                workflow_id: characterForgeValue("char-forge-workflow") || "01_flux2_text_to_image",
+                workflow_id: workflowId,
                 seed: getCharacterForgeSeed(),
                 save_character: true,
                 character_id: selected ? characterId(selected) : "",
                 reference_image_url: selectedReferenceUrl,
+                reference_image_urls: selectedReferenceUrls,
             }),
         });
         const payload = await resp.json().catch(() => ({}));
@@ -6519,7 +6620,9 @@ function renderSettingsTab() {
                     <div class="panel-body">
                         <p class="card-desc">Spark and ComfyUI endpoints used by image and video generation.</p>
                         <div class="settings-form-grid settings-form-grid-single">
-                            <label class="form-row"><span>Spark WebSocket</span><input class="input" type="text" id="cfg-spark-primary" placeholder="ws://localhost:8000" onchange="markDirty('spark.primary')"></label>
+                            <label class="form-row"><span>Spark Primary WebSocket</span><input class="input" type="text" id="cfg-spark-primary" placeholder="ws://localhost:8000" onchange="markDirty('spark.primary')"></label>
+                            <label class="form-row"><span>Spark Secondary WebSocket</span><input class="input" type="text" id="cfg-spark-secondary" placeholder="ws://localhost:8001" onchange="markDirty('spark.secondary')"></label>
+                            <label class="form-row"><span>Spark Workflow File</span><input class="input" type="text" id="cfg-spark-workflow" placeholder="workflows/01_flux2_text_to_image.json" onchange="markDirty('spark.workflow_file')"></label>
                             <label class="form-row"><span>ComfyUI Primary</span><input class="input" type="text" id="cfg-comfyui-primary" placeholder="http://localhost:8188" onchange="markDirty('comfyui.primary')"></label>
                             <label class="form-row"><span>ComfyUI Secondary</span><input class="input" type="text" id="cfg-comfyui-secondary" placeholder="http://localhost:8189" onchange="markDirty('comfyui.secondary')"></label>
                         </div>
@@ -6530,6 +6633,51 @@ function renderSettingsTab() {
                             <span class="server-status-item"><span class="server-dot" id="server-dot-spark"></span>Spark</span>
                         </div>
                         <div id="comfyui-test-result" class="test-result"></div>
+                    </div>
+                </section>
+
+                <section class="panel settings-panel settings-card-wide bank-editor-card">
+                    <div class="panel-header"><div class="title"><span class="settings-step">4</span> Bank Editor</div><div class="meta">prompt variation banks</div></div>
+                    <div class="panel-body">
+                        <p class="card-desc">Default prompt bank entries used by character variation templates.</p>
+                        <div class="settings-bank-grid">
+                            <label class="form-row"><span>Pose Bank</span><textarea class="textarea" id="cfg-bank-pose" rows="7" spellcheck="false">standing neutral
+sitting
+walking
+running
+jumping
+leaning
+lying down
+profile view
+back view</textarea></label>
+                            <label class="form-row"><span>View Bank</span><textarea class="textarea" id="cfg-bank-view" rows="7" spellcheck="false">front view
+side view
+three-quarter view
+bird's eye view
+worm's eye view
+close up
+medium shot
+full body</textarea></label>
+                            <label class="form-row"><span>Lighting Bank</span><textarea class="textarea" id="cfg-bank-lighting" rows="7" spellcheck="false">golden hour
+cinematic lighting
+soft studio light
+hard shadows
+neon glow
+moonlight
+overcast
+high key
+low key</textarea></label>
+                            <label class="form-row"><span>Background Bank</span><textarea class="textarea" id="cfg-bank-background" rows="7" spellcheck="false">urban street
+lush forest
+minimalist white studio
+cyberpunk cityscape
+desert dunes
+cozy interior
+mountain range
+beach</textarea></label>
+                        </div>
+                        <div class="card-actions"><button class="btn" onclick="savePromptBanks()">Save Banks</button></div>
+                        <div id="settings-bank-result" class="test-result"></div>
                     </div>
                 </section>
             </div>

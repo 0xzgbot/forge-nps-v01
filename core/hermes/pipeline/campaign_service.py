@@ -94,6 +94,29 @@ class HermesCampaignService:
         tmp.write_text(json.dumps(existing, ensure_ascii=True, indent=2), encoding="utf-8")
         tmp.replace(path)
 
+    @staticmethod
+    def _requires_full_body_prompt(prompt: str) -> bool:
+        text = str(prompt or "").lower()
+        return any(
+            phrase in text
+            for phrase in ("full-body", "full body", "full-length", "full length", "head-to-toe", "head to toe")
+        )
+
+    @classmethod
+    def _enforce_full_body_generation_prompt(cls, prompt: str) -> str:
+        base = str(prompt or "").strip()
+        if not cls._requires_full_body_prompt(base):
+            return base
+        required = (
+            "FULL-BODY FRAMING REQUIREMENT: compose as a pulled-back head-to-toe studio portrait. "
+            "The full person must be visible from top of head to shoes, including both complete legs, ankles, shoes, and both feet. "
+            "Leave visible studio floor below the shoes and clear padding above the head and below the feet; subject occupies about 70 percent of frame height. "
+            "Do not crop at thighs, knees, shins, ankles, or feet. Avoid waist-up, knee-up, thigh-up, close portrait, and oversized subject framing."
+        )
+        if "FULL-BODY FRAMING REQUIREMENT:" in base:
+            return base
+        return f"{required} {base}".strip()
+
     async def _build_auto_video_prompt(self, shot_record: Dict[str, Any]) -> str:
         """
         Build an LTX-oriented video prompt from the first-frame prompt/context.
@@ -673,6 +696,7 @@ class HermesCampaignService:
                     yield {"type": "error", "shot_id": effective_shot["shot_id"], "text": "Campaign stopped: Hermes / Prompt Compiler returned no compiled_prompt."}
                     yield {"type": "done", "text": "Campaign stopped before Spark dispatch."}
                     return
+                refined_prompt = self._enforce_full_body_generation_prompt(refined_prompt)
                 artifact["compiled_prompt"] = refined_prompt
                 refined_negative = str(refined.get("negative_prompt") or "").strip()
                 if refined_negative:

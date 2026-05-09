@@ -212,12 +212,12 @@ class KimiDirectorService:
             "response_format": {"type": "json_object"},
             "max_tokens": self._max_tokens_for_target(target),
         }
-        timeout_sec = float(os.getenv("FORGE_KIMI_TIMEOUT_SEC", "120"))
+        timeout_sec = float(os.getenv("FORGE_KIMI_TIMEOUT_SEC", "300"))
         # Scale timeout for larger plans (e.g., 20-image requests).
         if target and target >= 20:
-            timeout_sec = max(timeout_sec, float(os.getenv("FORGE_KIMI_TIMEOUT_20_SHOTS_SEC", "240")))
+            timeout_sec = max(timeout_sec, float(os.getenv("FORGE_KIMI_TIMEOUT_20_SHOTS_SEC", "600")))
         elif target >= 12:
-            timeout_sec = max(timeout_sec, float(os.getenv("FORGE_KIMI_TIMEOUT_12_SHOTS_SEC", "180")))
+            timeout_sec = max(timeout_sec, float(os.getenv("FORGE_KIMI_TIMEOUT_12_SHOTS_SEC", "420")))
         async with httpx.AsyncClient(timeout=timeout_sec) as client:
             resp = await client.post(
                 self.endpoint,
@@ -296,9 +296,9 @@ class KimiDirectorService:
             "response_format": {"type": "json_object"},
             "max_tokens": self._max_tokens_for_target(target_shots),
         }
-        timeout_sec = float(os.getenv("FORGE_KIMI_TIMEOUT_SEC", "120"))
+        timeout_sec = float(os.getenv("FORGE_KIMI_TIMEOUT_SEC", "300"))
         if target_shots >= 20:
-            timeout_sec = max(timeout_sec, float(os.getenv("FORGE_KIMI_TIMEOUT_20_SHOTS_SEC", "240")))
+            timeout_sec = max(timeout_sec, float(os.getenv("FORGE_KIMI_TIMEOUT_20_SHOTS_SEC", "600")))
         async with httpx.AsyncClient(timeout=timeout_sec) as client:
             resp = await client.post(
                 self.endpoint,
@@ -453,9 +453,9 @@ class KimiDirectorService:
             "response_format": {"type": "json_object"},
             "max_tokens": self._max_tokens_for_target(target_shots),
         }
-        timeout_sec = float(os.getenv("FORGE_KIMI_TIMEOUT_SEC", "120"))
+        timeout_sec = float(os.getenv("FORGE_KIMI_TIMEOUT_SEC", "300"))
         if target_shots >= 20:
-            timeout_sec = max(timeout_sec, float(os.getenv("FORGE_KIMI_TIMEOUT_20_SHOTS_SEC", "240")))
+            timeout_sec = max(timeout_sec, float(os.getenv("FORGE_KIMI_TIMEOUT_20_SHOTS_SEC", "600")))
         async with httpx.AsyncClient(timeout=timeout_sec) as client:
             resp = await client.post(
                 self.endpoint,

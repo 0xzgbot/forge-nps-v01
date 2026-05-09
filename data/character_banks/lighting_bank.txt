@@ -7,3 +7,31 @@ moonlight
 overcast
 high key
 low key
+blue hour
+sunrise backlight
+sunset rim light
+warm tungsten interior
+cool fluorescent wash
+soft window light
+Rembrandt lighting
+split lighting
+butterfly lighting
+loop lighting
+edge lighting
+volumetric god rays
+rainy street reflections
+club strobe accents
+practical lamp glow
+candlelit ambience
+firelight flicker
+softbox key light
+beauty dish lighting
+harsh noon sunlight
+dappled forest light
+underpass sodium light
+police light spill
+projector beam light
+monitor glow
+silhouette backlight
+high contrast noir
+pastel daylight wash

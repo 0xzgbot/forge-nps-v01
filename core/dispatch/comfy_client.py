@@ -618,6 +618,7 @@ class ComfyUIClient:
         seed: int | None = None,
         output_dir: str | None = None,
         image_path: Optional[str] = None,
+        image_paths: Optional[list[str]] = None,
         wait_for_output: bool = True,
         width: int | None = None,
         height: int | None = None,
@@ -651,13 +652,17 @@ class ComfyUIClient:
         self._ensure_output_node(nodes, filename_prefix=shot_id or "render")
         self._hydrate_workflow_placeholders(nodes, prompt, object_info)
 
-        uploaded_name = None
-        if image_path:
-            up = await self.upload_image(image_path)
+        requested_image_paths = [str(p) for p in (image_paths or []) if str(p or "").strip()]
+        if image_path and not requested_image_paths:
+            requested_image_paths = [image_path]
+        uploaded_names: list[str] = []
+        for requested_image_path in requested_image_paths:
+            up = await self.upload_image(requested_image_path)
             if up.get("ok"):
-                uploaded_name = str(up.get("name") or "")
+                uploaded_names.append(str(up.get("name") or ""))
             else:
-                logger.warning("Image upload failed for %s: %s", image_path, up.get("error"))
+                logger.warning("Image upload failed for %s: %s", requested_image_path, up.get("error"))
+        uploaded_name = uploaded_names[0] if uploaded_names else None
 
         chosen_seed = seed if seed is not None else random.randint(1, 2**32 - 1)
         negative_markers = ("blurry", "low quality", "worst quality", "deformed", "watermark", "ugly", "bad anatomy", "bad hands", "negative", "nsfw")
@@ -689,12 +694,9 @@ class ComfyUIClient:
             if class_type in ("SaveImage", "SaveVideo", "VHS_VideoCombine") and shot_id:
                 inputs["filename_prefix"] = shot_id
 
-        if uploaded_name and load_image_slots:
-            # Primary source image for i2v workflows.
-            load_image_slots[0]["image"] = uploaded_name
-            # Optional second source (e.g., first/last-frame workflows): reuse image.
-            if len(load_image_slots) > 1:
-                load_image_slots[1]["image"] = uploaded_name
+        if uploaded_names and load_image_slots:
+            for idx, slot in enumerate(load_image_slots):
+                slot["image"] = uploaded_names[idx] if idx < len(uploaded_names) else uploaded_names[0]
 
         submit_result = await self.submit_prompt(nodes)
         if not submit_result.get("ok"):
@@ -716,6 +718,7 @@ class ComfyUIClient:
                 "seed": chosen_seed,
                 "queued": True,
                 "uploaded_image": uploaded_name,
+                "uploaded_images": uploaded_names,
             }
 
         output_filename = await self.poll_job(prompt_id, timeout_sec=600)
@@ -733,4 +736,6 @@ class ComfyUIClient:
             "seed": chosen_seed,
             "output_filename": output_filename,
             "saved_files": saved,
+            "uploaded_image": uploaded_name,
+            "uploaded_images": uploaded_names,
         }

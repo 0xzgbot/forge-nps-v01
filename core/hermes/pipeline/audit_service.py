@@ -118,6 +118,55 @@ class HermesAuditService:
             "audit_decision_reasons": shot.get("audit_decision_reasons") or [],
         }
 
+    @staticmethod
+    def _needs_full_body_framing_fix(shot: Dict[str, Any]) -> bool:
+        source = " ".join(
+            [
+                str(shot.get("compiled_prompt") or shot.get("prompt") or ""),
+                " ".join(str(x) for x in (shot.get("audit_issues") or [])),
+                " ".join(str(x) for x in (shot.get("audit_critical_failures") or [])),
+                " ".join(str(x) for x in (shot.get("audit_decision_reasons") or [])),
+            ]
+        ).lower()
+        prompt_requires = any(
+            phrase in source
+            for phrase in ("full-body", "full body", "full-length", "full length", "head-to-toe", "head to toe")
+        )
+        crop_failed = any(
+            phrase in source
+            for phrase in (
+                "cut off",
+                "cuts off",
+                "cropped",
+                "mid-thigh",
+                "mid thigh",
+                "below the knees",
+                "knees",
+                "shins",
+                "feet",
+                "not full body",
+                "not a full-body",
+            )
+        )
+        return prompt_requires and crop_failed
+
+    @staticmethod
+    def _enforce_full_body_remediation(prompt: str) -> str:
+        base = str(prompt or "").strip()
+        full_body_directive = (
+            "MANDATORY CORRECTION: true head-to-toe full-body studio portrait. "
+            "The entire person must fit inside the frame: top of head, torso, both legs, ankles, shoes, and both feet fully visible. "
+            "Show the studio floor under both shoes and leave clear padding above the head and below the feet. "
+            "Camera is pulled back for a wide vertical 9:16 composition, subject occupies about 70 percent of image height, not a close-up, not a three-quarter crop, not knee-up, not thigh-up. "
+            "Use a clean seamless white cyclorama studio background with visible floor-to-wall curve."
+        )
+        negative_directive = (
+            "Avoid cropped legs, cropped feet, hidden shoes, knee crop, thigh crop, ankle crop, close portrait framing, waist-up framing, and oversized subject scale."
+        )
+        if "MANDATORY CORRECTION: true head-to-toe" in base:
+            return base
+        return f"{full_body_directive} {base} {negative_directive}".strip()
+
     async def reprocess(self, shot_ids: List[str]) -> Dict[str, Any]:
         requested = len(shot_ids)
         updated = 0
@@ -231,6 +280,12 @@ class HermesAuditService:
                     "audit_result": s.get("audit_raw_response", {}),
                     "audit_issues": s.get("audit_issues", []),
                     "remediation_reason": remediation_reason,
+                    "required_fix_behavior": (
+                        "Return a materially revised fix_prompt, not the original prompt with minor suffixes. "
+                        "If the failure says full-body, head-to-toe, cropped legs, cropped knees, cropped shins, or feet not visible, "
+                        "the fix_prompt must explicitly require head-to-toe framing, both feet and shoes fully visible, visible studio floor below the feet, "
+                        "clear padding above head and below shoes, and a pulled-back wide vertical studio composition."
+                    ),
                     "allowed_skill_patterns": remediator_scope.get("patterns", []),
                 },
             )
@@ -252,6 +307,8 @@ class HermesAuditService:
                     remediated_prompt = str(diagnosis.get("fix_prompt") or "").strip()
             if not remediated_prompt:
                 remediated_prompt = (s.get("compiled_prompt") or s.get("prompt", "")) + f", corrective constraints: {remediation_reason}"
+            if self._needs_full_body_framing_fix(s):
+                remediated_prompt = self._enforce_full_body_remediation(remediated_prompt)
 
             retry_shot_id = f"{shot_id}__retry_{uuid.uuid4().hex[:6]}"
             retry_record = dict(s)

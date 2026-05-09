@@ -37,6 +37,7 @@ CONFIGURABLE_KEYS = [
     "OPENROUTER_ENDPOINT",
     "COMFYUI_PRIMARY",
     "COMFYUI_SECONDARY",
+    "SPARK_WORKFLOW_FILE",
     "LMSTUDIO_HOST",
     "LMSTUDIO_PORT",
     "LMSTUDIO_EMBED_MODEL",
@@ -75,6 +76,7 @@ KEY_ALIASES = {
     "comfy_primary": "COMFYUI_PRIMARY",
     "comfy_secondary": "COMFYUI_SECONDARY",
     "spark_url": "COMFYUI_PRIMARY",
+    "spark_workflow_file": "SPARK_WORKFLOW_FILE",
     "lmstudio_host": "LMSTUDIO_HOST",
     "lmstudio_port": "LMSTUDIO_PORT",
     "lmstudio_chat_model": "LMSTUDIO_CHAT_MODEL",
@@ -150,6 +152,12 @@ def _normalize_overrides(raw: Dict[str, Any]) -> Dict[str, Any]:
     if isinstance(comfy, dict):
         put_legacy(comfy, "primary", "COMFYUI_PRIMARY")
         put_legacy(comfy, "secondary", "COMFYUI_SECONDARY")
+
+    spark = raw.get("spark")
+    if isinstance(spark, dict):
+        put_legacy(spark, "primary", "COMFYUI_PRIMARY")
+        put_legacy(spark, "secondary", "COMFYUI_SECONDARY")
+        put_legacy(spark, "workflow_file", "SPARK_WORKFLOW_FILE")
 
     # Direct canonical/alias keys are authoritative. This is what the Settings
     # page writes, and it must not be clobbered by stale legacy sections.
