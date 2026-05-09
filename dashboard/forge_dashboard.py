@@ -823,6 +823,14 @@ class ScriptStoryboardAssembleRequest(BaseModel):
     include_panel_numbers: bool = True
     captions: List[str] = []
 
+class ScriptStoryboardVideoExportRequest(BaseModel):
+    board: Dict[str, Any]
+    panel_image_urls: List[str]
+    title: str = "Storyboard"
+    campaign_id: str = ""
+    duration_seconds: float = 4.0
+    replace_existing: bool = True
+
 class RenameCampaignRequest(BaseModel):
     old_campaign_id: str
     new_campaign_name: str
@@ -2404,12 +2412,14 @@ def _storyboard_panels_from_text(script: str, target_panels: Optional[int]) -> L
         ("Confrontation", "over-the-shoulder shot", "stage the opposing force or discovery"),
         ("Closing image", "locked final frame", "resolve the page with a readable final image"),
     ]
+    story_context = _short_text(raw, 900)
     panels = []
     for idx in range(1, desired + 1):
-        chunk = chunks[idx - 1] if idx - 1 < len(chunks) else parts[min(len(parts) - 1, round((idx - 1) * (len(parts) - 1) / max(1, desired - 1)))]
+        source_idx = min(len(parts) - 1, round((idx - 1) * (len(parts) - 1) / max(1, desired - 1)))
+        chunk = chunks[idx - 1] if idx - 1 < len(chunks) else parts[source_idx]
         stage, camera, purpose = coverage_expansion[(idx - 1) % len(coverage_expansion)]
         caption = _short_text(chunk, 130)
-        action = f"{stage}: {caption}. Visual purpose: {purpose}."
+        action = f"{stage}: {caption}. Full story context: {story_context}. Visual purpose: {purpose}."
         panels.append({
             "panel_id": f"PANEL_{idx:03d}",
             "scene_id": "",
