@@ -38,6 +38,14 @@ remediation*.json
 remediated_prompt*.json
 prompts/*_refined.json
 
+# Generated character assets
+data/character_banks/char_*.json
+data/character_banks/anchors/*.jpg
+data/character_banks/anchors/*.jpeg
+data/character_banks/anchors/*.png
+data/character_banks/anchors/*.webp
+data/character_banks/references/
+
 # Publish cleanup / local archives
 private/
 docs/archive/

@@ -11,6 +11,8 @@ let sessionId = "session_" + Date.now();
 let scriptChatHistory = [];
 let scriptSessionId = "script_" + Date.now();
 let scriptPackage = null;
+let storyboardPlan = null;
+let storyboardPanelJobs = {};
 let campaignActive = false;
 let campaignAbortController = null;
 let campaignRecoveryTimer = null;
@@ -1808,6 +1810,57 @@ function scriptPackageShotlistBrief() {
     ].join("\n");
 }
 
+function getStoryboardSourcePackage() {
+    return getScriptPackageFromEditor();
+}
+
+function getStoryboardSourceText() {
+    const pkg = getStoryboardSourcePackage();
+    if (pkg) return JSON.stringify(pkg, null, 2);
+    return ($scriptBrief?.value || "").trim();
+}
+
+const STORYBOARD_STYLE_PRESETS = {
+    comic: {
+        style: "classic American comic book style, bold ink lines, halftone dots, vibrant colors",
+        panels: 9,
+        target: "",
+        resolution: "3840x2160",
+    },
+    anime: {
+        style: "detailed anime style, clean line art, vibrant colors, dynamic angles",
+        panels: 9,
+        target: "",
+        resolution: "3840x2160",
+    },
+    realistic: {
+        style: "photorealistic cinematic stills, 35mm lens, anamorphic bokeh, dramatic lighting",
+        panels: 9,
+        target: "",
+        resolution: "3840x2160",
+    },
+    four: {
+        style: "cinematic storyboard frames, clean readable compositions, highly consistent character design",
+        panels: 4,
+        target: 4,
+        resolution: "2048x2048",
+    },
+};
+
+function setStoryboardPreset(name) {
+    const preset = STORYBOARD_STYLE_PRESETS[name];
+    if (!preset) return;
+    const set = (idName, value) => {
+        const el = document.getElementById(idName);
+        if (el) el.value = value;
+    };
+    set("storyboard-style", preset.style);
+    set("storyboard-panels-per-board", String(preset.panels));
+    set("storyboard-target-panels", preset.target === "" ? "" : String(preset.target));
+    set("storyboard-resolution", preset.resolution);
+    setScriptStatus("Storyboard preset applied: " + name + ".", "Storyboard");
+}
+
 function renderScriptPackage(pkg) {
     const treatmentEl = document.getElementById("script-treatment-output");
     const continuityEl = document.getElementById("script-continuity-output");
@@ -1872,6 +1925,282 @@ function renderScriptPackage(pkg) {
     }
 
     if (jsonEl) jsonEl.value = JSON.stringify(pkg, null, 2);
+}
+
+function renderStoryboardPlan(plan) {
+    const target = document.getElementById("storyboard-output");
+    if (!target) return;
+    if (!plan || !Array.isArray(plan.boards) || !plan.boards.length) {
+        target.innerHTML = '<div class="script-empty-shot"><p>No storyboard generated yet.</p></div>';
+        return;
+    }
+    target.innerHTML = plan.boards.map((board) => {
+        const panels = Array.isArray(board.panels) ? board.panels : [];
+        return (
+            '<article class="storyboard-board" data-board-id="' + escapeHtml(board.board_id || "") + '">' +
+                '<div class="storyboard-board-head">' +
+                    '<div><strong>' + escapeHtml(board.board_id || "Storyboard") + '</strong><span>' + escapeHtml(String(board.panel_count || panels.length)) + ' panel(s) / ' + escapeHtml(board.layout || "") + ' / ' + escapeHtml(board.resolution || "3840x2160") + '</span></div>' +
+                    '<div class="storyboard-copy-row">' +
+                        '<button class="btn btn-secondary" onclick="renderStoryboardBoard(' + Number(board.index || 1) + ')">Render Page</button>' +
+                        '<button class="btn btn-secondary" onclick="renderStoryboardPanels(' + Number(board.index || 1) + ')">Render Panels</button>' +
+                        '<button class="btn" onclick="assembleStoryboardPanels(' + Number(board.index || 1) + ')">Assemble</button>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="storyboard-panel-grid">' + panels.map((panel, idx) => (
+                    '<div class="storyboard-panel">' +
+                        '<span>' + String(idx + 1) + '</span>' +
+                        '<p>' + escapeHtml(panel.caption || panel.visual_prompt || "") + '</p>' +
+                    '</div>'
+                )).join("") + '</div>' +
+                '<textarea class="storyboard-prompt" readonly>' + escapeHtml(board.image_prompt || "") + '</textarea>' +
+                '<div class="storyboard-copy-row"><button class="btn btn-secondary" onclick="copyStoryboardPrompt(' + Number(board.index || 1) + ')">Copy FLUX Prompt</button></div>' +
+                '<div class="storyboard-panel-jobs" id="storyboard-panel-jobs-' + Number(board.index || 1) + '"></div>' +
+                '<div class="storyboard-render-result" id="storyboard-render-' + Number(board.index || 1) + '"></div>' +
+            '</article>'
+        );
+    }).join("");
+    plan.boards.forEach((board) => renderStoryboardPanelJobList(Number(board.index || 1)));
+}
+
+async function copyStoryboardPrompt(boardIndex) {
+    if (!storyboardPlan || !Array.isArray(storyboardPlan.boards)) return;
+    const board = storyboardPlan.boards.find((b) => Number(b.index) === Number(boardIndex));
+    if (!board || !board.image_prompt) return;
+    try {
+        await navigator.clipboard.writeText(board.image_prompt);
+        const resultEl = document.getElementById("storyboard-render-" + Number(boardIndex));
+        if (resultEl) resultEl.textContent = "Prompt copied.";
+    } catch (_e) {
+        const resultEl = document.getElementById("storyboard-render-" + Number(boardIndex));
+        if (resultEl) resultEl.textContent = "Copy failed; select the prompt text manually.";
+    }
+}
+
+async function generateStoryboard() {
+    refreshScriptDomRefs();
+    const sourceText = getStoryboardSourceText();
+    const sourcePackage = getStoryboardSourcePackage();
+    if (!sourceText) {
+        setScriptStatus("Enter a script or develop a script package before storyboarding.", "");
+        return;
+    }
+    const btn = document.getElementById("generate-storyboard-btn");
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = "Generating...";
+    }
+    setScriptStatus("Building 9-panel 4K storyboard board(s)...", "Storyboard");
+    try {
+        const targetPanelsRaw = scriptInputValue("storyboard-target-panels", "");
+        const resp = await fetch("/api/script/storyboard", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                script: sourceText,
+                package: sourcePackage || null,
+                panels_per_board: parseInt(scriptInputValue("storyboard-panels-per-board", "9"), 10) || 9,
+                target_panels: targetPanelsRaw ? parseInt(targetPanelsRaw, 10) : null,
+                resolution: scriptInputValue("storyboard-resolution", "3840x2160") || "3840x2160",
+                title: scriptInputValue("script-title", ""),
+                style: scriptInputValue("storyboard-style", "cinematic"),
+                character_consistency: scriptInputValue("storyboard-character-consistency", ""),
+                negative_prompt: scriptInputValue("storyboard-negative-prompt", "blurry, deformed, extra limbs, text errors, inconsistent characters, merged panels"),
+                reference_image_url: scriptInputValue("storyboard-reference-image", ""),
+                include_captions: !!document.getElementById("storyboard-include-captions")?.checked,
+            }),
+        });
+        const data = await resp.json();
+        if (!resp.ok || data.status !== "ok") {
+            throw new Error(data.detail || data.error || "storyboard failed");
+        }
+        storyboardPlan = data;
+        storyboardPanelJobs = {};
+        renderStoryboardPlan(data);
+        setScriptStatus("Storyboard ready: " + data.board_count + " board image(s), " + data.panel_count + " panel(s).", "Storyboard");
+    } catch (e) {
+        setScriptStatus("Storyboard failed: " + e.message, "");
+        addLogEntry("error", "Storyboard failed: " + e.message);
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = "Generate Storyboard";
+        }
+    }
+}
+
+function getStoryboardBoard(boardIndex) {
+    if (!storyboardPlan || !Array.isArray(storyboardPlan.boards)) return null;
+    return storyboardPlan.boards.find((b) => Number(b.index) === Number(boardIndex)) || null;
+}
+
+function storyboardJobResultUrl(job) {
+    const firstJob = Array.isArray(job?.jobs) ? job.jobs[0] : null;
+    return firstJob?.results?.raw?.url || firstJob?.results?.min?.url || firstJob?.results?.all?.[0]?.url || "";
+}
+
+function renderStoryboardPanelJobList(boardIndex) {
+    const holder = document.getElementById("storyboard-panel-jobs-" + Number(boardIndex));
+    if (!holder) return;
+    const jobs = storyboardPanelJobs[String(boardIndex)] || [];
+    if (!jobs.length) {
+        holder.innerHTML = "";
+        return;
+    }
+    holder.innerHTML =
+        '<div class="storyboard-copy-row">' +
+            '<button class="btn btn-secondary" onclick="pollStoryboardPanelJobs(' + Number(boardIndex) + ')">Refresh Panel Jobs</button>' +
+        '</div>' +
+        '<div class="storyboard-panel-grid">' + jobs.map((job, idx) => {
+            const status = job.status || "queued";
+            const thumb = job.url ? '<img src="' + escapeHtml(job.url) + '" alt="Panel ' + String(idx + 1) + '">' : "";
+            return (
+                '<div class="storyboard-panel">' +
+                    '<span>' + String(idx + 1) + '</span>' +
+                    thumb +
+                    '<p>' + escapeHtml(status) + (job.job_set_id ? ' / ' + escapeHtml(job.job_set_id.slice(0, 8)) : "") + '</p>' +
+                '</div>'
+            );
+        }).join("") + '</div>';
+}
+
+async function renderStoryboardPanels(boardIndex) {
+    const board = getStoryboardBoard(boardIndex);
+    if (!board) return;
+    const panels = Array.isArray(board.panels) ? board.panels : [];
+    const resultEl = document.getElementById("storyboard-render-" + Number(boardIndex));
+    storyboardPanelJobs[String(boardIndex)] = panels.map((panel, idx) => ({
+        index: idx + 1,
+        status: "submitting",
+        job_set_id: "",
+        url: "",
+    }));
+    renderStoryboardPanelJobList(boardIndex);
+    if (resultEl) resultEl.textContent = "Submitting " + panels.length + " individual panel render(s) to Spark...";
+    try {
+        for (let idx = 0; idx < panels.length; idx += 1) {
+            const panel = panels[idx];
+            const resp = await fetch("/api/local-higgsfield/generate-image", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    prompt: panel.single_panel_prompt || panel.visual_prompt || panel.caption || "",
+                    width_and_height: panel.width_and_height || board.panel_width_and_height || "1280x720",
+                    quality: "720p",
+                    batch_size: 1,
+                    enhance_prompt: false,
+                    wait_for_output: false,
+                    image_reference_url: board.reference_image_url || undefined,
+                }),
+            });
+            const data = await resp.json();
+            if (!resp.ok) throw new Error(data.detail || data.error || "panel render failed");
+            storyboardPanelJobs[String(boardIndex)][idx] = {
+                index: idx + 1,
+                status: data.status || "queued",
+                job_set_id: data.job_set_id || data.id || "",
+                url: storyboardJobResultUrl(data),
+            };
+            renderStoryboardPanelJobList(boardIndex);
+        }
+        if (resultEl) resultEl.textContent = "Panel jobs submitted. Refresh until all panels show completed, then assemble.";
+    } catch (e) {
+        if (resultEl) resultEl.textContent = "Panel render failed: " + e.message;
+        addLogEntry("error", "Storyboard panel render failed: " + e.message);
+    }
+}
+
+async function pollStoryboardPanelJobs(boardIndex) {
+    const jobs = storyboardPanelJobs[String(boardIndex)] || [];
+    const resultEl = document.getElementById("storyboard-render-" + Number(boardIndex));
+    if (!jobs.length) {
+        if (resultEl) resultEl.textContent = "No individual panel jobs submitted yet.";
+        return [];
+    }
+    for (let idx = 0; idx < jobs.length; idx += 1) {
+        const job = jobs[idx];
+        if (!job.job_set_id || job.url) continue;
+        try {
+            const resp = await fetch("/api/local-higgsfield/jobs/" + encodeURIComponent(job.job_set_id));
+            const data = await resp.json();
+            if (!resp.ok) throw new Error(data.detail || data.error || "status failed");
+            job.status = data.status || job.status || "queued";
+            job.url = storyboardJobResultUrl(data) || job.url || "";
+        } catch (e) {
+            job.status = "status error: " + e.message;
+        }
+    }
+    renderStoryboardPanelJobList(boardIndex);
+    const completed = jobs.filter((job) => job.url).length;
+    if (resultEl) resultEl.textContent = "Panel jobs: " + completed + " / " + jobs.length + " image(s) ready.";
+    return jobs;
+}
+
+async function assembleStoryboardPanels(boardIndex) {
+    const board = getStoryboardBoard(boardIndex);
+    if (!board) return;
+    const resultEl = document.getElementById("storyboard-render-" + Number(boardIndex));
+    const jobs = await pollStoryboardPanelJobs(boardIndex);
+    const urls = jobs.map((job) => job.url).filter(Boolean);
+    if (!urls.length || urls.length !== (Array.isArray(board.panels) ? board.panels.length : 0)) {
+        if (resultEl) resultEl.textContent = "Assemble blocked: all individual panel renders must be completed first.";
+        return;
+    }
+    if (resultEl) resultEl.textContent = "Assembling completed panels into a storyboard page...";
+    try {
+        const resp = await fetch("/api/script/storyboard/assemble", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                panel_image_urls: urls,
+                title: storyboardPlan?.title || "Storyboard",
+                resolution: board.resolution || "3840x2160",
+                columns: board.layout_columns || 3,
+                rows: board.layout_rows || 3,
+                include_panel_numbers: true,
+                captions: [],
+            }),
+        });
+        const data = await resp.json();
+        if (!resp.ok || data.status !== "ok") throw new Error(data.detail || data.error || "assemble failed");
+        if (resultEl) {
+            resultEl.innerHTML = '<span>Assembled storyboard page.</span><br><img src="' + escapeHtml(data.url) + '" alt="Assembled storyboard">';
+        }
+        if (typeof loadVideoLibrary === "function") loadVideoLibrary();
+    } catch (e) {
+        if (resultEl) resultEl.textContent = "Assemble failed: " + e.message;
+        addLogEntry("error", "Storyboard assembly failed: " + e.message);
+    }
+}
+
+async function renderStoryboardBoard(boardIndex) {
+    const board = getStoryboardBoard(boardIndex);
+    if (!board) return;
+    const resultEl = document.getElementById("storyboard-render-" + Number(boardIndex));
+    if (resultEl) resultEl.textContent = "Submitting storyboard board to Spark...";
+    try {
+        const resp = await fetch("/api/local-higgsfield/generate-image", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                prompt: board.image_prompt,
+                width_and_height: board.width_and_height || "3840x2160",
+                quality: "4k",
+                batch_size: 1,
+                enhance_prompt: false,
+                wait_for_output: false,
+                image_reference_url: board.reference_image_url || undefined,
+            }),
+        });
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.detail || data.error || "render failed");
+        if (resultEl) {
+            resultEl.innerHTML = '<span>Submitted.</span><code>' + escapeHtml(data.job_set_id || data.prompt_id || data.status || "queued") + '</code>';
+        }
+        if (typeof loadVideoLibrary === "function") loadVideoLibrary();
+    } catch (e) {
+        if (resultEl) resultEl.textContent = "Render failed: " + e.message;
+        addLogEntry("error", "Storyboard render failed: " + e.message);
+    }
 }
 
 async function developScriptPackage() {
@@ -2249,12 +2578,14 @@ function clearShotList() {
     refreshScriptDomRefs();
     director_shots = {};
     scriptPackage = null;
+    storyboardPlan = null;
     $shotList.innerHTML = "";
     $shotList.style.display = "none";
     $shotListPlaceholder.style.display = "block";
     $scriptStatusText.textContent = "Ready";
     $scriptProgress.textContent = "";
     renderScriptPackage(null);
+    renderStoryboardPlan(null);
     updateSendToSparkBtn();
 }
 
@@ -2843,6 +3174,29 @@ function characterDnaText(char) {
     return JSON.stringify(dna, null, 2);
 }
 
+function characterReferences(char) {
+    const refs = [];
+    if (Array.isArray(char?.master_references)) refs.push(...char.master_references.map((r) => ({ ...r, master: true })));
+    if (Array.isArray(char?.reference_uploads)) refs.push(...char.reference_uploads.map((r) => ({ ...r, master: false })));
+    return refs.filter((r) => r && r.url);
+}
+
+function characterStatus(char) {
+    return String(char?.status || "draft").replace(/_/g, " ");
+}
+
+function characterUsedInShots(char) {
+    return Number(char?.analytics?.used_in_shots || char?.used_in_shots || 0);
+}
+
+function characterLastUsed(char) {
+    return String(char?.analytics?.last_used_at || char?.last_used_at || "never");
+}
+
+function characterRenderHistoryCount(char) {
+    return Array.isArray(char?.render_history) ? char.render_history.length : 0;
+}
+
 async function loadCharacters() {
     const charList = document.getElementById("char-list");
     if (!charList) return;
@@ -2891,6 +3245,7 @@ async function loadCharacterManager() {
             const name = characterName(char);
             const img = characterImage(char);
             const dna = char?.dna && typeof char.dna === "object" ? Object.keys(char.dna).length : 0;
+            const refs = characterReferences(char).filter((r) => r.master).length;
             const avatar = img
                 ? '<img src="' + escapeHtml(img) + '" alt="' + escapeHtml(name) + '" loading="lazy">'
                 : '<div class="character-avatar-fallback">' + escapeHtml(name.slice(0, 1).toUpperCase()) + '</div>';
@@ -2900,7 +3255,7 @@ async function loadCharacterManager() {
                     '<div>' +
                         '<h3>' + escapeHtml(name) + '</h3>' +
                         '<div class="role">' + escapeHtml(char.role || char.description || "Character") + '</div>' +
-                        '<div class="meta"><span>ID ' + escapeHtml(id) + '</span><span>DNA ' + dna + '</span><button class="btn btn-secondary" type="button" onclick="selectCharacterForForge(\'' + escapeHtml(id) + '\')">Use</button><a href="/api/characters/' + encodeURIComponent(id) + '/export" target="_blank" rel="noreferrer">Export</a></div>' +
+                        '<div class="meta"><span>ID ' + escapeHtml(id) + '</span><span>' + escapeHtml(characterStatus(char)) + '</span><span>DNA ' + dna + '</span><span>Master ' + refs + '</span><button class="btn btn-secondary" type="button" onclick="selectCharacterForForge(\'' + escapeHtml(id) + '\')">Use</button><a href="/api/characters/' + encodeURIComponent(id) + '/export-package" target="_blank" rel="noreferrer">Export</a></div>' +
                     '</div>' +
                 '</article>'
             );
@@ -2957,11 +3312,344 @@ function characterForgeValue(id) {
     return (document.getElementById(id)?.value || "").trim();
 }
 
+const CHARACTER_NO_TEXT_PROMPT_RULE = "no text, no captions, no labels, no typography, no letters, no numbers, no logos, no watermark";
+
+function withCharacterNoTextRule(prompt) {
+    const clean = String(prompt || "").trim().replace(/[,\s]+$/g, "");
+    if (!clean) return CHARACTER_NO_TEXT_PROMPT_RULE;
+    const lower = clean.toLowerCase();
+    const required = ["no text", "no captions", "no labels", "no typography", "no letters", "no numbers", "no logos", "no watermark"];
+    if (required.every((term) => lower.includes(term))) return clean;
+    return clean + ", " + CHARACTER_NO_TEXT_PROMPT_RULE;
+}
+
 function getCharacterForgeSeed() {
     const raw = characterForgeValue("char-forge-seed");
     if (!raw) return null;
     const parsed = parseInt(raw, 10);
     return Number.isFinite(parsed) ? parsed : null;
+}
+
+function pickRandom(list) {
+    return list[Math.floor(Math.random() * list.length)];
+}
+
+function pickRandomSet(list, count) {
+    const pool = [...list];
+    const picked = [];
+    while (pool.length && picked.length < count) {
+        const index = Math.floor(Math.random() * pool.length);
+        picked.push(pool.splice(index, 1)[0]);
+    }
+    return picked;
+}
+
+function randomizeCharacterForge() {
+    const givenNames = ["Sable", "Mira", "Cassian", "Nyra", "Orin", "Vale", "Ilya", "Riven", "Mara", "Soren", "Kael", "Vesper"];
+    const surnames = ["Cross", "Vale", "Nyx", "Ashford", "Kade", "Sol", "Vance", "Morrow", "Reyes", "Ishaan", "Drift", "Noor"];
+    const archetypes = [
+        "exiled starship pilot",
+        "desert relic hunter",
+        "underground cybernetic medic",
+        "luxury espionage courier",
+        "retired arena champion",
+        "haunted royal cartographer",
+        "orbital salvage engineer",
+        "monastic data thief",
+        "runaway corporate heir",
+        "wilderness signal tracker",
+    ];
+    const faces = [
+        "angular cheekbones, calm severe expression, faint scar through one eyebrow",
+        "soft round face, watchful eyes, asymmetrical smile, subtle freckles",
+        "long narrow face, tired eyes, broken nose, controlled intensity",
+        "heart-shaped face, sharp gaze, small beauty mark below the left eye",
+        "square jaw, close-cropped beard shadow, guarded expression",
+    ];
+    const hair = [
+        "silver cropped hair with a shaved left side",
+        "black shoulder-length curls tied back with copper thread",
+        "auburn bob with blunt bangs and wind-torn ends",
+        "white braided topknot with loose temple strands",
+        "dark buzz cut with a narrow platinum streak",
+    ];
+    const wardrobe = [
+        "weathered charcoal flight jacket, graphite undersuit, brass hardware",
+        "sand-colored expedition coat, wrapped scarf, patched utility trousers",
+        "tailored black field suit, matte ceramic buckles, hidden blade holster",
+        "deep green medic smock, modular belt, translucent diagnostic gloves",
+        "ivory ceremonial coat over armored streetwear, red cord fasteners",
+    ];
+    const signatures = [
+        "glowing amber tattoo on the left forearm",
+        "one mechanical hand with exposed silver tendons",
+        "small glass data vial worn as a necklace",
+        "blue enamel eye patch with engraved constellations",
+        "pair of antique pilot goggles hanging at the collar",
+        "thin gold facial circuit tracing the right cheekbone",
+    ];
+    const palettes = [
+        "charcoal, oxidized copper, pale amber",
+        "bone white, desert red, faded teal",
+        "black chrome, electric blue, signal orange",
+        "forest green, surgical white, warm brass",
+        "midnight violet, silver, muted rose",
+    ];
+    const cameraStyles = [
+        "cinematic production still, 50mm lens, shallow depth of field",
+        "premium character concept art, clean silhouette, high material detail",
+        "editorial portrait lighting, natural skin texture, grounded realism",
+        "high-end game character key art, crisp costume design, strong rim light",
+        "film wardrobe test, neutral framing, production-ready anatomy",
+    ];
+    const locationBanks = [
+        ["rain-soaked neon alley", "abandoned orbital dock", "quiet hotel corridor", "underground noodle bar"],
+        ["desert highway", "sun-bleached ruins", "wind-carved canyon", "dusty roadside shrine"],
+        ["sterile med bay", "crowded night market", "subway platform", "rooftop greenhouse"],
+        ["arctic research station", "ice cave", "dim command bunker", "snowfield at blue hour"],
+        ["royal archive", "candlelit chapel", "marble train station", "overgrown palace garden"],
+    ];
+    const clothesBanks = [
+        ["hero outfit", "travel coat", "formal dinner variant", "battle-damaged layer"],
+        ["field jacket", "rain shell", "sleeveless utility vest", "ceremonial uniform"],
+        ["streetwear disguise", "medical workwear", "armored undersuit", "luxury tailored suit"],
+        ["cold-weather parka", "desert wrap", "pilot harness", "sleep-deprived off-duty clothes"],
+    ];
+    const angleBanks = [
+        ["front", "3/4 left", "3/4 right", "profile", "rear", "full body", "portrait close-up", "hands detail"],
+        ["hero portrait", "waist-up", "walking full body", "over-shoulder", "low angle", "side profile", "back view"],
+        ["neutral T-pose", "relaxed stance", "turnaround front", "turnaround side", "turnaround rear", "face close-up", "boots detail"],
+    ];
+
+    const name = pickRandom(givenNames) + " " + pickRandom(surnames);
+    const role = pickRandom(archetypes);
+    const face = pickRandom(faces);
+    const hairDesc = pickRandom(hair);
+    const wardrobeDesc = pickRandom(wardrobe);
+    const signature = pickRandom(signatures);
+    const palette = pickRandom(palettes);
+    const cameraStyle = pickRandom(cameraStyles);
+    const locations = pickRandom(locationBanks);
+    const clothes = pickRandom(clothesBanks);
+    const angles = pickRandom(angleBanks);
+    const seed = Math.floor(100000 + Math.random() * 899999);
+
+    const basePrompt = [
+        "Portrait of " + name,
+        role,
+        face,
+        hairDesc,
+        wardrobeDesc,
+        signature,
+        "fixed color palette: " + palette,
+        "consistent face identity, stable anatomy, clear silhouette",
+        cameraStyle,
+        "no duplicate person",
+    ].join(", ");
+
+    const setValue = (id, value) => {
+        const el = document.getElementById(id);
+        if (el) el.value = value;
+    };
+    setValue("char-forge-name", name);
+    setValue("char-forge-role", role);
+    setValue("char-forge-base-prompt", withCharacterNoTextRule(basePrompt));
+    setValue("char-forge-locations", pickRandomSet(locations, Math.min(4, locations.length)).join(", "));
+    setValue("char-forge-clothes", pickRandomSet(clothes, Math.min(4, clothes.length)).join(", "));
+    setValue("char-forge-angles", pickRandomSet(angles, Math.min(8, angles.length)).join(", "));
+    setValue("char-forge-seed", String(seed));
+
+    const workflow = document.getElementById("char-forge-workflow");
+    if (workflow) {
+        workflow.value = Math.random() > 0.35 ? "01_flux2_text_to_image" : "08_flux2_klein_9b_text_to_image";
+    }
+
+    composeCharacterPrompts();
+    const status = document.getElementById("character-manager-status");
+    if (status) status.textContent = "Random character generated locally. Review the prompts before sending to Spark.";
+}
+
+function groundCharacterForge() {
+    const givenNames = ["Alex", "Jordan", "Morgan", "Taylor", "Casey", "Riley", "Jamie", "Avery", "Sam", "Cameron", "Drew", "Robin"];
+    const surnames = ["Miller", "Parker", "Reed", "Bennett", "Coleman", "Hayes", "Sullivan", "Brooks", "Foster", "Ramirez", "Nguyen", "Patel"];
+    const roles = [
+        "regular person",
+        "office worker",
+        "neighbor",
+        "teacher",
+        "barista",
+        "parent",
+        "delivery driver",
+        "nurse",
+        "small business owner",
+        "college student",
+        "retired accountant",
+        "grocery store manager",
+    ];
+    const ages = ["late 20s", "early 30s", "mid 30s", "early 40s", "late 40s", "early 50s", "mid 60s"];
+    const faces = [
+        "natural face, mild under-eye texture, ordinary facial proportions, relaxed expression",
+        "oval face, subtle smile lines, realistic skin texture, neutral expression",
+        "round face, soft jawline, slight forehead lines, calm everyday expression",
+        "long face, straight nose, natural asymmetry, unposed expression",
+        "square face, faint smile lines, realistic pores, casual expression",
+    ];
+    const hair = [
+        "short brown hair with a practical side part",
+        "shoulder-length dark hair worn loose",
+        "short graying hair, neatly trimmed",
+        "curly black hair pulled back casually",
+        "medium blonde hair, simple natural styling",
+        "closely cropped hair, natural hairline",
+    ];
+    const builds = [
+        "average build, normal posture",
+        "slim average build, casual posture",
+        "stocky average build, relaxed shoulders",
+        "tall average build, natural stance",
+        "short average build, unposed stance",
+    ];
+    const wardrobe = [
+        "plain navy sweater, blue jeans, simple sneakers",
+        "gray t-shirt, casual jacket, dark jeans",
+        "white button-down shirt, chinos, ordinary leather shoes",
+        "black hoodie, straight-leg jeans, worn sneakers",
+        "simple cardigan, cotton shirt, casual trousers",
+        "work polo shirt, khaki pants, practical shoes",
+    ];
+    const locations = [
+        "apartment kitchen",
+        "office hallway",
+        "sidewalk in daylight",
+        "grocery store aisle",
+        "parking lot",
+        "living room",
+        "coffee shop counter",
+        "suburban street",
+    ];
+    const clothes = [
+        "plain t-shirt and jeans",
+        "casual jacket and jeans",
+        "office shirt and chinos",
+        "sweater and casual trousers",
+        "hoodie and straight-leg jeans",
+        "simple work polo and khaki pants",
+    ];
+    const name = pickRandom(givenNames) + " " + pickRandom(surnames);
+    const role = pickRandom(roles);
+    const basePrompt = [
+        "Photorealistic portrait of " + name,
+        pickRandom(ages),
+        role,
+        pickRandom(faces),
+        pickRandom(hair),
+        pickRandom(builds),
+        pickRandom(wardrobe),
+        "normal everyday person, documentary realism, realistic skin texture, natural color grading",
+        "soft daylight, 50mm lens, casual unposed posture",
+        "no fantasy elements, no sci-fi elements, no costume, no armor, no glowing tattoos, no exaggerated features, no glamour retouching",
+        "no duplicate person",
+    ].join(", ");
+
+    const setValue = (id, value) => {
+        const el = document.getElementById(id);
+        if (el) el.value = value;
+    };
+    setValue("char-forge-name", name);
+    setValue("char-forge-role", role);
+    setValue("char-forge-base-prompt", withCharacterNoTextRule(basePrompt));
+    setValue("char-forge-locations", pickRandomSet(locations, 4).join(", "));
+    setValue("char-forge-clothes", pickRandomSet(clothes, 4).join(", "));
+    setValue("char-forge-angles", "front, 3/4 left, 3/4 right, side profile, rear, full body, portrait close-up, hands detail");
+    setValue("char-forge-seed", String(Math.floor(100000 + Math.random() * 899999)));
+
+    const workflow = document.getElementById("char-forge-workflow");
+    if (workflow) workflow.value = "01_flux2_text_to_image";
+
+    composeCharacterPrompts();
+    const status = document.getElementById("character-manager-status");
+    if (status) status.textContent = "Grounded regular-person character generated locally. Review before sending to Spark.";
+}
+
+function generateCharacterFromRoleForge() {
+    const status = document.getElementById("character-manager-status");
+    const role = characterForgeValue("char-forge-role");
+    if (!role) {
+        if (status) status.textContent = "Enter a Role / Archetype first.";
+        return;
+    }
+    const givenNames = ["Alex", "Jordan", "Maya", "Noah", "Elena", "Marcus", "Priya", "Owen", "Nina", "Daniel", "Leah", "Victor"];
+    const surnames = ["Reed", "Morgan", "Hayes", "Kline", "Santos", "Bennett", "Patel", "Brooks", "Wright", "Kim", "Foster", "Morales"];
+    const ages = ["late 20s", "early 30s", "mid 30s", "early 40s", "late 40s", "early 50s", "early 60s"];
+    const faces = [
+        "natural face, realistic skin texture, ordinary facial proportions, calm focused expression",
+        "oval face, subtle smile lines, believable asymmetry, relaxed eyes",
+        "square face, faint forehead lines, grounded expression, realistic pores",
+        "round face, soft jawline, mild under-eye texture, attentive expression",
+        "long face, straight nose, natural hairline, unforced expression",
+    ];
+    const hair = [
+        "short dark hair, practical styling",
+        "shoulder-length brown hair, natural styling",
+        "short graying hair, neatly kept",
+        "curly black hair, casually pulled back",
+        "medium blonde hair, simple everyday styling",
+        "closely cropped hair, natural hairline",
+    ];
+    const builds = [
+        "average build, natural posture",
+        "slim average build, relaxed shoulders",
+        "stocky average build, grounded stance",
+        "tall average build, casual posture",
+        "short average build, ordinary stance",
+    ];
+    const wardrobe = [
+        "role-appropriate everyday clothing, practical layers, no costume exaggeration",
+        "simple work clothes appropriate to the role, natural fabrics, worn-in details",
+        "casual contemporary clothing with subtle role-specific accessories",
+        "plain functional outfit, believable shoes, minimal accessories",
+        "realistic workplace outfit, understated colors, no theatrical styling",
+    ];
+    const name = characterForgeValue("char-forge-name") || (pickRandom(givenNames) + " " + pickRandom(surnames));
+    const basePrompt = [
+        "Photorealistic character portrait of " + name,
+        pickRandom(ages),
+        "role / archetype: " + role,
+        pickRandom(faces),
+        pickRandom(hair),
+        pickRandom(builds),
+        pickRandom(wardrobe),
+        "believable real person, grounded documentary realism, realistic skin texture, natural color grading",
+        "soft daylight, 50mm lens, casual unposed posture, clear face identity, stable anatomy",
+        "avoid over-designed costume, avoid fantasy unless the role explicitly requires it, avoid sci-fi unless the role explicitly requires it, no exaggerated features, no glamour retouching",
+        "no duplicate person",
+    ].join(", ");
+
+    const setValue = (id, value) => {
+        const el = document.getElementById(id);
+        if (el) el.value = value;
+    };
+    setValue("char-forge-name", name);
+    setValue("char-forge-base-prompt", withCharacterNoTextRule(basePrompt));
+    setValue("char-forge-locations", [
+        "neutral studio background",
+        "realistic workplace suited to " + role,
+        "sidewalk in natural daylight",
+        "simple indoor room with practical lighting",
+    ].join(", "));
+    setValue("char-forge-clothes", [
+        "main role-appropriate outfit",
+        "casual everyday outfit",
+        "work outfit variation",
+        "simple jacket layer",
+    ].join(", "));
+    setValue("char-forge-angles", "front, 3/4 left, 3/4 right, side profile, rear, full body, portrait close-up, hands detail");
+    setValue("char-forge-seed", String(Math.floor(100000 + Math.random() * 899999)));
+    const workflow = document.getElementById("char-forge-workflow");
+    if (workflow) workflow.value = "01_flux2_text_to_image";
+
+    composeCharacterPrompts();
+    if (status) status.textContent = "Character generated from role locally. Review before sending to Spark.";
 }
 
 function composeCharacterPrompts() {
@@ -2976,17 +3664,17 @@ function composeCharacterPrompts() {
     const clothes = characterForgeValue("char-forge-clothes") || "hero outfit, alternate travel outfit, formal outfit";
     const angles = characterForgeValue("char-forge-angles") || "front, 3/4 left, 3/4 right, profile, rear";
 
-    const sheetPrompt = [
+    const sheetPrompt = withCharacterNoTextRule([
         "multi-angle character model sheet for " + name,
         role ? "role: " + role : "",
         base,
         "single consistent character identity across every panel",
         "clean orthographic lineup, " + angles,
         "neutral gray background, even studio lighting, full body plus portrait close-up, hands and footwear detail callouts",
-        "no text labels, no duplicate characters, no identity drift, no costume redesign between angles",
-    ].filter(Boolean).join(", ");
+        "no duplicate characters, no identity drift, no costume redesign between angles",
+    ].filter(Boolean).join(", "));
 
-    const variationPrompt = [
+    const variationPrompt = withCharacterNoTextRule([
         "controlled character variation grid for " + name,
         role ? "role: " + role : "",
         base,
@@ -2994,8 +3682,8 @@ function composeCharacterPrompts() {
         "locations: " + locations,
         "wardrobe states: " + clothes,
         "camera angles and framings: " + angles,
-        "cinematic but consistent lighting, production stills, no text, no logo, no identity drift",
-    ].filter(Boolean).join(", ");
+        "cinematic but consistent lighting, production stills, no identity drift",
+    ].filter(Boolean).join(", "));
 
     const sheetEl = document.getElementById("char-forge-sheet-prompt");
     const variationEl = document.getElementById("char-forge-variation-prompt");
@@ -3024,9 +3712,12 @@ function selectCharacterForForge(charId) {
 }
 
 function promptForCharacterRender(kind) {
-    if (kind === "sheet") return characterForgeValue("char-forge-sheet-prompt");
-    if (kind === "variation") return characterForgeValue("char-forge-variation-prompt");
-    return characterForgeValue("char-forge-base-prompt");
+    const raw = kind === "sheet"
+        ? characterForgeValue("char-forge-sheet-prompt")
+        : kind === "variation"
+            ? characterForgeValue("char-forge-variation-prompt")
+            : characterForgeValue("char-forge-base-prompt");
+    return raw ? withCharacterNoTextRule(raw) : "";
 }
 
 async function renderCharacterOnSpark(kind) {
@@ -4957,7 +5648,7 @@ function renderProductPreview(product) {
 function renderPortrait(char, size) {
     const img = characterImage(char);
     if (img) {
-        return '<img src="' + escapeHtml(img) + '" alt="' + escapeHtml(characterName(char)) + '" loading="lazy">';
+        return '<img class="character-zoomable" src="' + escapeHtml(img) + '" alt="' + escapeHtml(characterName(char)) + '" loading="lazy" data-zoom-src="' + escapeHtml(img) + '" data-zoom-title="' + escapeHtml(characterName(char)) + '" data-zoom-prompt="' + escapeHtml(char?.anchor_prompt || "") + '">';
     }
     if (typeof portraitSVG === "function") {
         return portraitSVG({ id: characterId(char), name: characterName(char), accent: char?.accent || "cyan" }, size || 220);
@@ -5573,10 +6264,11 @@ async function toggleCharacterRoster() {
 function renderCharacterPick(char) {
     const active = char.id === shellState.selectedCharacterId ? " active" : "";
     const score = Number(char.score || 0);
+    const refs = characterReferences(char).filter((r) => r.master).length;
     return (
         '<button class="char-pick card interactive' + active + '" type="button" onclick="selectCharacter(\'' + escapeHtml(char.id) + '\')">' +
             '<span class="portrait">' + renderPortrait(char, 56) + '</span>' +
-            '<span class="char-pick-copy"><span class="name">' + escapeHtml(characterName(char)) + '</span><span class="role">' + escapeHtml(char.role || char.description || "Character") + '</span></span>' +
+            '<span class="char-pick-copy"><span class="name">' + escapeHtml(characterName(char)) + '</span><span class="role">' + escapeHtml(char.role || char.description || "Character") + '</span><span class="role">' + escapeHtml(characterStatus(char)) + ' | ' + refs + ' master ref(s)</span></span>' +
             '<span class="badge b-accent">' + String(score || 0) + '</span>' +
         '</button>'
     );
@@ -5584,27 +6276,45 @@ function renderCharacterPick(char) {
 
 function renderCharacterDetail(char) {
     const score = Number(char.score || 0);
-    const prompt = char.anchor_prompt || ("Portrait of " + characterName(char));
+    const prompt = withCharacterNoTextRule(char.anchor_prompt || ("Portrait of " + characterName(char)));
+    const refs = characterReferences(char);
+    const masterRefs = refs.filter((r) => r.master);
     return (
         '<div class="char-hero">' +
             '<section class="panel anchor-card">' +
                 '<div class="anchor-img">' + renderPortrait(char, 420) + '</div>' +
                 '<div class="anchor-footer">' +
-                    '<div class="consistency"><span class="score">' + String(score || 0) + '% consistency</span><div class="progress"><div class="fill" style="width:' + Math.max(0, Math.min(100, score)) + '%"></div></div></div>' +
-                    '<a class="btn" href="/api/characters/' + encodeURIComponent(char.id) + '/export" target="_blank" rel="noreferrer">Export</a>' +
+                    '<div class="consistency"><span class="score">' + String(score || 0) + '% consistency | ' + escapeHtml(characterStatus(char)) + '</span><div class="progress"><div class="fill" style="width:' + Math.max(0, Math.min(100, score)) + '%"></div></div><span class="t-meta">' + masterRefs.length + ' master ref(s) | ' + characterRenderHistoryCount(char) + ' render(s) | used in ' + characterUsedInShots(char) + ' shot(s) | last ' + escapeHtml(characterLastUsed(char)) + '</span></div>' +
+                    '<a class="btn" href="/api/characters/' + encodeURIComponent(char.id) + '/export-package" target="_blank" rel="noreferrer">Export Package</a>' +
                 '</div>' +
             '</section>' +
             '<section class="panel dna-editor">' +
                 '<div class="panel-header"><div class="title">' + escapeHtml(characterName(char)) + '</div><div class="meta">' + escapeHtml(char.role || "Character") + '</div></div>' +
                 '<div class="dna-body">' +
                     '<div class="dna-pane">' +
+                        '<h3>Profile Kit</h3>' +
+                        '<div class="character-profile-fields">' +
+                            '<label>Status<select class="input" id="character-status-editor"><option value="draft"' + (char.status === "draft" ? " selected" : "") + '>Draft</option><option value="needs_review"' + (char.status === "needs_review" ? " selected" : "") + '>Needs Review</option><option value="production_approved"' + (char.status === "production_approved" ? " selected" : "") + '>Production Approved</option><option value="deprecated"' + (char.status === "deprecated" ? " selected" : "") + '>Deprecated</option></select></label>' +
+                            '<label>Bio<textarea class="textarea character-mini-textarea" id="character-bio-editor">' + escapeHtml(char.bio || char.description || "") + '</textarea></label>' +
+                            '<label>Personality Notes<textarea class="textarea character-mini-textarea" id="character-personality-editor">' + escapeHtml(char.personality_notes || "") + '</textarea></label>' +
+                            '<label>Voice Profile<input class="input" id="character-voice-editor" value="' + escapeHtml(char.voice_profile || "") + '" placeholder="accent, cadence, vocal age"></label>' +
+                            '<label>Gait / Performance<input class="input" id="character-gait-editor" value="' + escapeHtml(char.gait_style || "") + '" placeholder="posture, walk cycle, gesture habits"></label>' +
+                        '</div>' +
                         '<h3>DNA JSON</h3>' +
                         '<textarea class="textarea dna-textarea" id="character-dna-editor" spellcheck="false">' + escapeHtml(characterDnaText(char)) + '</textarea>' +
-                        '<div class="character-actions"><button class="btn btn-primary" onclick="saveSelectedCharacterDna()">Save DNA</button><button class="btn" onclick="renderCharacterPrompt()">Render Character</button><span class="t-meta" id="character-save-status"></span></div>' +
+                        '<div class="character-actions"><button class="btn btn-primary" onclick="saveSelectedCharacterProfile()">Save Profile</button><button class="btn" onclick="saveSelectedCharacterDna()">Save DNA Only</button><button class="btn" onclick="renderCharacterPrompt()">Render Character</button><span class="t-meta" id="character-save-status"></span></div>' +
                     '</div>' +
                     '<div class="dna-pane dna-preview">' +
                         '<h4>Character Prompt</h4><p id="character-anchor-prompt">' + escapeHtml(prompt) + '</p>' +
+                        '<h4>Master References</h4>' + renderCharacterReferenceStrip(refs) +
+                        '<form class="character-reference-upload" onsubmit="uploadSelectedCharacterReference(event)">' +
+                            '<input class="input" name="reference_image" type="file" accept="image/png,image/jpeg,image/webp,video/mp4,video/quicktime,video/webm" required>' +
+                            '<select class="input" name="reference_type"><option value="auto">Auto Type</option><option value="face_closeup">Face</option><option value="full_body">Full Body</option><option value="outfit">Outfit</option><option value="expression_sheet">Expression Sheet</option><option value="pose">Pose</option><option value="motion_clip">Motion Clip</option></select>' +
+                            '<button class="btn" type="submit">Upload Ref</button>' +
+                        '</form>' +
                         '<h4>Fixed Traits</h4>' + renderDnaPreview(char) +
+                        '<h4>Production Actions</h4>' + renderCharacterProductionActions(char) +
+                        '<div class="character-benchmark-output" id="character-benchmark-output"></div>' +
                     '</div>' +
                 '</div>' +
             '</section>' +
@@ -5624,6 +6334,34 @@ function renderDnaPreview(char) {
         const value = Array.isArray(dna[key]) ? dna[key].join(", ") : String(dna[key] ?? "");
         return '<div class="character-trait"><span>' + escapeHtml(key) + '</span><strong>' + escapeHtml(value) + '</strong></div>';
     }).join("") + '</div>';
+}
+
+function renderCharacterReferenceStrip(refs) {
+    if (!refs.length) return '<p class="t-meta">No references yet. Upload or generate a character image, then lock strong outputs as master references.</p>';
+    return '<div class="character-reference-strip">' + refs.slice(0, 8).map((ref) => {
+        const type = ref.type || "reference";
+        const badge = ref.master ? "LOCKED" : "REF";
+        const isVideo = /\.(mp4|mov|webm)(\?|$)/i.test(ref.url || "");
+        return (
+            '<figure class="character-reference-thumb">' +
+                (isVideo ? '<div class="character-video-ref">VIDEO</div>' : '<img class="character-zoomable" src="' + escapeHtml(ref.url || "") + '" alt="' + escapeHtml(type) + '" loading="lazy" data-zoom-src="' + escapeHtml(ref.url || "") + '" data-zoom-title="' + escapeHtml(type) + '" data-zoom-prompt="' + escapeHtml(ref.notes || ref.source || "") + '">') +
+                '<figcaption><span>' + escapeHtml(badge) + '</span>' + escapeHtml(type) + '</figcaption>' +
+            '</figure>'
+        );
+    }).join("") + '</div>';
+}
+
+function renderCharacterProductionActions(char) {
+    const anchor = characterImage(char);
+    return (
+        '<div class="character-op-grid">' +
+            '<button class="btn" type="button" onclick="loadSelectedCharacterBenchmarks()">Load Benchmarks</button>' +
+            '<button class="btn" type="button" onclick="auditSelectedCharacterPrompt()">Audit Current Prompt</button>' +
+            '<button class="btn" type="button" onclick="lockSelectedCharacterAnchor()" ' + (anchor ? "" : "disabled") + '>Lock Anchor as Master</button>' +
+            '<button class="btn" type="button" onclick="selectCharacterForForge(\'' + escapeHtml(char.id) + '\')">Send to Forge</button>' +
+        '</div>' +
+        '<p class="t-meta">Training, video continuity, and collaboration are tracked in the profile schema; buttons should stay disabled until the backing services exist.</p>'
+    );
 }
 
 async function selectCharacter(charId) {
@@ -5653,6 +6391,140 @@ async function saveSelectedCharacterDna() {
     }
 }
 
+async function saveSelectedCharacterProfile() {
+    const editor = document.getElementById("character-dna-editor");
+    const status = document.getElementById("character-save-status");
+    if (!editor || !shellState.selectedCharacterId) return;
+    try {
+        const visualDna = JSON.parse(editor.value || "{}");
+        const resp = await fetch("/api/characters/" + encodeURIComponent(shellState.selectedCharacterId) + "/profile", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                status: document.getElementById("character-status-editor")?.value || "draft",
+                bio: document.getElementById("character-bio-editor")?.value || "",
+                personality_notes: document.getElementById("character-personality-editor")?.value || "",
+                voice_profile: document.getElementById("character-voice-editor")?.value || "",
+                gait_style: document.getElementById("character-gait-editor")?.value || "",
+                visual_dna: visualDna,
+            }),
+        });
+        const payload = await resp.json().catch(() => ({}));
+        if (!resp.ok) throw new Error(payload.detail || payload.error || "HTTP " + resp.status);
+        const idx = shellState.characters.findIndex((c) => c.id === shellState.selectedCharacterId);
+        if (idx >= 0) shellState.characters[idx] = { ...payload, id: characterId(payload) };
+        if (status) status.textContent = "profile saved";
+        setTimeout(() => { if (status) status.textContent = ""; }, 2200);
+        await renderCharactersContent();
+    } catch (e) {
+        if (status) status.textContent = "Save failed: " + (e?.message || e);
+    }
+}
+
+async function uploadSelectedCharacterReference(event) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const status = document.getElementById("character-save-status");
+    if (!shellState.selectedCharacterId) return;
+    const btn = form.querySelector("button");
+    if (btn) btn.disabled = true;
+    try {
+        const data = new FormData(form);
+        const resp = await fetch("/api/characters/" + encodeURIComponent(shellState.selectedCharacterId) + "/references", {
+            method: "POST",
+            body: data,
+        });
+        const payload = await resp.json().catch(() => ({}));
+        if (!resp.ok) throw new Error(payload.detail || payload.error || "HTTP " + resp.status);
+        const idx = shellState.characters.findIndex((c) => c.id === shellState.selectedCharacterId);
+        if (idx >= 0) shellState.characters[idx] = { ...payload, id: characterId(payload) };
+        form.reset();
+        if (status) status.textContent = "reference uploaded";
+        await renderCharactersContent();
+    } catch (e) {
+        if (status) status.textContent = "Upload failed: " + (e?.message || e);
+    } finally {
+        if (btn) btn.disabled = false;
+    }
+}
+
+async function lockSelectedCharacterAnchor() {
+    const selected = shellState.characters.find((c) => c.id === shellState.selectedCharacterId);
+    const status = document.getElementById("character-save-status");
+    const url = characterImage(selected);
+    if (!selected || !url) return;
+    try {
+        const resp = await fetch("/api/characters/" + encodeURIComponent(selected.id) + "/master-reference", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url, type: "face_closeup", source: "anchor_lock", score: selected.score || 0 }),
+        });
+        const payload = await resp.json().catch(() => ({}));
+        if (!resp.ok) throw new Error(payload.detail || payload.error || "HTTP " + resp.status);
+        const idx = shellState.characters.findIndex((c) => c.id === selected.id);
+        if (idx >= 0) shellState.characters[idx] = { ...payload, id: characterId(payload) };
+        if (status) status.textContent = "master reference locked";
+        await renderCharactersContent();
+    } catch (e) {
+        if (status) status.textContent = "Lock failed: " + (e?.message || e);
+    }
+}
+
+async function auditSelectedCharacterPrompt() {
+    const selected = shellState.characters.find((c) => c.id === shellState.selectedCharacterId);
+    const output = document.getElementById("character-benchmark-output");
+    const status = document.getElementById("character-save-status");
+    if (!selected) return;
+    const prompt = withCharacterNoTextRule(selected.anchor_prompt || document.getElementById("character-anchor-prompt")?.textContent || characterName(selected));
+    try {
+        const resp = await fetch("/api/characters/" + encodeURIComponent(selected.id) + "/audit", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                image_url: characterImage(selected),
+                prompt,
+                render_type: "character",
+            }),
+        });
+        const payload = await resp.json().catch(() => ({}));
+        if (!resp.ok) throw new Error(payload.detail || payload.error || "HTTP " + resp.status);
+        if (output) {
+            output.innerHTML =
+                '<div class="character-audit-result">' +
+                    '<strong>' + escapeHtml(payload.status || "audit") + ' | ' + String(payload.overall_score || 0) + '</strong>' +
+                    '<span>face ' + String(payload.face_score || 0) + ' | body ' + String(payload.body_score || 0) + ' | wardrobe ' + String(payload.wardrobe_score || 0) + '</span>' +
+                    '<p>' + escapeHtml((payload.fail_reasons || []).join("; ") || "No blocking issues from heuristic audit.") + '</p>' +
+                '</div>';
+        }
+        if (status) status.textContent = "audit complete";
+        await fetchCharacters();
+    } catch (e) {
+        if (status) status.textContent = "Audit failed: " + (e?.message || e);
+    }
+}
+
+async function loadSelectedCharacterBenchmarks() {
+    const selected = shellState.characters.find((c) => c.id === shellState.selectedCharacterId);
+    const output = document.getElementById("character-benchmark-output");
+    if (!selected || !output) return;
+    output.textContent = "Loading benchmarks...";
+    try {
+        const resp = await fetch("/api/characters/" + encodeURIComponent(selected.id) + "/benchmarks");
+        const payload = await resp.json().catch(() => ({}));
+        if (!resp.ok) throw new Error(payload.detail || payload.error || "HTTP " + resp.status);
+        const benchmarks = Array.isArray(payload.benchmarks) ? payload.benchmarks : [];
+        output.innerHTML = '<div class="character-benchmark-list">' + benchmarks.map((bench) => (
+            '<details>' +
+                '<summary>' + escapeHtml(bench.label || bench.id || "Benchmark") + '</summary>' +
+                '<p>' + escapeHtml(bench.goal || "") + '</p>' +
+                '<textarea class="textarea character-mini-textarea" readonly>' + escapeHtml(bench.compiled_prompt || "") + '</textarea>' +
+            '</details>'
+        )).join("") + '</div>';
+    } catch (e) {
+        output.textContent = "Benchmarks unavailable: " + (e?.message || e);
+    }
+}
+
 async function renderCharacterPrompt() {
     const selected = shellState.characters.find((c) => c.id === shellState.selectedCharacterId);
     const status = document.getElementById("character-save-status");
@@ -5664,7 +6536,7 @@ async function renderCharacterPrompt() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 name: characterName(selected),
-                prompt: selected.anchor_prompt || document.getElementById("character-anchor-prompt")?.textContent || characterName(selected),
+                prompt: withCharacterNoTextRule(selected.anchor_prompt || document.getElementById("character-anchor-prompt")?.textContent || characterName(selected)),
             }),
         });
         const payload = await resp.json().catch(() => ({}));
@@ -5694,7 +6566,7 @@ async function loadCharacterVariations(charId) {
             const score = Number(item.score || 0);
             return (
                 '<figure class="thumb character-variation-thumb" title="' + escapeHtml(item.prompt || item.id || "") + '">' +
-                    '<img src="' + escapeHtml(item.src || "") + '" alt="' + escapeHtml(item.id || "variation") + '" loading="lazy">' +
+                    '<img class="character-zoomable" src="' + escapeHtml(item.src || "") + '" alt="' + escapeHtml(item.id || "variation") + '" loading="lazy" data-zoom-src="' + escapeHtml(item.src || "") + '" data-zoom-title="' + escapeHtml(item.type || "variation") + '" data-zoom-prompt="' + escapeHtml(item.prompt || "") + '" data-zoom-seed="' + escapeHtml(item.seed || index) + '">' +
                     '<figcaption class="meta-overlay">' + escapeHtml(item.type || "variation") + ' | ' + String(score || 0) + ' | seed ' + escapeHtml(item.seed || index) + '</figcaption>' +
                 '</figure>'
             );
@@ -5710,4 +6582,20 @@ document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && $lightboxModal && $lightboxModal.classList.contains("active")) {
         closeLightbox();
     }
+});
+
+document.addEventListener("dblclick", (event) => {
+    const target = event.target?.closest?.(".character-zoomable");
+    if (!target) return;
+    const src = target.dataset.zoomSrc || target.getAttribute("src") || "";
+    if (!src) return;
+    event.preventDefault();
+    openLightbox({
+        image_url: src,
+        variant: target.dataset.zoomTitle || target.getAttribute("alt") || "Character",
+        seed: target.dataset.zoomSeed || "",
+        workflow: "Characters",
+        status: "preview",
+        prompt: target.dataset.zoomPrompt || target.getAttribute("title") || "",
+    });
 });
