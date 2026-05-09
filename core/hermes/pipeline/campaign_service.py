@@ -449,7 +449,7 @@ class HermesCampaignService:
             if not use_fallback:
                 yield {"type": "done", "text": "Campaign stopped: Kimi failure before Spark dispatch."}
                 return
-            plan = self.director.build_dev_fallback_plan(req.brief, campaign_id)
+            plan = self.director.build_dev_fallback_plan(req.brief, campaign_id, target_shots=target_shots)
             yield {"type": "error", "text": "Falling back to local synthetic shot list (FORGE_DEV_FALLBACK=true)"}
 
         raw_content = plan.get("__raw_content", "")

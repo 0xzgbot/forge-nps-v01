@@ -109,14 +109,57 @@ class KimiDirectorService:
         Falls back to 5 when no explicit count is present.
         """
         text = f"{brief or ''} {length or ''}".lower()
-        m = re.search(r"\b(\d{1,3})\s*(images?|shots?|frames?)\b", text)
-        if m:
+        unit = r"(?:images?|shots?|frames?|renders?|stills?|assets?|variations?)"
+        patterns = [
+            rf"\b(\d{{1,3}})\s*[- ]?\s*{unit}\b",
+            rf"\b{unit}\s*[:=]?\s*(\d{{1,3}})\b",
+            r"\b(?:make|create|generate|render|produce|need|needs|want|wants|requested|requesting)\s+(\d{1,3})\b",
+            r"\b(\d{1,3})\s*x\b",
+        ]
+        for pattern in patterns:
+            m = re.search(pattern, text)
+            if not m:
+                continue
             try:
                 n = int(m.group(1))
                 return max(1, min(n, 120))
             except Exception:
                 pass
+        word_numbers = {
+            "one": 1,
+            "two": 2,
+            "three": 3,
+            "four": 4,
+            "five": 5,
+            "six": 6,
+            "seven": 7,
+            "eight": 8,
+            "nine": 9,
+            "ten": 10,
+            "eleven": 11,
+            "twelve": 12,
+            "thirteen": 13,
+            "fourteen": 14,
+            "fifteen": 15,
+            "sixteen": 16,
+            "seventeen": 17,
+            "eighteen": 18,
+            "nineteen": 19,
+            "twenty": 20,
+            "thirty": 30,
+        }
+        for word, n in word_numbers.items():
+            if re.search(rf"\b{word}\s+{unit}\b", text):
+                return n
         return 5
+
+    @staticmethod
+    def _max_tokens_for_target(target_shots: int, default: int = 8192) -> int:
+        if target_shots >= 20:
+            return max(default, int(os.getenv("FORGE_KIMI_MAX_TOKENS_20_SHOTS", "16384")))
+        if target_shots >= 12:
+            return max(default, int(os.getenv("FORGE_KIMI_MAX_TOKENS_12_SHOTS", "12288")))
+        return default
 
     async def request_plan(
         self,
@@ -167,7 +210,7 @@ class KimiDirectorService:
             ],
             "temperature": 0.4,
             "response_format": {"type": "json_object"},
-            "max_tokens": 8192,
+            "max_tokens": self._max_tokens_for_target(target),
         }
         timeout_sec = float(os.getenv("FORGE_KIMI_TIMEOUT_SEC", "120"))
         # Scale timeout for larger plans (e.g., 20-image requests).
@@ -251,7 +294,7 @@ class KimiDirectorService:
             ],
             "temperature": 0.35,
             "response_format": {"type": "json_object"},
-            "max_tokens": 8192,
+            "max_tokens": self._max_tokens_for_target(target_shots),
         }
         timeout_sec = float(os.getenv("FORGE_KIMI_TIMEOUT_SEC", "120"))
         if target_shots >= 20:
@@ -408,7 +451,7 @@ class KimiDirectorService:
             ],
             "temperature": 0.45,
             "response_format": {"type": "json_object"},
-            "max_tokens": 8192,
+            "max_tokens": self._max_tokens_for_target(target_shots),
         }
         timeout_sec = float(os.getenv("FORGE_KIMI_TIMEOUT_SEC", "120"))
         if target_shots >= 20:
@@ -435,9 +478,10 @@ class KimiDirectorService:
                 raw_content=content,
             )
 
-    def build_dev_fallback_plan(self, brief: str, campaign_id: str) -> Dict[str, Any]:
+    def build_dev_fallback_plan(self, brief: str, campaign_id: str, target_shots: Optional[int] = None) -> Dict[str, Any]:
+        count = max(1, min(int(target_shots or self.requested_shot_count(brief)), 120))
         shots = []
-        for i in range(1, 6):
+        for i in range(1, count + 1):
             shots.append({
                 "shot_id": f"SHOT_{str(i).zfill(3)}",
                 "sequence": i,

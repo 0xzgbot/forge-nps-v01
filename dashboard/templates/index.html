@@ -1960,6 +1960,11 @@
             flex-wrap: wrap;
             align-items: center;
         }
+        .character-gender-btn.active {
+            border-color: rgba(0, 229, 255, 0.85);
+            color: #ffffff;
+            box-shadow: 0 0 0 1px rgba(0, 229, 255, 0.35), 0 0 18px rgba(0, 229, 255, 0.18);
+        }
         .character-roster-wrap {
             margin-top: 14px;
             display: grid;
@@ -2017,6 +2022,10 @@
             border-radius: 8px;
             padding: 12px;
             min-width: 0;
+        }
+        .character-card-live.selected {
+            border-color: rgba(0, 229, 255, 0.85);
+            box-shadow: 0 0 0 1px rgba(0, 229, 255, 0.24), 0 0 18px rgba(0, 229, 255, 0.12);
         }
         .character-card-live img,
         .character-avatar-fallback {
@@ -2085,6 +2094,12 @@
             border-radius: 6px;
             overflow: hidden;
             background: #111;
+            cursor: zoom-in;
+            transition: border-color 120ms ease, transform 120ms ease;
+        }
+        .character-render-tile:hover {
+            border-color: rgba(0, 229, 255, 0.65);
+            transform: translateY(-1px);
         }
         .character-render-tile img {
             width: 100%;
@@ -2103,6 +2118,15 @@
             color: #d8d8d8;
             font-family: 'JetBrains Mono', monospace;
             font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 6px;
+        }
+        .character-panel-extract-btn {
+            padding: 3px 6px;
+            font-size: 9px;
+            line-height: 1;
         }
         @media (max-width: 1180px) {
             .character-forge-grid,
@@ -2207,7 +2231,9 @@
             width: 100%;
             height: 100%;
             display: block;
-            object-fit: cover;
+            object-fit: contain;
+            object-position: center;
+            background: #05080d;
         }
         .grid-cell .cell-overlay {
             position: absolute;
@@ -2246,6 +2272,85 @@
             max-height: 2.5em;
             overflow: hidden;
             text-overflow: ellipsis;
+        }
+        .video-generate-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            width: 100%;
+            padding: 12px;
+            border: 1px solid rgba(95, 139, 255, 0.22);
+            border-radius: 8px;
+            background: rgba(10, 21, 38, 0.78);
+        }
+        .video-generate-prompt-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+        }
+        .video-generate-prompt-row input {
+            flex: 1;
+            min-width: 220px;
+            height: 42px;
+            border-color: rgba(112, 153, 255, 0.35);
+            background: #132844;
+            color: #f3f7ff;
+            font-size: 15px;
+            font-weight: 700;
+        }
+        .video-option-strip {
+            display: flex;
+            align-items: flex-end;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .video-option {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 124px;
+        }
+        .video-option label {
+            color: #8ea4c5;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0;
+            text-transform: uppercase;
+        }
+        .video-option select {
+            min-height: 36px;
+            border: 1px solid rgba(112, 153, 255, 0.28);
+            border-radius: 8px;
+            background: #0d1d33;
+            color: #eef4ff;
+            font-size: 13px;
+            font-weight: 700;
+            padding: 0 30px 0 10px;
+        }
+        .video-generate-primary {
+            min-height: 36px;
+            align-self: flex-end;
+            padding: 0 18px;
+        }
+        .video-option-summary {
+            color: #91a8c8;
+            font-size: 11px;
+            min-height: 14px;
+        }
+        .video-sync-controls {
+            display: none;
+        }
+        @media (max-width: 780px) {
+            .video-generate-prompt-row,
+            .video-option-strip {
+                align-items: stretch;
+                flex-direction: column;
+            }
+            .video-option,
+            .video-generate-primary {
+                width: 100%;
+            }
         }
         .audit-badge {
             display: inline-block;
@@ -2608,7 +2713,6 @@
         #filmstrip,
         .spark-grid,
         #script-chat-log,
-        #video-chat-log,
         #shot-list-container {
             background: rgba(4, 8, 13, 0.62) !important;
             border: 1px solid rgba(30, 42, 58, 0.82) !important;
@@ -2982,11 +3086,86 @@
             padding: 0 16px 16px;
             grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr) !important;
         }
+        .settings-flow-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.1fr) minmax(340px, 0.9fr) !important;
+            grid-template-areas: none !important;
+            gap: 16px;
+            align-items: start;
+        }
+        .settings-flow-grid .settings-card {
+            grid-area: auto !important;
+        }
+        .settings-flow-grid .settings-card-wide {
+            grid-column: 1 / -1 !important;
+        }
+        .settings-step {
+            display: inline-grid;
+            place-items: center;
+            width: 20px;
+            height: 20px;
+            margin-right: 8px;
+            border-radius: 50%;
+            background: rgba(0, 212, 255, 0.12);
+            color: var(--cyan);
+            border: 1px solid rgba(0, 212, 255, 0.35);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            line-height: 1;
+        }
+        .settings-form-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 120px minmax(0, 1fr) minmax(0, 1fr);
+            gap: 10px;
+            align-items: end;
+        }
+        .settings-form-grid-single {
+            grid-template-columns: 1fr;
+        }
+        .settings-span-2 {
+            grid-column: span 2;
+        }
+        .settings-result-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .settings-model-select label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #6C7278;
+        }
+        .settings-model-select select {
+            width: 100%;
+            margin-top: 4px;
+            background: #222;
+            border: 1px solid #444;
+            border-radius: 4px;
+            color: #E0E0E0;
+            padding: 8px 10px;
+            font-size: 13px;
+            font-family: 'JetBrains Mono', monospace;
+        }
         .ai-provider-card {
             grid-column: span 2;
         }
+        .settings-flow-grid .ai-provider-card {
+            grid-column: auto !important;
+        }
         .settings-subgrid-2x2 {
             grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        }
+        @media (max-width: 1200px) {
+            .settings-flow-grid,
+            .settings-form-grid,
+            .settings-result-grid {
+                grid-template-columns: 1fr !important;
+            }
+            .settings-span-2 {
+                grid-column: auto;
+            }
         }
         #script-view {
             padding: 20px !important;
@@ -3099,11 +3278,12 @@
         <h1>Forge <span>NPS</span></h1>
 
         <div class="nav-tabs">
-            <div class="nav-tab active" data-page="dashboard-view" onclick="switchPage('dashboard-view')">Home</div>
+            <div class="nav-tab active" data-page="dashboard-view" onclick="switchPage('dashboard-view')">Images</div>
+            <div class="nav-tab" data-page="spark-view" onclick="switchPage('spark-view')">Videos</div>
+            <div class="nav-tab" data-page="identity-view" onclick="switchPage('identity-view')">Characters</div>
             <div class="nav-tab" data-page="ideas-view" onclick="switchPage('ideas-view')">Ideas</div>
             <div class="nav-tab" data-page="script-view" onclick="switchPage('script-view')">Script</div>
             <div class="nav-tab" data-page="products-view" onclick="switchPage('products-view')">Products</div>
-            <div class="nav-tab" data-page="spark-view" onclick="switchPage('spark-view')">Videos</div>
             <div class="nav-tab" data-page="memory-view" onclick="switchPage('memory-view'); loadMemoryTab()">Memory</div>
             <div class="nav-tab" data-page="settings-view" onclick="switchPage('settings-view')">Settings</div>
         </div>
@@ -3220,7 +3400,7 @@
                         <option value="">All campaigns</option>
                     </select>
                     <button class="btn btn-secondary" onclick="loadIdeaBoard()">Refresh</button>
-                    <button class="btn" onclick="switchPage('dashboard-view')">Open Home</button>
+                    <button class="btn" onclick="switchPage('dashboard-view')">Open Images</button>
                 </div>
             </div>
             <form class="idea-create-bar" onsubmit="createIdeaCard(event)">
@@ -3237,7 +3417,7 @@
                 <button class="btn" type="submit">Add Idea</button>
             </form>
             <div class="idea-hook-bar">
-                <input id="hook-brief-input" type="text" placeholder="Hook brief, or leave blank to use the Home prompt">
+                <input id="hook-brief-input" type="text" placeholder="Hook brief, or leave blank to use the Images prompt">
                 <button class="btn btn-secondary" type="button" onclick="generateHookIdeas(false)">Preview Hooks</button>
                 <button class="btn" type="button" onclick="generateHookIdeas(true)">Save TikTok Hooks</button>
             </div>
@@ -3260,114 +3440,100 @@
             <button class="btn" onclick="saveAllSettings()">Save All</button>
         </div>
         <div id="settings-toast" class="test-result" style="position:fixed;top:16px;right:16px;z-index:999;"></div>
-        <div class="settings-grid">
+        <div class="settings-grid settings-flow-grid">
 
-            <!-- AI Inference Provider -->
-            <div class="settings-card ai-provider-card">
-                <h3><span class="card-icon">&#128271;</span> AI Provider (Nous / Kimi / OpenRouter / NVIDIA)</h3>
-                <div class="settings-subgrid-2x2">
-                    <div class="settings-subcard">
-                        <h4>Access</h4>
-                        <p class="card-desc">Nous Research, Kimi, OpenRouter, NVIDIA, or any OpenAI-compatible API.</p>
-                        <div class="form-row">
-                            <label>API Key</label>
-                            <input type="password" id="cfg-kimi-api-key" placeholder="Bearer token..." onchange="markDirty('kimi.api_key')">
-                        </div>
-                        <div class="form-row">
-                            <label>Endpoint</label>
-                            <input type="text" id="cfg-kimi-endpoint" placeholder="https://inference-api.nousresearch.com/v1/chat/completions" onchange="markDirty('kimi.endpoint')">
-                        </div>
-                        <div class="card-actions">
-                            <button class="btn btn-secondary" onclick="testProvider()">Test Connection</button>
-                        </div>
-                        <div id="kimi-test-result" class="test-result"></div>
-                    </div>
-
-                    <div class="settings-subcard">
-                        <h4>Director</h4>
-                        <p class="card-desc">Planning model (e.g. Hermes-4-405B, moonshotai/kimi-k2).</p>
-                        <div class="form-row">
-                            <label>Director Model</label>
-                            <input type="text" id="cfg-director-model" placeholder="Hermes-4-405B" onchange="markDirty('models.director_kimi.model_name')">
-                        </div>
-                        <div class="form-row">
-                            <label>Director Endpoint</label>
-                            <input type="text" id="cfg-director-endpoint-api1" placeholder="https://integrate.api.nvidia.com/v1/chat/completions" onchange="markDirty('models.director_kimi.endpoint_api1')">
-                        </div>
-                        <div class="card-actions">
-                            <button class="btn btn-secondary" onclick="testDirector()">Test Director</button>
-                        </div>
-                        <div id="director-test-result" class="test-result"></div>
-                    </div>
-
-                    <div class="settings-subcard">
-                        <h4>Vision</h4>
-                        <p class="card-desc">Vision endpoint addresses and model name.</p>
-                        <div class="form-row">
-                            <label>Visual Model</label>
-                            <input type="text" id="cfg-visual-model" placeholder="qwen3.6-35b-a3b (LM Studio)" onchange="markDirty('models.kimi_vl.model_name')">
-                        </div>
-                        <div class="form-row">
-                            <label>Vision Endpoint</label>
-                            <input type="text" id="cfg-vision-endpoint-api1" placeholder="https://integrate.api.nvidia.com/v1/chat/completions" onchange="markDirty('models.kimi_vl.endpoint_api1')">
-                        </div>
-                        <div class="card-actions">
-                            <button class="btn btn-secondary" onclick="testVision()">Test Vision</button>
-                        </div>
-                        <div id="vision-test-result" class="test-result"></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- LM Studio Card -->
-            <div class="settings-card lmstudio-card">
-                <h3><span class="card-icon">&#128736;</span> LM Studio (Hermes 3)</h3>
-                <p class="card-desc">Local inference server for Hermes chat and campaign prompts.</p>
-                <div class="form-inline">
+            <div class="settings-card settings-card-wide lmstudio-card">
+                <h3><span class="settings-step">1</span> Local Model Server</h3>
+                <p class="card-desc">LM Studio connection used by Hermes chat and Vision audit.</p>
+                <div class="settings-form-grid">
                     <div class="form-row">
                         <label>Host</label>
-                        <input type="text" id="cfg-lmstudio-host" placeholder="localhost:1234" onchange="markDirty('models.hermes_3.host')">
+                        <input type="text" id="cfg-lmstudio-host" placeholder="http://localhost" onchange="markDirty('models.hermes_3.host')">
                     </div>
                     <div class="form-row small">
                         <label>Port</label>
                         <input type="number" id="cfg-lmstudio-port" placeholder="1234" onchange="markDirty('models.hermes_3.port')">
                     </div>
-                </div>
-                <div class="form-row">
-                    <label>Chat Model</label>
-                    <input type="text" id="cfg-lmstudio-model" placeholder="qwen3.6-35b-a3b" onchange="markDirty('models.hermes_3.model_name')">
+                    <div class="form-row">
+                        <label>Chat Model</label>
+                        <input type="text" id="cfg-lmstudio-model" placeholder="qwen3.6-35b-a3b" onchange="markDirty('models.hermes_3.model_name')">
+                    </div>
+                    <div class="form-row">
+                        <label>Vision Model</label>
+                        <input type="text" id="cfg-visual-model" placeholder="qwen3.6-35b-a3b" onchange="markDirty('models.kimi_vl.model_name')">
+                    </div>
+                    <div class="form-row settings-span-2">
+                        <label>Vision Endpoint</label>
+                        <input type="text" id="cfg-vision-endpoint-api1" placeholder="http://localhost:1234/v1" onchange="markDirty('models.kimi_vl.endpoint_api1')">
+                    </div>
                 </div>
                 <div class="card-actions">
                     <button class="btn btn-secondary" onclick="testLMStudio()">Test &amp; Detect Models</button>
                     <button class="btn btn-secondary" onclick="loadLMStudioModel()">Load Model</button>
+                    <button class="btn btn-secondary" onclick="testVision()">Test Vision</button>
                     <button class="btn" onclick="reloadHermesVision()">Reload Hermes/Vision</button>
                 </div>
-                <div id="lmstudio-test-result" class="test-result"></div>
-                <div id="lmstudio-models-list" style="display:none;">
-                    <label style="font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:#6C7278;">Available Models</label>
-                    <select id="lmstudio-models-select" style="width:100%;margin-top:4px;background:#222;border:1px solid #444;border-radius:4px;color:#E0E0E0;padding:8px 10px;font-size:13px;font-family:'JetBrains Mono',monospace;" onchange="document.getElementById('cfg-lmstudio-model').value=this.value;markDirty('models.hermes_3.model_name');">
+                <div class="settings-result-grid">
+                    <div id="lmstudio-test-result" class="test-result"></div>
+                    <div id="vision-test-result" class="test-result"></div>
+                </div>
+                <div id="lmstudio-models-list" class="settings-model-select" style="display:none;">
+                    <label>Available Models</label>
+                    <select id="lmstudio-models-select" onchange="document.getElementById('cfg-lmstudio-model').value=this.value;markDirty('models.hermes_3.model_name');">
                     </select>
                 </div>
             </div>
 
-            <!-- ComfyUI Hosts Card -->
-            <div class="settings-card comfy-card">
-                <h3><span class="card-icon">&#127912;</span> ComfyUI + Spark &#9889;</h3>
-                <p class="card-desc">Primary ComfyUI host and Spark WebSocket.</p>
-                <div class="form-row">
-                    <label>Spark Primary WebSocket</label>
-                    <input type="text" id="cfg-spark-primary" placeholder="ws://localhost:8000" onchange="markDirty('spark.primary')">
-                </div>
-                <div class="form-row">
-                    <label>Primary (Port 8188)</label>
-                    <input type="text" id="cfg-comfyui-primary" placeholder="http://localhost:8188" style="flex:1;" onchange="markDirty('comfyui.primary')">
-                </div>
-                <div class="form-row">
-                    <label>Secondary (Port 8189)</label>
-                    <input type="text" id="cfg-comfyui-secondary" placeholder="http://localhost:8189" style="flex:1;" onchange="markDirty('comfyui.secondary')">
+            <div class="settings-card ai-provider-card">
+                <h3><span class="settings-step">2</span> Cloud Director API</h3>
+                <p class="card-desc">Remote API used for director planning when API mode is active.</p>
+                <div class="settings-form-grid settings-form-grid-single">
+                    <div class="form-row">
+                        <label>API Key</label>
+                        <input type="password" id="cfg-kimi-api-key" placeholder="Bearer token..." onchange="markDirty('kimi.api_key')">
+                    </div>
+                    <div class="form-row">
+                        <label>Provider Endpoint</label>
+                        <input type="text" id="cfg-kimi-endpoint" placeholder="https://integrate.api.nvidia.com/v1/chat/completions" onchange="markDirty('kimi.endpoint')">
+                    </div>
+                    <div class="form-row">
+                        <label>Director Model</label>
+                        <input type="text" id="cfg-director-model" placeholder="moonshotai/kimi-k2-instruct" onchange="markDirty('models.director_kimi.model_name')">
+                    </div>
+                    <div class="form-row">
+                        <label>Director Endpoint</label>
+                        <input type="text" id="cfg-director-endpoint-api1" placeholder="https://integrate.api.nvidia.com/v1/chat/completions" onchange="markDirty('models.director_kimi.endpoint_api1')">
+                    </div>
                 </div>
                 <div class="card-actions">
-                    <button class="btn btn-secondary" onclick="testComfyUIAll()">Test ComfyUI + Spark</button>
+                    <button class="btn btn-secondary" onclick="testProvider()">Test Provider</button>
+                    <button class="btn btn-secondary" onclick="testDirector()">Test Director</button>
+                </div>
+                <div class="settings-result-grid">
+                    <div id="kimi-test-result" class="test-result"></div>
+                    <div id="director-test-result" class="test-result"></div>
+                </div>
+            </div>
+
+            <div class="settings-card comfy-card">
+                <h3><span class="settings-step">3</span> Render Workers</h3>
+                <p class="card-desc">Spark and ComfyUI endpoints used by image and video generation.</p>
+                <div class="settings-form-grid settings-form-grid-single">
+                    <div class="form-row">
+                        <label>Spark WebSocket</label>
+                        <input type="text" id="cfg-spark-primary" placeholder="ws://localhost:8000" onchange="markDirty('spark.primary')">
+                    </div>
+                    <div class="form-row">
+                        <label>ComfyUI Primary</label>
+                        <input type="text" id="cfg-comfyui-primary" placeholder="http://localhost:8188" onchange="markDirty('comfyui.primary')">
+                    </div>
+                    <div class="form-row">
+                        <label>ComfyUI Secondary</label>
+                        <input type="text" id="cfg-comfyui-secondary" placeholder="http://localhost:8189" onchange="markDirty('comfyui.secondary')">
+                    </div>
+                </div>
+                <div class="card-actions">
+                    <button class="btn btn-secondary" onclick="testComfyUIAll()">Test Render Workers</button>
                 </div>
                 <div class="server-status-row" id="comfyui-server-status">
                     <span class="server-status-item"><span class="server-dot" id="server-dot-primary"></span>Primary</span>
@@ -3488,7 +3654,10 @@
                         <button class="btn btn-secondary" type="button" onclick="setStoryboardPreset('anime')">Anime / Manga</button>
                         <button class="btn btn-secondary" type="button" onclick="setStoryboardPreset('realistic')">Realistic Film</button>
                         <button class="btn btn-secondary" type="button" onclick="setStoryboardPreset('four')">Simple 4-Panel</button>
+                        <button class="btn btn-secondary" type="button" id="storyboard-character-sheet-btn" onclick="generateStoryboardCharacterSheet()">Generate Character Sheet</button>
+                        <button class="btn btn-secondary" type="button" onclick="pollStoryboardCharacterSheet()">Refresh Sheet</button>
                     </div>
+                    <div id="storyboard-character-sheet-output" class="storyboard-render-result"></div>
                     <div class="script-storyboard-style">
                         <label>Style Prompt</label>
                         <input type="text" id="storyboard-style" value="cinematic">
@@ -3644,7 +3813,60 @@
 
         <!-- Toolbar -->
         <div class="spark-toolbar">
-            <div class="toolbar-row">
+            <div class="video-generate-panel">
+                <div class="video-generate-prompt-row">
+                    <input type="text" id="video-prompt" placeholder="Describe the video you want to generate from the selected media">
+                    <button class="btn video-generate-primary" id="video-generate-primary-btn" onclick="processSelectedVideos()">Generate</button>
+                </div>
+                <div class="video-option-strip">
+                    <div class="video-option">
+                        <label for="video-mode-select">Mode</label>
+                        <select id="video-mode-select">
+                            <option value="videos" selected>Generate Videos</option>
+                            <option value="retake">Retake</option>
+                            <option value="iclora">IC-LoRA</option>
+                        </select>
+                    </div>
+                    <div class="video-option">
+                        <label for="video-model-select">Model</label>
+                        <select id="video-model-select">
+                            <option value="04_ltx2.3_image_to_video" selected>LTX 2.3 Fast</option>
+                            <option value="02_ltx2.3_T2V_I2V_distilled">LTX 2.3 Distilled</option>
+                            <option value="03_ltx2.3_T2V_two_stage">LTX 2.3 Two Stage</option>
+                            <option value="05_ltx2.3_first_last_frame_to_video">LTX 2.3 First+Last</option>
+                            <option value="07_ltx2.3_id_lora">LTX 2.3 ID LoRA</option>
+                        </select>
+                    </div>
+                    <div class="video-option">
+                        <label for="video-duration-select">Duration</label>
+                        <select id="video-duration-select">
+                            <option value="5" selected>5 Sec</option>
+                            <option value="6">6 Sec</option>
+                            <option value="8">8 Sec</option>
+                            <option value="10">10 Sec</option>
+                            <option value="20">20 Sec</option>
+                            <option value="25">25 Sec</option>
+                        </select>
+                    </div>
+                    <div class="video-option">
+                        <label for="video-resolution-select">Resolution</label>
+                        <select id="video-resolution-select">
+                            <option value="540p" selected>540p</option>
+                            <option value="720p">720p</option>
+                            <option value="1080p">1080p</option>
+                        </select>
+                    </div>
+                    <div class="video-option">
+                        <label for="video-aspect-select">Aspect Ratio</label>
+                        <select id="video-aspect-select">
+                            <option value="16:9" selected>16:9</option>
+                            <option value="9:16">9:16</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="video-option-summary" id="video-option-summary">Generate Videos / LTX 2.3 Fast / 5 Sec / 540p / 16:9</div>
+            </div>
+            <div class="toolbar-row video-sync-controls" aria-hidden="true">
                 <div class="toolbar-group" style="flex:1;min-width:100%;">
                     <label>Video Workflow</label>
                     <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -3654,12 +3876,6 @@
                         <label class="model-checkbox"><input type="radio" name="video-workflow" value="05_ltx2.3_first_last_frame_to_video"> LTX 2.3 First+Last</label>
                         <label class="model-checkbox"><input type="radio" name="video-workflow" value="07_ltx2.3_id_lora"> LTX 2.3 ID LoRA</label>
                     </div>
-                </div>
-            </div>
-            <div class="toolbar-row">
-                <div class="toolbar-group" style="flex:1;min-width:100%;">
-                    <label>Video Prompt</label>
-                    <input type="text" id="video-prompt" placeholder="Optional: override prompt for selected images (used for video generation)">
                 </div>
             </div>
                 <div class="toolbar-row">
@@ -3681,9 +3897,9 @@
                         <label>Selected Media</label>
                         <input type="text" id="video-selected-count" value="0 selected" readonly>
                 </div>
-                <div class="toolbar-group">
+                <div class="toolbar-group video-sync-controls" aria-hidden="true">
                     <label>Duration (sec)</label>
-                    <input type="number" id="video-duration" value="4" min="1" max="30">
+                    <input type="number" id="video-duration" value="5" min="1" max="30">
                 </div>
                 <div class="toolbar-group">
                     <label>FPS</label>
@@ -3698,7 +3914,6 @@
                 </div>
                 <div class="toolbar-group">
                     <label>Action</label>
-                    <button class="btn btn-secondary" id="generate-prompts-btn" onclick="generateVideoPrompts()">Generate Prompts</button>
                     <button class="btn" id="start-batch-btn" onclick="processSelectedVideos()">Process</button>
                     <button class="btn btn-secondary" id="carousel-export-btn" onclick="exportCarousel()">Export Carousel</button>
                 </div>
@@ -3711,23 +3926,8 @@
             <span id="spark-progress"></span>
         </div>
 
-        <!-- Resizable Split: Chat Left, Photos Right -->
+        <!-- Video Media Grid -->
         <div class="video-workspace">
-            <div id="video-left-pane" class="video-left-pane">
-                <!-- Video Prompt Agent Chat -->
-                <div id="video-chat-panel" style="flex:1;display:flex;flex-direction:column;min-height:0;padding:12px;">
-                    <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-shrink:0;">
-                        <strong style="color:#c8f;font-size:13px;">🤖 LTX Prompt Agents</strong>
-                        <span id="video-chat-status" style="color:#666;font-size:11px;">Ready</span>
-                    </div>
-                    <div id="video-chat-log" style="flex:1;overflow:auto;background:#0a0a0a;border:1px solid #1a1a1a;border-radius:4px;padding:8px;font-size:12px;color:#ccc;margin-bottom:8px;"></div>
-                    <div style="display:flex;gap:8px;flex-shrink:0;">
-                        <input type="text" id="video-chat-input" placeholder="Ask the video agents anything..." style="flex:1;background:#1a1a1a;border:1px solid #333;border-radius:4px;padding:8px 10px;color:#ccc;font-size:12px;" onkeydown="if(event.key==='Enter')sendVideoChat()">
-                        <button class="btn btn-secondary" style="font-size:12px;padding:8px 14px;" onclick="sendVideoChat()">Send</button>
-                    </div>
-                </div>
-            </div>
-            <div id="video-divider" class="dashboard-divider" title="Drag to resize"></div>
             <div class="video-right-pane">
                 <!-- Photo Grid -->
                 <div class="spark-grid" id="spark-grid" style="flex:1;min-height:0;overflow:auto;">
@@ -3785,8 +3985,10 @@
                             <button class="btn btn-secondary" type="button" onclick="randomizeCharacterForge()">Randomize</button>
                             <button class="btn btn-secondary" type="button" onclick="groundCharacterForge()">Regular Person</button>
                             <button class="btn btn-secondary" type="button" onclick="generateCharacterFromRoleForge()">From Role</button>
+                            <button id="char-forge-gender-male" class="btn btn-secondary character-gender-btn" type="button" aria-pressed="false" onclick="setCharacterForgeGender('male')">Male</button>
                             <button class="btn btn-secondary" type="button" onclick="composeCharacterPrompts()">Compose Sheet + Variations</button>
                             <button class="btn" type="button" onclick="createCharacterFromManager(event)">Save Metadata</button>
+                            <button id="char-forge-gender-female" class="btn btn-secondary character-gender-btn" type="button" aria-pressed="false" onclick="setCharacterForgeGender('female')">Female</button>
                             <button class="btn" type="button" onclick="renderCharacterOnSpark('character')">Generate Character on Spark</button>
                         </div>
                         <div id="character-manager-status" class="character-manager-status">Spark is optional until you click a generate button.</div>
@@ -3816,8 +4018,8 @@
                             <textarea id="char-forge-variation-prompt" placeholder="Click Compose Sheet + Variations or write your own variation prompt."></textarea>
                         </div>
                         <div class="character-action-bar">
-                            <button class="btn" type="button" onclick="renderCharacterOnSpark('sheet')">Generate Character Sheet on Spark</button>
-                            <button class="btn" type="button" onclick="renderCharacterOnSpark('variation')">Generate Variation Set on Spark</button>
+                            <button class="btn" id="char-forge-sheet-btn" type="button" onclick="renderCharacterOnSpark('sheet')" disabled>Generate Character Sheet on Spark</button>
+                            <button class="btn" id="char-forge-variation-btn" type="button" onclick="renderCharacterOnSpark('variation')" disabled>Generate Variation Set on Spark</button>
                         </div>
                     </section>
                 </div>

@@ -13,6 +13,7 @@ let scriptSessionId = "script_" + Date.now();
 let scriptPackage = null;
 let storyboardPlan = null;
 let storyboardPanelJobs = {};
+let storyboardCharacterSheetJob = null;
 let campaignActive = false;
 let campaignAbortController = null;
 let campaignRecoveryTimer = null;
@@ -95,6 +96,53 @@ function setDefaultVideoWorkflow() {
     const el = document.querySelector('input[name="video-workflow"][value="' + DEFAULT_VIDEO_WORKFLOW_ID + '"]');
     if (el) el.checked = true;
 }
+
+function getVideoGenerationOptions() {
+    const modeEl = document.getElementById("video-mode-select");
+    const modelEl = document.getElementById("video-model-select");
+    const durationEl = document.getElementById("video-duration-select");
+    const resolutionEl = document.getElementById("video-resolution-select");
+    const aspectEl = document.getElementById("video-aspect-select");
+    const mode = String(modeEl?.value || "videos");
+    let workflowId = String(modelEl?.value || getSelectedVideoWorkflow() || DEFAULT_VIDEO_WORKFLOW_ID);
+    if (mode === "retake") workflowId = "05_ltx2.3_first_last_frame_to_video";
+    if (mode === "iclora") workflowId = "07_ltx2.3_id_lora";
+    return {
+        mode,
+        workflowId,
+        duration: parseInt(durationEl?.value || $videoDuration?.value || "5", 10),
+        resolution: String(resolutionEl?.value || "540p"),
+        aspectRatio: String(aspectEl?.value || "16:9"),
+        modelLabel: modelEl?.selectedOptions?.[0]?.textContent?.trim() || "LTX 2.3 Fast",
+        modeLabel: modeEl?.selectedOptions?.[0]?.textContent?.trim() || "Generate Videos",
+    };
+}
+
+function syncVideoQuickOptions() {
+    const options = getVideoGenerationOptions();
+    const radio = document.querySelector('input[name="video-workflow"][value="' + options.workflowId + '"]');
+    if (radio) radio.checked = true;
+    if ($videoDuration && Number.isFinite(options.duration)) $videoDuration.value = String(options.duration);
+    const summary = document.getElementById("video-option-summary");
+    if (summary) {
+        summary.textContent = [
+            options.modeLabel,
+            options.mode === "videos" ? options.modelLabel : getSelectedVideoWorkflow(),
+            options.duration + " Sec",
+            options.resolution,
+            options.aspectRatio,
+        ].join(" / ");
+    }
+    return options;
+}
+
+function initVideoQuickOptions() {
+    ["video-mode-select", "video-model-select", "video-duration-select", "video-resolution-select", "video-aspect-select"].forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener("change", syncVideoQuickOptions);
+    });
+    syncVideoQuickOptions();
+}
 const $startBatchBtn = document.getElementById("start-batch-btn");
 const $lightboxModal = document.getElementById("lightbox-modal");
 const $dashboardDivider = document.getElementById("dashboard-divider");
@@ -105,6 +153,7 @@ const $dashboardLeftPane = document.getElementById("dashboard-left-pane");
 // ---------------------------------------------------------------------------
 window.addEventListener("DOMContentLoaded", () => {
     setDefaultVideoWorkflow();
+    initVideoQuickOptions();
     loadCharacters();
     loadStats();
     loadShots();
@@ -1165,7 +1214,7 @@ async function generateHookIdeas(saveToBoard) {
     const campaignId = document.getElementById("idea-board-filter")?.value || currentCampaignId || "";
     const brief = (hookInput?.value || $briefInput?.value || "").trim();
     if (!brief) {
-        if (statusEl) statusEl.textContent = "Enter a hook brief or write a prompt on Home.";
+        if (statusEl) statusEl.textContent = "Enter a hook brief or write a prompt on Images.";
         return;
     }
     if (statusEl) statusEl.textContent = saveToBoard ? "Generating and saving TikTok hooks..." : "Generating hook preview...";
@@ -1861,6 +1910,24 @@ function setStoryboardPreset(name) {
     setScriptStatus("Storyboard preset applied: " + name + ".", "Storyboard");
 }
 
+function storyboardSleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function storyboardCharacterSheetPrompt() {
+    const title = scriptInputValue("script-title", "Storyboard Character") || "Storyboard Character";
+    const consistency = scriptInputValue("storyboard-character-consistency", "");
+    const style = scriptInputValue("storyboard-style", "cinematic");
+    return [
+        "production character reference sheet for " + title,
+        consistency || "main character, consistent face, consistent wardrobe, full body, portrait close-up, side profile, three-quarter view",
+        "clean neutral background, even studio lighting, front view, side profile, three-quarter view, full body, face close-up, hands and footwear detail",
+        "single consistent character identity across every view",
+        style,
+        "no captions, no labels, no typography, no watermark, no duplicate identities",
+    ].join(", ");
+}
+
 function renderScriptPackage(pkg) {
     const treatmentEl = document.getElementById("script-treatment-output");
     const continuityEl = document.getElementById("script-continuity-output");
@@ -1944,6 +2011,7 @@ function renderStoryboardPlan(plan) {
                         '<button class="btn btn-secondary" onclick="renderStoryboardBoard(' + Number(board.index || 1) + ')">Render Page</button>' +
                         '<button class="btn btn-secondary" onclick="renderStoryboardPanels(' + Number(board.index || 1) + ')">Render Panels</button>' +
                         '<button class="btn" onclick="assembleStoryboardPanels(' + Number(board.index || 1) + ')">Assemble</button>' +
+                        '<button class="btn" onclick="renderAssembleExportStoryboardPanels(' + Number(board.index || 1) + ')">Auto Start Frames</button>' +
                     '</div>' +
                 '</div>' +
                 '<div class="storyboard-panel-grid">' + panels.map((panel, idx) => (
@@ -2103,9 +2171,11 @@ async function renderStoryboardPanels(boardIndex) {
             renderStoryboardPanelJobList(boardIndex);
         }
         if (resultEl) resultEl.textContent = "Panel jobs submitted. Refresh until all panels show completed, then assemble.";
+        return storyboardPanelJobs[String(boardIndex)] || [];
     } catch (e) {
         if (resultEl) resultEl.textContent = "Panel render failed: " + e.message;
         addLogEntry("error", "Storyboard panel render failed: " + e.message);
+        return [];
     }
 }
 
@@ -2143,7 +2213,7 @@ async function assembleStoryboardPanels(boardIndex) {
     const urls = jobs.map((job) => job.url).filter(Boolean);
     if (!urls.length || urls.length !== (Array.isArray(board.panels) ? board.panels.length : 0)) {
         if (resultEl) resultEl.textContent = "Assemble blocked: all individual panel renders must be completed first.";
-        return;
+        return null;
     }
     if (resultEl) resultEl.textContent = "Assembling completed panels into a storyboard page...";
     try {
@@ -2165,11 +2235,165 @@ async function assembleStoryboardPanels(boardIndex) {
         if (resultEl) {
             resultEl.innerHTML = '<span>Assembled storyboard page.</span><br><img src="' + escapeHtml(data.url) + '" alt="Assembled storyboard">';
         }
+        board.assembled_url = data.url || "";
+        board.assembled_path = data.path || "";
         if (typeof loadVideoLibrary === "function") loadVideoLibrary();
+        return data;
     } catch (e) {
         if (resultEl) resultEl.textContent = "Assemble failed: " + e.message;
         addLogEntry("error", "Storyboard assembly failed: " + e.message);
+        return null;
     }
+}
+
+async function exportStoryboardVideoShots(boardIndex) {
+    const board = getStoryboardBoard(boardIndex);
+    if (!board) return null;
+    const resultEl = document.getElementById("storyboard-render-" + Number(boardIndex));
+    const jobs = storyboardPanelJobs[String(boardIndex)] || [];
+    const urls = jobs.map((job) => job.url).filter(Boolean);
+    const expected = Array.isArray(board.panels) ? board.panels.length : 0;
+    if (!expected || urls.length !== expected) {
+        if (resultEl) resultEl.textContent = "Export blocked: all panel images must be ready before creating video start-frame shots.";
+        return null;
+    }
+    try {
+        const resp = await fetch("/api/script/storyboard/export-video-shots", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                board,
+                panel_image_urls: urls,
+                title: storyboardPlan?.title || scriptInputValue("script-title", "Storyboard"),
+                campaign_id: "",
+                duration_seconds: 4,
+                replace_existing: true,
+            }),
+        });
+        const data = await resp.json();
+        if (!resp.ok || data.status !== "ok") throw new Error(data.detail || data.error || "export failed");
+        if (Array.isArray(data.shot_ids)) {
+            data.shot_ids.forEach((id) => videoSelection.add(id));
+        }
+        if (resultEl) {
+            resultEl.innerHTML =
+                '<span>Exported ' + Number(data.count || 0) + ' ordered start-frame shot(s) to the Video tab.</span>' +
+                (board.assembled_url ? '<br><img src="' + escapeHtml(board.assembled_url) + '" alt="Assembled storyboard">' : "");
+        }
+        setScriptStatus("Storyboard exported to Video tab: " + Number(data.count || 0) + " start-frame shot(s).", "Storyboard");
+        if (typeof loadVideoLibrary === "function") await loadVideoLibrary();
+        if (typeof updateVideoSelectionUI === "function") updateVideoSelectionUI();
+        return data;
+    } catch (e) {
+        if (resultEl) resultEl.textContent = "Video shot export failed: " + e.message;
+        addLogEntry("error", "Storyboard video shot export failed: " + e.message);
+        return null;
+    }
+}
+
+async function generateStoryboardCharacterSheet() {
+    const btn = document.getElementById("storyboard-character-sheet-btn");
+    const sheetEl = document.getElementById("storyboard-character-sheet-output");
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = "Sheet...";
+    }
+    if (sheetEl) sheetEl.textContent = "Submitting character sheet to Spark...";
+    try {
+        const resp = await fetch("/api/local-higgsfield/generate-image", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                prompt: storyboardCharacterSheetPrompt(),
+                width_and_height: "2048x1536",
+                quality: "720p",
+                batch_size: 1,
+                enhance_prompt: false,
+                wait_for_output: false,
+            }),
+        });
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.detail || data.error || "character sheet failed");
+        storyboardCharacterSheetJob = {
+            job_set_id: data.job_set_id || data.id || "",
+            status: data.status || "queued",
+            url: storyboardJobResultUrl(data),
+        };
+        if (storyboardCharacterSheetJob.url) {
+            const refEl = document.getElementById("storyboard-reference-image");
+            if (refEl) refEl.value = storyboardCharacterSheetJob.url;
+        }
+        renderStoryboardCharacterSheetStatus();
+    } catch (e) {
+        if (sheetEl) sheetEl.textContent = "Character sheet failed: " + e.message;
+        addLogEntry("error", "Storyboard character sheet failed: " + e.message);
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = "Generate Character Sheet";
+        }
+    }
+}
+
+async function pollStoryboardCharacterSheet() {
+    const sheetEl = document.getElementById("storyboard-character-sheet-output");
+    if (!storyboardCharacterSheetJob?.job_set_id) {
+        if (sheetEl) sheetEl.textContent = "No character sheet job submitted yet.";
+        return null;
+    }
+    try {
+        const resp = await fetch("/api/local-higgsfield/jobs/" + encodeURIComponent(storyboardCharacterSheetJob.job_set_id));
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.detail || data.error || "status failed");
+        storyboardCharacterSheetJob.status = data.status || storyboardCharacterSheetJob.status;
+        storyboardCharacterSheetJob.url = storyboardJobResultUrl(data) || storyboardCharacterSheetJob.url || "";
+        if (storyboardCharacterSheetJob.url) {
+            const refEl = document.getElementById("storyboard-reference-image");
+            if (refEl) refEl.value = storyboardCharacterSheetJob.url;
+        }
+        renderStoryboardCharacterSheetStatus();
+        return storyboardCharacterSheetJob;
+    } catch (e) {
+        if (sheetEl) sheetEl.textContent = "Character sheet status failed: " + e.message;
+        return null;
+    }
+}
+
+function renderStoryboardCharacterSheetStatus() {
+    const sheetEl = document.getElementById("storyboard-character-sheet-output");
+    if (!sheetEl || !storyboardCharacterSheetJob) return;
+    const status = storyboardCharacterSheetJob.status || "queued";
+    const id = storyboardCharacterSheetJob.job_set_id || "";
+    const img = storyboardCharacterSheetJob.url ? '<img src="' + escapeHtml(storyboardCharacterSheetJob.url) + '" alt="Storyboard character sheet">' : "";
+    sheetEl.innerHTML =
+        '<span>Character sheet: ' + escapeHtml(status) + (id ? ' / ' + escapeHtml(id.slice(0, 8)) : "") + '</span>' +
+        img;
+}
+
+async function renderAssembleExportStoryboardPanels(boardIndex) {
+    const board = getStoryboardBoard(boardIndex);
+    if (!board) return;
+    const resultEl = document.getElementById("storyboard-render-" + Number(boardIndex));
+    const expected = Array.isArray(board.panels) ? board.panels.length : 0;
+    if (!expected) return;
+    if (resultEl) resultEl.textContent = "Auto workflow: submitting panel renders...";
+    await renderStoryboardPanels(boardIndex);
+    const maxPolls = 180;
+    for (let attempt = 0; attempt < maxPolls; attempt += 1) {
+        const jobs = await pollStoryboardPanelJobs(boardIndex);
+        const ready = jobs.filter((job) => job.url).length;
+        if (resultEl) resultEl.textContent = "Auto workflow: " + ready + " / " + expected + " panel image(s) ready.";
+        if (ready === expected) break;
+        await storyboardSleep(10000);
+    }
+    const jobs = storyboardPanelJobs[String(boardIndex)] || [];
+    if (jobs.filter((job) => job.url).length !== expected) {
+        if (resultEl) resultEl.textContent = "Auto workflow timed out before all panel renders completed. Refresh jobs and assemble manually.";
+        return;
+    }
+    const assembled = await assembleStoryboardPanels(boardIndex);
+    if (!assembled) return;
+    await exportStoryboardVideoShots(boardIndex);
 }
 
 async function renderStoryboardBoard(boardIndex) {
@@ -3150,6 +3374,8 @@ async function sendScriptChat() {
 // Characters
 // ---------------------------------------------------------------------------
 let characterManagerCache = [];
+let characterForgeGender = "";
+let characterForgeSelectedId = "";
 
 function normalizeCharacters(payload) {
     if (Array.isArray(payload)) return payload;
@@ -3167,6 +3393,43 @@ function characterId(char) {
 
 function characterImage(char) {
     return char?.anchor_url || char?.anchor_src || "";
+}
+
+function latestCharacterGeneratedImage(char) {
+    const approved = Array.isArray(char?.approved_assets) ? char.approved_assets : [];
+    const generated = [...approved].reverse().find((asset) => asset?.type === "character" && asset?.url);
+    if (generated?.url) return generated.url;
+    const history = Array.isArray(char?.render_history) ? char.render_history : [];
+    const rendered = [...history].reverse().find((entry) => entry?.type === "character" && Array.isArray(entry.image_urls) && entry.image_urls[0]);
+    if (rendered?.image_urls?.[0]) return rendered.image_urls[0];
+    return characterImage(char);
+}
+
+function selectedCharacterForForge() {
+    const selectedId = characterForgeSelectedId || "";
+    return characterManagerCache.find((c) => characterId(c) === selectedId)
+        || shellState?.characters?.find((c) => characterId(c) === selectedId)
+        || null;
+}
+
+function syncCharacterForgeSelectionUi() {
+    const selected = selectedCharacterForForge();
+    const selectedId = selected ? characterId(selected) : "";
+    const refUrl = selected ? latestCharacterGeneratedImage(selected) : "";
+    document.querySelectorAll(".character-card-live").forEach((card) => {
+        card.classList.toggle("selected", !!selectedId && card.dataset.characterId === selectedId);
+    });
+    const sheetBtn = document.getElementById("char-forge-sheet-btn");
+    const variationBtn = document.getElementById("char-forge-variation-btn");
+    const enabled = !!(selectedId && refUrl);
+    if (sheetBtn) {
+        sheetBtn.disabled = !enabled;
+        sheetBtn.title = enabled ? "Uses the selected character image as the sheet reference." : "Select one character with a generated image first.";
+    }
+    if (variationBtn) {
+        variationBtn.disabled = !enabled;
+        variationBtn.title = enabled ? "Uses the selected character image as the variation reference." : "Select one character with a generated image first.";
+    }
 }
 
 function characterDnaText(char) {
@@ -3238,6 +3501,7 @@ async function loadCharacterManager() {
         if (status) status.textContent = String(chars.length) + " character" + (chars.length === 1 ? "" : "s");
         if (!chars.length) {
             grid.innerHTML = '<div class="character-manager-status">No characters yet.</div>';
+            syncCharacterForgeSelectionUi();
             return;
         }
         grid.innerHTML = chars.map((char) => {
@@ -3250,7 +3514,7 @@ async function loadCharacterManager() {
                 ? '<img src="' + escapeHtml(img) + '" alt="' + escapeHtml(name) + '" loading="lazy">'
                 : '<div class="character-avatar-fallback">' + escapeHtml(name.slice(0, 1).toUpperCase()) + '</div>';
             return (
-                '<article class="character-card-live">' +
+                '<article class="character-card-live' + (id === characterForgeSelectedId ? " selected" : "") + '" data-character-id="' + escapeHtml(id) + '">' +
                     avatar +
                     '<div>' +
                         '<h3>' + escapeHtml(name) + '</h3>' +
@@ -3260,6 +3524,7 @@ async function loadCharacterManager() {
                 '</article>'
             );
         }).join("");
+        syncCharacterForgeSelectionUi();
     } catch (e) {
         if (status) status.textContent = "Character load failed";
         grid.innerHTML = '<div class="character-manager-status">Character API unavailable: ' + escapeHtml(e?.message || e) + '</div>';
@@ -3344,8 +3609,274 @@ function pickRandomSet(list, count) {
     return picked;
 }
 
+function selectedCharacterForgeGender() {
+    return characterForgeGender === "male" || characterForgeGender === "female" ? characterForgeGender : "";
+}
+
+function characterForgeGenderLabel() {
+    const gender = selectedCharacterForgeGender();
+    return gender ? gender + " person" : "";
+}
+
+function characterForgeNamePool(neutralNames, maleNames, femaleNames) {
+    const gender = selectedCharacterForgeGender();
+    if (gender === "male") return maleNames;
+    if (gender === "female") return femaleNames;
+    return neutralNames;
+}
+
+function stripCharacterNoTextRule(prompt) {
+    let clean = String(prompt || "");
+    for (const term of CHARACTER_NO_TEXT_PROMPT_RULE.split(", ")) {
+        clean = clean.replace(new RegExp(",?\\s*" + term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi"), "");
+    }
+    return clean.replace(/\s*,\s*,/g, ", ").replace(/^[,\s]+|[,\s]+$/g, "");
+}
+
+function applyCharacterForgeGenderToPrompt(prompt, gender) {
+    if (!prompt || !gender) return prompt || "";
+    const required = CHARACTER_NO_TEXT_PROMPT_RULE.split(", ");
+    const hadNoTextRule = required.every((term) => String(prompt).toLowerCase().includes(term));
+    let clean = hadNoTextRule ? stripCharacterNoTextRule(prompt) : String(prompt || "").trim();
+    clean = clean
+        .replace(/\b(male|female)\s+(person|character)\b,?\s*/gi, "")
+        .replace(/\s*,\s*,/g, ", ")
+        .replace(/^[,\s]+|[,\s]+$/g, "");
+    const withGender = [clean, gender + " person"].filter(Boolean).join(", ");
+    return hadNoTextRule ? withCharacterNoTextRule(withGender) : withGender;
+}
+
+function syncCharacterForgeGenderButtons() {
+    const gender = selectedCharacterForgeGender();
+    for (const option of ["male", "female"]) {
+        const btn = document.getElementById("char-forge-gender-" + option);
+        if (!btn) continue;
+        const active = gender === option;
+        btn.classList.toggle("active", active);
+        btn.setAttribute("aria-pressed", active ? "true" : "false");
+    }
+}
+
+function setCharacterForgeGender(gender) {
+    characterForgeGender = gender === "male" || gender === "female" ? gender : "";
+    syncCharacterForgeGenderButtons();
+    const baseEl = document.getElementById("char-forge-base-prompt");
+    if (baseEl?.value) {
+        baseEl.value = applyCharacterForgeGenderToPrompt(baseEl.value, selectedCharacterForgeGender());
+        composeCharacterPrompts();
+    }
+    const status = document.getElementById("character-manager-status");
+    if (status) {
+        const label = selectedCharacterForgeGender() || "no gender";
+        status.textContent = "Character gender set to " + label + ". From Role and Regular Person will use it.";
+    }
+}
+
+function roleHasAny(roleText, terms) {
+    return terms.some((term) => roleText.includes(term));
+}
+
+function inferCharacterRoleContext(role) {
+    const text = String(role || "").toLowerCase();
+    const context = {
+        ages: ["late 20s", "early 30s", "mid 30s", "early 40s"],
+        faces: [
+            "attractive real face, balanced features, realistic skin texture, expressive eyes",
+            "cinematic casting-quality face, natural facial harmony, believable asymmetry, relaxed confidence",
+            "polished but realistic face, clear skin texture, strong screen presence, approachable expression",
+        ],
+        hair: [
+            "healthy well-groomed hair with natural styling",
+            "clean contemporary haircut, polished but believable styling",
+            "natural hair with subtle professional styling",
+        ],
+        builds: [
+            "fit average build, natural posture",
+            "healthy build, relaxed shoulders, believable body proportions",
+            "camera-ready but realistic physique, natural stance",
+        ],
+        wardrobe: [
+            "role-appropriate contemporary clothing, flattering fit, no costume exaggeration",
+            "polished everyday outfit suited to the role, believable shoes, restrained accessories",
+            "modern practical outfit with subtle role-specific details, natural fabrics",
+        ],
+        locations: [
+            "neutral studio background",
+            "realistic workplace suited to " + role,
+            "sidewalk in natural daylight",
+            "simple indoor room with practical lighting",
+        ],
+        clothes: [
+            "main role-appropriate outfit",
+            "casual everyday outfit",
+            "work outfit variation",
+            "simple jacket layer",
+        ],
+        notes: [
+            "attractive but realistic, cinematic casting quality, not plastic, not over-retouched",
+        ],
+    };
+
+    if (roleHasAny(text, ["instagram", "influencer", "fitness model", "fitness", "model", "athlete", "trainer", "yoga", "pilates", "bodybuilder"])) {
+        return {
+            ...context,
+            ages: ["early 20s", "mid 20s", "late 20s", "early 30s"],
+            faces: [
+                "highly attractive fitness-model face, strong facial harmony, expressive eyes, realistic skin texture",
+                "striking social-media creator face, polished natural beauty, confident relaxed expression",
+                "cinematic athletic lead face, defined cheekbones, healthy skin texture, no beauty-filter plastic skin",
+            ],
+            hair: [
+                "healthy camera-ready hair, clean modern styling",
+                "sweat-ready styled hair, natural volume, polished but believable",
+                "well-groomed contemporary hair, fitness lifestyle styling",
+            ],
+            builds: [
+                "lean athletic build, toned arms and shoulders, realistic fitness proportions",
+                "fit model physique, defined core, natural posture, believable anatomy",
+                "athletic lifestyle build, strong legs, relaxed confident stance",
+            ],
+            wardrobe: [
+                "premium fitted activewear, clean sneakers, minimal jewelry, modern fitness styling",
+                "sleek gym outfit, fitted training top, performance leggings or shorts, realistic fabric texture",
+                "athleisure streetwear, cropped jacket or fitted hoodie, clean contemporary styling",
+            ],
+            locations: [
+                "modern gym with soft daylight",
+                "minimal fitness studio",
+                "urban rooftop at golden hour",
+                "bright apartment mirror workout corner without visible text",
+            ],
+            clothes: [
+                "premium gym activewear",
+                "athleisure street outfit",
+                "minimal studio workout set",
+                "casual post-workout jacket layer",
+            ],
+            notes: [
+                "highly attractive fitness creator, modern social media casting, polished realistic skin, confident camera presence",
+                "fit adult appearance, no underage styling, no exaggerated body proportions, no plastic beauty filter",
+            ],
+        };
+    }
+
+    if (roleHasAny(text, ["student", "intern", "graduate", "college", "university"])) {
+        return {
+            ...context,
+            ages: ["early 20s", "mid 20s", "late 20s"],
+            wardrobe: [
+                "campus casual outfit, simple layers, backpack or laptop bag, believable shoes",
+                "plain hoodie or overshirt, jeans, clean sneakers, understated accessories",
+                "casual contemporary student outfit, practical layers, no school uniform",
+            ],
+            locations: ["campus walkway", "library study room", "coffee shop table", "small apartment desk"],
+            clothes: ["campus casual outfit", "study-day hoodie and jeans", "simple jacket layer", "clean everyday outfit"],
+            notes: ["adult college-age appearance, attractive but realistic, natural skin texture"],
+        };
+    }
+
+    if (roleHasAny(text, ["ceo", "founder", "executive", "lawyer", "attorney", "banker", "consultant", "agent"])) {
+        return {
+            ...context,
+            ages: ["early 30s", "mid 30s", "early 40s", "late 40s"],
+            builds: ["fit professional build, upright posture", "healthy executive build, confident stance", "lean professional build, composed posture"],
+            wardrobe: [
+                "sharp tailored business outfit, premium fabric, understated watch, realistic fit",
+                "modern executive suit or blazer, clean shirt, polished shoes",
+                "elevated professional wardrobe, restrained colors, quiet luxury details",
+            ],
+            locations: ["modern office", "conference room", "city sidewalk", "hotel lobby"],
+            clothes: ["tailored business outfit", "smart casual blazer look", "formal meeting outfit", "travel-day professional outfit"],
+            notes: ["attractive professional presence, composed expression, premium but realistic styling"],
+        };
+    }
+
+    if (roleHasAny(text, ["nurse", "doctor", "surgeon", "medic", "therapist", "paramedic", "veterinarian"])) {
+        return {
+            ...context,
+            ages: ["mid 20s", "late 20s", "early 30s", "mid 30s", "early 40s"],
+            wardrobe: [
+                "clean medical scrubs, practical shoes, minimal accessories",
+                "white coat over simple clinical outfit, realistic hospital styling",
+                "practical healthcare workwear, badge-free, no readable text",
+            ],
+            locations: ["hospital corridor", "clinic exam room", "medical office", "quiet break room"],
+            clothes: ["medical scrubs", "white coat clinical outfit", "simple off-duty outfit", "practical jacket layer"],
+            notes: ["competent attractive healthcare worker, natural fatigue detail, realistic skin texture"],
+        };
+    }
+
+    if (roleHasAny(text, ["retired", "grandparent", "elder", "senior", "old man", "old woman", "grandmother", "grandfather"])) {
+        return {
+            ...context,
+            ages: ["early 60s", "late 60s", "early 70s"],
+            faces: [
+                "attractive older face, warm expression, realistic wrinkles, dignified screen presence",
+                "mature face with strong character, natural skin texture, kind expressive eyes",
+                "handsome older features, believable age detail, composed expression",
+            ],
+            hair: ["well-kept gray hair", "silver hair with natural styling", "neatly groomed mature hairstyle"],
+            builds: ["healthy older build, natural posture", "average mature build, relaxed stance", "fit older build, believable proportions"],
+            wardrobe: [
+                "comfortable polished everyday clothing, well-kept shoes, subtle personal style",
+                "simple mature wardrobe, soft layers, realistic fabrics",
+                "neat casual outfit, cardigan or jacket layer, understated colors",
+            ],
+            locations: ["quiet home interior", "neighborhood sidewalk", "small garden", "local cafe"],
+            clothes: ["comfortable everyday outfit", "neat casual jacket layer", "simple home outfit", "polished daywear"],
+            notes: ["attractive mature person, dignified age detail, not de-aged, not plastic"],
+        };
+    }
+
+    return context;
+}
+
+async function generateCharacterFromRoleWithKimi(role, status) {
+    if (status) status.textContent = "Asking Kimi to cast and prompt this role...";
+    const resp = await fetch("/api/characters/role-prompt", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            role,
+            name: characterForgeValue("char-forge-name"),
+            gender: selectedCharacterForgeGender(),
+        }),
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok || data.status !== "ok") {
+        throw new Error(data.detail || data.error || "Kimi prompt generation failed");
+    }
+
+    const setValue = (id, value) => {
+        const el = document.getElementById(id);
+        if (el) el.value = value;
+    };
+    setValue("char-forge-name", data.name || characterForgeValue("char-forge-name") || "Generated Character");
+    setValue("char-forge-role", data.role || role);
+    setValue("char-forge-base-prompt", withCharacterNoTextRule(data.base_prompt || ""));
+    setValue("char-forge-locations", Array.isArray(data.locations) ? data.locations.join(", ") : String(data.locations || ""));
+    setValue("char-forge-clothes", Array.isArray(data.clothes) ? data.clothes.join(", ") : String(data.clothes || ""));
+    setValue("char-forge-angles", Array.isArray(data.angles) ? data.angles.join(", ") : String(data.angles || ""));
+    setValue("char-forge-seed", String(Math.floor(100000 + Math.random() * 899999)));
+    const workflow = document.getElementById("char-forge-workflow");
+    if (workflow) workflow.value = "01_flux2_text_to_image";
+
+    const sheetEl = document.getElementById("char-forge-sheet-prompt");
+    const variationEl = document.getElementById("char-forge-variation-prompt");
+    if (data.sheet_prompt && data.variation_prompt) {
+        if (sheetEl) sheetEl.value = withCharacterNoTextRule(data.sheet_prompt);
+        if (variationEl) variationEl.value = withCharacterNoTextRule(data.variation_prompt);
+    } else {
+        composeCharacterPrompts();
+    }
+    if (status) status.textContent = "Kimi generated a role-aware character prompt. Review before sending to Spark.";
+    return true;
+}
+
 function randomizeCharacterForge() {
-    const givenNames = ["Sable", "Mira", "Cassian", "Nyra", "Orin", "Vale", "Ilya", "Riven", "Mara", "Soren", "Kael", "Vesper"];
+    const neutralNames = ["Sable", "Mira", "Cassian", "Nyra", "Orin", "Vale", "Ilya", "Riven", "Mara", "Soren", "Kael", "Vesper"];
+    const maleNames = ["Cassian", "Orin", "Soren", "Kael", "Darian", "Lucan", "Ronan", "Malik", "Tomas", "Viktor", "Elias", "Dante"];
+    const femaleNames = ["Mira", "Nyra", "Mara", "Vesper", "Selene", "Lyra", "Amara", "Nadia", "Iris", "Elara", "Rhea", "Sabine"];
     const surnames = ["Cross", "Vale", "Nyx", "Ashford", "Kade", "Sol", "Vance", "Morrow", "Reyes", "Ishaan", "Drift", "Noor"];
     const archetypes = [
         "exiled starship pilot",
@@ -3421,7 +3952,8 @@ function randomizeCharacterForge() {
         ["neutral T-pose", "relaxed stance", "turnaround front", "turnaround side", "turnaround rear", "face close-up", "boots detail"],
     ];
 
-    const name = pickRandom(givenNames) + " " + pickRandom(surnames);
+    const genderLabel = characterForgeGenderLabel();
+    const name = pickRandom(characterForgeNamePool(neutralNames, maleNames, femaleNames)) + " " + pickRandom(surnames);
     const role = pickRandom(archetypes);
     const face = pickRandom(faces);
     const hairDesc = pickRandom(hair);
@@ -3436,6 +3968,7 @@ function randomizeCharacterForge() {
 
     const basePrompt = [
         "Portrait of " + name,
+        genderLabel,
         role,
         face,
         hairDesc,
@@ -3445,7 +3978,7 @@ function randomizeCharacterForge() {
         "consistent face identity, stable anatomy, clear silhouette",
         cameraStyle,
         "no duplicate person",
-    ].join(", ");
+    ].filter(Boolean).join(", ");
 
     const setValue = (id, value) => {
         const el = document.getElementById(id);
@@ -3470,7 +4003,9 @@ function randomizeCharacterForge() {
 }
 
 function groundCharacterForge() {
-    const givenNames = ["Alex", "Jordan", "Morgan", "Taylor", "Casey", "Riley", "Jamie", "Avery", "Sam", "Cameron", "Drew", "Robin"];
+    const neutralNames = ["Alex", "Jordan", "Morgan", "Taylor", "Casey", "Riley", "Jamie", "Avery", "Sam", "Cameron", "Drew", "Robin"];
+    const maleNames = ["Michael", "David", "Daniel", "James", "Thomas", "Owen", "Marcus", "Ethan", "Noah", "Caleb", "Andre", "Leo"];
+    const femaleNames = ["Sarah", "Maya", "Elena", "Priya", "Nina", "Leah", "Sofia", "Ava", "Clara", "Naomi", "Grace", "Isabel"];
     const surnames = ["Miller", "Parker", "Reed", "Bennett", "Coleman", "Hayes", "Sullivan", "Brooks", "Foster", "Ramirez", "Nguyen", "Patel"];
     const roles = [
         "regular person",
@@ -3535,11 +4070,13 @@ function groundCharacterForge() {
         "hoodie and straight-leg jeans",
         "simple work polo and khaki pants",
     ];
-    const name = pickRandom(givenNames) + " " + pickRandom(surnames);
+    const genderLabel = characterForgeGenderLabel();
+    const name = pickRandom(characterForgeNamePool(neutralNames, maleNames, femaleNames)) + " " + pickRandom(surnames);
     const role = pickRandom(roles);
     const basePrompt = [
         "Photorealistic portrait of " + name,
         pickRandom(ages),
+        genderLabel,
         role,
         pickRandom(faces),
         pickRandom(hair),
@@ -3549,7 +4086,7 @@ function groundCharacterForge() {
         "soft daylight, 50mm lens, casual unposed posture",
         "no fantasy elements, no sci-fi elements, no costume, no armor, no glowing tattoos, no exaggerated features, no glamour retouching",
         "no duplicate person",
-    ].join(", ");
+    ].filter(Boolean).join(", ");
 
     const setValue = (id, value) => {
         const el = document.getElementById(id);
@@ -3571,59 +4108,43 @@ function groundCharacterForge() {
     if (status) status.textContent = "Grounded regular-person character generated locally. Review before sending to Spark.";
 }
 
-function generateCharacterFromRoleForge() {
+async function generateCharacterFromRoleForge() {
     const status = document.getElementById("character-manager-status");
     const role = characterForgeValue("char-forge-role");
     if (!role) {
         if (status) status.textContent = "Enter a Role / Archetype first.";
         return;
     }
-    const givenNames = ["Alex", "Jordan", "Maya", "Noah", "Elena", "Marcus", "Priya", "Owen", "Nina", "Daniel", "Leah", "Victor"];
+    let kimiError = "";
+    try {
+        if (await generateCharacterFromRoleWithKimi(role, status)) return;
+    } catch (e) {
+        kimiError = e?.message || String(e || "");
+        console.warn("Kimi character prompt unavailable; using local role logic.", e);
+        if (status) status.textContent = "Kimi unavailable; using local role-aware generator...";
+    }
+    const neutralNames = ["Alex", "Jordan", "Maya", "Noah", "Elena", "Marcus", "Priya", "Owen", "Nina", "Daniel", "Leah", "Victor"];
+    const maleNames = ["Michael", "David", "Daniel", "Noah", "Marcus", "Owen", "Victor", "Ethan", "Caleb", "Andre", "Leo", "Thomas"];
+    const femaleNames = ["Maya", "Elena", "Priya", "Nina", "Leah", "Sarah", "Sofia", "Ava", "Clara", "Naomi", "Grace", "Isabel"];
     const surnames = ["Reed", "Morgan", "Hayes", "Kline", "Santos", "Bennett", "Patel", "Brooks", "Wright", "Kim", "Foster", "Morales"];
-    const ages = ["late 20s", "early 30s", "mid 30s", "early 40s", "late 40s", "early 50s", "early 60s"];
-    const faces = [
-        "natural face, realistic skin texture, ordinary facial proportions, calm focused expression",
-        "oval face, subtle smile lines, believable asymmetry, relaxed eyes",
-        "square face, faint forehead lines, grounded expression, realistic pores",
-        "round face, soft jawline, mild under-eye texture, attentive expression",
-        "long face, straight nose, natural hairline, unforced expression",
-    ];
-    const hair = [
-        "short dark hair, practical styling",
-        "shoulder-length brown hair, natural styling",
-        "short graying hair, neatly kept",
-        "curly black hair, casually pulled back",
-        "medium blonde hair, simple everyday styling",
-        "closely cropped hair, natural hairline",
-    ];
-    const builds = [
-        "average build, natural posture",
-        "slim average build, relaxed shoulders",
-        "stocky average build, grounded stance",
-        "tall average build, casual posture",
-        "short average build, ordinary stance",
-    ];
-    const wardrobe = [
-        "role-appropriate everyday clothing, practical layers, no costume exaggeration",
-        "simple work clothes appropriate to the role, natural fabrics, worn-in details",
-        "casual contemporary clothing with subtle role-specific accessories",
-        "plain functional outfit, believable shoes, minimal accessories",
-        "realistic workplace outfit, understated colors, no theatrical styling",
-    ];
-    const name = characterForgeValue("char-forge-name") || (pickRandom(givenNames) + " " + pickRandom(surnames));
+    const context = inferCharacterRoleContext(role);
+    const genderLabel = characterForgeGenderLabel();
+    const name = characterForgeValue("char-forge-name") || (pickRandom(characterForgeNamePool(neutralNames, maleNames, femaleNames)) + " " + pickRandom(surnames));
     const basePrompt = [
         "Photorealistic character portrait of " + name,
-        pickRandom(ages),
+        pickRandom(context.ages),
+        genderLabel,
         "role / archetype: " + role,
-        pickRandom(faces),
-        pickRandom(hair),
-        pickRandom(builds),
-        pickRandom(wardrobe),
+        pickRandom(context.faces),
+        pickRandom(context.hair),
+        pickRandom(context.builds),
+        pickRandom(context.wardrobe),
+        pickRandom(context.notes),
         "believable real person, grounded documentary realism, realistic skin texture, natural color grading",
         "soft daylight, 50mm lens, casual unposed posture, clear face identity, stable anatomy",
         "avoid over-designed costume, avoid fantasy unless the role explicitly requires it, avoid sci-fi unless the role explicitly requires it, no exaggerated features, no glamour retouching",
         "no duplicate person",
-    ].join(", ");
+    ].filter(Boolean).join(", ");
 
     const setValue = (id, value) => {
         const el = document.getElementById(id);
@@ -3631,25 +4152,19 @@ function generateCharacterFromRoleForge() {
     };
     setValue("char-forge-name", name);
     setValue("char-forge-base-prompt", withCharacterNoTextRule(basePrompt));
-    setValue("char-forge-locations", [
-        "neutral studio background",
-        "realistic workplace suited to " + role,
-        "sidewalk in natural daylight",
-        "simple indoor room with practical lighting",
-    ].join(", "));
-    setValue("char-forge-clothes", [
-        "main role-appropriate outfit",
-        "casual everyday outfit",
-        "work outfit variation",
-        "simple jacket layer",
-    ].join(", "));
+    setValue("char-forge-locations", context.locations.join(", "));
+    setValue("char-forge-clothes", context.clothes.join(", "));
     setValue("char-forge-angles", "front, 3/4 left, 3/4 right, side profile, rear, full body, portrait close-up, hands detail");
     setValue("char-forge-seed", String(Math.floor(100000 + Math.random() * 899999)));
     const workflow = document.getElementById("char-forge-workflow");
     if (workflow) workflow.value = "01_flux2_text_to_image";
 
     composeCharacterPrompts();
-    if (status) status.textContent = "Character generated from role locally. Review before sending to Spark.";
+    if (status) {
+        status.textContent = kimiError
+            ? "Kimi unavailable; generated from role locally. Review before sending to Spark."
+            : "Character generated from role locally. Review before sending to Spark.";
+    }
 }
 
 function composeCharacterPrompts() {
@@ -3696,6 +4211,10 @@ function composeCharacterPrompts() {
 function selectCharacterForForge(charId) {
     const char = characterManagerCache.find((c) => characterId(c) === charId);
     if (!char) return;
+    characterForgeSelectedId = characterId(char);
+    if (shellState?.characters?.some((c) => characterId(c) === characterForgeSelectedId)) {
+        shellState.selectedCharacterId = characterForgeSelectedId;
+    }
     const nameEl = document.getElementById("char-forge-name");
     const roleEl = document.getElementById("char-forge-role");
     const baseEl = document.getElementById("char-forge-base-prompt");
@@ -3709,6 +4228,12 @@ function selectCharacterForForge(charId) {
         ].filter(Boolean).join(", ");
     }
     composeCharacterPrompts();
+    syncCharacterForgeSelectionUi();
+    const status = document.getElementById("character-manager-status");
+    const refUrl = latestCharacterGeneratedImage(char);
+    if (status) status.textContent = refUrl
+        ? "Selected " + characterName(char) + ". Sheet and variation generation will use this character image."
+        : "Selected " + characterName(char) + ". Generate a character image before making sheets or variations.";
 }
 
 function promptForCharacterRender(kind) {
@@ -3722,7 +4247,19 @@ function promptForCharacterRender(kind) {
 
 async function renderCharacterOnSpark(kind) {
     const status = document.getElementById("character-manager-status");
-    const name = characterForgeValue("char-forge-name");
+    const selected = selectedCharacterForForge();
+    const selectedReferenceUrl = selected ? latestCharacterGeneratedImage(selected) : "";
+    if ((kind === "sheet" || kind === "variation") && !selected) {
+        if (status) status.textContent = "Select one character before generating a " + kind + ".";
+        syncCharacterForgeSelectionUi();
+        return;
+    }
+    if ((kind === "sheet" || kind === "variation") && !selectedReferenceUrl) {
+        if (status) status.textContent = "Selected character needs a generated character image before making a " + kind + ".";
+        syncCharacterForgeSelectionUi();
+        return;
+    }
+    const name = (kind === "sheet" || kind === "variation") && selected ? characterName(selected) : characterForgeValue("char-forge-name");
     if (!name) {
         if (status) status.textContent = "Name is required before Spark generation.";
         return;
@@ -3742,20 +4279,33 @@ async function renderCharacterOnSpark(kind) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 name,
-                role: characterForgeValue("char-forge-role"),
+                role: selected?.role || characterForgeValue("char-forge-role"),
                 prompt,
                 render_type: kind,
                 workflow_id: characterForgeValue("char-forge-workflow") || "01_flux2_text_to_image",
                 seed: getCharacterForgeSeed(),
                 save_character: true,
+                character_id: selected ? characterId(selected) : "",
+                reference_image_url: selectedReferenceUrl,
             }),
         });
         const payload = await resp.json().catch(() => ({}));
         if (!resp.ok) throw new Error(payload.detail || payload.error || "HTTP " + resp.status);
-        if (status) status.textContent = "Spark complete: " + (payload.prompt_id || "render saved");
+        if (status) {
+            status.textContent = ((kind === "sheet" || kind === "variation") && payload.reference_image_used === false)
+                ? "Spark complete, but the selected workflow has no image-reference input. Use a reference-capable workflow for a true identity lock."
+                : "Spark complete: " + (payload.prompt_id || "render saved");
+        }
+        if (payload?.character?.id) {
+            characterForgeSelectedId = characterId(payload.character);
+            if (shellState?.characters?.some((c) => characterId(c) === characterForgeSelectedId)) {
+                shellState.selectedCharacterId = characterForgeSelectedId;
+            }
+        }
         renderCharacterResultTiles(payload, kind);
         await loadCharacters();
         await loadCharacterManager();
+        syncCharacterForgeSelectionUi();
     } catch (e) {
         if (status) status.textContent = "Spark generation unavailable: " + (e?.message || e);
     }
@@ -3769,14 +4319,78 @@ function renderCharacterResultTiles(payload, kind) {
         gallery.innerHTML = '<div class="character-manager-status">Spark returned no image URLs.</div>';
         return;
     }
+    const characterIdValue = characterId(payload?.character || { id: characterForgeValue("char-forge-name") });
+    const prompt = payload?.character?.render_prompts?.[kind] || promptForCharacterRender(kind);
+    const seed = payload?.seed || getCharacterForgeSeed() || "Random";
+    const workflow = characterForgeValue("char-forge-workflow") || "01_flux2_text_to_image";
+    const displayKind = kind === "anchor" ? "character" : kind;
     const html = urls.map((url, i) => (
-        '<figure class="character-render-tile">' +
-            '<img src="' + escapeHtml(url) + '" alt="' + escapeHtml(kind) + ' render">' +
-            '<figcaption class="caption">' + escapeHtml(kind === "anchor" ? "character" : kind) + ' #' + String(i + 1) + '</figcaption>' +
+        '<figure class="character-render-tile" title="Double-click to view full size" ' +
+            'ondblclick="openCharacterRenderLightboxFromTile(this)" ' +
+            'data-image-url="' + escapeHtml(url) + '" ' +
+            'data-kind="' + escapeHtml(displayKind) + '" ' +
+            'data-index="' + String(i + 1) + '" ' +
+            'data-character-name="' + escapeHtml(payload?.character?.name || characterForgeValue("char-forge-name") || "Character") + '" ' +
+            'data-prompt="' + escapeHtml(prompt) + '" ' +
+            'data-prompt-id="' + escapeHtml(payload?.prompt_id || "") + '" ' +
+            'data-seed="' + escapeHtml(String(seed)) + '" ' +
+            'data-workflow="' + escapeHtml(workflow) + '">' +
+            '<img src="' + escapeHtml(url) + '" alt="' + escapeHtml(displayKind) + ' render">' +
+            '<figcaption class="caption">' +
+                '<span>' + escapeHtml(displayKind) + ' #' + String(i + 1) + '</span>' +
+                (kind === "sheet" ? '<button class="btn btn-secondary character-panel-extract-btn" type="button" ondblclick="event.stopPropagation()" onclick="event.stopPropagation(); extractCharacterSheetPanelsFromRender(\'' + escapeHtml(characterIdValue) + '\', \'' + escapeHtml(url) + '\', \'' + escapeHtml(payload?.prompt_id || "") + '\')">Extract Panels</button>' : '') +
+            '</figcaption>' +
         '</figure>'
     )).join("");
     if (gallery.querySelector(".character-manager-status")) gallery.innerHTML = "";
     gallery.insertAdjacentHTML("afterbegin", html);
+}
+
+function openCharacterRenderLightboxFromTile(tile) {
+    if (!tile?.dataset?.imageUrl) return;
+    openLightbox({
+        image_url: tile.dataset.imageUrl,
+        variant: tile.dataset.index || "-",
+        seed: tile.dataset.seed || "Random",
+        workflow: tile.dataset.workflow || "-",
+        status: "complete",
+        prompt: tile.dataset.prompt || "-",
+        prompt_id: tile.dataset.promptId || "-",
+        workflow_profile: "Character " + (tile.dataset.kind || "render"),
+        identity_type: "character",
+        identity_name: tile.dataset.characterName || characterForgeValue("char-forge-name") || "",
+    });
+}
+
+async function extractCharacterSheetPanelsFromRender(charId, imageUrl, promptId) {
+    const status = document.getElementById("character-manager-status") || document.getElementById("character-save-status");
+    if (!charId || !imageUrl) return;
+    if (status) status.textContent = "Extracting sheet panels...";
+    try {
+        const resp = await fetch("/api/characters/" + encodeURIComponent(charId) + "/sheet-panels", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                image_url: imageUrl,
+                rows: 2,
+                columns: 4,
+                source_prompt_id: promptId || "",
+                make_master: false,
+                notes: "extracted from generated character sheet",
+            }),
+        });
+        const payload = await resp.json().catch(() => ({}));
+        if (!resp.ok) throw new Error(payload.detail || payload.error || "HTTP " + resp.status);
+        if (status) status.textContent = "Extracted " + String((payload.panels || []).length) + " sheet panel reference(s).";
+        await loadCharacters();
+        await loadCharacterManager();
+        if (shellState?.view === "characters") {
+            await fetchCharacters();
+            await renderCharactersContent();
+        }
+    } catch (e) {
+        if (status) status.textContent = "Panel extraction failed: " + (e?.message || e);
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -4352,229 +4966,13 @@ async function remediateFailedSelected() {
     }
 }
 
-async function sendVideoChat() {
-    const input = document.getElementById("video-chat-input");
-    const msg = (input?.value || "").trim();
-    if (!msg) return;
-    input.value = "";
-    const $chatLog = document.getElementById("video-chat-log");
-    const $chatStatus = document.getElementById("video-chat-status");
-
-    function addEntry(agent, text) {
-        const wrapper = document.createElement("div");
-        wrapper.style.marginBottom = "10px";
-        wrapper.style.display = "flex";
-        wrapper.style.flexDirection = "column";
-        wrapper.style.alignItems = agent === "You" ? "flex-end" : "flex-start";
-
-        const label = document.createElement("div");
-        label.style.fontSize = "10px";
-        label.style.color = "#888";
-        label.style.marginBottom = "2px";
-        label.textContent = agent;
-        wrapper.appendChild(label);
-
-        const bubble = document.createElement("div");
-        bubble.style.maxWidth = "90%";
-        bubble.style.padding = "10px 14px";
-        bubble.style.borderRadius = agent === "You" ? "14px 14px 4px 14px" : "14px 14px 14px 4px";
-        bubble.style.fontSize = "12px";
-        bubble.style.lineHeight = "1.5";
-        bubble.style.wordBreak = "break-word";
-        const colors = {
-            "You": { bg: "#1e1e1e", border: "#333", text: "#ddd" },
-            "Hermes": { bg: "#1a1a2e", border: "#2a2a4e", text: "#c8c8f0" },
-            "Error": { bg: "#2b0d0d", border: "#4d1a1a", text: "#f0a8a8" },
-        };
-        const c = colors[agent] || { bg: "#151515", border: "#2a2a2a", text: "#ccc" };
-        bubble.style.background = c.bg;
-        bubble.style.border = "1px solid " + c.border;
-        bubble.style.color = c.text;
-        bubble.textContent = text;
-        wrapper.appendChild(bubble);
-        $chatLog.appendChild(wrapper);
-        $chatLog.scrollTop = $chatLog.scrollHeight;
-    }
-
-    addEntry("You", msg);
-    $chatStatus.textContent = "Hermes is thinking...";
-
-    try {
-        const resp = await fetch("/api/hermes/chat", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ message: msg, history: [], session_id: "video_tab" }),
-        });
-        if (!resp.ok) throw new Error("HTTP " + resp.status);
-
-        const reader = resp.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = "";
-        let fullResponse = "";
-
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            buffer += decoder.decode(value, { stream: true });
-            const lines = buffer.split("\n");
-            buffer = lines.pop();
-            for (const line of lines) {
-                if (!line.trim()) continue;
-                try {
-                    const data = JSON.parse(line);
-                    if (data.token) fullResponse += data.token;
-                    if (data.done) {
-                        addEntry("Hermes", fullResponse);
-                        $chatStatus.textContent = "Ready";
-                    }
-                    if (data.error) addEntry("Error", data.error);
-                } catch (e) {}
-            }
-        }
-    } catch (e) {
-        addEntry("Error", e.message);
-        $chatStatus.textContent = "Error";
-    }
-}
-
-async function generateVideoPrompts() {
-    if (!videoSelection.size) {
-        alert("Select at least one image");
-        return;
-    }
-    const duration = parseInt(document.getElementById("video-duration")?.value || "4", 10);
-    const fps = parseInt(document.getElementById("video-fps")?.value || "24", 10);
-    const workflowId = getSelectedVideoWorkflow();
-    const $chatLog = document.getElementById("video-chat-log");
-    const $chatStatus = document.getElementById("video-chat-status");
-    const $btn = document.getElementById("generate-prompts-btn");
-
-    $btn.disabled = true;
-    $btn.textContent = "Generating...";
-    $chatStatus.textContent = "Agents running...";
-    $chatLog.innerHTML = "";
-
-    function addChatBubble(agent, text, isStatus) {
-        const wrapper = document.createElement("div");
-        wrapper.style.marginBottom = "10px";
-        wrapper.style.display = "flex";
-        wrapper.style.flexDirection = "column";
-        wrapper.style.alignItems = agent === "You" ? "flex-end" : "flex-start";
-
-        const label = document.createElement("div");
-        label.style.fontSize = "10px";
-        label.style.color = "#888";
-        label.style.marginBottom = "2px";
-        label.style.paddingLeft = agent === "You" ? "0" : "6px";
-        label.style.paddingRight = agent === "You" ? "6px" : "0";
-        label.textContent = agent;
-        wrapper.appendChild(label);
-
-        const bubble = document.createElement("div");
-        bubble.style.maxWidth = "90%";
-        bubble.style.padding = isStatus ? "6px 10px" : "10px 14px";
-        bubble.style.borderRadius = agent === "You" ? "14px 14px 4px 14px" : "14px 14px 14px 4px";
-        bubble.style.fontSize = "12px";
-        bubble.style.lineHeight = "1.5";
-        bubble.style.wordBreak = "break-word";
-
-        const colors = {
-            "Vision Analyst": { bg: "#0d2b25", border: "#1a4d3e", text: "#a8f0d8" },
-            "Hermes / Duration Planner": { bg: "#2b250d", border: "#4d3e1a", text: "#f0e6a8" },
-            "Hermes / LTX Prompt Engineer": { bg: "#1a0d2b", border: "#3e1a4d", text: "#d8a8f0" },
-            "Hermes": { bg: "#1a1a2e", border: "#2a2a4e", text: "#c8c8f0" },
-            "Error": { bg: "#2b0d0d", border: "#4d1a1a", text: "#f0a8a8" },
-            "You": { bg: "#1e1e1e", border: "#333", text: "#ddd" },
-        };
-        const c = colors[agent] || { bg: "#151515", border: "#2a2a2a", text: "#ccc" };
-        bubble.style.background = c.bg;
-        bubble.style.border = "1px solid " + c.border;
-        bubble.style.color = c.text;
-
-        if (isStatus) {
-            bubble.style.fontStyle = "italic";
-            bubble.style.opacity = "0.7";
-        }
-
-        bubble.textContent = text;
-        wrapper.appendChild(bubble);
-        $chatLog.appendChild(wrapper);
-        $chatLog.scrollTop = $chatLog.scrollHeight;
-    }
-
-    try {
-        const resp = await fetch("/api/video/generate-prompts", {
-            method: "POST",
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({
-                shot_ids: Array.from(videoSelection),
-                duration,
-                fps,
-                workflow_id: workflowId,
-                platform_mode: document.getElementById("platform-mode")?.value || "auto",
-            }),
-        });
-        if (!resp.ok) throw new Error("HTTP " + resp.status);
-
-        const reader = resp.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = "";
-
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            buffer += decoder.decode(value, { stream: true });
-            const lines = buffer.split("\n");
-            buffer = lines.pop();
-            for (const line of lines) {
-                if (!line.trim()) continue;
-                try {
-                    const data = JSON.parse(line);
-                    if (data.error) {
-                        addChatBubble("Error", data.error, false);
-                    } else if (data.status === "thinking") {
-                        $chatStatus.textContent = data.agent + " is analyzing...";
-                        addChatBubble(data.agent, "💭 Thinking...", true);
-                    } else if (data.result) {
-                        addChatBubble(data.agent, data.result, false);
-                    } else if (data.done) {
-                        const saved = Number(data.saved || 0);
-                        const selected = Number(data.selected || 0);
-                        $chatStatus.textContent = "✅ Done — " + saved + " prompts saved" + (selected ? (" / " + selected + " selected") : "");
-                        if (Array.isArray(data.unmapped_prompt_keys) && data.unmapped_prompt_keys.length) {
-                            addChatBubble("Error", "Unmapped prompt keys: " + data.unmapped_prompt_keys.join(", "), false);
-                        }
-                        addChatBubble("Hermes / LTX Prompt Engineer", "All prompts generated and saved.", true);
-                        if (data.prompts) {
-                            Object.entries(data.prompts).forEach(([sid, prompt]) => {
-                                if (videoShotsById[sid]) {
-                                    videoShotsById[sid].video_prompt = prompt;
-                                    videoShotsById[sid].video_prompt_source = data.video_prompt_source || "vision_prompt_agent";
-                                }
-                            });
-                            loadVideoLibrary();
-                        }
-                    }
-                } catch (e) {
-                    // skip malformed lines
-                }
-            }
-        }
-    } catch (e) {
-        $chatStatus.textContent = "Error: " + e.message;
-        addChatEntry("Error", e.message);
-    } finally {
-        $btn.disabled = false;
-        $btn.textContent = "Generate Prompts";
-    }
-}
-
 async function processSelectedVideos() {
     if (!videoSelection.size) {
         alert("Select at least one image");
         return;
     }
-    const duration = parseInt($videoDuration?.value || "4", 10);
+    const videoOptions = syncVideoQuickOptions();
+    const duration = parseInt($videoDuration?.value || String(videoOptions.duration || 5), 10);
     const fps = parseInt($videoFps?.value || "24", 10);
     const workflowId = getSelectedVideoWorkflow();
     const videoPrompt = ($videoPrompt?.value || "").trim();
@@ -4600,6 +4998,9 @@ async function processSelectedVideos() {
                 duration,
                 fps,
                 workflow_id: workflowId,
+                mode: videoOptions.mode,
+                resolution: videoOptions.resolution,
+                aspect_ratio: videoOptions.aspectRatio,
                 prompt: videoPrompt,
                 platform_mode: document.getElementById("platform-mode")?.value || "auto",
                 min_audit_score: 0,
@@ -5589,7 +5990,7 @@ async function triggerConsolidate() {
 // Static Shell Router
 // ---------------------------------------------------------------------------
 const SHELL_VIEWS = {
-    home: { section: "Home", current: "Overview" },
+    home: { section: "Images", current: "Generation" },
     characters: { section: "Characters", current: "DNA" },
     script: { section: "Script", current: "Director" },
     products: { section: "Products", current: "Prompt Builder" },
@@ -6063,51 +6464,28 @@ function renderSettingsTab() {
                 </div>
             </section>
 
-            <div class="settings-grid settings-grid-wide">
-                <section class="panel settings-panel ai-provider-card">
-                    <div class="panel-header"><div class="title">AI Provider</div><div class="meta">OpenAI compatible</div></div>
-                    <div class="panel-body settings-subgrid-2x2">
-                        <div class="settings-subcard">
-                            <h3>Access</h3>
-                            <p class="card-desc">Nous Research, Kimi, OpenRouter, NVIDIA, or any OpenAI-compatible API.</p>
-                            <label class="form-row"><span>API Key</span><input class="input" type="password" id="cfg-kimi-api-key" placeholder="Bearer token..." onchange="markDirty('kimi.api_key')"></label>
-                            <label class="form-row"><span>Endpoint</span><input class="input" type="text" id="cfg-kimi-endpoint" placeholder="https://inference-api.nousresearch.com/v1/chat/completions" onchange="markDirty('kimi.endpoint')"></label>
-                            <div class="card-actions"><button class="btn" onclick="testProvider()">Test Connection</button></div>
-                            <div id="kimi-test-result" class="test-result"></div>
-                        </div>
-                        <div class="settings-subcard">
-                            <h3>Director</h3>
-                            <p class="card-desc">Planning model for campaign and shot generation.</p>
-                            <label class="form-row"><span>Model</span><input class="input" type="text" id="cfg-director-model" placeholder="Hermes-4-405B" onchange="markDirty('models.director_kimi.model_name')"></label>
-                            <label class="form-row"><span>Endpoint</span><input class="input" type="text" id="cfg-director-endpoint-api1" placeholder="https://integrate.api.nvidia.com/v1/chat/completions" onchange="markDirty('models.director_kimi.endpoint_api1')"></label>
-                            <div class="card-actions"><button class="btn" onclick="testDirector()">Test Director</button></div>
-                            <div id="director-test-result" class="test-result"></div>
-                        </div>
-                        <div class="settings-subcard">
-                            <h3>Vision</h3>
-                            <p class="card-desc">Visual audit and semantic critique endpoint.</p>
-                            <label class="form-row"><span>Model</span><input class="input" type="text" id="cfg-visual-model" placeholder="qwen3.6-35b-a3b" onchange="markDirty('models.kimi_vl.model_name')"></label>
-                            <label class="form-row"><span>Endpoint</span><input class="input" type="text" id="cfg-vision-endpoint-api1" placeholder="https://integrate.api.nvidia.com/v1/chat/completions" onchange="markDirty('models.kimi_vl.endpoint_api1')"></label>
-                            <div class="card-actions"><button class="btn" onclick="testVision()">Test Vision</button></div>
-                            <div id="vision-test-result" class="test-result"></div>
-                        </div>
-                    </div>
-                </section>
-
-                <section class="panel settings-panel">
-                    <div class="panel-header"><div class="title">LM Studio</div><div class="meta">Hermes local</div></div>
+            <div class="settings-grid settings-flow-grid">
+                <section class="panel settings-panel settings-card-wide lmstudio-card">
+                    <div class="panel-header"><div class="title"><span class="settings-step">1</span> Local Model Server</div><div class="meta">LM Studio</div></div>
                     <div class="panel-body">
-                        <div class="form-inline">
-                            <label class="form-row"><span>Host</span><input class="input" type="text" id="cfg-lmstudio-host" placeholder="localhost" onchange="markDirty('models.hermes_3.host')"></label>
+                        <p class="card-desc">LM Studio connection used by Hermes chat and Vision audit.</p>
+                        <div class="settings-form-grid">
+                            <label class="form-row"><span>Host</span><input class="input" type="text" id="cfg-lmstudio-host" placeholder="http://localhost" onchange="markDirty('models.hermes_3.host')"></label>
                             <label class="form-row small"><span>Port</span><input class="input" type="number" id="cfg-lmstudio-port" placeholder="1234" onchange="markDirty('models.hermes_3.port')"></label>
+                            <label class="form-row"><span>Chat Model</span><input class="input" type="text" id="cfg-lmstudio-model" placeholder="qwen3.6-35b-a3b" onchange="markDirty('models.hermes_3.model_name')"></label>
+                            <label class="form-row"><span>Vision Model</span><input class="input" type="text" id="cfg-visual-model" placeholder="qwen3.6-35b-a3b" onchange="markDirty('models.kimi_vl.model_name')"></label>
+                            <label class="form-row settings-span-2"><span>Vision Endpoint</span><input class="input" type="text" id="cfg-vision-endpoint-api1" placeholder="http://localhost:1234/v1" onchange="markDirty('models.kimi_vl.endpoint_api1')"></label>
                         </div>
-                        <label class="form-row"><span>Chat Model</span><input class="input" type="text" id="cfg-lmstudio-model" placeholder="qwen3.6-35b-a3b" onchange="markDirty('models.hermes_3.model_name')"></label>
                         <div class="card-actions">
                             <button class="btn" onclick="testLMStudio()">Test & Detect</button>
                             <button class="btn" onclick="loadLMStudioModel()">Load Model</button>
+                            <button class="btn" onclick="testVision()">Test Vision</button>
                             <button class="btn btn-primary" onclick="reloadHermesVision()">Reload Hermes/Vision</button>
                         </div>
-                        <div id="lmstudio-test-result" class="test-result"></div>
+                        <div class="settings-result-grid">
+                            <div id="lmstudio-test-result" class="test-result"></div>
+                            <div id="vision-test-result" class="test-result"></div>
+                        </div>
                         <div id="lmstudio-models-list" class="settings-model-select" style="display:none;">
                             <label class="t-label">Available Models</label>
                             <select id="lmstudio-models-select" class="select" onchange="document.getElementById('cfg-lmstudio-model').value=this.value;markDirty('models.hermes_3.model_name');"></select>
@@ -6115,13 +6493,37 @@ function renderSettingsTab() {
                     </div>
                 </section>
 
-                <section class="panel settings-panel">
-                    <div class="panel-header"><div class="title">ComfyUI + Spark</div><div class="meta">render transport</div></div>
-                        <div class="panel-body">
-                            <label class="form-row"><span>Spark Primary</span><input class="input" type="text" id="cfg-spark-primary" placeholder="ws://localhost:8000" onchange="markDirty('spark.primary')"></label>
-                            <label class="form-row"><span>Comfy Primary</span><input class="input" type="text" id="cfg-comfyui-primary" placeholder="http://localhost:8188" onchange="markDirty('comfyui.primary')"></label>
-                            <label class="form-row"><span>Comfy Secondary</span><input class="input" type="text" id="cfg-comfyui-secondary" placeholder="http://localhost:8189" onchange="markDirty('comfyui.secondary')"></label>
-                        <div class="card-actions"><button class="btn" onclick="testComfyUIAll()">Test ComfyUI + Spark</button></div>
+                <section class="panel settings-panel ai-provider-card">
+                    <div class="panel-header"><div class="title"><span class="settings-step">2</span> Cloud Director API</div><div class="meta">optional</div></div>
+                    <div class="panel-body">
+                        <p class="card-desc">Remote API used for director planning when API mode is active.</p>
+                        <div class="settings-form-grid settings-form-grid-single">
+                            <label class="form-row"><span>API Key</span><input class="input" type="password" id="cfg-kimi-api-key" placeholder="Bearer token..." onchange="markDirty('kimi.api_key')"></label>
+                            <label class="form-row"><span>Provider Endpoint</span><input class="input" type="text" id="cfg-kimi-endpoint" placeholder="https://integrate.api.nvidia.com/v1/chat/completions" onchange="markDirty('kimi.endpoint')"></label>
+                            <label class="form-row"><span>Director Model</span><input class="input" type="text" id="cfg-director-model" placeholder="moonshotai/kimi-k2-instruct" onchange="markDirty('models.director_kimi.model_name')"></label>
+                            <label class="form-row"><span>Director Endpoint</span><input class="input" type="text" id="cfg-director-endpoint-api1" placeholder="https://integrate.api.nvidia.com/v1/chat/completions" onchange="markDirty('models.director_kimi.endpoint_api1')"></label>
+                        </div>
+                        <div class="card-actions">
+                            <button class="btn" onclick="testProvider()">Test Provider</button>
+                            <button class="btn" onclick="testDirector()">Test Director</button>
+                        </div>
+                        <div class="settings-result-grid">
+                            <div id="kimi-test-result" class="test-result"></div>
+                            <div id="director-test-result" class="test-result"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="panel settings-panel comfy-card">
+                    <div class="panel-header"><div class="title"><span class="settings-step">3</span> Render Workers</div><div class="meta">Spark / ComfyUI</div></div>
+                    <div class="panel-body">
+                        <p class="card-desc">Spark and ComfyUI endpoints used by image and video generation.</p>
+                        <div class="settings-form-grid settings-form-grid-single">
+                            <label class="form-row"><span>Spark WebSocket</span><input class="input" type="text" id="cfg-spark-primary" placeholder="ws://localhost:8000" onchange="markDirty('spark.primary')"></label>
+                            <label class="form-row"><span>ComfyUI Primary</span><input class="input" type="text" id="cfg-comfyui-primary" placeholder="http://localhost:8188" onchange="markDirty('comfyui.primary')"></label>
+                            <label class="form-row"><span>ComfyUI Secondary</span><input class="input" type="text" id="cfg-comfyui-secondary" placeholder="http://localhost:8189" onchange="markDirty('comfyui.secondary')"></label>
+                        </div>
+                        <div class="card-actions"><button class="btn" onclick="testComfyUIAll()">Test Render Workers</button></div>
                         <div class="server-status-row" id="comfyui-server-status">
                             <span class="server-status-item"><span class="server-dot" id="server-dot-primary"></span>Primary</span>
                             <span class="server-status-item"><span class="server-dot" id="server-dot-secondary"></span>Secondary</span>
@@ -6307,6 +6709,7 @@ function renderCharacterDetail(char) {
                     '<div class="dna-pane dna-preview">' +
                         '<h4>Character Prompt</h4><p id="character-anchor-prompt">' + escapeHtml(prompt) + '</p>' +
                         '<h4>Master References</h4>' + renderCharacterReferenceStrip(refs) +
+                        '<h4>Extracted Sheet Panels</h4>' + renderCharacterSheetPanels(char) +
                         '<form class="character-reference-upload" onsubmit="uploadSelectedCharacterReference(event)">' +
                             '<input class="input" name="reference_image" type="file" accept="image/png,image/jpeg,image/webp,video/mp4,video/quicktime,video/webm" required>' +
                             '<select class="input" name="reference_type"><option value="auto">Auto Type</option><option value="face_closeup">Face</option><option value="full_body">Full Body</option><option value="outfit">Outfit</option><option value="expression_sheet">Expression Sheet</option><option value="pose">Pose</option><option value="motion_clip">Motion Clip</option></select>' +
@@ -6345,7 +6748,23 @@ function renderCharacterReferenceStrip(refs) {
         return (
             '<figure class="character-reference-thumb">' +
                 (isVideo ? '<div class="character-video-ref">VIDEO</div>' : '<img class="character-zoomable" src="' + escapeHtml(ref.url || "") + '" alt="' + escapeHtml(type) + '" loading="lazy" data-zoom-src="' + escapeHtml(ref.url || "") + '" data-zoom-title="' + escapeHtml(type) + '" data-zoom-prompt="' + escapeHtml(ref.notes || ref.source || "") + '">') +
-                '<figcaption><span>' + escapeHtml(badge) + '</span>' + escapeHtml(type) + '</figcaption>' +
+                '<figcaption><span>' + escapeHtml(badge) + '</span>' + escapeHtml(type) + (!ref.master && !isVideo ? '<button type="button" onclick="lockCharacterReferenceAsMaster(\'' + escapeHtml(ref.url || "") + '\', \'' + escapeHtml(type) + '\')">Lock</button>' : '') + '</figcaption>' +
+            '</figure>'
+        );
+    }).join("") + '</div>';
+}
+
+function renderCharacterSheetPanels(char) {
+    const panels = Array.isArray(char?.sheet_panels) ? char.sheet_panels : [];
+    if (!panels.length) {
+        return '<p class="t-meta">No sheet panels extracted yet. Generate a character sheet, then click Extract Panels on the sheet result.</p>';
+    }
+    return '<div class="character-reference-strip character-panel-strip">' + panels.slice(-16).reverse().map((panel) => {
+        const type = panel.type || "sheet_panel";
+        return (
+            '<figure class="character-reference-thumb character-panel-thumb">' +
+                '<img class="character-zoomable" src="' + escapeHtml(panel.url || "") + '" alt="' + escapeHtml(type) + '" loading="lazy" data-zoom-src="' + escapeHtml(panel.url || "") + '" data-zoom-title="' + escapeHtml(type) + '" data-zoom-prompt="' + escapeHtml(panel.notes || "sheet panel") + '">' +
+                '<figcaption><span>' + escapeHtml(String((panel.panel_index ?? 0) + 1)) + '</span>' + escapeHtml(type) + '<button type="button" onclick="lockCharacterReferenceAsMaster(\'' + escapeHtml(panel.url || "") + '\', \'' + escapeHtml(type) + '\')">Lock</button></figcaption>' +
             '</figure>'
         );
     }).join("") + '</div>';
@@ -6353,20 +6772,26 @@ function renderCharacterReferenceStrip(refs) {
 
 function renderCharacterProductionActions(char) {
     const anchor = characterImage(char);
+    const latestSheet = Array.isArray(char?.candidate_assets)
+        ? [...char.candidate_assets].reverse().find((asset) => asset?.type === "sheet" && asset?.url)
+        : null;
     return (
         '<div class="character-op-grid">' +
             '<button class="btn" type="button" onclick="loadSelectedCharacterBenchmarks()">Load Benchmarks</button>' +
             '<button class="btn" type="button" onclick="auditSelectedCharacterPrompt()">Audit Current Prompt</button>' +
             '<button class="btn" type="button" onclick="lockSelectedCharacterAnchor()" ' + (anchor ? "" : "disabled") + '>Lock Anchor as Master</button>' +
+            '<button class="btn" type="button" onclick="extractLatestCharacterSheetPanels()" ' + (latestSheet ? "" : "disabled") + '>Extract Latest Sheet</button>' +
             '<button class="btn" type="button" onclick="selectCharacterForForge(\'' + escapeHtml(char.id) + '\')">Send to Forge</button>' +
         '</div>' +
-        '<p class="t-meta">Training, video continuity, and collaboration are tracked in the profile schema; buttons should stay disabled until the backing services exist.</p>'
+        '<p class="t-meta">Character sheets can be split into reusable typed references. Training, video continuity, and collaboration are tracked in the profile schema until backing services exist.</p>'
     );
 }
 
 async function selectCharacter(charId) {
     shellState.selectedCharacterId = charId;
+    characterForgeSelectedId = charId;
     await renderCharactersContent();
+    syncCharacterForgeSelectionUi();
 }
 
 async function saveSelectedCharacterDna() {
@@ -6468,6 +6893,36 @@ async function lockSelectedCharacterAnchor() {
     } catch (e) {
         if (status) status.textContent = "Lock failed: " + (e?.message || e);
     }
+}
+
+async function lockCharacterReferenceAsMaster(url, type) {
+    const selected = shellState.characters.find((c) => c.id === shellState.selectedCharacterId);
+    const status = document.getElementById("character-save-status");
+    if (!selected || !url) return;
+    try {
+        const resp = await fetch("/api/characters/" + encodeURIComponent(selected.id) + "/master-reference", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url, type: type || "reference", source: "manual_reference_lock", score: selected.score || 0 }),
+        });
+        const payload = await resp.json().catch(() => ({}));
+        if (!resp.ok) throw new Error(payload.detail || payload.error || "HTTP " + resp.status);
+        const idx = shellState.characters.findIndex((c) => c.id === selected.id);
+        if (idx >= 0) shellState.characters[idx] = { ...payload, id: characterId(payload) };
+        if (status) status.textContent = "reference locked as master";
+        await renderCharactersContent();
+    } catch (e) {
+        if (status) status.textContent = "Lock failed: " + (e?.message || e);
+    }
+}
+
+async function extractLatestCharacterSheetPanels() {
+    const selected = shellState.characters.find((c) => c.id === shellState.selectedCharacterId);
+    const latestSheet = Array.isArray(selected?.candidate_assets)
+        ? [...selected.candidate_assets].reverse().find((asset) => asset?.type === "sheet" && asset?.url)
+        : null;
+    if (!selected || !latestSheet) return;
+    await extractCharacterSheetPanelsFromRender(selected.id, latestSheet.url, latestSheet.prompt_id || "");
 }
 
 async function auditSelectedCharacterPrompt() {
