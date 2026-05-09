@@ -3,7 +3,7 @@ import uuid
 import time
 from datetime import datetime
 from typing import AsyncGenerator, List, Dict, Any, Optional
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query, HTTPException, UploadFile, Form, Request
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query, HTTPException, UploadFile, Form, File, Request
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 
 from fastapi.staticfiles import StaticFiles
@@ -15,7 +15,7 @@ import shutil
 import zipfile
 from pathlib import Path
 import httpx
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont, ImageOps
 import io
 from urllib.parse import urlsplit, urlunsplit
 
@@ -800,6 +800,28 @@ class ScriptDevelopRequest(BaseModel):
     runtime_seconds: int = 60
     target_scenes: int = 4
     tone: str = ""
+
+class ScriptStoryboardRequest(BaseModel):
+    script: str = ""
+    package: Optional[Dict[str, Any]] = None
+    panels_per_board: int = 9
+    target_panels: Optional[int] = None
+    resolution: str = "3840x2160"
+    title: str = ""
+    style: str = "cinematic"
+    character_consistency: str = ""
+    negative_prompt: str = "blurry, deformed, extra limbs, text errors, inconsistent characters, merged panels"
+    reference_image_url: str = ""
+    include_captions: bool = False
+
+class ScriptStoryboardAssembleRequest(BaseModel):
+    panel_image_urls: List[str]
+    title: str = "Storyboard"
+    resolution: str = "3840x2160"
+    columns: int = 3
+    rows: int = 3
+    include_panel_numbers: bool = True
+    captions: List[str] = []
 
 class RenameCampaignRequest(BaseModel):
     old_campaign_id: str
@@ -1916,7 +1938,7 @@ async def api_list_scripts():
             if bible.exists():
                 scripts.append({
                     "name": bible.name,
-                    "label": project_dir.name.replace("_", " ").title() + " — Brand Bible",
+                    "label": project_dir.name.replace("_", " ").title() + " — Brand Guide",
                     "path": str(bible.relative_to(repo_root)),
                     "type": "brand_bible",
                 })
@@ -1927,7 +1949,7 @@ async def api_list_scripts():
 @app.post("/api/script/reparse")
 async def api_script_reparse(req: ReparseRequest = None):
     """Re-read shot list from a script file. Accepts optional path relative to repo root.
-    Uses Kimi to extract shots from brand bibles when available, falls back to regex."""
+    Uses Kimi to extract shots from brand guides when available, falls back to regex."""
     repo_root = Path(__file__).parent.parent
 
     if req and req.path:
@@ -1972,7 +1994,7 @@ async def api_script_reparse(req: ReparseRequest = None):
 
 
 KIMI_SHOT_PARSER_SYSTEM = """You are a cinematic shot list extractor for an AI filmmaking pipeline.
-Given a brand bible or creative brief, extract individual shots as a JSON array.
+Given a brand guide or creative brief, extract individual shots as a JSON array.
 
 Rules:
 - Extract every visual scene, character moment, or product shot implied by the text
@@ -1989,7 +2011,7 @@ Return ONLY a JSON array. No markdown, no explanation."""
 
 
 async def _parse_shots_with_kimi(bible_text: str, source_path: str) -> Optional[List[Dict[str, Any]]]:
-    """Send brand bible to Kimi for shot extraction."""
+    """Send brand guide to Kimi for shot extraction."""
     cm = ConfigManager()
     api_key = cm.get_kimi_api_key()
     if not api_key or api_key == "dummy_key":
@@ -2002,7 +2024,7 @@ async def _parse_shots_with_kimi(bible_text: str, source_path: str) -> Optional[
     if not endpoint.endswith("/chat/completions"):
         endpoint = endpoint.rstrip("/") + "/chat/completions"
 
-    user_prompt = f"""Extract a complete shot list from the following creative brief/brand bible.
+    user_prompt = f"""Extract a complete shot list from the following creative brief/brand guide.
 
 --- SOURCE DOCUMENT ---
 {bible_text}
@@ -2288,6 +2310,420 @@ def _fallback_director_shots_from_brief(brief: str, campaign_id: str, target_sho
     return planned[:target_shots]
 
 
+def _storyboard_source_package(req: ScriptStoryboardRequest) -> Optional[Dict[str, Any]]:
+    if isinstance(req.package, dict) and req.package:
+        return req.package
+    return _package_from_shotlist_brief(req.script or "")
+
+
+def _storyboard_panels_from_package(package: Dict[str, Any], target_panels: Optional[int]) -> List[Dict[str, Any]]:
+    panels: List[Dict[str, Any]] = []
+    acts = package.get("script", {}).get("acts", [])
+    scenes: List[Dict[str, Any]] = []
+    if isinstance(acts, list):
+        for act in acts:
+            if isinstance(act, dict) and isinstance(act.get("scenes"), list):
+                scenes.extend([s for s in act["scenes"] if isinstance(s, dict)])
+    continuity = package.get("continuity", {}) if isinstance(package.get("continuity"), dict) else {}
+    continuity_text = _short_text(json.dumps(continuity, ensure_ascii=True), 520)
+    for scene in scenes:
+        beats = scene.get("beats", [])
+        if not isinstance(beats, list) or not beats:
+            beats = [{"beat_id": f"{scene.get('scene_id', 'SC')}_B01", "action": scene.get("emotional_turn", ""), "characters": [], "continuity": {}}]
+        for beat in beats:
+            if not isinstance(beat, dict):
+                continue
+            panel_num = len(panels) + 1
+            continuity_lock = beat.get("continuity", {}) if isinstance(beat.get("continuity"), dict) else {}
+            panels.append({
+                "panel_id": f"PANEL_{panel_num:03d}",
+                "scene_id": str(scene.get("scene_id") or ""),
+                "beat_id": str(beat.get("beat_id") or ""),
+                "caption": _short_text(beat.get("action") or scene.get("emotional_turn") or "Story beat", 180),
+                "characters": beat.get("characters", []) if isinstance(beat.get("characters"), list) else [],
+                "location": str(scene.get("location") or ""),
+                "camera": "filmic storyboard composition, clear subject silhouette, readable blocking, cinematic camera angle",
+                "lighting": str(scene.get("time_of_day") or "consistent cinematic lighting"),
+                "mood": str(scene.get("emotional_turn") or "narrative tension"),
+                "text": _short_text(beat.get("dialogue") or beat.get("action") or scene.get("emotional_turn") or "", 120),
+                "continuity": _short_text(json.dumps(continuity_lock, ensure_ascii=True), 260),
+                "visual_prompt": (
+                    f"{beat.get('action') or scene.get('emotional_turn') or 'story beat'}. "
+                    f"Scene {scene.get('scene_id', '')}: {scene.get('title', '')}. "
+                    f"Location: {scene.get('location', '')}; time/light: {scene.get('time_of_day', '')}. "
+                    f"Characters: {', '.join(beat.get('characters', [])) if isinstance(beat.get('characters'), list) else 'none specified'}. "
+                    f"Continuity: {json.dumps(continuity_lock, ensure_ascii=True)}."
+                ),
+            })
+            if target_panels and len(panels) >= target_panels:
+                return panels
+    if not panels:
+        panels.append({
+            "panel_id": "PANEL_001",
+            "scene_id": "SC_001",
+            "beat_id": "SC_001_B01",
+            "caption": _short_text(package.get("brief") or package.get("title") or "Opening storyboard panel", 180),
+            "characters": [],
+            "location": "script environment",
+            "camera": "wide establishing frame",
+            "lighting": "consistent cinematic lighting",
+            "mood": "opening image",
+            "text": _short_text(package.get("brief") or package.get("title") or "", 120),
+            "continuity": continuity_text,
+            "visual_prompt": _short_text(package.get("brief") or json.dumps(package, ensure_ascii=True), 700),
+        })
+    return panels
+
+
+def _storyboard_panels_from_text(script: str, target_panels: Optional[int]) -> List[Dict[str, Any]]:
+    raw = re.sub(r"\s+", " ", script or "").strip()
+    if not raw:
+        return []
+    parts = [p.strip() for p in re.split(r"(?<=[.!?])\s+", raw) if p.strip()]
+    if not parts:
+        parts = [raw]
+    desired = target_panels or min(9, max(3, len(parts)))
+    desired = max(1, min(int(desired), 60))
+    chunks: List[str] = []
+    if len(parts) >= desired:
+        step = max(1, round(len(parts) / desired))
+        for i in range(0, len(parts), step):
+            chunks.append(" ".join(parts[i:i + step]))
+            if len(chunks) >= desired:
+                break
+    else:
+        chunks = parts[:]
+    coverage_expansion = [
+        ("Opening wide shot", "wide establishing shot", "establish geography, weather, and screen direction"),
+        ("Character approach", "medium tracking shot", "show the protagonist moving through the space"),
+        ("Important object insert", "close-up insert", "isolate the clue, prop, signal, or hand action"),
+        ("Reaction beat", "close-up reaction shot", "show the character processing new information"),
+        ("Threshold reveal", "low angle reveal", "show the doorway, portal, enemy, or changed environment"),
+        ("Environmental scale", "high wide shot", "show the larger space and relationship between character and threat"),
+        ("Tension detail", "Dutch tilt detail shot", "increase unease through a visual fragment"),
+        ("Confrontation", "over-the-shoulder shot", "stage the opposing force or discovery"),
+        ("Closing image", "locked final frame", "resolve the page with a readable final image"),
+    ]
+    panels = []
+    for idx in range(1, desired + 1):
+        chunk = chunks[idx - 1] if idx - 1 < len(chunks) else parts[min(len(parts) - 1, round((idx - 1) * (len(parts) - 1) / max(1, desired - 1)))]
+        stage, camera, purpose = coverage_expansion[(idx - 1) % len(coverage_expansion)]
+        caption = _short_text(chunk, 130)
+        action = f"{stage}: {caption}. Visual purpose: {purpose}."
+        panels.append({
+            "panel_id": f"PANEL_{idx:03d}",
+            "scene_id": "",
+            "beat_id": "",
+            "caption": _short_text(action, 180),
+            "characters": [],
+            "location": "script environment",
+            "camera": f"{camera}, clear subject silhouette, readable blocking, filmic 16:9 frame",
+            "lighting": "consistent cinematic lighting",
+            "mood": "narrative progression",
+            "text": _short_text(chunk, 120),
+            "continuity": "derive wardrobe, props, geography, and screen direction from adjacent panels",
+            "visual_prompt": action,
+        })
+    return panels
+
+
+def _parse_storyboard_resolution(value: str) -> tuple[int, int]:
+    match = re.match(r"^\s*(\d{3,5})\s*x\s*(\d{3,5})\s*$", value or "", re.I)
+    if not match:
+        return 3840, 2160
+    width = max(512, min(int(match.group(1)), 8192))
+    height = max(512, min(int(match.group(2)), 8192))
+    return width, height
+
+
+def _storyboard_layout_dimensions(panel_count: int) -> tuple[int, int, str]:
+    count = max(1, min(int(panel_count or 1), 9))
+    if count >= 9:
+        return 3, 3, "3x3"
+    if count >= 7:
+        return 4, 2, "4x2"
+    if count >= 5:
+        return 3, 2, "3x2"
+    if count >= 3:
+        return 2, 2, "2x2"
+    if count == 2:
+        return 2, 1, "2x1"
+    return 1, 1, "1x1"
+
+
+def _storyboard_panel_render_size(resolution: str, columns: int, rows: int) -> str:
+    width, height = _parse_storyboard_resolution(resolution)
+    panel_w = max(512, int(round(width / max(1, columns))))
+    panel_h = max(512, int(round(height / max(1, rows))))
+    return f"{panel_w}x{panel_h}"
+
+
+def _single_storyboard_panel_prompt(
+    *,
+    panel: Dict[str, Any],
+    local_idx: int,
+    board_idx: int,
+    title: str,
+    style: str,
+    character_consistency: str,
+    include_captions: bool,
+    reference_note: str,
+    negative_prompt: str,
+) -> str:
+    character_text = ", ".join(panel.get("characters") or []) or "same character design as established in the script"
+    text_clause = (
+        f"Optional small production note below frame: \"{panel.get('text') or panel.get('caption') or ''}\"."
+        if include_captions
+        else "No text, no captions, no dialogue, no titles, no panel number."
+    )
+    prompt = (
+        f"Single storyboard panel only, not a grid, for board {board_idx} panel {local_idx} of '{title}'. "
+        f"Style: {style}. "
+        f"Scene action: {panel.get('visual_prompt', '')} "
+        f"Setting: {panel.get('location', '')}. Camera: {panel.get('camera', '')}. "
+        f"Lighting: {panel.get('lighting', 'consistent cinematic lighting')}. "
+        f"Mood: {panel.get('mood', 'narrative progression')}. "
+        f"Characters: {character_text}. Character consistency: {character_consistency}. "
+        f"Continuity: {panel.get('continuity', '')}. {text_clause} "
+        "Make one clean cinematic frame with readable blocking, sharp focus, consistent wardrobe, consistent face, "
+        "film storyboard composition, high detail, no border, no page layout, no watermark, best quality."
+        + reference_note
+    )
+    if negative_prompt:
+        prompt += f" Negative prompt: {negative_prompt}."
+    return prompt
+
+
+def _storyboard_font(size: int) -> ImageFont.ImageFont:
+    for font_path in [
+        "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
+        "/System/Library/Fonts/Supplemental/Arial.ttf",
+        "/Library/Fonts/Arial.ttf",
+    ]:
+        try:
+            return ImageFont.truetype(font_path, size=size)
+        except Exception:
+            continue
+    return ImageFont.load_default()
+
+
+def _draw_text_fit(
+    draw: ImageDraw.ImageDraw,
+    text: str,
+    box: tuple[int, int, int, int],
+    *,
+    fill: tuple[int, int, int],
+    max_size: int,
+    min_size: int = 18,
+) -> None:
+    clean = _short_text(re.sub(r"\s+", " ", text or "").strip(), 160)
+    if not clean:
+        return
+    x1, y1, x2, y2 = box
+    size = max_size
+    while size >= min_size:
+        font = _storyboard_font(size)
+        bbox = draw.textbbox((0, 0), clean, font=font)
+        if bbox[2] - bbox[0] <= x2 - x1 and bbox[3] - bbox[1] <= y2 - y1:
+            draw.text((x1, y1), clean, fill=fill, font=font)
+            return
+        size -= 2
+    draw.text((x1, y1), clean, fill=fill, font=_storyboard_font(min_size))
+
+
+def _assemble_storyboard_page(req: ScriptStoryboardAssembleRequest) -> Dict[str, Any]:
+    panel_urls = [u for u in req.panel_image_urls if (u or "").strip()]
+    if not panel_urls:
+        raise HTTPException(status_code=400, detail="panel_image_urls required")
+    panel_paths: List[Path] = []
+    for url in panel_urls:
+        path = _resolve_image_path(url.strip())
+        if not path:
+            raise HTTPException(status_code=400, detail=f"panel image not found: {url}")
+        panel_paths.append(path)
+
+    width, height = _parse_storyboard_resolution(req.resolution or "3840x2160")
+    columns = max(1, min(int(req.columns or 3), 9))
+    rows = max(1, min(int(req.rows or 3), 9))
+    if columns * rows < len(panel_paths):
+        rows = max(rows, (len(panel_paths) + columns - 1) // columns)
+
+    canvas = Image.new("RGB", (width, height), (248, 248, 246))
+    draw = ImageDraw.Draw(canvas)
+    margin = max(32, width // 80)
+    gutter = max(16, width // 240)
+    title = _short_text(req.title or "", 96)
+    title_h = max(0, height // 24) if title else 0
+    if title:
+        _draw_text_fit(
+            draw,
+            title,
+            (margin, max(12, margin // 2), width - margin, margin // 2 + title_h),
+            fill=(22, 22, 22),
+            max_size=max(32, height // 42),
+            min_size=20,
+        )
+
+    grid_top = margin + title_h
+    grid_h = height - grid_top - margin
+    cell_w = max(64, (width - (margin * 2) - gutter * (columns - 1)) // columns)
+    cell_h = max(64, (grid_h - gutter * (rows - 1)) // rows)
+    captions = req.captions if isinstance(req.captions, list) else []
+    caption_h = max(0, min(cell_h // 5, height // 18)) if captions else 0
+    image_h = max(64, cell_h - caption_h)
+    number_font = _storyboard_font(max(24, min(width, height) // 70))
+    caption_font = _storyboard_font(max(16, min(width, height) // 110))
+
+    for idx, path in enumerate(panel_paths):
+        col = idx % columns
+        row = idx // columns
+        if row >= rows:
+            break
+        x = margin + col * (cell_w + gutter)
+        y = grid_top + row * (cell_h + gutter)
+        shadow = max(6, width // 500)
+        draw.rectangle((x + shadow, y + shadow, x + cell_w + shadow, y + image_h + shadow), fill=(210, 210, 210))
+        with Image.open(path) as source:
+            frame = ImageOps.fit(source.convert("RGB"), (cell_w, image_h), method=Image.Resampling.LANCZOS)
+        canvas.paste(frame, (x, y))
+        draw.rectangle((x, y, x + cell_w, y + image_h), outline=(255, 255, 255), width=max(4, width // 700))
+        draw.rectangle((x, y, x + cell_w, y + image_h), outline=(18, 18, 18), width=max(1, width // 1800))
+        if req.include_panel_numbers:
+            label = str(idx + 1)
+            bbox = draw.textbbox((0, 0), label, font=number_font)
+            pad = max(8, width // 420)
+            label_w = bbox[2] - bbox[0] + pad * 2
+            label_h = bbox[3] - bbox[1] + pad * 2
+            draw.rectangle((x + pad, y + pad, x + pad + label_w, y + pad + label_h), fill=(255, 255, 255))
+            draw.rectangle((x + pad, y + pad, x + pad + label_w, y + pad + label_h), outline=(20, 20, 20), width=2)
+            draw.text((x + pad * 2, y + pad * 2), label, fill=(18, 18, 18), font=number_font)
+        if caption_h and idx < len(captions):
+            cap_y = y + image_h + max(8, gutter // 2)
+            draw.text((x, cap_y), _short_text(str(captions[idx] or ""), 120), fill=(24, 24, 24), font=caption_font)
+
+    out_dir = MEDIA_ROOT / "storyboards"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out_path = out_dir / f"storyboard_{uuid.uuid4().hex[:12]}.png"
+    canvas.save(out_path, format="PNG", optimize=True)
+    return {
+        "status": "ok",
+        "url": _media_url_for_path(out_path),
+        "path": str(out_path),
+        "resolution": f"{width}x{height}",
+        "columns": columns,
+        "rows": rows,
+        "panel_count": len(panel_paths),
+    }
+
+
+def _build_storyboard_boards(req: ScriptStoryboardRequest) -> Dict[str, Any]:
+    panels_per_board = max(1, min(int(req.panels_per_board or 9), 9))
+    target_panels = req.target_panels
+    if target_panels is not None:
+        target_panels = max(1, min(int(target_panels), 60))
+    package = _storyboard_source_package(req)
+    if package:
+        panels = _storyboard_panels_from_package(package, target_panels)
+        title = req.title or str(package.get("title") or "Storyboard")
+    else:
+        panels = _storyboard_panels_from_text(req.script or "", target_panels)
+        title = req.title or "Storyboard"
+    if not panels:
+        raise HTTPException(status_code=400, detail="script or package required")
+
+    boards = []
+    total_boards = (len(panels) + panels_per_board - 1) // panels_per_board
+    style = (req.style or "").strip()
+    resolution = (req.resolution or "3840x2160").strip() or "3840x2160"
+    character_consistency = (req.character_consistency or "").strip()
+    if not character_consistency and package:
+        chars = package.get("continuity", {}).get("characters", []) if isinstance(package.get("continuity"), dict) else []
+        if isinstance(chars, list) and chars:
+            character_consistency = "; ".join(
+                _short_text(
+                    f"{c.get('name', 'Character')}: {c.get('visual_lock') or c.get('wardrobe') or c.get('performance') or ''}",
+                    220,
+                )
+                for c in chars[:6]
+                if isinstance(c, dict)
+            )
+    if not character_consistency:
+        character_consistency = "highly consistent character design, same face and clothing across all panels"
+    negative_prompt = (req.negative_prompt or "").strip()
+    include_captions = bool(req.include_captions)
+    reference_note = ""
+    if (req.reference_image_url or "").strip():
+        reference_note = f" Use the supplied character sheet/reference image for identity consistency: {req.reference_image_url.strip()}."
+    for index in range(total_boards):
+        board_panels = [dict(panel) for panel in panels[index * panels_per_board:(index + 1) * panels_per_board]]
+        layout_columns, layout_rows, layout = _storyboard_layout_dimensions(len(board_panels) or panels_per_board)
+        panel_width_and_height = _storyboard_panel_render_size(resolution, layout_columns, layout_rows)
+        panel_lines = []
+        for local_idx, panel in enumerate(board_panels, start=1):
+            character_text = ", ".join(panel.get("characters") or []) or "same character design as established in adjacent panels"
+            text_clause = f" Caption text: \"{panel.get('text') or panel.get('caption') or ''}\"" if include_captions else " No caption text inside this panel."
+            panel["single_panel_prompt"] = _single_storyboard_panel_prompt(
+                panel=panel,
+                local_idx=local_idx,
+                board_idx=index + 1,
+                title=title,
+                style=style,
+                character_consistency=character_consistency,
+                include_captions=include_captions,
+                reference_note=reference_note,
+                negative_prompt=negative_prompt,
+            )
+            panel["width_and_height"] = panel_width_and_height
+            panel_lines.append(
+                f"Panel {local_idx}: {panel.get('visual_prompt', '')} "
+                f"Setting: {panel.get('location', '')}. Camera: {panel.get('camera', '')}. "
+                f"Lighting: {panel.get('lighting', 'consistent cinematic lighting')}. Mood: {panel.get('mood', 'narrative progression')}. "
+                f"Character consistency: {character_text}; {character_consistency}. Continuity: {panel.get('continuity', '')}.{text_clause}"
+            )
+        empty_slots = panels_per_board - len(board_panels)
+        empty_note = f"\nLeave {empty_slots} unused panel slot(s) as clean black empty frames with white borders." if empty_slots else ""
+        image_prompt = (
+            f"A professional {len(board_panels)}-panel storyboard page in {style} style, "
+            f"arranged in a clean {layout} grid layout at {resolution} with white borders and subtle drop shadows between panels. "
+            f"Each panel is numbered only with a small plain numeral in the top-left corner. "
+            f"{'Include only the requested short caption text under each panel.' if include_captions else 'Do not render captions, dialogue, titles, paragraphs, or any text except the panel numbers.'} "
+            f"This is board {index + 1} of {total_boards} for '{title}'.\n\n"
+            + "\n\n".join(panel_lines)
+            + empty_note
+            + "\n\nOverall style: highly detailed, consistent character design across all panels, repeated wardrobe and facial details, "
+            "consistent age, skin tone, hair, clothing, and build, cinematic lighting, sharp focus, clean readable compositions, "
+            "film grain, no watermark, no malformed text, no fake captions, masterpiece, best quality."
+            + reference_note
+            + (f"\n\nNegative prompt: {negative_prompt}." if negative_prompt else "")
+        )
+        boards.append({
+            "board_id": f"STORYBOARD_{index + 1:02d}",
+            "index": index + 1,
+            "total_boards": total_boards,
+            "resolution": resolution,
+            "panels_per_board": panels_per_board,
+            "panel_count": len(board_panels),
+            "layout": layout,
+            "layout_columns": layout_columns,
+            "layout_rows": layout_rows,
+            "panels": board_panels,
+            "image_prompt": image_prompt,
+            "negative_prompt": negative_prompt,
+            "reference_image_url": (req.reference_image_url or "").strip(),
+            "width_and_height": resolution,
+            "panel_width_and_height": panel_width_and_height,
+        })
+    return {
+        "status": "ok",
+        "title": title,
+        "resolution": resolution,
+        "panels_per_board": panels_per_board,
+        "panel_count": len(panels),
+        "board_count": len(boards),
+        "boards": boards,
+    }
+
+
 async def _request_script_package(req: ScriptDevelopRequest) -> Dict[str, Any]:
     director = KimiDirectorService()
     if not director.api_key:
@@ -2507,6 +2943,16 @@ async def api_script_develop(req: ScriptDevelopRequest):
         return {"status": "fallback", "package": fallback, "source": "fallback", "error": str(e)[:500]}
 
 
+@app.post("/api/script/storyboard")
+async def api_script_storyboard(req: ScriptStoryboardRequest):
+    return _build_storyboard_boards(req)
+
+
+@app.post("/api/script/storyboard/assemble")
+async def api_script_storyboard_assemble(req: ScriptStoryboardAssembleRequest):
+    return _assemble_storyboard_page(req)
+
+
 @app.patch("/api/shots/{shot_id}")
 async def api_update_script_shot_description(shot_id: str, req: ShotDescriptionUpdateRequest):
     desc = (req.description or "").strip()
@@ -2537,7 +2983,7 @@ class ParseScriptRequest(BaseModel):
 
 @app.post("/api/script/parse-with-kimi")
 async def api_parse_with_kimi(req: ParseScriptRequest = None):
-    """Explicitly parse a brand bible with Kimi to extract shots.
+    """Explicitly parse a brand guide with Kimi to extract shots.
     Returns detailed status including whether Kimi was used."""
     repo_root = Path(__file__).parent.parent
     use_kimi = (req and req.use_kimi) if req else True
@@ -4886,6 +5332,169 @@ CHARACTERS_ANCHORS_DIR.mkdir(parents=True, exist_ok=True)
 # Keyed by character id (lowercase slug)
 _CHARACTERS_STORE: Dict[str, Dict[str, Any]] = {}
 
+CHARACTER_NO_TEXT_PROMPT_RULE = "no text, no captions, no labels, no typography, no letters, no numbers, no logos, no watermark"
+
+
+def _with_character_no_text_rule(prompt: str) -> str:
+    clean = re.sub(r"[,\s]+$", "", str(prompt or "").strip())
+    if not clean:
+        return CHARACTER_NO_TEXT_PROMPT_RULE
+    lower = clean.lower()
+    required = ["no text", "no captions", "no labels", "no typography", "no letters", "no numbers", "no logos", "no watermark"]
+    if all(term in lower for term in required):
+        return clean
+    return f"{clean}, {CHARACTER_NO_TEXT_PROMPT_RULE}"
+
+
+def _character_slug(value: str) -> str:
+    return re.sub(r'[^a-z0-9]+', '_', str(value or "").lower().strip()).strip('_')
+
+
+def _empty_character_benchmark_suite() -> List[Dict[str, Any]]:
+    return [
+        {
+            "id": "neutral_portrait",
+            "label": "Neutral Portrait",
+            "prompt": "neutral studio portrait, direct eye contact, even soft light, canonical hair and face",
+            "goal": "face identity, age, hair, and skin detail remain stable",
+        },
+        {
+            "id": "full_body_turnaround",
+            "label": "Full Body Turnaround",
+            "prompt": "full body production reference, front view, side view, rear view, neutral stance",
+            "goal": "body proportions, silhouette, wardrobe anchors, and footwear remain stable",
+        },
+        {
+            "id": "low_light_scene",
+            "label": "Low Light Stress Test",
+            "prompt": "cinematic low light interior, practical lamp, shallow depth of field, realistic shadows",
+            "goal": "identity does not drift under difficult lighting",
+        },
+        {
+            "id": "wardrobe_change",
+            "label": "Wardrobe Change",
+            "prompt": "same character in alternate wardrobe, face and body locked, clothing changed only",
+            "goal": "outfit can change without changing face, age, or body",
+        },
+        {
+            "id": "action_pose",
+            "label": "Action Pose",
+            "prompt": "dynamic walking action pose, three-quarter camera angle, natural motion, stable face",
+            "goal": "pose changes without anatomy or identity collapse",
+        },
+        {
+            "id": "multi_character_scene",
+            "label": "Multi-Character Scene",
+            "prompt": "same character standing beside a second character, clear spatial separation, no identity blending",
+            "goal": "identity remains distinct in a multi-character composition",
+        },
+    ]
+
+
+def _default_character_profile(char: Dict[str, Any]) -> Dict[str, Any]:
+    now = _now_iso()
+    cid = _character_slug(char.get("id") or char.get("name"))
+    name = str(char.get("name") or cid.replace("_", " ").title()).strip()
+    role = str(char.get("role") or char.get("description") or "Character").strip()
+    anchor_url = str(char.get("anchor_url") or "")
+    anchor_prompt = _with_character_no_text_rule(str(char.get("anchor_prompt") or f"Portrait of {name}, {role}"))
+    master_references = char.get("master_references")
+    if not isinstance(master_references, list):
+        master_references = []
+    if anchor_url and not any(ref.get("url") == anchor_url for ref in master_references if isinstance(ref, dict)):
+        master_references.insert(0, {
+            "id": "master_001",
+            "url": anchor_url,
+            "type": "face_closeup",
+            "source": "anchor_url",
+            "locked": True,
+            "score": int(char.get("score") or 0),
+            "created_at": str(char.get("created_at") or now),
+        })
+    dna = char.get("dna") if isinstance(char.get("dna"), dict) else {}
+    visual_dna = char.get("visual_dna") if isinstance(char.get("visual_dna"), dict) else {}
+    merged_visual_dna = {**dna, **visual_dna}
+    profile = {
+        "schema_version": 1,
+        "status": char.get("status") or ("production_approved" if master_references else "draft"),
+        "bio": char.get("bio") or char.get("description") or "",
+        "personality_notes": char.get("personality_notes") or "",
+        "visual_dna": merged_visual_dna,
+        "voice_profile": char.get("voice_profile") or "",
+        "gait_style": char.get("gait_style") or "",
+        "master_references": master_references[:5],
+        "reference_requirements": char.get("reference_requirements") or {
+            "minimum_for_production": ["face_closeup", "full_body", "three_quarter", "neutral_expression"],
+            "recommended": ["profile", "rear", "expression_sheet", "hands", "wardrobe_sheet", "motion_clip"],
+        },
+        "prompt_rules": char.get("prompt_rules") or {
+            "positive_lock": "use the approved master references for identity, age, face, body proportions, hair, and signature traits",
+            "negative_lock": CHARACTER_NO_TEXT_PROMPT_RULE + ", no identity drift, no duplicate person, no unintended age change",
+            "inheritance": ["base_visual_dna", "master_references", "task_prompt", "workflow_settings", "negative_lock"],
+        },
+        "outfits": char.get("outfits") if isinstance(char.get("outfits"), list) else [],
+        "approved_assets": char.get("approved_assets") if isinstance(char.get("approved_assets"), list) else [],
+        "rejected_assets": char.get("rejected_assets") if isinstance(char.get("rejected_assets"), list) else [],
+        "version_history": char.get("version_history") if isinstance(char.get("version_history"), list) else [{
+            "version": "v1",
+            "label": "Initial profile",
+            "created_at": str(char.get("created_at") or now),
+            "notes": "Generated from legacy character record",
+        }],
+        "training": char.get("training") or {
+            "status": "not_started",
+            "lora_versions": [],
+            "embedding_versions": [],
+            "dataset_requirements": "10-50 approved images before training",
+        },
+        "quality_gate": char.get("quality_gate") or {
+            "minimum_overall_score": 80,
+            "minimum_face_score": 85,
+            "minimum_body_score": 70,
+            "auto_retry_below": 75,
+            "human_approval_required": True,
+        },
+        "benchmark_suite": char.get("benchmark_suite") if isinstance(char.get("benchmark_suite"), list) else _empty_character_benchmark_suite(),
+        "analytics": char.get("analytics") or {
+            "used_in_shots": int(char.get("used_in_shots") or 0),
+            "last_used_at": char.get("last_used_at") or "",
+            "best_workflows": {},
+            "consistency_trend": [],
+        },
+        "collaboration": char.get("collaboration") or {
+            "comments": [],
+            "approvals": [],
+        },
+    }
+    return {**char, "id": cid, "name": name, "role": role, "anchor_prompt": anchor_prompt, **profile}
+
+
+def _normalize_character(char_id: str, char: Dict[str, Any]) -> Dict[str, Any]:
+    normalized = _default_character_profile({**char, "id": char_id or char.get("id")})
+    normalized["score"] = int(max(0, min(100, normalized.get("score") or _estimate_character_score(normalized))))
+    normalized["consistency_score"] = normalized["score"]
+    return normalized
+
+
+def _estimate_character_score(char: Dict[str, Any]) -> int:
+    refs = [r for r in char.get("master_references", []) if isinstance(r, dict) and r.get("url")]
+    dna = char.get("visual_dna") if isinstance(char.get("visual_dna"), dict) else {}
+    history = char.get("render_history") if isinstance(char.get("render_history"), list) else []
+    score = 20
+    score += min(35, len(refs) * 10)
+    score += min(25, len(dna) * 3)
+    score += min(10, len(history) * 2)
+    if char.get("status") == "production_approved":
+        score += 10
+    return max(0, min(100, score))
+
+
+def _persist_normalized_character(char_id: str, char_data: Dict[str, Any]) -> Dict[str, Any]:
+    normalized = _normalize_character(char_id, char_data)
+    _CHARACTERS_STORE[char_id] = normalized
+    _persist_character(char_id, normalized)
+    return normalized
+
 def _scan_character_files() -> None:
     """Scan character_banks for JSON character files and character images, merge into store."""
     for json_file in CHARACTER_BANKS_DIR.glob("*.json"):
@@ -4896,9 +5505,9 @@ def _scan_character_files() -> None:
                 data = json.load(f)
             chars = data if isinstance(data, list) else [data]
             for c in chars:
-                cid = c.get("id", c.get("name", "")).lower().replace(" ", "_")
+                cid = _character_slug(c.get("id") or c.get("name", ""))
                 if cid and cid not in _CHARACTERS_STORE:
-                    _CHARACTERS_STORE[cid] = c
+                    _CHARACTERS_STORE[cid] = _normalize_character(cid, c)
         except Exception:
             pass
 
@@ -4909,12 +5518,13 @@ def _scan_character_files() -> None:
         # Derive character id from filename: e.g. "elara_vance.jpg" -> "elara"
         stem = img.stem.lower()
         parts = re.split(r'[_\s-]+', stem)
-        cid = parts[0] if parts else stem
+        cid = stem if stem in _CHARACTERS_STORE else (parts[0] if parts and parts[0] in _CHARACTERS_STORE else stem)
         anchor_url = f"/api/characters/anchor/{stem}"
         if cid in _CHARACTERS_STORE:
             _CHARACTERS_STORE[cid]["anchor_url"] = anchor_url
+            _CHARACTERS_STORE[cid] = _normalize_character(cid, _CHARACTERS_STORE[cid])
         elif cid:
-            _CHARACTERS_STORE[cid] = {
+            _CHARACTERS_STORE[cid] = _normalize_character(cid, {
                 "id": cid,
                 "name": stem.replace("_", " ").title(),
                 "role": "Character",
@@ -4923,7 +5533,7 @@ def _scan_character_files() -> None:
                 "anchor_url": anchor_url,
                 "anchor_prompt": "",
                 "dna": {}
-            }
+            })
 
 
 def _persist_character(char_id: str, char_data: Dict[str, Any]) -> None:
@@ -4939,7 +5549,18 @@ _scan_character_files()
 @app.get("/api/characters")
 async def api_get_characters():
     """Return the full character list from the store."""
-    return list(_CHARACTERS_STORE.values())
+    return [_normalize_character(cid, char) for cid, char in _CHARACTERS_STORE.items()]
+
+
+@app.get("/api/characters/{char_id}/profile")
+async def api_get_character_profile(char_id: str):
+    cid = _character_slug(char_id)
+    char = _CHARACTERS_STORE.get(cid)
+    if not char:
+        raise HTTPException(status_code=404, detail=f"Character '{char_id}' not found")
+    normalized = _normalize_character(cid, char)
+    _CHARACTERS_STORE[cid] = normalized
+    return normalized
 
 
 @app.get("/api/characters/{char_id}/variations")
@@ -4976,10 +5597,11 @@ async def api_get_character_variations(char_id: str):
 @app.get("/api/characters/{char_id}/export")
 async def api_export_character(char_id: str):
     """Export a character's full DNA as JSON."""
-    char = _CHARACTERS_STORE.get(char_id)
+    cid = _character_slug(char_id)
+    char = _CHARACTERS_STORE.get(cid)
     if not char:
         raise HTTPException(status_code=404, detail=f"Character '{char_id}' not found")
-    return char
+    return _normalize_character(cid, char)
 
 
 class SaveDNARequest(BaseModel):
@@ -4987,13 +5609,45 @@ class SaveDNARequest(BaseModel):
     dna: Dict[str, Any]
 
 
+class CharacterProfilePatchRequest(BaseModel):
+    status: Optional[str] = None
+    bio: Optional[str] = None
+    personality_notes: Optional[str] = None
+    visual_dna: Optional[Dict[str, Any]] = None
+    voice_profile: Optional[str] = None
+    gait_style: Optional[str] = None
+    prompt_rules: Optional[Dict[str, Any]] = None
+    outfits: Optional[List[Dict[str, Any]]] = None
+    quality_gate: Optional[Dict[str, Any]] = None
+    analytics: Optional[Dict[str, Any]] = None
+    collaboration: Optional[Dict[str, Any]] = None
+
+
+class MasterReferenceRequest(BaseModel):
+    url: str
+    type: str = "face_closeup"
+    source: str = "manual"
+    score: Optional[int] = None
+    prompt_id: Optional[str] = None
+    notes: str = ""
+
+
+class CharacterAuditRequest(BaseModel):
+    image_url: str = ""
+    prompt: str = ""
+    render_type: str = "character"
+    workflow_id: str = ""
+    seed: Optional[int] = None
+
+
 @app.post("/api/characters/save-dna")
 async def api_save_character_dna(req: SaveDNARequest):
     """Persist updated character DNA to disk."""
-    cid = req.id.lower().replace(" ", "_")
+    cid = _character_slug(req.id)
     if cid in _CHARACTERS_STORE:
         _CHARACTERS_STORE[cid]["dna"] = req.dna
-        _persist_character(cid, _CHARACTERS_STORE[cid])
+        _CHARACTERS_STORE[cid]["visual_dna"] = {**(_CHARACTERS_STORE[cid].get("visual_dna") or {}), **req.dna}
+        _persist_normalized_character(cid, _CHARACTERS_STORE[cid])
         return {"status": "saved", "message": f"DNA saved for {cid}"}
     else:
         # Create new character entry
@@ -5007,9 +5661,207 @@ async def api_save_character_dna(req: SaveDNARequest):
             "anchor_prompt": "",
             "dna": req.dna
         }
-        _CHARACTERS_STORE[cid] = new_char
-        _persist_character(cid, new_char)
+        _persist_normalized_character(cid, new_char)
         return {"status": "created", "message": f"Character {cid} created with DNA"}
+
+
+@app.patch("/api/characters/{char_id}/profile")
+async def api_patch_character_profile(char_id: str, req: CharacterProfilePatchRequest):
+    cid = _character_slug(char_id)
+    char = _CHARACTERS_STORE.get(cid)
+    if not char:
+        raise HTTPException(status_code=404, detail=f"Character '{char_id}' not found")
+    updates = req.model_dump(exclude_unset=True) if hasattr(req, "model_dump") else req.dict(exclude_unset=True)
+    if "visual_dna" in updates and isinstance(updates["visual_dna"], dict):
+        updates["dna"] = {**(char.get("dna") if isinstance(char.get("dna"), dict) else {}), **updates["visual_dna"]}
+    char.update(updates)
+    char.setdefault("version_history", []).append({
+        "version": f"v{len(char.get('version_history') or []) + 1}",
+        "label": "Profile update",
+        "created_at": _now_iso(),
+        "notes": "Updated character profile fields",
+    })
+    return _persist_normalized_character(cid, char)
+
+
+@app.post("/api/characters/{char_id}/master-reference")
+async def api_add_character_master_reference(char_id: str, req: MasterReferenceRequest):
+    cid = _character_slug(char_id)
+    char = _CHARACTERS_STORE.get(cid)
+    if not char:
+        raise HTTPException(status_code=404, detail=f"Character '{char_id}' not found")
+    normalized = _normalize_character(cid, char)
+    refs = [r for r in normalized.get("master_references", []) if isinstance(r, dict)]
+    refs = [r for r in refs if r.get("url") != req.url]
+    refs.insert(0, {
+        "id": f"master_{int(time.time())}",
+        "url": req.url,
+        "type": req.type or "face_closeup",
+        "source": req.source or "manual",
+        "locked": True,
+        "score": int(req.score if req.score is not None else normalized.get("score") or 0),
+        "prompt_id": req.prompt_id or "",
+        "notes": req.notes or "",
+        "created_at": _now_iso(),
+    })
+    normalized["master_references"] = refs[:5]
+    normalized["status"] = "production_approved" if len(normalized["master_references"]) >= 3 else normalized.get("status", "draft")
+    if req.url:
+        normalized["anchor_url"] = req.url
+    return _persist_normalized_character(cid, normalized)
+
+
+@app.post("/api/characters/{char_id}/references")
+async def api_upload_character_reference(
+    char_id: str,
+    reference_image: UploadFile = File(...),
+    reference_type: str = Form("auto"),
+    notes: str = Form(""),
+):
+    cid = _character_slug(char_id)
+    char = _CHARACTERS_STORE.get(cid)
+    if not char:
+        raise HTTPException(status_code=404, detail=f"Character '{char_id}' not found")
+    ext = Path(reference_image.filename or "").suffix.lower() or ".jpg"
+    if ext not in (".jpg", ".jpeg", ".png", ".webp", ".mp4", ".mov", ".webm"):
+        raise HTTPException(status_code=400, detail="Unsupported reference file type")
+    inferred = reference_type if reference_type and reference_type != "auto" else _infer_reference_type(reference_image.filename or "")
+    ref_dir = CHARACTER_BANKS_DIR / "references" / cid
+    ref_dir.mkdir(parents=True, exist_ok=True)
+    ref_id = f"{inferred}_{int(time.time())}"
+    dest = ref_dir / f"{ref_id}{ext}"
+    dest.write_bytes(await reference_image.read())
+    url = f"/api/characters/reference/{cid}/{dest.name}"
+    normalized = _normalize_character(cid, char)
+    normalized.setdefault("reference_uploads", []).append({
+        "id": ref_id,
+        "url": url,
+        "type": inferred,
+        "source": "upload",
+        "notes": notes,
+        "created_at": _now_iso(),
+    })
+    if not normalized.get("anchor_url") and ext in (".jpg", ".jpeg", ".png", ".webp"):
+        normalized["anchor_url"] = url
+    return _persist_normalized_character(cid, normalized)
+
+
+def _infer_reference_type(filename: str) -> str:
+    lower = filename.lower()
+    if any(token in lower for token in ["face", "head", "close"]):
+        return "face_closeup"
+    if any(token in lower for token in ["full", "body", "turnaround"]):
+        return "full_body"
+    if any(token in lower for token in ["outfit", "wardrobe", "costume"]):
+        return "outfit"
+    if any(token in lower for token in ["expression", "emotion"]):
+        return "expression_sheet"
+    if any(token in lower for token in ["motion", "walk", "video"]):
+        return "motion_clip"
+    if any(token in lower for token in ["pose", "openpose"]):
+        return "pose"
+    return "reference"
+
+
+@app.get("/api/characters/reference/{char_id}/{filename}")
+async def api_character_reference_file(char_id: str, filename: str):
+    cid = _character_slug(char_id)
+    safe_filename = Path(filename).name
+    ref_path = CHARACTER_BANKS_DIR / "references" / cid / safe_filename
+    if ref_path.exists():
+        return FileResponse(str(ref_path))
+    raise HTTPException(status_code=404, detail="Reference not found")
+
+
+@app.post("/api/characters/{char_id}/audit")
+async def api_audit_character_generation(char_id: str, req: CharacterAuditRequest):
+    cid = _character_slug(char_id)
+    char = _CHARACTERS_STORE.get(cid)
+    if not char:
+        raise HTTPException(status_code=404, detail=f"Character '{char_id}' not found")
+    normalized = _normalize_character(cid, char)
+    refs = normalized.get("master_references") or []
+    prompt = (req.prompt or "").lower()
+    visual_terms = " ".join(str(v).lower() for v in (normalized.get("visual_dna") or {}).values())
+    prompt_overlap = sum(1 for token in re.findall(r"[a-z0-9]{4,}", visual_terms) if token in prompt)
+    face_score = min(100, 45 + len(refs) * 12 + prompt_overlap * 3)
+    body_score = min(100, 45 + (10 if "full body" in prompt or "body" in prompt else 0) + len(refs) * 8)
+    wardrobe_score = min(100, 50 + (15 if any(w in prompt for w in ["wardrobe", "outfit", "clothes", "costume"]) else 0))
+    prompt_score = 90 if CHARACTER_NO_TEXT_PROMPT_RULE in _with_character_no_text_rule(req.prompt).lower() else 65
+    overall = int(round((face_score * 0.4) + (body_score * 0.2) + (wardrobe_score * 0.15) + (prompt_score * 0.25)))
+    fail_reasons = []
+    gate = normalized.get("quality_gate") or {}
+    if face_score < int(gate.get("minimum_face_score", 85)):
+        fail_reasons.append("face identity confidence below threshold")
+    if body_score < int(gate.get("minimum_body_score", 70)):
+        fail_reasons.append("body/proportion lock below threshold")
+    if "text" not in prompt:
+        fail_reasons.append("prompt lacked explicit no-text guardrail before compilation")
+    audit = {
+        "status": "pass" if overall >= int(gate.get("minimum_overall_score", 80)) and not fail_reasons else "needs_review",
+        "overall_score": overall,
+        "face_score": int(face_score),
+        "body_score": int(body_score),
+        "wardrobe_score": int(wardrobe_score),
+        "prompt_score": int(prompt_score),
+        "fail_reasons": fail_reasons,
+        "image_url": req.image_url,
+        "render_type": req.render_type,
+        "workflow_id": req.workflow_id,
+        "seed": req.seed,
+        "created_at": _now_iso(),
+        "note": "Heuristic audit scaffold; replace with embedding/vision scoring when those services are wired.",
+    }
+    normalized.setdefault("audit_history", []).append(audit)
+    normalized["score"] = overall
+    _persist_normalized_character(cid, normalized)
+    return audit
+
+
+@app.get("/api/characters/{char_id}/benchmarks")
+async def api_get_character_benchmarks(char_id: str):
+    cid = _character_slug(char_id)
+    char = _CHARACTERS_STORE.get(cid)
+    if not char:
+        raise HTTPException(status_code=404, detail=f"Character '{char_id}' not found")
+    normalized = _normalize_character(cid, char)
+    base = normalized.get("anchor_prompt") or normalized.get("name", cid)
+    return {
+        "character_id": cid,
+        "benchmarks": [
+            {
+                **bench,
+                "compiled_prompt": _with_character_no_text_rule(f"{base}, {bench.get('prompt', '')}"),
+            }
+            for bench in normalized.get("benchmark_suite", [])
+        ],
+    }
+
+
+@app.get("/api/characters/{char_id}/export-package")
+async def api_export_character_package(char_id: str):
+    cid = _character_slug(char_id)
+    char = _CHARACTERS_STORE.get(cid)
+    if not char:
+        raise HTTPException(status_code=404, detail=f"Character '{char_id}' not found")
+    normalized = _normalize_character(cid, char)
+    return {
+        "package_version": 1,
+        "exported_at": _now_iso(),
+        "character": normalized,
+        "references": normalized.get("master_references", []) + normalized.get("reference_uploads", []),
+        "prompts": {
+            "base": normalized.get("anchor_prompt", ""),
+            "negative": (normalized.get("prompt_rules") or {}).get("negative_lock", CHARACTER_NO_TEXT_PROMPT_RULE),
+            "benchmarks": [
+                _with_character_no_text_rule(f"{normalized.get('anchor_prompt', normalized.get('name', cid))}, {bench.get('prompt', '')}")
+                for bench in normalized.get("benchmark_suite", [])
+            ],
+        },
+        "training": normalized.get("training", {}),
+        "quality_gate": normalized.get("quality_gate", {}),
+        "lineage": normalized.get("render_history", []),
+    }
 
 
 class GenerateCharacterRequest(BaseModel):
@@ -5026,7 +5878,7 @@ async def api_generate_character(req: GenerateCharacterRequest):
     if not result:
         raise HTTPException(status_code=500, detail="Hermes failed to generate character")
     # Persist generated character to store
-    cid = (req.name or result.get("name", "unknown")).lower().replace(" ", "_")
+    cid = _character_slug(req.name or result.get("name", "unknown"))
     char_entry = {
         "id": cid,
         "name": (req.name or result.get("name", "Unknown")).upper(),
@@ -5037,8 +5889,7 @@ async def api_generate_character(req: GenerateCharacterRequest):
         "anchor_prompt": result.get("anchor_prompt", req.description),
         "dna": result.get("dna", result.get("visual_traits", {}))
     }
-    _CHARACTERS_STORE[cid] = char_entry
-    _persist_character(cid, char_entry)
+    _persist_normalized_character(cid, char_entry)
     return result
 
 
@@ -5088,10 +5939,10 @@ def _character_host_from_config() -> str:
 
 @app.post("/api/characters/spark-render")
 async def api_character_spark_render(req: CharacterSparkRenderRequest):
-    safe_name = re.sub(r'[^a-z0-9]+', '_', req.name.lower().strip()).strip('_')
+    safe_name = _character_slug(req.name)
     if not safe_name:
         raise HTTPException(status_code=400, detail="Character name is required")
-    prompt = (req.prompt or "").strip()
+    prompt = _with_character_no_text_rule(req.prompt)
     if not prompt:
         raise HTTPException(status_code=400, detail="Prompt is required")
 
@@ -5141,7 +5992,7 @@ async def api_character_spark_render(req: CharacterSparkRenderRequest):
         shutil.copy2(first, dest)
         anchor_url = f"/api/characters/anchor/{safe_name}"
 
-    char = _CHARACTERS_STORE.get(safe_name, {
+    char = _normalize_character(safe_name, _CHARACTERS_STORE.get(safe_name, {
         "id": safe_name,
         "name": req.name.strip(),
         "role": (req.role or "Character").strip() or "Character",
@@ -5150,7 +6001,7 @@ async def api_character_spark_render(req: CharacterSparkRenderRequest):
         "anchor_url": "",
         "anchor_prompt": "",
         "dna": {},
-    })
+    }))
     if req.role:
         char["role"] = req.role.strip()
     if requested_type == "character":
@@ -5169,9 +6020,33 @@ async def api_character_spark_render(req: CharacterSparkRenderRequest):
         "image_urls": image_urls,
         "created_at": _now_iso(),
     })
+    if image_urls:
+        asset = {
+            "type": requested_type,
+            "url": image_urls[0],
+            "all_urls": image_urls,
+            "prompt_id": result.get("prompt_id"),
+            "seed": seed,
+            "workflow_id": req.workflow_id,
+            "created_at": _now_iso(),
+        }
+        char.setdefault("approved_assets" if requested_type == "character" else "candidate_assets", []).append(asset)
+        if requested_type == "character":
+            refs = [r for r in char.get("master_references", []) if isinstance(r, dict)]
+            if not refs and anchor_url:
+                refs.append({
+                    "id": f"master_{int(time.time())}",
+                    "url": anchor_url,
+                    "type": "face_closeup",
+                    "source": "spark_character_render",
+                    "locked": True,
+                    "score": int(char.get("score") or 0),
+                    "prompt_id": result.get("prompt_id") or "",
+                    "created_at": _now_iso(),
+                })
+                char["master_references"] = refs[:5]
     if req.save_character:
-        _CHARACTERS_STORE[safe_name] = char
-        _persist_character(safe_name, char)
+        char = _persist_normalized_character(safe_name, char)
 
     meta_path = output_dir / f"{shot_id}.json"
     meta_path.write_text(json.dumps({
@@ -5212,7 +6087,8 @@ async def api_render_character(req: RenderCharacterRequest):
         workflow = _json.load(f)
 
     seed = req.seed or random.randint(1, 999_999_999)
-    safe_name = re.sub(r'[^a-z0-9]+', '_', req.name.lower()).strip('_')
+    safe_name = _character_slug(req.name)
+    prompt = _with_character_no_text_rule(req.prompt)
     negative_markers = ["blurry,", "low quality,", "distorted,", "worst quality,", "deformed", "bad anatomy", "extra fingers", "watermark"]
     prompt_block = workflow.get("prompt", workflow)
     for node_id, node in prompt_block.items():
@@ -5223,7 +6099,7 @@ async def api_render_character(req: RenderCharacterRequest):
             text = node.get("inputs", {}).get("text", "")
             is_negative = len(text) < 200 and sum(1 for m in negative_markers if m in text.lower()) >= 2
             if not is_negative:
-                prompt_block[node_id]["inputs"]["text"] = req.prompt
+                prompt_block[node_id]["inputs"]["text"] = prompt
         if ct in ("KSampler", "SamplerCustom", "SamplerCustomAdvanced") and "seed" in node.get("inputs", {}):
             prompt_block[node_id]["inputs"]["seed"] = seed
         if ct in ("RandomNoise", "FluxNoise") and "noise_seed" in node.get("inputs", {}):
@@ -5260,7 +6136,41 @@ async def api_render_character(req: RenderCharacterRequest):
 
     dest = anchors_dir / f"{safe_name}.jpg"
     shutil.copy(saved[0], str(dest))
-    return {"status": "complete", "anchor_url": f"/api/characters/anchor/{safe_name}", "prompt_id": prompt_id}
+    anchor_url = f"/api/characters/anchor/{safe_name}"
+    char = _normalize_character(safe_name, _CHARACTERS_STORE.get(safe_name, {
+        "id": safe_name,
+        "name": req.name.strip(),
+        "role": "Character",
+        "accent": "cyan",
+        "score": 0,
+        "anchor_url": anchor_url,
+        "anchor_prompt": prompt,
+        "dna": {},
+    }))
+    char["anchor_url"] = anchor_url
+    char["anchor_prompt"] = prompt
+    char.setdefault("render_history", []).append({
+        "type": "character",
+        "prompt": prompt,
+        "prompt_id": prompt_id,
+        "seed": seed,
+        "workflow_id": str(workflow_path),
+        "image_urls": [anchor_url],
+        "created_at": _now_iso(),
+    })
+    if not char.get("master_references"):
+        char["master_references"] = [{
+            "id": f"master_{int(time.time())}",
+            "url": anchor_url,
+            "type": "face_closeup",
+            "source": "legacy_character_render",
+            "locked": True,
+            "score": int(char.get("score") or 0),
+            "prompt_id": prompt_id,
+            "created_at": _now_iso(),
+        }]
+    _persist_normalized_character(safe_name, char)
+    return {"status": "complete", "anchor_url": anchor_url, "prompt_id": prompt_id}
 
 
 @app.get("/api/characters/anchor/{name}")
@@ -5288,7 +6198,7 @@ async def api_create_character(
     """Create a new character with an optional drag-drop character image."""
     import uuid as _uuid
 
-    safe_name = re.sub(r'[^a-z0-9]+', '_', name.lower().strip()).strip('_')
+    safe_name = _character_slug(name)
     if not safe_name:
         raise HTTPException(status_code=400, detail="Invalid character name")
 
@@ -5303,7 +6213,7 @@ async def api_create_character(
     # Save character image if provided
     anchor_url = ""
     if anchor_image and anchor_image.filename:
-        raw_name = re.sub(r'[^a-z0-9]+', '_', Path(anchor_image.filename).stem.lower()).strip('_')
+        raw_name = _character_slug(Path(anchor_image.filename).stem)
         img_ext = Path(anchor_image.filename).suffix.lower() or '.jpg'
         if img_ext not in ('.jpg', '.jpeg', '.png', '.webp'):
             img_ext = '.jpg'
@@ -5332,13 +6242,21 @@ async def api_create_character(
         "anchor_url": anchor_url,
         "anchor_prompt": f"Portrait of {name.strip()}, {description or ''}",
         "dna": {},
+        "master_references": ([{
+            "id": "master_001",
+            "url": anchor_url,
+            "type": "face_closeup",
+            "source": "create_character_upload",
+            "locked": True,
+            "score": 0,
+            "created_at": _now_iso(),
+        }] if anchor_url else []),
     }
 
     # Persist to character_banks/char_{id}.json
-    _CHARACTERS_STORE[safe_name] = char_data
-    _persist_character(safe_name, char_data)
+    char_data = _persist_normalized_character(safe_name, char_data)
 
-    # Append to world bible
+    # Append to world guide
     world_bible_path = Path(__file__).parent.parent / "data" / "lore_bible" / "world_bible.md"
     try:
         if world_bible_path.exists():
@@ -5353,7 +6271,7 @@ async def api_create_character(
         )
         if not world_bible_path.exists():
             world_bible_path.parent.mkdir(parents=True, exist_ok=True)
-            wb_text = "# WORLD BIBLE: CHARACTER ROSTER\n\n" + char_section
+            wb_text = "# WORLD GUIDE: CHARACTER ROSTER\n\n" + char_section
         elif "## KEY CHARACTER:" not in wb_text:
             wb_text += "\n" + char_section
         else:

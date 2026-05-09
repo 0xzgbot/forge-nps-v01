@@ -1285,7 +1285,8 @@
         }
         .script-header-actions,
         .script-action-row,
-        .script-shot-controls {
+        .script-shot-controls,
+        .script-storyboard-controls {
             display: flex;
             align-items: center;
             justify-content: flex-end;
@@ -1366,7 +1367,8 @@
         }
         .script-field label,
         .script-upload span,
-        .script-shot-controls label {
+        .script-shot-controls label,
+        .script-storyboard-controls label {
             color: #6C7278;
             font-size: 11px;
             font-weight: 700;
@@ -1377,7 +1379,9 @@
         .script-field textarea,
         .script-upload input,
         #script-package-json,
-        .script-shot-controls input {
+        .script-shot-controls input,
+        .script-storyboard-controls input,
+        .script-storyboard-style input {
             width: 100%;
             background: #222;
             border: 1px solid #444;
@@ -1415,6 +1419,7 @@
         .script-package-panel,
         .script-scenes-panel,
         .script-json-panel,
+        .script-storyboard-panel,
         .script-shot-panel {
             display: flex;
             flex-direction: column;
@@ -1448,6 +1453,7 @@
             margin: 0 0 10px;
         }
         .script-scenes-panel,
+        .script-storyboard-panel,
         .script-shot-panel {
             grid-column: 1 / -1;
         }
@@ -1512,9 +1518,172 @@
         .script-shot-panel .script-panel-head {
             align-items: center;
         }
-        .script-shot-controls input {
+        .script-shot-controls input,
+        .script-storyboard-controls input {
             width: 86px;
             margin-left: 6px;
+        }
+        .script-storyboard-controls label:nth-child(3) input {
+            width: 128px;
+        }
+        .script-storyboard-style {
+            padding: 10px 14px 0;
+        }
+        .storyboard-preset-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 12px 14px 0;
+        }
+        .script-storyboard-style label,
+        .script-storyboard-options label {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            color: #6C7278;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+        .script-storyboard-options {
+            display: grid;
+            grid-template-columns: minmax(220px, 1fr) minmax(220px, 1fr) minmax(260px, 1.2fr) minmax(120px, 0.45fr);
+            gap: 10px;
+            padding: 10px 14px 0;
+        }
+        .storyboard-checkbox span {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            min-height: 39px;
+            color: #aaa;
+            text-transform: none;
+            letter-spacing: 0;
+            font-weight: 500;
+        }
+        .storyboard-checkbox input {
+            accent-color: #3D5AFE;
+        }
+        .storyboard-output {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 12px;
+        }
+        .storyboard-board {
+            border: 1px solid #292929;
+            border-radius: 8px;
+            background: #0b0b0b;
+            overflow: hidden;
+        }
+        .storyboard-board-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 12px;
+            border-bottom: 1px solid #242424;
+        }
+        .storyboard-board-head strong,
+        .storyboard-board-head span {
+            display: block;
+        }
+        .storyboard-board-head strong {
+            color: #fff;
+            font-size: 13px;
+        }
+        .storyboard-board-head span {
+            margin-top: 3px;
+            color: #777;
+            font-size: 11px;
+        }
+        .storyboard-panel-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 8px;
+            padding: 12px;
+        }
+        .storyboard-panel {
+            min-height: 92px;
+            border: 1px solid #303030;
+            border-radius: 4px;
+            background: #111;
+            padding: 8px;
+        }
+        .storyboard-panel span {
+            display: inline-grid;
+            place-items: center;
+            width: 22px;
+            height: 22px;
+            margin-bottom: 6px;
+            border: 1px solid #3D5AFE;
+            border-radius: 4px;
+            color: #aebaff;
+            font-size: 10px;
+        }
+        .storyboard-panel p {
+            margin: 0;
+            color: #bbb;
+            font-size: 11px;
+            line-height: 1.35;
+        }
+        .storyboard-panel img {
+            display: block;
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            object-fit: cover;
+            margin: 0 0 8px;
+            border: 1px solid #2f2f2f;
+            border-radius: 3px;
+            background: #050505;
+        }
+        .storyboard-prompt {
+            width: calc(100% - 24px);
+            min-height: 120px;
+            margin: 0 12px 12px;
+            background: #080808;
+            border: 1px solid #242424;
+            border-radius: 4px;
+            color: #aaa;
+            padding: 10px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            line-height: 1.45;
+            resize: vertical;
+        }
+        .storyboard-copy-row {
+            display: flex;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 0 12px 10px;
+        }
+        .storyboard-board-head .storyboard-copy-row {
+            padding: 0;
+        }
+        .storyboard-panel-jobs {
+            border-top: 1px solid #202020;
+        }
+        .storyboard-render-result {
+            min-height: 24px;
+            padding: 0 12px 12px;
+            color: #9aa0aa;
+            font-size: 11px;
+        }
+        .storyboard-render-result code {
+            margin-left: 8px;
+            color: #8ba0ff;
+        }
+        .storyboard-render-result img {
+            display: block;
+            width: 100%;
+            max-height: 520px;
+            object-fit: contain;
+            margin-top: 10px;
+            border: 1px solid #303030;
+            border-radius: 4px;
+            background: #050505;
         }
         .script-shot-list-wrap {
             max-height: 620px;
@@ -1543,6 +1712,11 @@
             margin: 10px 0 6px;
             color: #8ba0ff;
             font-size: 11px;
+        }
+        @media (max-width: 1100px) {
+            .script-storyboard-options {
+                grid-template-columns: 1fr;
+            }
         }
         @media (max-width: 1100px) {
             .script-flow,
@@ -3304,9 +3478,51 @@
                     <textarea id="script-package-json" spellcheck="false" placeholder="The locked script package appears here. You can edit it before generating coverage."></textarea>
                 </section>
 
-                <section class="script-panel script-shot-panel">
+                <section class="script-panel script-storyboard-panel">
                     <div class="script-panel-head">
                         <span>05</span>
+                        <h3>Storyboard</h3>
+                        <div class="script-storyboard-controls">
+                            <label>Panels <input type="number" id="storyboard-target-panels" min="1" max="60" placeholder="auto"></label>
+                            <label>Per Board <input type="number" id="storyboard-panels-per-board" min="1" max="9" value="9"></label>
+                            <label>Resolution <input type="text" id="storyboard-resolution" value="3840x2160"></label>
+                            <button class="btn" id="generate-storyboard-btn" onclick="generateStoryboard()">Generate Storyboard</button>
+                        </div>
+                    </div>
+                    <div class="storyboard-preset-row">
+                        <button class="btn btn-secondary" type="button" onclick="setStoryboardPreset('comic')">Comic Book</button>
+                        <button class="btn btn-secondary" type="button" onclick="setStoryboardPreset('anime')">Anime / Manga</button>
+                        <button class="btn btn-secondary" type="button" onclick="setStoryboardPreset('realistic')">Realistic Film</button>
+                        <button class="btn btn-secondary" type="button" onclick="setStoryboardPreset('four')">Simple 4-Panel</button>
+                    </div>
+                    <div class="script-storyboard-style">
+                        <label>Style Prompt</label>
+                        <input type="text" id="storyboard-style" value="cinematic">
+                    </div>
+                    <div class="script-storyboard-options">
+                        <label>Character Consistency
+                            <input type="text" id="storyboard-character-consistency" placeholder="same face, same clothing, repeated key traits in every panel">
+                        </label>
+                        <label>Reference Image URL
+                            <input type="text" id="storyboard-reference-image" placeholder="/media-assets/... optional character sheet">
+                        </label>
+                        <label>Negative Prompt
+                            <input type="text" id="storyboard-negative-prompt" value="blurry, deformed, extra limbs, text errors, inconsistent characters, merged panels">
+                        </label>
+                        <label class="storyboard-checkbox">Captions
+                            <span><input type="checkbox" id="storyboard-include-captions"> render caption text</span>
+                        </label>
+                    </div>
+                    <div id="storyboard-output" class="storyboard-output">
+                        <div class="script-empty-shot">
+                            <p>Generate 9-panel 4K storyboard board(s) from the locked package or raw script.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="script-panel script-shot-panel">
+                    <div class="script-panel-head">
+                        <span>06</span>
                         <h3>Coverage Shotlist</h3>
                         <div class="script-shot-controls">
                             <label>Shots <input type="number" id="script-target-shots" min="1" max="120" placeholder="auto"></label>
@@ -3572,6 +3788,9 @@
                             </div>
                         </div>
                         <div class="character-action-bar">
+                            <button class="btn btn-secondary" type="button" onclick="randomizeCharacterForge()">Randomize</button>
+                            <button class="btn btn-secondary" type="button" onclick="groundCharacterForge()">Regular Person</button>
+                            <button class="btn btn-secondary" type="button" onclick="generateCharacterFromRoleForge()">From Role</button>
                             <button class="btn btn-secondary" type="button" onclick="composeCharacterPrompts()">Compose Sheet + Variations</button>
                             <button class="btn" type="button" onclick="createCharacterFromManager(event)">Save Metadata</button>
                             <button class="btn" type="button" onclick="renderCharacterOnSpark('character')">Generate Character on Spark</button>
