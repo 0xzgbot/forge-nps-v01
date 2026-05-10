@@ -287,6 +287,8 @@ class HermesVideoService:
                     "prompt_id": submit.get("prompt_id"),
                     "seed": submit.get("seed"),
                     "queued": True,
+                    "host": host,
+                    "output_dir": str(output_dir),
                 }
             )
 
@@ -352,6 +354,41 @@ class HermesVideoService:
                 return manifest_brief, "campaign_manifest_brief"
             return "", "missing_source_prompt"
 
+        def _fallback_vision_analysis(shot: Dict[str, Any], reason: str = "") -> Dict[str, Any]:
+            seed = str(shot.get("best_source_prompt") or shot.get("prompt") or "").strip()
+            if not seed:
+                seed = "Use the selected first frame as the source of truth."
+            return {
+                "visible_subjects": seed[:700],
+                "setting": str(shot.get("campaign_brief") or shot.get("visual_brief") or "selected image setting")[:500],
+                "composition": str(shot.get("camera_direction") or "preserve the exact first-frame composition"),
+                "lighting": str(shot.get("lighting_direction") or "preserve the exact first-frame lighting"),
+                "camera_motion": "locked-off camera with a very subtle cinematic push-in unless the image implies stronger motion",
+                "subject_motion": "subtle natural breathing, micro-expression changes, and minimal pose-preserving movement",
+                "environmental_motion": "only natural low-amplitude ambient motion that does not change identity or layout",
+                "continuity_locks": "preserve exact subject identity, wardrobe, anatomy, framing, lighting, and background geometry",
+                "motion_avoid": "no morphing, no identity drift, no extra limbs, no camera whip, no sudden reframing, no text artifacts",
+                "prompt_seed": seed,
+                "fallback_reason": reason,
+            }
+
+        def _fallback_video_prompt(analysis: Dict[str, Any]) -> str:
+            vision = analysis.get("vision_analysis") if isinstance(analysis.get("vision_analysis"), dict) else {}
+            seed = str(vision.get("prompt_seed") or analysis.get("best_source_prompt") or analysis.get("compiled_prompt") or "").strip()
+            if not seed:
+                seed = "Use the selected first frame as the exact visual reference."
+            parts = [
+                f"LTX2.3 image-to-video prompt for workflow {workflow_id}.",
+                seed,
+                f"Create a {int(duration)} second video at {int(fps)} fps.",
+                "Preserve the exact first-frame identity, clothing, body proportions, object layout, camera framing, lighting direction, color temperature, and background geometry.",
+                str(vision.get("camera_motion") or "Use locked-off camera or a slow subtle push-in only."),
+                str(vision.get("subject_motion") or "Add subtle natural breathing, tiny posture settling, blink or micro-expression changes where appropriate."),
+                str(vision.get("environmental_motion") or "Keep environmental motion minimal and physically plausible."),
+                "High temporal consistency, no morphing, no identity drift, no new objects, no extra limbs, no text, no watermark, no abrupt lighting change.",
+            ]
+            return " ".join(p for p in parts if p).strip()
+
         # Collect shot data and images
         selected_shot_id_set = set(str(x) for x in shot_ids)
         selected_by_short_id: Dict[str, str] = {}
@@ -415,12 +452,7 @@ class HermesVideoService:
                     fps=fps,
                 )
             except Exception as e:
-                return {
-                    "status": "error",
-                    "error": "video_vision_analysis_failed",
-                    "shot_id": s["shot_id"],
-                    "message": str(e),
-                }
+                vision_out = _fallback_vision_analysis(s, f"video_vision_analysis_failed: {e}")
             content = json.dumps(vision_out, ensure_ascii=False)
             analysis_results.append({
                 "shot_id": s["shot_id"],
@@ -462,7 +494,10 @@ class HermesVideoService:
                 "Output JSON only: {\"plan\":[{\"shot_id\":\"...\",\"duration_sec\":N,\"frames\":N,\"reasoning\":\"...\"}]}"
             ),
         }
-        planner_out = await self.profile_cli.run_json("critic", planner_task)
+        try:
+            planner_out = await self.profile_cli.run_json("critic", planner_task)
+        except Exception:
+            planner_out = {}
         if isinstance(planner_out, dict) and planner_out.get("plan"):
             plan = planner_out.get("plan")
             if isinstance(plan, dict):
@@ -481,7 +516,17 @@ class HermesVideoService:
             elif isinstance(plan, list):
                 duration_plan = json.dumps({"plan": plan})
         if not duration_plan:
-            return {"status": "error", "error": "video_duration_plan_failed"}
+            duration_plan = json.dumps({
+                "plan": [
+                    {
+                        "shot_id": a["shot_id"],
+                        "duration_sec": duration,
+                        "frames": duration * fps,
+                        "reasoning": "Deterministic fallback because Hermes duration planning did not return a usable plan.",
+                    }
+                    for a in analysis_results
+                ]
+            })
 
         # Agent 3: Prompt Engineer (Hermes compiler profile, strict LTX2.3 schema)
         prompt_payload = {
@@ -522,12 +567,26 @@ class HermesVideoService:
                 )
             ),
         }
-        compiler_out = await self.profile_cli.run_json("compiler", compiler_task)
+        try:
+            compiler_out = await self.profile_cli.run_json("compiler", compiler_task)
+        except Exception:
+            compiler_out = {}
         if isinstance(compiler_out, dict):
             prompt_raw_text = json.dumps(compiler_out, ensure_ascii=False)[:2000]
             prompts_data = compiler_out.get("prompts", {}) if isinstance(compiler_out.get("prompts"), dict) else {}
         if not prompts_data:
-            return {"status": "error", "error": "video_prompt_compile_failed"}
+            prompts_data = {
+                a["shot_id"]: {
+                    "duration_sec": duration,
+                    "fps": fps,
+                    "segments": [],
+                    "full_prompt": _fallback_video_prompt(a),
+                    "negative": "morphing, identity drift, extra limbs, duplicate subjects, text artifacts, watermark, sudden lighting shifts",
+                    "fallback_reason": "video_prompt_compile_failed",
+                }
+                for a in analysis_results
+            }
+            prompt_raw_text = json.dumps({"fallback": "video_prompt_compile_failed"}, ensure_ascii=False)
 
         # Flatten to simple video_prompt strings
         flat_prompts = {}
