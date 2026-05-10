@@ -14,6 +14,8 @@ This skill provides a standardized framework for generating cinematic, high-fide
 - **Motion Priority:** The model rewards explicit camera movement and physical interaction descriptors.
 - **3-Stage Sampling Requirement:** All LTX 2.3 workflows should implement the community-standard "3-stage sampling" to ensure micro-expressions and dynamic depth.
 - **I2V/V2V Constraint:** When using reference images/videos, describe *only* motion, camera, emotion, and changes. Do not re-describe the static subject.
+- **Specificity Floor:** Every prompt must name the camera behavior, subject motion, environmental motion, light continuity, and one explicit artifact risk in the negative field.
+- **Anti-Living-Photo Rule:** A prompt that only says "preserve identity," "gentle parallax," or "cinematic motion" is invalid. It must describe what visibly changes frame-to-frame.
 
 ## Prompt Architecture (The 6-Element Structure)
 Every prompt should be structured as a single cinematic paragraph following this sequence:
@@ -39,6 +41,8 @@ Every prompt should be structured as a single cinematic paragraph following this
 ### Negative Prompting (Critical)
 Always include a negative prompt field to mitigate known failure modes:
 `negative: no drum sticks, no stiff motion, no flat lighting, no artifacts, no morphing, no flickering`
+
+Keep the negative prompt in the dedicated negative field. Do not bury it inside the positive prompt paragraph.
 
 ## Advanced Techniques & Troubleshooting
 

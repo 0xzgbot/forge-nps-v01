@@ -144,7 +144,7 @@ Consistency Score: 45
 
 ### Improvement Suggestions
 1. Use professional and minimalist language.
-2. Specify cinematic lighting like "Golden hour" or "Rim lighting".
+2. Specify source-based lighting like "golden-hour side light" or "rim light from a practical lamp".
 """
     result = parser.parse(sample_payload)
     import json

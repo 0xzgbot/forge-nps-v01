@@ -1,6 +1,8 @@
-import requests
 import json
+import os
 from typing import Dict, Any, List
+
+import requests
 
 class KimiSemanticAudit:
     """
@@ -8,9 +10,11 @@ class KimiSemanticAudit:
     Uses the Kimi LLM API to validate marketing assets against brand guidelines.
     """
 
-    def __init__(self, api_url: str = "http://localhost:1244/v1"):
+    def __init__(self, api_url: str = ""):
+        api_url = api_url or os.getenv("KIMI_SEMANTIC_AUDIT_URL", "http://localhost:1244/v1")
         self.api_url = api_url
         self.chat_endpoint = f"{self.api_url}/chat/completions"
+        self.model_name = os.getenv("KIMI_SEMANTIC_AUDIT_MODEL", "kimi-model")
 
     def audit(self, asset_content: str, brand_guidelines: str) -> Dict[str, Any]:
         """
@@ -56,7 +60,7 @@ class KimiSemanticAudit:
         """
 
         payload = {
-            "model": "kimi-model",  # This should match the model name expected by the server
+            "model": self.model_name,
             "messages": [
                 {"role": "system", "content": "You are a precise Brand Consistency Auditor. You output only JSON."},
                 {"role": "user", "content": prompt}

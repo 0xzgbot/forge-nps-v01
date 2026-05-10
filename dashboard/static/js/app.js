@@ -86,48 +86,39 @@ const $sparkProgress = document.getElementById("spark-progress");
 const DEFAULT_VIDEO_WORKFLOW_ID = "04_ltx2.3_image_to_video";
 
 function getSelectedVideoWorkflow() {
-    const el = document.querySelector('input[name="video-workflow"]:checked');
-    return el ? String(el.value || "").trim() : DEFAULT_VIDEO_WORKFLOW_ID;
+    const select = document.getElementById("video-model-select");
+    if (select?.value) return String(select.value || "").trim();
+    return DEFAULT_VIDEO_WORKFLOW_ID;
 }
 
 function setDefaultVideoWorkflow() {
-    const selected = document.querySelector('input[name="video-workflow"]:checked');
-    if (selected) return;
-    const el = document.querySelector('input[name="video-workflow"][value="' + DEFAULT_VIDEO_WORKFLOW_ID + '"]');
-    if (el) el.checked = true;
+    const select = document.getElementById("video-model-select");
+    if (select && !select.value) select.value = DEFAULT_VIDEO_WORKFLOW_ID;
 }
 
 function getVideoGenerationOptions() {
-    const modeEl = document.getElementById("video-mode-select");
     const modelEl = document.getElementById("video-model-select");
     const durationEl = document.getElementById("video-duration-select");
     const resolutionEl = document.getElementById("video-resolution-select");
     const aspectEl = document.getElementById("video-aspect-select");
-    const mode = String(modeEl?.value || "videos");
-    let workflowId = String(modelEl?.value || getSelectedVideoWorkflow() || DEFAULT_VIDEO_WORKFLOW_ID);
-    if (mode === "retake") workflowId = "05_ltx2.3_first_last_frame_to_video";
-    if (mode === "iclora") workflowId = "07_ltx2.3_id_lora";
+    const workflowId = String(modelEl?.value || getSelectedVideoWorkflow() || DEFAULT_VIDEO_WORKFLOW_ID);
     return {
-        mode,
+        mode: "videos",
         workflowId,
         duration: parseInt(durationEl?.value || $videoDuration?.value || "5", 10),
         resolution: String(resolutionEl?.value || "540p"),
         aspectRatio: String(aspectEl?.value || "16:9"),
         modelLabel: modelEl?.selectedOptions?.[0]?.textContent?.trim() || "LTX 2.3 Fast",
-        modeLabel: modeEl?.selectedOptions?.[0]?.textContent?.trim() || "Generate Videos",
     };
 }
 
 function syncVideoQuickOptions() {
     const options = getVideoGenerationOptions();
-    const radio = document.querySelector('input[name="video-workflow"][value="' + options.workflowId + '"]');
-    if (radio) radio.checked = true;
     if ($videoDuration && Number.isFinite(options.duration)) $videoDuration.value = String(options.duration);
     const summary = document.getElementById("video-option-summary");
     if (summary) {
         summary.textContent = [
-            options.modeLabel,
-            options.mode === "videos" ? options.modelLabel : getSelectedVideoWorkflow(),
+            options.modelLabel,
             options.duration + " Sec",
             options.resolution,
             options.aspectRatio,
@@ -137,11 +128,45 @@ function syncVideoQuickOptions() {
 }
 
 function initVideoQuickOptions() {
-    ["video-mode-select", "video-model-select", "video-duration-select", "video-resolution-select", "video-aspect-select"].forEach((id) => {
+    ["video-model-select", "video-duration-select", "video-resolution-select", "video-aspect-select"].forEach((id) => {
         const el = document.getElementById(id);
         if (el) el.addEventListener("change", syncVideoQuickOptions);
     });
     syncVideoQuickOptions();
+}
+
+function inferImageTargetCount(text, fallback) {
+    const clean = String(text || "").toLowerCase();
+    const units = "(?:images?|shots?|frames?|renders?|stills?|assets?|variations?)";
+    const patterns = [
+        new RegExp("\\b(\\d{1,3})\\s*[- ]?\\s*" + units + "\\b"),
+        new RegExp("\\b" + units + "\\s*[:=]?\\s*(\\d{1,3})\\b"),
+        /\b(?:make|create|generate|render|produce|need|needs|want|wants|requested|requesting)\s+(\d{1,3})\b/,
+        /\b(\d{1,3})\s*x\b/,
+    ];
+    for (const pattern of patterns) {
+        const match = clean.match(pattern);
+        if (!match) continue;
+        const n = parseInt(match[1], 10);
+        if (Number.isFinite(n)) return Math.max(1, Math.min(n, 120));
+    }
+    const words = {
+        one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
+        eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17,
+        eighteen: 18, nineteen: 19, twenty: 20, thirty: 30,
+    };
+    for (const [word, n] of Object.entries(words)) {
+        if (new RegExp("\\b" + word + "\\s+" + units + "\\b").test(clean)) return n;
+    }
+    return fallback || 5;
+}
+
+function updateTargetCountPill() {
+    const pill = document.getElementById("target-count-pill");
+    if (!pill) return 5;
+    const count = inferImageTargetCount($briefInput?.value || "", 5);
+    pill.textContent = "Target: " + count + " image" + (count === 1 ? "" : "s");
+    return count;
 }
 const $startBatchBtn = document.getElementById("start-batch-btn");
 const $lightboxModal = document.getElementById("lightbox-modal");
@@ -154,6 +179,13 @@ const $dashboardLeftPane = document.getElementById("dashboard-left-pane");
 window.addEventListener("DOMContentLoaded", () => {
     setDefaultVideoWorkflow();
     initVideoQuickOptions();
+    switchScriptFlowStep("idea");
+    const scriptBriefEl = document.getElementById("script-brief");
+    if (scriptBriefEl) scriptBriefEl.addEventListener("input", updateScriptFlowState);
+    const scriptPackageEl = document.getElementById("script-package-json");
+    if (scriptPackageEl) scriptPackageEl.addEventListener("input", updateScriptFlowState);
+    if ($briefInput) $briefInput.addEventListener("input", updateTargetCountPill);
+    updateTargetCountPill();
     loadCharacters();
     loadStats();
     loadShots();
@@ -216,8 +248,14 @@ async function updatePlatformDetection() {
         renderPlatformPill(currentPlatformSkill);
         if (currentPlatformSkill.active && currentPlatformSkill.constraints) {
             const vd = document.getElementById("video-duration");
+            const vds = document.getElementById("video-duration-select");
             if (vd && Number(vd.value || 0) < Number(currentPlatformSkill.constraints.duration_min_sec || 8)) {
                 vd.value = String(currentPlatformSkill.constraints.duration_default_sec || 12);
+            }
+            if (vds && Number(vds.value || 0) < Number(currentPlatformSkill.constraints.duration_min_sec || 8)) {
+                const target = String(currentPlatformSkill.constraints.duration_default_sec || 12);
+                if (Array.from(vds.options).some((opt) => opt.value === target)) vds.value = target;
+                syncVideoQuickOptions();
             }
         }
     } catch (e) {
@@ -1883,6 +1921,7 @@ let $scriptProgress = document.getElementById("script-progress");
 let $shotList = document.getElementById("shot-list");
 let $shotListPlaceholder = document.getElementById("shot-list-placeholder");
 let $sendToSparkBtn = document.getElementById("send-to-spark-btn");
+let currentScriptFlowStep = "idea";
 
 let characterMap = {}; // id -> name for linking
 
@@ -1908,6 +1947,76 @@ function setScriptStatus(text, progress) {
     refreshScriptDomRefs();
     if ($scriptStatusText) $scriptStatusText.textContent = text || "";
     if ($scriptProgress && progress !== undefined) $scriptProgress.textContent = progress || "";
+    updateScriptFlowState();
+}
+
+function scriptFlowCountShots() {
+    return Object.keys(director_shots || {}).length;
+}
+
+function setScriptStepStatus(step, text) {
+    const el = document.getElementById("script-step-status-" + step);
+    if (el) el.textContent = text;
+}
+
+function updateScriptVideoHandoff() {
+    const title = document.getElementById("script-video-handoff-title");
+    const copy = document.getElementById("script-video-handoff-copy");
+    const selected = videoSelection?.size || 0;
+    const shots = scriptFlowCountShots();
+    const boards = Array.isArray(storyboardPlan?.boards) ? storyboardPlan.boards.length : 0;
+    if (title) {
+        title.textContent = selected
+            ? selected + " start frame" + (selected === 1 ? "" : "s") + " selected for video."
+            : boards
+                ? "Storyboard ready for video export."
+                : shots
+                    ? shots + " coverage shot" + (shots === 1 ? "" : "s") + " ready."
+                    : "No video frames selected yet.";
+    }
+    if (copy) {
+        copy.textContent = selected
+            ? "Open the Videos tab to choose duration, resolution, aspect ratio, and generate LTX clips."
+            : boards
+                ? "Render storyboard panels, assemble them, then export the panel frames to Videos."
+                : shots
+                    ? "Render selected coverage shots first, then use those images as video start frames."
+                    : "Build a script package and storyboard before generating videos.";
+    }
+}
+
+function updateScriptFlowState() {
+    const hasBrief = !!($scriptBrief?.value || "").trim();
+    const hasPackage = !!getScriptPackageFromEditor();
+    const shotCount = scriptFlowCountShots();
+    const boardCount = Array.isArray(storyboardPlan?.boards) ? storyboardPlan.boards.length : 0;
+    const selectedVideos = videoSelection?.size || 0;
+
+    setScriptStepStatus("idea", hasBrief ? "Brief set" : "Ready");
+    setScriptStepStatus("script", hasPackage ? "Package ready" : "Waiting");
+    setScriptStepStatus("storyboard", boardCount ? boardCount + " board" + (boardCount === 1 ? "" : "s") : "Waiting");
+    setScriptStepStatus("videos", selectedVideos ? selectedVideos + " selected" : shotCount ? "Coverage ready" : "Waiting");
+
+    document.querySelectorAll(".script-flow-step[data-script-step]").forEach((el) => {
+        const step = el.dataset.scriptStep;
+        el.classList.toggle("active", step === currentScriptFlowStep);
+        el.classList.toggle("complete",
+            (step === "idea" && hasBrief) ||
+            (step === "script" && hasPackage) ||
+            (step === "storyboard" && boardCount > 0) ||
+            (step === "videos" && selectedVideos > 0)
+        );
+    });
+    updateScriptVideoHandoff();
+}
+
+function switchScriptFlowStep(step) {
+    refreshScriptDomRefs();
+    currentScriptFlowStep = step || "idea";
+    document.querySelectorAll("[data-script-step-panel]").forEach((panel) => {
+        panel.classList.toggle("active", panel.dataset.scriptStepPanel === currentScriptFlowStep);
+    });
+    updateScriptFlowState();
 }
 
 function getScriptPackageFromEditor() {
@@ -1993,12 +2102,15 @@ function storyboardCharacterSheetPrompt() {
     const consistency = scriptInputValue("storyboard-character-consistency", "");
     const style = scriptInputValue("storyboard-style", "cinematic");
     return [
-        "production character reference sheet for " + title,
+        "professional production character reference turnaround sheet for " + title,
         consistency || "main character, consistent face, consistent wardrobe, full body, portrait close-up, side profile, three-quarter view",
-        "clean neutral background, even studio lighting, front view, side profile, three-quarter view, full body, face close-up, hands and footwear detail",
-        "single consistent character identity across every view",
+        "4K horizontal 16:9 reference sheet, 3840x2160 composition, clean two-row production layout on a neutral studio background, thin light-gray divider lines, no square canvas, no overlapping panels, no giant central portrait overlay",
+        "six large panels only, not nine, generous space around each figure",
+        "top row three full-body turnaround panels: front view, left side profile, back view",
+        "bottom row three detail panels: sharp front face portrait neutral expression, sharp warm smile portrait, sharp hands and forearms detail with visible skin texture, eyelashes, flyaway hair, fabric weave",
+        "same person, same age, same face, same hair, same body proportions, same outfit, same lighting in every panel",
         style,
-        "no captions, no labels, no typography, no watermark, no duplicate identities",
+        "sharp eyelashes and hair strands, clean blank layout, crisp divider lines, no barcode artifacts, no labels, no captions, no typography, no letters, no numbers, no watermark, no duplicate identities, no faded ghost image, no collage overlay",
     ].join(", ");
 }
 
@@ -2085,7 +2197,7 @@ function renderStoryboardPlan(plan) {
                         '<button class="btn btn-secondary" onclick="renderStoryboardBoard(' + Number(board.index || 1) + ')">Render Page</button>' +
                         '<button class="btn btn-secondary" onclick="renderStoryboardPanels(' + Number(board.index || 1) + ')">Render Panels</button>' +
                         '<button class="btn" onclick="assembleStoryboardPanels(' + Number(board.index || 1) + ')">Assemble</button>' +
-                        '<button class="btn" onclick="renderAssembleExportStoryboardPanels(' + Number(board.index || 1) + ')">Auto Start Frames</button>' +
+                        '<button class="btn" onclick="renderAssembleExportStoryboardPanels(' + Number(board.index || 1) + ')">Render + Export Frames</button>' +
                     '</div>' +
                 '</div>' +
                 '<div class="storyboard-panel-grid">' + panels.map((panel, idx) => (
@@ -2129,9 +2241,9 @@ async function generateStoryboard() {
     const btn = document.getElementById("generate-storyboard-btn");
     if (btn) {
         btn.disabled = true;
-        btn.textContent = "Generating...";
+        btn.textContent = "Building...";
     }
-    setScriptStatus("Building 9-panel 4K storyboard board(s)...", "Storyboard");
+    setScriptStatus("Building storyboard board(s)...", "Storyboard");
     try {
         const targetPanelsRaw = scriptInputValue("storyboard-target-panels", "");
         const resp = await fetch("/api/script/storyboard", {
@@ -2158,6 +2270,7 @@ async function generateStoryboard() {
         storyboardPlan = data;
         storyboardPanelJobs = {};
         renderStoryboardPlan(data);
+        switchScriptFlowStep("storyboard");
         setScriptStatus("Storyboard ready: " + data.board_count + " board image(s), " + data.panel_count + " panel(s).", "Storyboard");
     } catch (e) {
         setScriptStatus("Storyboard failed: " + e.message, "");
@@ -2165,7 +2278,7 @@ async function generateStoryboard() {
     } finally {
         if (btn) {
             btn.disabled = false;
-            btn.textContent = "Generate Storyboard";
+            btn.textContent = "Build Storyboard";
         }
     }
 }
@@ -2357,6 +2470,7 @@ async function exportStoryboardVideoShots(boardIndex) {
         setScriptStatus("Storyboard exported to Video tab: " + Number(data.count || 0) + " start-frame shot(s).", "Storyboard");
         if (typeof loadVideoLibrary === "function") await loadVideoLibrary();
         if (typeof updateVideoSelectionUI === "function") updateVideoSelectionUI();
+        switchScriptFlowStep("videos");
         return data;
     } catch (e) {
         if (resultEl) resultEl.textContent = "Video shot export failed: " + e.message;
@@ -2379,8 +2493,8 @@ async function generateStoryboardCharacterSheet() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 prompt: storyboardCharacterSheetPrompt(),
-                width_and_height: "2048x1536",
-                quality: "720p",
+                width_and_height: "3840x2160",
+                quality: "1080p",
                 batch_size: 1,
                 enhance_prompt: false,
                 wait_for_output: false,
@@ -2532,6 +2646,7 @@ async function developScriptPackage() {
         }
         scriptPackage = data.package;
         renderScriptPackage(scriptPackage);
+        switchScriptFlowStep("script");
         setScriptStatus((data.status === "fallback" ? "Fallback script package ready" : "Script package ready") + ". Review locks, then generate coverage.", "Locked");
     } catch (e) {
         setScriptStatus("Script package failed: " + e.message, "");
@@ -2539,7 +2654,7 @@ async function developScriptPackage() {
     } finally {
         if (btn) {
             btn.disabled = false;
-            btn.textContent = "Develop Script Package";
+            btn.textContent = "Build Package";
         }
     }
 }
@@ -2565,6 +2680,7 @@ async function uploadBrief() {
         if (data.status === "ok") {
             $scriptBrief.value = data.content;
             $scriptStatusText.textContent = "Uploaded: " + data.filename + " (" + data.char_count + " chars)";
+            updateScriptFlowState();
             setTimeout(() => { $scriptStatusText.textContent = "Ready"; }, 3000);
         } else {
             $scriptStatusText.textContent = "Error: " + (data.error || "Upload failed");
@@ -2584,9 +2700,10 @@ async function generateShotList() {
 
     const $btn = document.getElementById("generate-shots-btn");
     $btn.disabled = true;
-    $btn.textContent = "Generating...";
-    $scriptStatusText.textContent = scriptPackage ? "Director is converting locked script into coverage..." : "Director is analyzing brief...";
-    $scriptProgress.textContent = "";
+    $btn.textContent = "Building...";
+        $scriptStatusText.textContent = scriptPackage ? "Director is converting locked script into coverage..." : "Director is analyzing brief...";
+        $scriptProgress.textContent = "";
+        switchScriptFlowStep("script");
 
     // Clear existing shots
     director_shots = {};
@@ -2642,7 +2759,7 @@ async function generateShotList() {
         $scriptStatusText.textContent = "Error: " + e.message;
     } finally {
         $btn.disabled = false;
-        $btn.textContent = "Generate Coverage Shotlist";
+        $btn.textContent = "Build Shotlist";
     }
 }
 
@@ -2664,6 +2781,7 @@ function handleDirectorEvent(event) {
         case "done":
             $scriptStatusText.textContent = event.text;
             updateSendToSparkBtn();
+            updateScriptFlowState();
             break;
 
         case "error":
@@ -2867,6 +2985,7 @@ async function sendToSpark() {
     } else {
         $scriptStatusText.textContent = "Selected script shots have no rendered images yet; render images before image-to-video.";
     }
+    updateScriptFlowState();
     if (missingMedia.length && $sparkStatusText) {
         $sparkStatusText.textContent = "Skipped " + missingMedia.length + " script shot(s) without rendered images: " + missingMedia.slice(0, 4).join(", ");
     }
@@ -2885,6 +3004,7 @@ function clearShotList() {
     renderScriptPackage(null);
     renderStoryboardPlan(null);
     updateSendToSparkBtn();
+    switchScriptFlowStep("idea");
 }
 
 // ---------------------------------------------------------------------------
@@ -2986,7 +3106,7 @@ function campaignStatusFromEvent(event) {
         case "kimi_raw":
             return ["Kimi", "Director plan received.", event.campaign_id || "raw", "running"];
         case "kimi_plan":
-            return ["Kimi", text || ("Structured plan received (" + (event.count || 0) + " shots)"), "plan", "running"];
+            return ["Kimi", text || ("Structured plan received (" + (event.count || 0) + " / " + (event.target_shots || event.count || 0) + " shots)"), "plan", "running"];
         case "kimi_review":
             return ["Kimi", "Coverage review score " + (event.score !== undefined ? event.score : "n/a"), event.status || "review", "running"];
         case "hermes":
@@ -3029,6 +3149,7 @@ async function runCampaign() {
     await updatePlatformDetection();
 
     const length = $lengthSelect ? $lengthSelect.value : "";
+    const targetShots = updateTargetCountPill();
     const klein = document.getElementById("model-klein")?.checked;
     const flux2 = document.getElementById("model-flux2")?.checked;
     const turbo = flux2 && !!document.getElementById("model-turbo")?.checked;
@@ -3069,8 +3190,8 @@ async function runCampaign() {
     const $cancelBtn = document.getElementById("cancel-campaign-btn");
     if ($cancelBtn) $cancelBtn.style.display = "inline-flex";
 
-    addLogEntry("system", "Campaign started: " + brief);
-    setCampaignStatus("Pipeline", "Campaign started.", "opening stream", "running");
+    addLogEntry("system", "Campaign started: target " + targetShots + " image" + (targetShots === 1 ? "" : "s") + " / " + brief);
+    setCampaignStatus("Pipeline", "Target: " + targetShots + " image" + (targetShots === 1 ? "" : "s"), "opening stream", "running");
 
     try {
         const resp = await fetch("/api/hermes/run-campaign", {
@@ -3086,6 +3207,7 @@ async function runCampaign() {
                 append_to_campaign: appendToCampaign,
                 platform_mode: platformMode,
                 series_continuity: seriesContinuity,
+                target_shots: targetShots,
             }),
             signal: campaignAbortController.signal,
         });
@@ -3180,7 +3302,7 @@ function handleCampaignEvent(event) {
             break;
 
         case "kimi_plan":
-            addLogEntry("kimi", text || ("Structured plan received (" + (event.count || 0) + " shots)"));
+            addLogEntry("kimi", text || ("Structured plan received (" + (event.count || 0) + " / " + (event.target_shots || event.count || 0) + " shots)"));
             break;
 
         case "kimi_review": {
@@ -3450,6 +3572,7 @@ async function sendScriptChat() {
 let characterManagerCache = [];
 let characterForgeGender = "";
 let characterForgeSelectedId = "";
+let currentCharacterFlowStep = "design";
 
 function normalizeCharacters(payload) {
     if (Array.isArray(payload)) return payload;
@@ -3499,11 +3622,109 @@ function characterReferenceImageUrlsForForge(char) {
     return urls.slice(0, 10);
 }
 
+function characterLoraReferenceImageUrls(char) {
+    const urls = [];
+    const addUrl = (url) => {
+        const clean = String(url || "").trim();
+        if (!clean || urls.includes(clean)) return;
+        if (/\.(mp4|mov|webm)(\?|$)/i.test(clean)) return;
+        urls.push(clean);
+    };
+    addUrl(latestCharacterGeneratedImage(char));
+    const approved = Array.isArray(char?.approved_assets) ? char.approved_assets : [];
+    [...approved].reverse().forEach((asset) => addUrl(asset?.url || asset?.image_url || asset));
+    ["master_references", "reference_uploads", "sheet_panels", "character_sheets"].forEach((key) => {
+        const refs = Array.isArray(char?.[key]) ? char[key] : [];
+        refs.forEach((ref) => addUrl(ref?.url || ref?.image_url || ref));
+    });
+    return urls;
+}
+
 function selectedCharacterForForge() {
     const selectedId = characterForgeSelectedId || "";
     return characterManagerCache.find((c) => characterId(c) === selectedId)
         || shellState?.characters?.find((c) => characterId(c) === selectedId)
         || null;
+}
+
+function setCharacterStepStatus(step, text) {
+    const el = document.getElementById("character-step-status-" + step);
+    if (el) el.textContent = text;
+}
+
+function characterLoraVersions(char) {
+    const versions = char?.training?.lora_versions;
+    return Array.isArray(versions) ? versions : [];
+}
+
+function suggestedCharacterLoraTrigger(char) {
+    const base = characterId(char || { id: characterForgeValue("char-forge-name") || "character" }).replace(/_+/g, "_");
+    return (base || "character") + "_char";
+}
+
+function updateCharacterFlowState() {
+    const selected = selectedCharacterForForge();
+    const selectedName = selected ? characterName(selected) : "";
+    const hasDesign = !!(characterForgeValue("char-forge-name") || characterForgeValue("char-forge-base-prompt"));
+    const hasRender = selected ? !!latestCharacterGeneratedImage(selected) : false;
+    const refUrls = selected ? characterLoraReferenceImageUrls(selected) : [];
+    const loraVersions = selected ? characterLoraVersions(selected) : [];
+    const loraReady = refUrls.length >= 10;
+
+    setCharacterStepStatus("design", selected ? "Selected" : hasDesign ? "Draft set" : "Ready");
+    setCharacterStepStatus("render", hasRender ? "Rendered" : selected ? "Ready" : "Waiting");
+    setCharacterStepStatus("references", refUrls.length ? refUrls.length + " image" + (refUrls.length === 1 ? "" : "s") : "Waiting");
+    setCharacterStepStatus("lora", loraVersions.length ? "Pack ready" : loraReady ? "Ready" : selected ? "Need refs" : "Not ready");
+
+    document.querySelectorAll(".script-flow-step[data-character-step]").forEach((el) => {
+        const step = el.dataset.characterStep;
+        el.classList.toggle("active", step === currentCharacterFlowStep);
+        el.classList.toggle("complete",
+            (step === "design" && (hasDesign || selected)) ||
+            (step === "render" && hasRender) ||
+            (step === "references" && refUrls.length > 0) ||
+            (step === "lora" && loraVersions.length > 0)
+        );
+    });
+
+    const selectedEl = document.getElementById("character-lora-selected");
+    const refsEl = document.getElementById("character-lora-ref-count");
+    const readyEl = document.getElementById("character-lora-readiness");
+    const triggerEl = document.getElementById("character-lora-trigger");
+    const prepareBtn = document.getElementById("character-lora-prepare-btn");
+    const loraStatus = document.getElementById("character-lora-status");
+    if (selectedEl) selectedEl.textContent = selectedName || "No character selected";
+    if (refsEl) refsEl.textContent = refUrls.length + " usable image" + (refUrls.length === 1 ? "" : "s");
+    if (readyEl) {
+        readyEl.textContent = !selected
+            ? "Needs character"
+            : loraReady
+                ? "Training-ready pack"
+                : "Can generate, add " + Math.max(0, 10 - refUrls.length) + " more for stronger training";
+    }
+    if (triggerEl && selected && !triggerEl.value.trim()) {
+        triggerEl.placeholder = suggestedCharacterLoraTrigger(selected);
+    }
+    if (prepareBtn) prepareBtn.disabled = !(selected && refUrls.length);
+    if (loraStatus) {
+        const current = loraStatus.textContent || "";
+        const canRefresh = !current || /^(Select a character|Ready to generate|Can generate|No usable|Add at least)/.test(current);
+        if (canRefresh) {
+            loraStatus.textContent = !selected
+                ? "Select a character with approved/reference images before generating a LoRA pack."
+                : refUrls.length
+                    ? "Ready to generate a LoRA dataset pack for " + selectedName + "."
+                    : "No usable image references found for " + selectedName + ".";
+        }
+    }
+}
+
+function switchCharacterFlowStep(step) {
+    currentCharacterFlowStep = step || "design";
+    document.querySelectorAll("[data-character-step-panel]").forEach((panel) => {
+        panel.classList.toggle("active", panel.dataset.characterStepPanel === currentCharacterFlowStep);
+    });
+    updateCharacterFlowState();
 }
 
 function syncCharacterForgeSelectionUi() {
@@ -3524,6 +3745,7 @@ function syncCharacterForgeSelectionUi() {
         variationBtn.disabled = !enabled;
         variationBtn.title = enabled ? "Uses the selected character images as variation references." : "Select one character with a generated image first.";
     }
+    updateCharacterFlowState();
 }
 
 function characterDnaText(char) {
@@ -3605,7 +3827,7 @@ async function loadCharacterManager() {
             const dna = char?.dna && typeof char.dna === "object" ? Object.keys(char.dna).length : 0;
             const refs = characterReferences(char).filter((r) => r.master).length;
             const avatar = img
-                ? '<img src="' + escapeHtml(img) + '" alt="' + escapeHtml(name) + '" loading="lazy">'
+                ? '<img class="character-zoomable" src="' + escapeHtml(img) + '" alt="' + escapeHtml(name) + '" loading="lazy" data-zoom-src="' + escapeHtml(img) + '" data-zoom-title="' + escapeHtml(name) + '" data-zoom-prompt="' + escapeHtml(char?.anchor_prompt || char?.role || "") + '">'
                 : '<div class="character-avatar-fallback">' + escapeHtml(name.slice(0, 1).toUpperCase()) + '</div>';
             return (
                 '<article class="character-card-live' + (id === characterForgeSelectedId ? " selected" : "") + '" data-character-id="' + escapeHtml(id) + '">' +
@@ -3641,27 +3863,32 @@ async function createCharacterFromManager(event) {
     if (event && event.preventDefault) event.preventDefault();
     const status = document.getElementById("character-manager-status");
     const form = event?.currentTarget?.tagName === "FORM" ? event.currentTarget : null;
-    const btn = event?.currentTarget?.querySelector ? event.currentTarget.querySelector('button[type="submit"]') : null;
+    const btn = event?.currentTarget?.tagName === "BUTTON"
+        ? event.currentTarget
+        : (event?.currentTarget?.querySelector ? event.currentTarget.querySelector('button[type="submit"]') : null);
     const name = (document.getElementById("char-forge-name")?.value || form?.querySelector('[name="name"]')?.value || "").trim();
     const description = (document.getElementById("char-forge-role")?.value || form?.querySelector('[name="description"]')?.value || "").trim();
+    const anchorPrompt = (document.getElementById("char-forge-base-prompt")?.value || form?.querySelector('[name="anchor_prompt"]')?.value || "").trim();
     if (!name) {
         if (status) status.textContent = "Name is required.";
         return;
     }
     if (btn) btn.disabled = true;
-    if (status) status.textContent = "Creating...";
+    if (status) status.textContent = "Saving metadata...";
     try {
         const data = new FormData();
         data.append("name", name);
         data.append("description", description);
+        data.append("anchor_prompt", anchorPrompt);
         const resp = await fetch("/api/characters", { method: "POST", body: data });
         const payload = await resp.json().catch(() => ({}));
-        if (!resp.ok && resp.status !== 409) throw new Error(payload.detail || payload.error || "HTTP " + resp.status);
-        if (status) status.textContent = resp.status === 409 ? "Character already exists; metadata kept." : "Character metadata saved.";
+        if (!resp.ok) throw new Error(payload.detail || payload.error || "HTTP " + resp.status);
+        if (status) status.textContent = payload.status === "updated" ? "Character metadata updated." : "Character metadata saved.";
         await loadCharacters();
         await loadCharacterManager();
+        switchCharacterFlowStep("render");
     } catch (e) {
-        if (status) status.textContent = "Create failed: " + (e?.message || e);
+        if (status) status.textContent = "Save failed: " + (e?.message || e);
     } finally {
         if (btn) btn.disabled = false;
     }
@@ -3926,7 +4153,11 @@ function inferCharacterRoleContext(role) {
 }
 
 async function generateCharacterFromRoleWithKimi(role, status) {
-    if (status) status.textContent = "Asking Kimi to cast and prompt this role...";
+    if (status) {
+        status.classList.remove("kimi-success", "kimi-fallback");
+        status.classList.add("kimi-generating");
+        status.textContent = "Asking Kimi to cast and prompt this role...";
+    }
     const resp = await fetch("/api/characters/role-prompt", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -3957,13 +4188,13 @@ async function generateCharacterFromRoleWithKimi(role, status) {
 
     const sheetEl = document.getElementById("char-forge-sheet-prompt");
     const variationEl = document.getElementById("char-forge-variation-prompt");
-    if (data.sheet_prompt && data.variation_prompt) {
-        if (sheetEl) sheetEl.value = withCharacterNoTextRule(data.sheet_prompt);
-        if (variationEl) variationEl.value = withCharacterNoTextRule(data.variation_prompt);
-    } else {
-        composeCharacterPrompts();
+    composeCharacterPrompts();
+    if (variationEl && data.variation_prompt) variationEl.value = withCharacterNoTextRule(data.variation_prompt);
+    if (status) {
+        status.classList.remove("kimi-generating", "kimi-fallback");
+        status.classList.add("kimi-success");
+        status.textContent = "Kimi generated a role-aware character prompt. Review before sending to Spark.";
     }
-    if (status) status.textContent = "Kimi generated a role-aware character prompt. Review before sending to Spark.";
     return true;
 }
 
@@ -4215,7 +4446,11 @@ async function generateCharacterFromRoleForge() {
     } catch (e) {
         kimiError = e?.message || String(e || "");
         console.warn("Kimi character prompt unavailable; using local role logic.", e);
-        if (status) status.textContent = "Kimi unavailable; using local role-aware generator...";
+        if (status) {
+            status.classList.remove("kimi-generating", "kimi-success");
+            status.classList.add("kimi-fallback");
+            status.textContent = "Kimi unavailable; using local role-aware generator...";
+        }
     }
     const neutralNames = ["Alex", "Jordan", "Maya", "Noah", "Elena", "Marcus", "Priya", "Owen", "Nina", "Daniel", "Leah", "Victor"];
     const maleNames = ["Michael", "David", "Daniel", "Noah", "Marcus", "Owen", "Victor", "Ethan", "Caleb", "Andre", "Leo", "Thomas"];
@@ -4255,6 +4490,9 @@ async function generateCharacterFromRoleForge() {
 
     composeCharacterPrompts();
     if (status) {
+        status.classList.remove("kimi-generating", "kimi-success");
+        if (kimiError) status.classList.add("kimi-fallback");
+        else status.classList.remove("kimi-fallback");
         status.textContent = kimiError
             ? "Kimi unavailable; generated from role locally. Review before sending to Spark."
             : "Character generated from role locally. Review before sending to Spark.";
@@ -4274,13 +4512,16 @@ function composeCharacterPrompts() {
     const angles = characterForgeValue("char-forge-angles") || "front, 3/4 left, 3/4 right, profile, rear";
 
     const sheetPrompt = withCharacterNoTextRule([
-        "multi-angle character model sheet for " + name,
+        "professional character reference turnaround sheet for " + name,
         role ? "role: " + role : "",
-        base,
-        "single consistent character identity across every panel",
-        "clean orthographic lineup, " + angles,
-        "neutral gray background, even studio lighting, full body plus portrait close-up, hands and footwear detail callouts",
-        "no duplicate characters, no identity drift, no costume redesign between angles",
+        "core identity: " + base,
+        "4K horizontal 16:9 canvas, 3840x2160, pure white or light neutral studio background with very light gray divider lines",
+        "wide two-row production layout with six large panels only, clean margins, no square canvas, no overlapping panels, no tilted collage, no giant central portrait, no faded ghost image",
+        "consistent soft studio lighting in every panel, gentle key light from upper left, subtle fill light, natural shadows, accurate material detail",
+        "Top row contains three large full-body turnaround panels: front view neutral standing pose, left side profile view, back view showing rear hair and outfit construction",
+        "Bottom row contains three large detail panels: front face portrait neutral expression with clear eyes and skin texture, warm smile portrait, hands and forearms detail with accurate fingers, accessories, sleeves, and signature details",
+        "same person in every panel, same age, same face, same hair color and style, same body proportions, same outfit, same materials, no identity drift, no costume redesign",
+        "professional AAA game development and animation pre-production reference sheet, sharp eyelashes and hair strands, crisp facial features, coherent anatomy, clean studio presentation, visible skin texture, fabric weave, no fake writing, no barcode artifacts",
     ].filter(Boolean).join(", "));
 
     const variationPrompt = withCharacterNoTextRule([
@@ -4328,6 +4569,7 @@ function selectCharacterForForge(charId) {
     if (status) status.textContent = refUrl
         ? "Selected " + characterName(char) + ". Sheet and variation generation will use this character image."
         : "Selected " + characterName(char) + ". Generate a character image before making sheets or variations.";
+    updateCharacterFlowState();
 }
 
 function promptForCharacterRender(kind) {
@@ -4336,7 +4578,8 @@ function promptForCharacterRender(kind) {
         : kind === "variation"
             ? characterForgeValue("char-forge-variation-prompt")
             : characterForgeValue("char-forge-base-prompt");
-    return raw ? withCharacterNoTextRule(raw) : "";
+    if (!raw) return "";
+    return withCharacterNoTextRule(raw);
 }
 
 async function renderCharacterOnSpark(kind) {
@@ -4362,6 +4605,7 @@ async function renderCharacterOnSpark(kind) {
     if ((kind === "sheet" || kind === "variation") && !promptForCharacterRender(kind)) {
         composeCharacterPrompts();
     }
+    switchCharacterFlowStep("render");
     const prompt = promptForCharacterRender(kind);
     if (!prompt) {
         if (status) status.textContent = "Prompt is required before Spark generation.";
@@ -4407,6 +4651,7 @@ async function renderCharacterOnSpark(kind) {
         await loadCharacters();
         await loadCharacterManager();
         syncCharacterForgeSelectionUi();
+        updateCharacterFlowState();
     } catch (e) {
         if (status) status.textContent = "Spark generation unavailable: " + (e?.message || e);
     }
@@ -4485,12 +4730,65 @@ async function extractCharacterSheetPanelsFromRender(charId, imageUrl, promptId)
         if (status) status.textContent = "Extracted " + String((payload.panels || []).length) + " sheet panel reference(s).";
         await loadCharacters();
         await loadCharacterManager();
+        switchCharacterFlowStep("references");
         if (shellState?.view === "characters") {
             await fetchCharacters();
             await renderCharactersContent();
         }
     } catch (e) {
         if (status) status.textContent = "Panel extraction failed: " + (e?.message || e);
+    }
+}
+
+async function prepareCharacterLoraPack() {
+    const selected = selectedCharacterForForge();
+    const status = document.getElementById("character-lora-status") || document.getElementById("character-manager-status");
+    const output = document.getElementById("character-lora-pack-output");
+    const btn = document.getElementById("character-lora-prepare-btn");
+    if (!selected) {
+        if (status) status.textContent = "Select a character before preparing a LoRA pack.";
+        updateCharacterFlowState();
+        return;
+    }
+    const trigger = (document.getElementById("character-lora-trigger")?.value || "").trim() || suggestedCharacterLoraTrigger(selected);
+    if (btn) btn.disabled = true;
+    if (status) status.textContent = "Preparing LoRA dataset pack...";
+    try {
+        const resp = await fetch("/api/characters/" + encodeURIComponent(characterId(selected)) + "/lora-pack", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                trigger_token: trigger,
+                notes: "Prepared from the Characters workflow LoRA step.",
+            }),
+        });
+        const payload = await resp.json().catch(() => ({}));
+        if (!resp.ok) throw new Error(payload.detail || payload.error || "HTTP " + resp.status);
+        const pack = payload.lora_version || {};
+        if (status) {
+            status.textContent = payload.ready_for_training
+                ? "LoRA dataset pack ready: " + (pack.id || payload.pack_id || "prepared")
+                : "LoRA pack prepared, but add more references before training. Current image count: " + String(payload.image_count || 0) + ".";
+        }
+        if (output) {
+            output.textContent = JSON.stringify({
+                character_id: payload.character_id,
+                trigger_token: payload.trigger_token,
+                image_count: payload.image_count,
+                ready_for_training: payload.ready_for_training,
+                manifest_path: payload.manifest_path,
+                pack_path: payload.pack_path,
+                trainer_status: payload.trainer_status,
+            }, null, 2);
+        }
+        if (payload?.character?.id) characterForgeSelectedId = characterId(payload.character);
+        await loadCharacterManager();
+        switchCharacterFlowStep("lora");
+    } catch (e) {
+        if (status) status.textContent = "LoRA pack failed: " + (e?.message || e);
+    } finally {
+        if (btn) btn.disabled = false;
+        updateCharacterFlowState();
     }
 }
 
@@ -4817,7 +5115,7 @@ async function loadVideoLibrary() {
             const isRetry = !!(s.retry_of || s.parent_shot_id || String(s.id).includes("__retry_"));
             const state = String(s.state || s.status || "").toLowerCase();
             const auditStatus = String(s.audit_status || "").toLowerCase() || (state.includes("fail") ? "fail" : (state.includes("pass") ? "pass" : ""));
-            const cls = ["grid-cell", "rendered"];
+            const cls = ["grid-cell", "rendered", "video-library-cell"];
             if (selected) cls.push("selected");
             if (auditStatus === "pass") cls.push("audit-pass");
             if (auditStatus === "fail") cls.push("audit-fail");
@@ -4913,7 +5211,10 @@ async function loadVideoLibrary() {
                 cell.appendChild(dot);
             }
 
-            cell.appendChild(mediaEl);
+            const frame = document.createElement("div");
+            frame.className = "video-thumb-frame";
+            frame.appendChild(mediaEl);
+            cell.appendChild(frame);
             cell.appendChild(label);
             cell.addEventListener("click", () => toggleVideoSelect(s.id));
             cell.addEventListener("dblclick", (event) => {
@@ -5073,9 +5374,9 @@ async function processSelectedVideos() {
         return;
     }
     const videoOptions = syncVideoQuickOptions();
-    const duration = parseInt($videoDuration?.value || String(videoOptions.duration || 5), 10);
+    const duration = parseInt(String(videoOptions.duration || $videoDuration?.value || 5), 10);
     const fps = parseInt($videoFps?.value || "24", 10);
-    const workflowId = getSelectedVideoWorkflow();
+    const workflowId = videoOptions.workflowId || getSelectedVideoWorkflow();
     const videoPrompt = ($videoPrompt?.value || "").trim();
     const selectedForVideo = Array.from(videoSelection).filter(id => {
         const shot = videoShotsById[id];
@@ -6659,7 +6960,7 @@ close up
 medium shot
 full body</textarea></label>
                             <label class="form-row"><span>Lighting Bank</span><textarea class="textarea" id="cfg-bank-lighting" rows="7" spellcheck="false">golden hour
-cinematic lighting
+motivated source-based light
 soft studio light
 hard shadows
 neon glow

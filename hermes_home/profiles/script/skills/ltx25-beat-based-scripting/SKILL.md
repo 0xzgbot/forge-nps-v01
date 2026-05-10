@@ -30,6 +30,12 @@ Divide every scene into time-stamped "beats" to guide the temporal evolution of 
 
 **[Time Range]: [Camera Movement/Angle] + [Subject Action] + [Environmental/Lighting Shift]**
 
+Required per clip:
+- At least three timed beats for clips longer than four seconds.
+- One stable identity/wardrobe continuity clause.
+- One physical texture or environmental detail that persists across the clip.
+- One dedicated negative line for morphing, flicker, face drift, and costume drift.
+
 *Example:*
 `[0-4s]: Wide shot, slow dolly-in on Elara Vance traversing a crumbling bridge; heavy volumetric dust and heat haze.`
 `[4-8s]: Medium close-up, focus on her weathered skin and sweat; harsh side-lighting from a low sun.`
@@ -44,3 +50,4 @@ Each script must begin with a metadata block:
 - **Abstract Prose:** Never use words like "beautifully" or "intensely" without describing the *technical reason* why (e.g., instead of "beautiful light," use "warm, diffused golden hour rim lighting").
 - **Static Descriptions:** AI video models need motion cues. If a scene is static, describe the movement of the environment (dust motes, swaying trees, flickering lights).
 - **Ignoring Temporal Shifts:** A single prompt for an entire 10-second clip often fails. Use the beat-based structure to force the model to evolve the shot.
+- **Generic Polish Tags:** Do not rely on "cinematic, 4K, film quality." Use timed physical changes, concrete lens behavior, and material/lighting continuity.

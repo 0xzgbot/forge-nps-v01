@@ -248,7 +248,7 @@ class LocalHiggsfieldAdapter:
         *,
         prompt: str,
         width_and_height: str = "1696x960",
-        enhance_prompt: bool = True,
+        enhance_prompt: bool = False,
         quality: str = "720p",
         batch_size: int = 1,
         style_id: Optional[str] = None,

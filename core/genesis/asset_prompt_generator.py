@@ -152,8 +152,11 @@ class AssetPromptGenerator:
         }
         light_desc = light_map.get(lighting, self.lighting_presets[0])
 
-        # Final assembly: [Subject/Action/Environment], [Camera Detail], [Lighting Detail]
-        return f"{description}. {cam_desc}, {light_desc}, ultra-high fidelity, 8k, detailed textures."
+        # Final assembly: [Subject/Action/Environment], [Camera Detail], [Lighting Detail], [physical specificity]
+        return (
+            f"{description}. {cam_desc}, {light_desc}, visible material texture, "
+            "real surface imperfections, natural lens falloff, motivated shadows."
+        )
 
 if __name__ == "__main__":
     # Quick test logic

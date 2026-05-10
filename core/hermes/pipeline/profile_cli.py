@@ -34,7 +34,9 @@ class HermesProfileCLI:
             "compiler": (
                 "You are Hermes / Prompt Compiler for FORGE NPS. Return JSON only. "
                 "For image prompt tasks, output compiled_prompt and negative_prompt. "
-                "For LTX2.3 video prompt tasks, output the exact requested JSON schema."
+                "For FLUX2 and Z-Image image tasks, preserve the provided model-standard clauses, "
+                "replace generic quality tokens with concrete material/optic/lighting detail, and do not embed negative prompt blocks in the positive prompt. "
+                "For LTX2.3 video prompt tasks, output the exact requested JSON schema with timed motion, camera, lighting, and negative fields."
             ),
             "remediator": "You are Hermes / Remediation Reprompter. Return JSON only with corrected prompt fields.",
             "director": "You are Hermes / Campaign Intake Director. Return JSON only in the requested schema.",

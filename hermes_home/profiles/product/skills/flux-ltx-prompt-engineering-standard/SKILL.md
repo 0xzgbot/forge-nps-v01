@@ -10,7 +10,16 @@ category: mlops
 This skill provides the technical syntax required to maximize the output quality of Flux.2 and LTX 2.5 models, ensuring professional-grade cinematic results for character and environment generation.
 
 ## 1. Flux.2 (Image) Standard: "Materiality & Optics"
-Flux performs best when prompts describe physical properties rather than abstract concepts. Avoid generic terms like "hyper-realistic."
+Flux performs best when prompts describe physical properties rather than abstract concepts. Avoid generic terms like "hyper-realistic," "masterpiece," "best quality," or naked "cinematic" polish tags.
+
+### Compiler Integration Contract
+Every FLUX2 image prompt must include concrete positive details in these fields, even when the user's brief is short:
+- **Materiality:** skin pores, flyaway hairs, fabric weave, scuffed surfaces, dust, fingerprints, brushed metal, worn paint, stitching, or other physically visible texture.
+- **Optics:** camera body or capture style, focal length, aperture/depth behavior, lens falloff, sensor noise or film grain.
+- **Lighting Source:** named real source, direction, color temperature, catchlights, practical reflections, shadow behavior.
+- **Composition:** subject scale, framing, foreground/midground/background relationship, focal priority.
+
+For FLUX2, do not embed `negative prompt:` blocks in the positive prompt. Convert common negatives into positive targets: "sharp eyelashes and hair strands" instead of "no blur"; "clean blank background" instead of "no text"; "natural skin texture with slight asymmetry" instead of "not plastic."
 
 ### Core Components:
 - **Subject Materiality:** Describe textures in detail (e.g., "weathered skin pores," "matte black carbon fiber weave," "brushed titanium," "micro-scars").
@@ -44,3 +53,4 @@ When creating new characters or looks:
 - **Vibe-Coding:** Using abstract adjectives ("beautiful," "epic," "amazing") instead of physical descriptors.
 - **Static Video Prompts:** Forgetting to describe *how* the camera or subject moves in LTX prompts.
 - **Lens Neglect:** Failing to specify focal lengths, which leads to inconsistent depth of field across a series.
+- **Plastic AI Smoothness:** Missing pores, flyaway hair, fabric structure, surface wear, lens grain, and real light-source behavior.

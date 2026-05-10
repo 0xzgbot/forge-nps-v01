@@ -1,4 +1,5 @@
 photorealistic
-cinematic lighting
-8k resolution
-highly detailed textures
+visible natural texture
+specific motivated light source
+natural lens falloff
+real-world surface imperfections

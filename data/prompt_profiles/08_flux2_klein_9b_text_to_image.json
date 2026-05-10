@@ -4,7 +4,7 @@
   "prompt_style": "fast cinematic social frame with strong subject readability",
   "camera_defaults": "28mm to 50mm lens, decisive framing, clear depth separation",
   "lighting_defaults": "single-key dominant lighting with practical fill and stable highlights",
-  "quality_terms": "crisp subject silhouette, clean motion implication, high social-thumb readability",
+  "quality_terms": "crisp subject silhouette, tactile material cues, specific light source, readable social-thumb composition",
   "negative_prompt": "muddy details, broken hands, duplicate limbs, identity drift, warped reflections, posterization, unreadable subject",
   "forbidden_terms": [
     "nsfw",
