@@ -15,6 +15,7 @@ Seedance 2 rewards precise, structured, film-director language over loose descri
 - **Skin/Texture**: Avoid waxy defaults by specifying "realistic skin texture, visible pores, natural slight unevenness".
 - **Motion vs. Camera**: To avoid artifacts, prefer either a static camera with a moving subject, or a controlled camera move. Simultaneous high-speed movement in both can cause confusion.
 - **Image-to-Video Rule**: Describe only motion and camera; never re-describe the reference image. Lead with Subject + Primary Action in the first 20-30 words.
+- **Compiler Requirement:** Every prompt must include temporal segmentation or explicit shot progression, one camera behavior, one source-based lighting phrase, one physical texture phrase, and one dedicated negative line.
 
 ## Prompting Formats
 
@@ -53,6 +54,7 @@ Best for: High-precision control over complex effects like POV time-freezes or i
 - **Vague Descriptions**: "A woman holding a product" $\rightarrow$ Robotic. Use full scene + lighting + camera + emotion.
 - **Waxy Skin**: Missing texture descriptors.
 - **Polished Fake Look**: Using "professional", "high quality", or "studio". Counter with "handheld iPhone", "casual slightly unsteady framing".
+- **Smooth AI Look:** Missing pores, cloth weave, flyaway hair, sensor noise, sweat, dust, scratches, or material wear.
 - **Neutral Default**: Unspecified emotion. Always define the emotional state (e.g., "genuine surprise building to pleased recognition").
 - **Vague Lighting**: "Cinematic" or "black" without specific source/intensity.
 - **Moving Camera + Moving Subject Simultaneously**: Causes artifacts and motion confusion. Use one or the other; static camera while subject moves is usually the safer choice.

@@ -96,7 +96,7 @@ if __name__ == "__main__":
     # Create a dummy lighting bank for the test
     dummy_bank = "/tmp/test_lighting.txt"
     with open(dummy_bank, "w", encoding="utf-8") as f:
-        f.write("golden hour, moonlight, cinematic lighting, studio lighting")
+        f.write("golden-hour side light, moonlight rim light, motivated source-based light, softbox key light")
 
     enhancer = PromptEnhancer(dummy_bank)
     

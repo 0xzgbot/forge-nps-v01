@@ -4,7 +4,7 @@
   "prompt_style": "photoreal cinematic still for first-frame video handoff",
   "camera_defaults": "35mm or 50mm lens, motivated composition, clear focal subject",
   "lighting_defaults": "physically plausible motivated light, controlled contrast, practicals if present",
-  "quality_terms": "high detail, realistic texture, coherent anatomy, continuity-safe framing",
+  "quality_terms": "visible skin/material texture, natural asymmetry, lens falloff, grounded shadows, continuity-safe framing",
   "negative_prompt": "deformed anatomy, extra fingers, duplicate limbs, warped face, text artifacts, watermark, compression artifacts, low detail",
   "forbidden_terms": [
     "nsfw",

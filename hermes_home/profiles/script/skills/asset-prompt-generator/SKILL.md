@@ -21,7 +21,9 @@ A specialized skill for transforming narrative script data (J10) into highly tec
 4. **Payload Construction:** Generate a structured JSON list of payloads containing the `base_prompt` (flattened string) and `metadata` (camera, subject, lighting).
 
 ## Technical Standards
-- **Prompt Structure:** `[Subject/Action/Environment]. [Camera Detail], [Lighting Detail], ultra-high fidelity, 8k, detailed textures.`
+- **Prompt Structure:** `[Subject/Action/Environment]. [Camera Detail]. [Named light source and direction]. [Material texture and physical imperfections]. [Composition/focal priority].`
+- **Specificity Floor:** Each generated still prompt must include at least one concrete texture, one optical detail, one light-source detail, and one composition constraint.
+- **Generic Token Ban:** Do not use `masterpiece`, `best quality`, `ultra-high fidelity`, or `8k` as quality substitutes. Replace them with visible material and capture details.
 - **Output Format:** A JSON-compatible list of dictionaries for direct injection into the ComfyUI API layer.
 
 ## Pitfalls & Best Practices

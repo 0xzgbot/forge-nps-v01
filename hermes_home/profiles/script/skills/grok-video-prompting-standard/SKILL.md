@@ -13,6 +13,7 @@ Grok rewards authoritative "Movie Director" prose over weighted tags or syntax-h
 - **Physics & Materiality**: Explicitly name physical properties to trigger high-fidelity renders (e.g., "viscous liquid," "granulated concrete texture," "heat shimmer").
 - **Handheld Realism (UGC Style)**: For realistic/casual footage, use the specific string: `handheld — natural slight shake, micro-movements, subtle instability, as if filmed by a real operator`.
 - **Image-to-Video (I2V) Rule**: Describe *only* motion and camera changes. Never re-describe the static reference image. Lead with Subject + Primary Action in the first 30 words.
+- **Compiler Requirement:** Use full-sentence director prose, not tag soup. Include subject action, camera behavior, lighting source, physical atmosphere, and a drift-prevention phrase for every generated video prompt.
 
 ## Consistency & Extension Protocol
 To maintain visual, lighting, and character consistency across extended clips:
@@ -46,6 +47,7 @@ Best for rapid sequences or "cuts."
 - **Vague Lighting**: "Cinematic lighting" $\rightarrow$ Use "Single focused spotlight casting sharp shadows."
 - **Static/Neutral Defaults**: "A man walking" $\rightarrow$ "A weary traveler trudging through thick mud, shoulders slumped with heavy exertion."
 - **Morphing/Drift**: Failing to use `SCENE LOCK` during extensions or missing the `NEGATIVE:` block for complex action.
+- **Smooth AI Look:** Missing material/skin/environment physics. Add pores, sweat, cloth movement, pavement texture, humidity, dust, rain, or lens noise as appropriate.
 
 ## Vocabulary Cheat Sheet
 - **Camera**: `sweeping orbital pan`, `slow dolly-in`, `low-angle ground view`, `handheld micro-shake`, `fixed tripod`.

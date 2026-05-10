@@ -16,7 +16,7 @@ BANKS_DIR = REPO_ROOT / "data" / "character_banks"
 PRODUCT_BANKS_DIR = REPO_ROOT / "data" / "product_banks"
 CREATIVE_BRIEF_PATH = REPO_ROOT / "data" / "lore_bible" / "creative_brief.md"
 
-QUALITY_CONSTANTS = "photorealism, hyperrealistic, sharp focus, professional photography, high detail, 8k resolution, cinema lens"
+QUALITY_CONSTANTS = "natural skin or material texture, slight real-world imperfection, sharp focal priority, specific lens behavior, motivated light source"
 
 
 def load_banks(mode: str = "character") -> Dict[str, List[str]]:
@@ -65,7 +65,7 @@ def get_character_descriptor(name: Optional[str] = None) -> str:
             return cce.get_anchor_prompt(detected[0])
     except Exception:
         pass
-    return "photorealistic portrait, high detail"
+    return "photorealistic portrait with visible natural skin texture, slight facial asymmetry, individual hair strands, realistic wardrobe fabric weave"
 
 
 def build_recipe(

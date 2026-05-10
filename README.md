@@ -61,9 +61,13 @@ The current dashboard refresh is documented in [docs/CHANGELOG.md](docs/CHANGELO
 - **Turbo** is in the same model pill as **Flux2.Dev** and only works when Flux2.Dev is enabled.
 - **Anchor/Anchors** visible copy now reads **Character/Characters** while backend anchor fields remain compatible.
 - The standalone **Models** tab, visible **Re-Audit Selected** controls, and world-bible path input were removed from the dashboard.
+- The left navigation now starts with **Images**, then **Videos**, with **Characters** restored as its own tab and no persistent character thumbnail rail.
 - The **Ideas** tab can use `/api/hermes/idea-board` or fall back to `/api/shots` on older running backends.
+- The Images flow shows the inferred target count before launch and sends that count explicitly to Kimi, so requests like `20 images` plan twenty shots instead of falling back to five.
+- The Videos tab uses wired quick options for model, duration, resolution, and aspect ratio, including a 25-second duration option. Retake and IC-LoRA are hidden until they have proper end-to-end controls.
 - TikTok/vertical-short prompts now auto-activate a **TikTok Vertical** platform skill: 1080x1920, 9:16 framing, 8-15s pacing, hook-first guidance, caption-safe bottom third, and optional series continuity.
 - The Ideas tab can generate/save TikTok hook cards with local audio-direction ideas, and the Video tab can export selected stills/clips as a ready carousel ZIP.
+- `scripts/pre_push_hygiene.sh` checks tracked files for local runtime config, generated render dumps, obvious API tokens, and private/local IP addresses before pushing public changes.
 
 ## Why It Matters
 
@@ -216,7 +220,8 @@ FORGE_MEDIA_ROOT=/Users/zgbot/Desktop/FORGE_NPS_MEDIA
 
 ```bash
 python3 -m py_compile dashboard/forge_dashboard.py core/hermes/pipeline/campaign_service.py core/hermes/pipeline/profile_cli.py
-python3 -m pytest tests/test_profile_cli.py
+python3 -m pytest tests/test_profile_cli.py tests/test_director_shot_count.py
+scripts/pre_push_hygiene.sh
 curl -sS http://localhost:7000/api/stats
 ```
 

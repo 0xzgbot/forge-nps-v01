@@ -30,6 +30,7 @@ class CampaignRequest:
     brief: str
     bible_path: str = ""
     length: str = ""
+    target_shots: Optional[int] = None
     workflow_ids: Optional[List[str]] = None
     identity_pack: Optional[Dict[str, Any]] = None
     campaign_id: str = ""
@@ -407,7 +408,7 @@ class HermesCampaignService:
             shot_index_offset = max_seq
         bible_text = self._resolve_bible_text(req.bible_path)
 
-        target_shots = self.director.requested_shot_count(req.brief, req.length)
+        target_shots = max(1, min(int(req.target_shots or self.director.requested_shot_count(req.brief, req.length)), 120))
         intake_task = {
             "task": "campaign_intake",
             "campaign_id": campaign_id,
@@ -625,7 +626,7 @@ class HermesCampaignService:
                 return
             yield {"type": "warning", "text": f"Kimi self-check unavailable: {e}"}
 
-        yield {"type": "kimi_plan", "campaign_id": campaign_id, "count": len(kimi_shots), "shots": kimi_shots}
+        yield {"type": "kimi_plan", "campaign_id": campaign_id, "count": len(kimi_shots), "target_shots": target_shots, "shots": kimi_shots}
         yield {"type": "kimi", "text": f"Shot list ready: {len(kimi_shots)} shots (requested {target_shots})"}
 
         cfg = get_raw_config()
@@ -821,6 +822,17 @@ class HermesCampaignService:
                     yield {"type": "error", "shot_id": effective_shot["shot_id"], "text": f"ComfyUI submission failed for {effective_shot['shot_id']}: {msg}"}
                     self.record_event("render_result", shot_id=record_id, campaign_id=campaign_id, workflow_id=workflow_id, source=source, success=False, extra={"reason": msg})
                     continue
+
+                if isinstance(submit.get("lora"), dict):
+                    shot_record["lora"] = submit["lora"]
+                    if submit["lora"].get("requested"):
+                        lora_state = "applied" if submit["lora"].get("applied") else submit["lora"].get("reason", "not applied")
+                        yield {
+                            "type": "compiler",
+                            "shot_id": effective_shot["shot_id"],
+                            "workflow_id": workflow_id,
+                            "text": f"LoRA preset {submit['lora'].get('requested')}: {lora_state}",
+                        }
 
                 rendered_count += 1
                 prompt_id = submit.get("prompt_id", "")

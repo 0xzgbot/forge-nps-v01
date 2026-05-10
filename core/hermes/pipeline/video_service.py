@@ -155,6 +155,8 @@ class HermesVideoService:
         workflow_id: str,
         duration: int = 4,
         fps: int = 24,
+        width: Optional[int] = None,
+        height: Optional[int] = None,
         prompt: str = "",
         platform_skill: Optional[Dict[str, Any]] = None,
         min_audit_score: float = 0.85,
@@ -249,6 +251,9 @@ class HermesVideoService:
                 prompt_text = f"{prompt_text}\n\nvideo_duration_seconds={int(duration)}"
             if fps:
                 prompt_text = f"{prompt_text}\nvideo_fps={int(fps)}"
+            constraints = shot_platform.get("constraints") if isinstance(shot_platform, dict) else {}
+            target_width = int((constraints or {}).get("width") or width or 0) or None
+            target_height = int((constraints or {}).get("height") or height or 0) or None
 
             submit = await client.submit_prompt_for_shot(
                 shot_id=f"{sid}__video",
@@ -257,8 +262,10 @@ class HermesVideoService:
                 output_dir=str(output_dir),
                 image_path=image_path,
                 wait_for_output=False,
-                width=(shot_platform.get("constraints") or {}).get("width") if isinstance(shot_platform, dict) and shot_platform.get("active") else None,
-                height=(shot_platform.get("constraints") or {}).get("height") if isinstance(shot_platform, dict) and shot_platform.get("active") else None,
+                width=target_width,
+                height=target_height,
+                duration=duration,
+                fps=fps,
             )
             if submit.get("status") != "success":
                 results.append(

@@ -6,6 +6,8 @@ import logging
 from pathlib import Path
 from typing import Optional
 
+from core.dispatch.lora_presets import LORA_PRESETS, available_lora_names, infer_lora_profile
+
 logger = logging.getLogger(__name__)
 
 class ComfyUIClient:
@@ -286,6 +288,70 @@ class ComfyUIClient:
                     inputs["text"] = negative_default
                 elif inputs["text"] == "" or inputs["text"] is None:
                     inputs["text"] = prompt or "cinematic still frame"
+
+    @staticmethod
+    def _apply_lora_profile(nodes: dict, object_info: dict, profile_key: str = "") -> dict:
+        key = (profile_key or "").strip()
+        preset = LORA_PRESETS.get(key)
+        if not preset:
+            return {"requested": key, "applied": False, "reason": "no_profile"}
+
+        installed = available_lora_names(object_info)
+        selected = next((name for name in preset.candidates if name in installed), "")
+        if not selected:
+            return {
+                "requested": preset.key,
+                "applied": False,
+                "reason": "lora_not_installed",
+                "candidates": list(preset.candidates),
+                "source_url": preset.source_url,
+            }
+
+        touched = 0
+        for node in nodes.values():
+            if not isinstance(node, dict):
+                continue
+            class_type = str(node.get("class_type", ""))
+            if "lora" not in class_type.lower():
+                continue
+            inputs = node.get("inputs")
+            if not isinstance(inputs, dict):
+                continue
+            lora_keys = [k for k in inputs if "lora" in str(k).lower() and str(k).lower().endswith("name")]
+            if not lora_keys:
+                lora_keys = [k for k in inputs if "lora" in str(k).lower()]
+            for lora_key in lora_keys:
+                if isinstance(inputs.get(lora_key), list):
+                    continue
+                inputs[lora_key] = selected
+                touched += 1
+            for strength_key in ("strength_model", "strength", "model_strength"):
+                if strength_key in inputs and not isinstance(inputs.get(strength_key), list):
+                    inputs[strength_key] = preset.default_strength
+
+        return {
+            "requested": preset.key,
+            "label": preset.label,
+            "applied": touched > 0,
+            "lora_name": selected,
+            "strength": preset.default_strength,
+            "source_url": preset.source_url,
+            "trigger_words": list(preset.trigger_words),
+            "reason": "applied" if touched else "no_lora_node",
+        }
+
+    @staticmethod
+    def _prepend_lora_triggers(prompt: str, lora_status: dict) -> str:
+        if not lora_status.get("applied"):
+            return prompt
+        triggers = [str(t).strip() for t in lora_status.get("trigger_words", []) if str(t).strip()]
+        if not triggers:
+            return prompt
+        existing = prompt or ""
+        missing = [t for t in triggers if t.lower() not in existing.lower()]
+        if not missing:
+            return existing
+        return ", ".join(missing + [existing]).strip(", ")
 
     def _convert_webui_workflow_to_api(self, workflow: dict, object_info: dict) -> dict:
         """
@@ -622,6 +688,9 @@ class ComfyUIClient:
         wait_for_output: bool = True,
         width: int | None = None,
         height: int | None = None,
+        duration: int | None = None,
+        fps: int | None = None,
+        lora_profile: str | None = None,
     ) -> dict:
         """Load a workflow, inject prompt/seed, submit, poll, and optionally download outputs."""
         import random
@@ -651,6 +720,13 @@ class ComfyUIClient:
             return {"status": "error", "error": "Workflow is not ComfyUI API format"}
         self._ensure_output_node(nodes, filename_prefix=shot_id or "render")
         self._hydrate_workflow_placeholders(nodes, prompt, object_info)
+        lora_key = (lora_profile or infer_lora_profile(workflow_path, prompt)).strip()
+        lora_status = self._apply_lora_profile(nodes, object_info, lora_key) if lora_key else {
+            "requested": "",
+            "applied": False,
+            "reason": "none",
+        }
+        prompt = self._prepend_lora_triggers(prompt, lora_status)
 
         requested_image_paths = [str(p) for p in (image_paths or []) if str(p or "").strip()]
         if image_path and not requested_image_paths:
@@ -666,6 +742,11 @@ class ComfyUIClient:
 
         chosen_seed = seed if seed is not None else random.randint(1, 2**32 - 1)
         negative_markers = ("blurry", "low quality", "worst quality", "deformed", "watermark", "ugly", "bad anatomy", "bad hands", "negative", "nsfw")
+        target_width = int(width or 0)
+        target_height = int(height or 0)
+        target_fps = int(fps or 0)
+        target_duration = int(duration or 0)
+        target_frames = target_duration * target_fps if target_duration and target_fps else 0
 
         load_image_slots = []
         for node in nodes.values():
@@ -687,10 +768,21 @@ class ComfyUIClient:
                 inputs["seed"] = chosen_seed
             if class_type in ("RandomNoise", "FluxNoise") and "noise_seed" in inputs:
                 inputs["noise_seed"] = chosen_seed
-            if width and "width" in inputs and not isinstance(inputs.get("width"), list):
-                inputs["width"] = int(width)
-            if height and "height" in inputs and not isinstance(inputs.get("height"), list):
-                inputs["height"] = int(height)
+            for key in list(inputs.keys()):
+                current = inputs.get(key)
+                if isinstance(current, list):
+                    continue
+                lower_key = str(key).lower()
+                if target_width and (lower_key == "width" or lower_key.endswith(".width")):
+                    inputs[key] = target_width
+                elif target_height and (lower_key == "height" or lower_key.endswith(".height")):
+                    inputs[key] = target_height
+                elif target_fps and lower_key in {"fps", "frame_rate", "framerate", "video_fps"}:
+                    inputs[key] = target_fps
+                elif target_frames and lower_key in {"frames", "num_frames", "frame_count", "length"}:
+                    inputs[key] = target_frames
+                elif target_duration and lower_key in {"duration", "duration_sec", "duration_seconds", "seconds", "clip_duration"}:
+                    inputs[key] = target_duration
             if class_type in ("SaveImage", "SaveVideo", "VHS_VideoCombine") and shot_id:
                 inputs["filename_prefix"] = shot_id
 
@@ -705,10 +797,11 @@ class ComfyUIClient:
                 "error": submit_result.get("error", "Submission returned no prompt_id"),
                 "status_code": submit_result.get("status_code"),
                 "raw": submit_result.get("raw"),
+                "lora": lora_status,
             }
         prompt_id = submit_result.get("prompt_id")
         if not prompt_id:
-            return {"status": "error", "error": "Submission returned no prompt_id"}
+            return {"status": "error", "error": "Submission returned no prompt_id", "lora": lora_status}
 
         if not wait_for_output:
             return {
@@ -719,11 +812,12 @@ class ComfyUIClient:
                 "queued": True,
                 "uploaded_image": uploaded_name,
                 "uploaded_images": uploaded_names,
+                "lora": lora_status,
             }
 
         output_filename = await self.poll_job(prompt_id, timeout_sec=600)
         if not output_filename:
-            return {"status": "error", "prompt_id": prompt_id, "error": f"Poll timed out for prompt {prompt_id}"}
+            return {"status": "error", "prompt_id": prompt_id, "error": f"Poll timed out for prompt {prompt_id}", "lora": lora_status}
 
         saved = []
         if output_dir:
@@ -738,4 +832,5 @@ class ComfyUIClient:
             "saved_files": saved,
             "uploaded_image": uploaded_name,
             "uploaded_images": uploaded_names,
+            "lora": lora_status,
         }

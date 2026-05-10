@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-05-09 - Video controls, image-count clarity, and push hygiene
+
+- Renamed the left navigation entry from **Home** to **Images** and placed **Videos** directly beneath it.
+- Restored **Characters** as a left-navigation tab while keeping the persistent lower character thumbnail rail removed.
+- Renamed **Renders** to **Videos** for the video workspace.
+- Removed Hermes Chat from the Videos tab so the page focuses on video generation controls.
+- Added a compact video-generation control surface with model, duration, quality/resolution, aspect-ratio, and FPS inputs.
+- Added a **25 Sec** duration option for video generation.
+- Removed visible Retake and IC-LoRA mode choices from the main Videos tab until those workflows have complete, explicit controls.
+- Wired video duration, FPS, resolution, and aspect-ratio values into the ComfyUI workflow payload mutator where matching node inputs exist.
+- Added an Images target-count pill and now send `target_shots` explicitly with `/api/hermes/run-campaign`.
+- Expanded Kimi shot-count inference so explicit requests like `20 images`, `Images: 12`, `Need eight stills`, or `30 shots` are respected.
+- Added `tests/test_director_shot_count.py` to guard the image-count inference behavior.
+- Replaced hard-coded private semantic-audit endpoints with `KIMI_SEMANTIC_AUDIT_URL` / `KIMI_SEMANTIC_AUDIT_MODEL` environment-driven defaults.
+- Added `scripts/pre_push_hygiene.sh` to check tracked files for local runtime config, generated render artifacts, obvious secret tokens, and private/local IP addresses before a public push.
+
 ## 2026-05-07 - TikTok platform skill, hooks, and carousel export
 
 - Added prompt-driven TikTok platform detection through `core/hermes/platform_skills.py`.

@@ -4,7 +4,7 @@
   "prompt_style": "high-energy cinematic ideation frame tuned for speed and readability",
   "camera_defaults": "strong master-shot framing, clean camera intent, concise lens language",
   "lighting_defaults": "bold directional lighting with controlled contrast and easy subject read",
-  "quality_terms": "rapid concept fidelity, clear silhouettes, artifact control, persuasive visual storytelling",
+  "quality_terms": "rapid concept fidelity, clear silhouettes, positive artifact-resistant detail, persuasive visual storytelling",
   "negative_prompt": "blurry, incoherent anatomy, extra fingers, duplicate features, compression artifacts, watermark, text",
   "forbidden_terms": [
     "pixelated",

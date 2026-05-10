@@ -22,7 +22,7 @@ def get_quality_constants() -> str:
     quality = load_bank("quality")
     if not quality:
         # If no bank file found, use the one we just created/simulated or a default
-        return "photorealistic, cinematic lighting, 8k resolution"
+        return "photorealistic, visible natural texture, specific motivated light source, lens falloff"
     return ", ".join(quality)
 
 def build_shot_modifiers(lighting: str = None, view: str = None,

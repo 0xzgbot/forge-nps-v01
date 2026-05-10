@@ -1283,6 +1283,107 @@
             color: #888;
             font-size: 13px;
         }
+        .script-process-strip {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(140px, 1fr));
+            gap: 8px;
+            padding-top: 12px;
+        }
+        .script-process-step {
+            min-width: 0;
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 8px;
+            align-items: center;
+            padding: 10px 12px;
+            border: 1px solid #2b344a;
+            border-radius: 6px;
+            background: #101725;
+        }
+        .script-process-step span {
+            width: 24px;
+            height: 24px;
+            display: grid;
+            place-items: center;
+            border: 1px solid #3D5AFE;
+            border-radius: 4px;
+            color: #c5d0ff;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            font-weight: 700;
+        }
+        .script-process-step strong {
+            display: block;
+            color: #e8ecff;
+            font-size: 12px;
+            line-height: 1.2;
+        }
+        .script-process-step em {
+            display: block;
+            margin-top: 2px;
+            color: #7f8ba8;
+            font-size: 10px;
+            font-style: normal;
+            line-height: 1.2;
+        }
+        .script-flow-guide {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(150px, 1fr));
+            gap: 8px;
+            padding-top: 12px;
+        }
+        .script-flow-step {
+            min-width: 0;
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 9px;
+            align-items: center;
+            padding: 11px 12px;
+            border: 1px solid #2b344a;
+            border-radius: 6px;
+            background: #101725;
+            color: inherit;
+            text-align: left;
+            cursor: pointer;
+        }
+        .script-flow-step:hover,
+        .script-flow-step.active {
+            border-color: #5870ff;
+            background: #14203a;
+        }
+        .script-flow-step.complete {
+            border-color: #2f6441;
+        }
+        .script-flow-step span {
+            width: 26px;
+            height: 26px;
+            display: grid;
+            place-items: center;
+            border: 1px solid #3D5AFE;
+            border-radius: 4px;
+            color: #c5d0ff;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            font-weight: 700;
+        }
+        .script-flow-step.complete span {
+            border-color: #46b46b;
+            color: #8df2a8;
+        }
+        .script-flow-step strong {
+            display: block;
+            color: #e8ecff;
+            font-size: 12px;
+            line-height: 1.2;
+        }
+        .script-flow-step em {
+            display: block;
+            margin-top: 2px;
+            color: #7f8ba8;
+            font-size: 10px;
+            font-style: normal;
+            line-height: 1.2;
+        }
         .script-header-actions,
         .script-action-row,
         .script-shot-controls,
@@ -1307,6 +1408,12 @@
             border-radius: 8px;
             overflow: hidden;
         }
+        .script-step-panel {
+            display: none !important;
+        }
+        .script-step-panel.active {
+            display: flex !important;
+        }
         .script-panel-head {
             display: flex;
             align-items: center;
@@ -1317,7 +1424,7 @@
             background: #171717;
         }
         .script-panel-head > span {
-            width: 28px;
+            width: 34px;
             height: 28px;
             display: grid;
             place-items: center;
@@ -1338,6 +1445,21 @@
             text-transform: uppercase;
         }
         .script-panel-head h3 { margin-right: auto; }
+        .script-panel-head p {
+            margin: 2px 0 0;
+            color: #747b85;
+            font-size: 11px;
+            font-weight: 500;
+            letter-spacing: 0;
+            text-transform: none;
+        }
+        .script-panel-title {
+            min-width: 0;
+            margin-right: auto;
+        }
+        .script-panel-title h3 {
+            margin-right: 0;
+        }
         .script-brief-panel,
         .script-package-panel,
         .script-scenes-panel,
@@ -1401,6 +1523,55 @@
             flex-direction: column;
             gap: 6px;
             flex: 1 1 220px;
+        }
+        .script-primary-action {
+            min-width: 190px;
+        }
+        .script-control-surface {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 12px 14px 0;
+            border-bottom: 1px solid #202020;
+            background: #0d0f13;
+        }
+        .script-control-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(120px, 1fr));
+            gap: 10px;
+            align-items: end;
+        }
+        .script-control-grid.storyboard-grid {
+            grid-template-columns: minmax(90px, .5fr) minmax(90px, .5fr) minmax(130px, .7fr) minmax(180px, 1fr);
+        }
+        .script-inline-field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 0;
+        }
+        .script-inline-field label {
+            color: #6C7278;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+        .script-inline-field input {
+            width: 100%;
+            background: #222;
+            border: 1px solid #444;
+            border-radius: 4px;
+            color: #E0E0E0;
+            padding: 9px 10px;
+            font-size: 13px;
+            font-family: 'Inter', sans-serif;
+        }
+        .script-secondary-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
         }
         .script-status-line {
             min-height: 34px;
@@ -1518,10 +1689,49 @@
         .script-shot-panel .script-panel-head {
             align-items: center;
         }
+        .script-video-handoff-panel {
+            grid-column: 1 / -1;
+            min-height: 260px;
+        }
+        .script-video-handoff {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+            padding: 18px 0;
+        }
+        .script-video-handoff strong {
+            display: block;
+            margin-bottom: 6px;
+            color: #e8ecff;
+            font-size: 15px;
+        }
+        .script-video-handoff p {
+            margin: 0;
+            color: #8b94a7;
+            font-size: 12px;
+            line-height: 1.45;
+        }
+        .script-video-actions {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            gap: 8px;
+            min-width: min(420px, 100%);
+        }
+        .script-video-actions button:disabled {
+            opacity: 0.42;
+            cursor: not-allowed;
+            filter: grayscale(0.5);
+        }
         .script-shot-controls input,
         .script-storyboard-controls input {
             width: 86px;
             margin-left: 6px;
+        }
+        .script-shot-controls,
+        .script-storyboard-controls {
+            justify-content: flex-start;
         }
         .script-storyboard-controls label:nth-child(3) input {
             width: 128px;
@@ -1714,6 +1924,12 @@
             font-size: 11px;
         }
         @media (max-width: 1100px) {
+            .script-process-strip,
+            .script-flow-guide,
+            .script-control-grid,
+            .script-control-grid.storyboard-grid {
+                grid-template-columns: 1fr;
+            }
             .script-storyboard-options {
                 grid-template-columns: 1fr;
             }
@@ -1919,11 +2135,30 @@
         .character-library {
             margin-bottom: 16px;
         }
+        .character-flow-guide {
+            grid-template-columns: repeat(4, minmax(150px, 1fr));
+            margin-bottom: 14px;
+        }
         .character-forge-grid {
             display: grid;
             grid-template-columns: minmax(320px, 0.9fr) minmax(360px, 1.1fr);
             gap: 14px;
             align-items: stretch;
+        }
+        .character-forge-grid > .character-step-panel {
+            grid-column: 1 / -1;
+        }
+        .character-step-panel {
+            display: none !important;
+        }
+        .character-step-panel.active {
+            display: block !important;
+        }
+        .character-forge-panel.character-step-panel.active {
+            display: flex !important;
+        }
+        .character-roster-wrap.character-step-panel.active {
+            display: grid !important;
         }
         .character-forge-panel {
             background: #111;
@@ -1968,7 +2203,7 @@
         .character-roster-wrap {
             margin-top: 14px;
             display: grid;
-            grid-template-columns: minmax(280px, 0.8fr) minmax(320px, 1.2fr);
+            grid-template-columns: 1fr;
             gap: 14px;
             align-items: start;
         }
@@ -2010,18 +2245,19 @@
         }
         .character-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
             gap: 12px;
         }
         .character-card-live {
             display: grid;
-            grid-template-columns: 72px 1fr;
+            grid-template-columns: 96px 1fr;
             gap: 12px;
             background: #111;
             border: 1px solid #333;
             border-radius: 8px;
             padding: 12px;
             min-width: 0;
+            min-height: 124px;
         }
         .character-card-live.selected {
             border-color: rgba(0, 229, 255, 0.85);
@@ -2029,8 +2265,8 @@
         }
         .character-card-live img,
         .character-avatar-fallback {
-            width: 72px;
-            height: 72px;
+            width: 96px;
+            height: 96px;
             border-radius: 6px;
             object-fit: cover;
             background: #222;
@@ -2040,6 +2276,9 @@
             color: #3D5AFE;
             font-weight: 700;
             font-size: 24px;
+        }
+        .character-card-live img {
+            cursor: zoom-in;
         }
         .character-card-live h3 {
             font-size: 13px;
@@ -2080,6 +2319,59 @@
             font-size: 12px;
             font-family: 'JetBrains Mono', monospace;
             padding: 4px 0;
+        }
+        .character-manager-status.kimi-generating,
+        .character-manager-status.kimi-success {
+            color: #4ade80;
+            text-shadow: 0 0 12px rgba(74, 222, 128, 0.22);
+        }
+        .character-manager-status.kimi-fallback {
+            color: #fbbf24;
+        }
+        #character-manager-status {
+            color: #4ade80;
+            text-shadow: 0 0 12px rgba(74, 222, 128, 0.20);
+        }
+        .character-lora-summary {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+        }
+        .character-lora-stat {
+            min-width: 0;
+            padding: 10px;
+            border: 1px solid #28364c;
+            border-radius: 6px;
+            background: #101725;
+        }
+        .character-lora-stat span {
+            display: block;
+            color: #7f8ba8;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .character-lora-stat strong {
+            display: block;
+            margin-top: 5px;
+            color: #e8ecff;
+            font-size: 13px;
+            overflow-wrap: anywhere;
+        }
+        .character-lora-output {
+            min-height: 120px;
+            max-height: 260px;
+            overflow: auto;
+            padding: 10px;
+            border: 1px solid #263247;
+            border-radius: 6px;
+            background: #0b101a;
+            color: #9fb4d6;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            line-height: 1.45;
+            white-space: pre-wrap;
         }
         .character-render-gallery {
             display: grid;
@@ -2131,7 +2423,8 @@
         @media (max-width: 1180px) {
             .character-forge-grid,
             .character-roster-wrap,
-            .character-roster-wrap.roster-collapsed {
+            .character-roster-wrap.roster-collapsed,
+            .character-lora-summary {
                 grid-template-columns: 1fr;
             }
         }
@@ -2262,6 +2555,36 @@
             font-size: 10px;
             padding: 4px 6px;
             font-family: 'JetBrains Mono', monospace;
+        }
+        #spark-grid .video-library-cell {
+            display: flex;
+            flex-direction: column;
+        }
+        #spark-grid .video-library-cell .video-thumb-frame {
+            flex: 1 1 auto;
+            min-height: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #05080d;
+            overflow: hidden;
+        }
+        #spark-grid .video-library-cell .video-thumb-frame img,
+        #spark-grid .video-library-cell .video-thumb-frame video {
+            position: static;
+            width: 100%;
+            height: 100%;
+            display: block;
+            object-fit: contain;
+            object-position: center;
+            background: #05080d;
+        }
+        #spark-grid .video-library-cell .cell-label {
+            position: static;
+            flex: 0 0 auto;
+            max-height: 76px;
+            overflow: hidden;
+            border-top: 1px solid rgba(255,255,255,0.08);
         }
         .video-prompt-preview {
             display: block;
@@ -3336,6 +3659,7 @@
                 <textarea id="brief-input" placeholder="Describe your cinematic vision... (e.g. A lone astronaut discovers a glowing garden on an alien moon, bathed in twin-sunset light)"></textarea>
                 <div class="platform-detect-row">
                     <span id="platform-status-pill" class="platform-status-pill off">Platform skill: Auto</span>
+                    <span id="target-count-pill" class="platform-status-pill off">Target: 5 images</span>
                     <select id="platform-mode" class="platform-mode-select" onchange="updatePlatformDetection()">
                         <option value="auto">Auto Detect</option>
                         <option value="tiktok">Force TikTok 9:16</option>
@@ -3591,7 +3915,7 @@ full body</textarea>
                     <div class="form-row">
                         <label>Lighting Bank</label>
                         <textarea id="cfg-bank-lighting" rows="7" spellcheck="false">golden hour
-cinematic lighting
+motivated source-based light
 soft studio light
 hard shadows
 neon glow
@@ -3626,17 +3950,23 @@ beach</textarea>
             <div class="script-director-header">
                 <div>
                     <div class="script-kicker">Hermes Script Pipeline</div>
-                    <h2>Script to Cohesive Edit</h2>
-                    <p>Develop a locked script package first, then generate scene-aware coverage for Spark.</p>
+                    <h2>Script Builder</h2>
+                    <p>Idea → script package → storyboard frames → videos.</p>
                 </div>
                 <div class="script-header-actions">
                     <button class="btn btn-secondary" onclick="clearShotList()">Reset</button>
-                    <button class="btn" id="send-to-spark-btn" onclick="sendToSpark()" disabled>Send Selected to Spark</button>
+                    <button class="btn btn-secondary" onclick="switchScriptFlowStep('videos')">Videos</button>
                 </div>
+            </div>
+            <div class="script-flow-guide" aria-label="Script workflow">
+                <button class="script-flow-step active" type="button" data-script-step="idea" onclick="switchScriptFlowStep('idea')"><span>01</span><div><strong>Idea</strong><em id="script-step-status-idea">Ready</em></div></button>
+                <button class="script-flow-step" type="button" data-script-step="script" onclick="switchScriptFlowStep('script')"><span>02</span><div><strong>Script</strong><em id="script-step-status-script">Waiting</em></div></button>
+                <button class="script-flow-step" type="button" data-script-step="storyboard" onclick="switchScriptFlowStep('storyboard')"><span>03</span><div><strong>Storyboard</strong><em id="script-step-status-storyboard">Waiting</em></div></button>
+                <button class="script-flow-step" type="button" data-script-step="videos" onclick="switchScriptFlowStep('videos')"><span>04</span><div><strong>Videos</strong><em id="script-step-status-videos">Waiting</em></div></button>
             </div>
 
             <div class="script-flow">
-                <section class="script-panel script-brief-panel">
+                <section class="script-panel script-brief-panel script-step-panel active" data-script-step-panel="idea">
                     <div class="script-panel-head">
                         <span>01</span>
                         <h3>Brief</h3>
@@ -3668,7 +3998,7 @@ beach</textarea>
                             <span>Upload .md/.txt/.pdf</span>
                             <input type="file" id="brief-file-input" accept=".md,.txt,.pdf" onchange="uploadBrief()">
                         </label>
-                        <button class="btn" id="develop-script-btn" onclick="developScriptPackage()">Develop Script Package</button>
+                        <button class="btn script-primary-action" id="develop-script-btn" onclick="developScriptPackage()">Build Script</button>
                     </div>
                     <div id="script-status" class="script-status-line">
                         <span id="script-status-text">Ready</span>
@@ -3676,9 +4006,9 @@ beach</textarea>
                     </div>
                 </section>
 
-                <section class="script-panel script-package-panel">
+                <section class="script-panel script-package-panel script-step-panel" data-script-step-panel="script">
                     <div class="script-panel-head">
-                        <span>02</span>
+                        <span>02A</span>
                         <h3>Locked Package</h3>
                     </div>
                     <div class="script-package-tabs">
@@ -3697,40 +4027,80 @@ beach</textarea>
                     </div>
                 </section>
 
-                <section class="script-panel script-scenes-panel">
+                <section class="script-panel script-scenes-panel script-step-panel" data-script-step-panel="script">
                     <div class="script-panel-head">
-                        <span>03</span>
+                        <span>02B</span>
                         <h3>Scenes and Beats</h3>
                     </div>
                     <div id="script-scenes-output" class="script-scenes-output"><div class="script-empty-mini">Generate the package to see scene structure.</div></div>
                 </section>
 
-                <section class="script-panel script-json-panel">
+                <section class="script-panel script-json-panel script-step-panel" data-script-step-panel="script">
                     <div class="script-panel-head">
-                        <span>04</span>
+                        <span>02C</span>
                         <h3>Package JSON</h3>
                     </div>
                     <textarea id="script-package-json" spellcheck="false" placeholder="The locked script package appears here. You can edit it before generating coverage."></textarea>
                 </section>
 
-                <section class="script-panel script-storyboard-panel">
+                <section class="script-panel script-shot-panel script-step-panel" data-script-step-panel="script">
                     <div class="script-panel-head">
-                        <span>05</span>
-                        <h3>Storyboard</h3>
-                        <div class="script-storyboard-controls">
-                            <label>Panels <input type="number" id="storyboard-target-panels" min="1" max="60" placeholder="auto"></label>
-                            <label>Per Board <input type="number" id="storyboard-panels-per-board" min="1" max="9" value="9"></label>
-                            <label>Resolution <input type="text" id="storyboard-resolution" value="3840x2160"></label>
-                            <button class="btn" id="generate-storyboard-btn" onclick="generateStoryboard()">Generate Storyboard</button>
+                        <span>02D</span>
+                        <div class="script-panel-title">
+                            <h3>Coverage Shotlist</h3>
+                            <p>Image prompts for production coverage.</p>
                         </div>
                     </div>
-                    <div class="storyboard-preset-row">
-                        <button class="btn btn-secondary" type="button" onclick="setStoryboardPreset('comic')">Comic Book</button>
-                        <button class="btn btn-secondary" type="button" onclick="setStoryboardPreset('anime')">Anime / Manga</button>
-                        <button class="btn btn-secondary" type="button" onclick="setStoryboardPreset('realistic')">Realistic Film</button>
-                        <button class="btn btn-secondary" type="button" onclick="setStoryboardPreset('four')">Simple 4-Panel</button>
-                        <button class="btn btn-secondary" type="button" id="storyboard-character-sheet-btn" onclick="generateStoryboardCharacterSheet()">Generate Character Sheet</button>
-                        <button class="btn btn-secondary" type="button" onclick="pollStoryboardCharacterSheet()">Refresh Sheet</button>
+                    <div class="script-control-surface">
+                        <div class="script-control-grid">
+                            <div class="script-inline-field">
+                                <label for="script-target-shots">Shot Count</label>
+                                <input type="number" id="script-target-shots" min="1" max="120" placeholder="Auto">
+                            </div>
+                            <button class="btn script-primary-action" id="generate-shots-btn" onclick="generateShotList()">Build Coverage</button>
+                            <button class="btn btn-secondary" type="button" onclick="switchScriptFlowStep('storyboard')">Storyboard</button>
+                        </div>
+                    </div>
+                    <div id="shot-list-container" class="script-shot-list-wrap">
+                        <div id="shot-list-placeholder" class="script-empty-shot">
+                            <p>Coverage appears here.</p>
+                        </div>
+                        <div id="shot-list" class="script-shot-list" style="display:none;"></div>
+                    </div>
+                </section>
+
+                <section class="script-panel script-storyboard-panel script-step-panel" data-script-step-panel="storyboard">
+                    <div class="script-panel-head">
+                        <span>03</span>
+                        <div class="script-panel-title">
+                            <h3>Storyboard</h3>
+                            <p>Panel frames for image-to-video start frames.</p>
+                        </div>
+                    </div>
+                    <div class="script-control-surface">
+                        <div class="script-control-grid storyboard-grid">
+                            <div class="script-inline-field">
+                                <label for="storyboard-target-panels">Panels</label>
+                                <input type="number" id="storyboard-target-panels" min="1" max="60" placeholder="Auto">
+                            </div>
+                            <div class="script-inline-field">
+                                <label for="storyboard-panels-per-board">Per Board</label>
+                                <input type="number" id="storyboard-panels-per-board" min="1" max="9" value="9">
+                            </div>
+                            <div class="script-inline-field">
+                                <label for="storyboard-resolution">Resolution</label>
+                                <input type="text" id="storyboard-resolution" value="3840x2160">
+                            </div>
+                            <button class="btn script-primary-action" id="generate-storyboard-btn" onclick="generateStoryboard()">Build Storyboard</button>
+                        </div>
+                        <div class="script-secondary-actions">
+                            <button class="btn btn-secondary" type="button" onclick="setStoryboardPreset('realistic')">Realistic Film</button>
+                            <button class="btn btn-secondary" type="button" onclick="setStoryboardPreset('comic')">Comic Book</button>
+                            <button class="btn btn-secondary" type="button" onclick="setStoryboardPreset('anime')">Anime / Manga</button>
+                            <button class="btn btn-secondary" type="button" onclick="setStoryboardPreset('four')">4-Panel</button>
+                            <button class="btn btn-secondary" type="button" id="storyboard-character-sheet-btn" onclick="generateStoryboardCharacterSheet()">Character Sheet</button>
+                            <button class="btn btn-secondary" type="button" onclick="pollStoryboardCharacterSheet()">Refresh Sheet</button>
+                        </div>
                     </div>
                     <div id="storyboard-character-sheet-output" class="storyboard-render-result"></div>
                     <div class="script-storyboard-style">
@@ -3758,24 +4128,30 @@ beach</textarea>
                     </div>
                 </section>
 
-                <section class="script-panel script-shot-panel">
+                <section class="script-panel script-video-handoff-panel script-step-panel" data-script-step-panel="videos">
                     <div class="script-panel-head">
-                        <span>06</span>
-                        <h3>Coverage Shotlist</h3>
-                        <div class="script-shot-controls">
-                            <label>Shots <input type="number" id="script-target-shots" min="1" max="120" placeholder="auto"></label>
-                            <button class="btn" id="generate-shots-btn" onclick="generateShotList()">Generate Coverage Shotlist</button>
+                        <span>04</span>
+                        <div class="script-panel-title">
+                            <h3>Videos</h3>
+                            <p>Use storyboard frames or rendered images as LTX start frames.</p>
                         </div>
                     </div>
-                    <div id="shot-list-container" class="script-shot-list-wrap">
-                        <div id="shot-list-placeholder" class="script-empty-shot">
-                            <p>Generate a script package, then convert it into coverage.</p>
+                    <div class="script-control-surface">
+                        <div class="script-video-handoff">
+                            <div>
+                                <strong id="script-video-handoff-title">No video frames selected yet.</strong>
+                                <p id="script-video-handoff-copy">Render storyboard panels, export them as start frames, then generate videos in the Videos tab.</p>
+                            </div>
+                            <div class="script-video-actions">
+                                <button class="btn btn-secondary" type="button" onclick="switchScriptFlowStep('storyboard')">Back to Storyboard</button>
+                                <button class="btn" id="send-to-spark-btn" onclick="sendToSpark()" disabled>Open Selected in Videos</button>
+                                <button class="btn script-primary-action" type="button" onclick="switchPage('spark-view')">Open Videos</button>
+                            </div>
                         </div>
-                        <div id="shot-list" class="script-shot-list" style="display:none;"></div>
                     </div>
                 </section>
 
-                <section class="script-panel script-chat-panel">
+                <section class="script-panel script-chat-panel script-step-panel" data-script-step-panel="idea">
                     <div class="script-chat-header">
                         <span>Hermes Notes</span>
                         <span id="script-chat-status">Ready</span>
@@ -3895,21 +4271,11 @@ beach</textarea>
                 </div>
                 <div class="video-option-strip">
                     <div class="video-option">
-                        <label for="video-mode-select">Mode</label>
-                        <select id="video-mode-select">
-                            <option value="videos" selected>Generate Videos</option>
-                            <option value="retake">Retake</option>
-                            <option value="iclora">IC-LoRA</option>
-                        </select>
-                    </div>
-                    <div class="video-option">
                         <label for="video-model-select">Model</label>
                         <select id="video-model-select">
                             <option value="04_ltx2.3_image_to_video" selected>LTX 2.3 Fast</option>
                             <option value="02_ltx2.3_T2V_I2V_distilled">LTX 2.3 Distilled</option>
                             <option value="03_ltx2.3_T2V_two_stage">LTX 2.3 Two Stage</option>
-                            <option value="05_ltx2.3_first_last_frame_to_video">LTX 2.3 First+Last</option>
-                            <option value="07_ltx2.3_id_lora">LTX 2.3 ID LoRA</option>
                         </select>
                     </div>
                     <div class="video-option">
@@ -3919,6 +4285,7 @@ beach</textarea>
                             <option value="6">6 Sec</option>
                             <option value="8">8 Sec</option>
                             <option value="10">10 Sec</option>
+                            <option value="12">12 Sec</option>
                             <option value="20">20 Sec</option>
                             <option value="25">25 Sec</option>
                         </select>
@@ -3939,19 +4306,7 @@ beach</textarea>
                         </select>
                     </div>
                 </div>
-                <div class="video-option-summary" id="video-option-summary">Generate Videos / LTX 2.3 Fast / 5 Sec / 540p / 16:9</div>
-            </div>
-            <div class="toolbar-row video-sync-controls" aria-hidden="true">
-                <div class="toolbar-group" style="flex:1;min-width:100%;">
-                    <label>Video Workflow</label>
-                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                        <label class="model-checkbox"><input type="radio" name="video-workflow" value="02_ltx2.3_T2V_I2V_distilled"> LTX 2.3 Distilled</label>
-                        <label class="model-checkbox"><input type="radio" name="video-workflow" value="03_ltx2.3_T2V_two_stage"> LTX 2.3 Two Stage</label>
-                        <label class="model-checkbox"><input type="radio" name="video-workflow" value="04_ltx2.3_image_to_video" checked> LTX 2.3 Image→Video</label>
-                        <label class="model-checkbox"><input type="radio" name="video-workflow" value="05_ltx2.3_first_last_frame_to_video"> LTX 2.3 First+Last</label>
-                        <label class="model-checkbox"><input type="radio" name="video-workflow" value="07_ltx2.3_id_lora"> LTX 2.3 ID LoRA</label>
-                    </div>
-                </div>
+                <div class="video-option-summary" id="video-option-summary">LTX 2.3 Fast / 5 Sec / 540p / 16:9</div>
             </div>
                 <div class="toolbar-row">
                     <div class="toolbar-group" style="flex:1;min-width:260px;">
@@ -3971,10 +4326,6 @@ beach</textarea>
                     <div class="toolbar-group">
                         <label>Selected Media</label>
                         <input type="text" id="video-selected-count" value="0 selected" readonly>
-                </div>
-                <div class="toolbar-group video-sync-controls" aria-hidden="true">
-                    <label>Duration (sec)</label>
-                    <input type="number" id="video-duration" value="5" min="1" max="30">
                 </div>
                 <div class="toolbar-group">
                     <label>FPS</label>
@@ -4025,9 +4376,15 @@ beach</textarea>
                     <button class="btn" onclick="saveCampaignIdentity()">Save Identity Pack</button>
                 </div>
             </div>
+            <div class="script-flow-guide character-flow-guide" aria-label="Character workflow">
+                <button class="script-flow-step active" type="button" data-character-step="design" onclick="switchCharacterFlowStep('design')"><span>01</span><div><strong>Design</strong><em id="character-step-status-design">Ready</em></div></button>
+                <button class="script-flow-step" type="button" data-character-step="render" onclick="switchCharacterFlowStep('render')"><span>02</span><div><strong>Render</strong><em id="character-step-status-render">Waiting</em></div></button>
+                <button class="script-flow-step" type="button" data-character-step="references" onclick="switchCharacterFlowStep('references')"><span>03</span><div><strong>References</strong><em id="character-step-status-references">Waiting</em></div></button>
+                <button class="script-flow-step" type="button" data-character-step="lora" onclick="switchCharacterFlowStep('lora')"><span>04</span><div><strong>LoRA</strong><em id="character-step-status-lora">Not ready</em></div></button>
+            </div>
             <div class="spark-toolbar character-library">
                 <div class="character-forge-grid">
-                    <section class="character-forge-panel">
+                    <section class="character-forge-panel character-step-panel active" data-character-step-panel="design">
                         <h3>New Character</h3>
                         <div class="character-forge-row">
                             <div class="toolbar-group">
@@ -4069,7 +4426,7 @@ beach</textarea>
                         </div>
                         <div id="character-manager-status" class="character-manager-status">Spark is optional until you click a generate button.</div>
                     </section>
-                    <section class="character-forge-panel">
+                    <section class="character-forge-panel character-step-panel" data-character-step-panel="render">
                         <h3>Sheet + Variation Prompts</h3>
                         <div class="character-forge-row">
                             <div class="toolbar-group">
@@ -4097,22 +4454,38 @@ beach</textarea>
                             <button class="btn" id="char-forge-sheet-btn" type="button" onclick="renderCharacterOnSpark('sheet')" disabled>Generate Character Sheet on Spark</button>
                             <button class="btn" id="char-forge-variation-btn" type="button" onclick="renderCharacterOnSpark('variation')" disabled>Generate Variation Set on Spark</button>
                         </div>
-                    </section>
-                </div>
-                <div class="character-roster-wrap" id="character-roster-wrap">
-                    <section class="character-roster-panel">
-                        <div class="character-manager-status character-roster-header"><span class="character-roster-title">Character Roster</span><button class="btn btn-secondary" type="button" id="character-roster-toggle" onclick="toggleTemplateCharacterRoster()">Hide</button></div>
-                        <div id="character-manager-content" class="character-grid">
-                            <div class="character-manager-status">Loading characters...</div>
-                        </div>
-                    </section>
-                    <section>
                         <div class="character-manager-status">Latest Spark Results</div>
                         <div id="character-render-gallery" class="character-render-gallery">
                             <div class="character-manager-status">No generated images in this session.</div>
                         </div>
                     </section>
                 </div>
+                <div class="character-roster-wrap character-step-panel" id="character-roster-wrap" data-character-step-panel="references">
+                    <section class="character-roster-panel">
+                        <div class="character-manager-status character-roster-header"><span class="character-roster-title">Character Roster</span><button class="btn btn-secondary" type="button" id="character-roster-toggle" onclick="toggleTemplateCharacterRoster()">Hide</button></div>
+                        <div id="character-manager-content" class="character-grid">
+                            <div class="character-manager-status">Loading characters...</div>
+                        </div>
+                    </section>
+                </div>
+                <section class="character-forge-panel character-lora-panel character-step-panel" data-character-step-panel="lora">
+                    <h3>Character LoRA Pack</h3>
+                    <div class="character-lora-summary">
+                        <div class="character-lora-stat"><span>Selected</span><strong id="character-lora-selected">No character selected</strong></div>
+                        <div class="character-lora-stat"><span>References</span><strong id="character-lora-ref-count">0 usable images</strong></div>
+                        <div class="character-lora-stat"><span>Status</span><strong id="character-lora-readiness">Needs character</strong></div>
+                    </div>
+                    <div class="toolbar-group">
+                        <label>LoRA Trigger Token</label>
+                        <input id="character-lora-trigger" type="text" placeholder="auto from character name">
+                    </div>
+                    <div class="character-action-bar">
+                        <button class="btn btn-secondary" type="button" onclick="loadCharacterManager()">Refresh References</button>
+                        <button class="btn" id="character-lora-prepare-btn" type="button" onclick="prepareCharacterLoraPack()" disabled>Generate LoRA Dataset Pack</button>
+                    </div>
+                    <div id="character-lora-status" class="character-manager-status">Select a character with approved/reference images before preparing a LoRA pack.</div>
+                    <pre id="character-lora-pack-output" class="character-lora-output">No LoRA dataset package prepared in this session.</pre>
+                </section>
             </div>
             <div class="spark-toolbar" style="margin-bottom:16px;">
                 <div class="toolbar-row">

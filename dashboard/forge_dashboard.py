@@ -50,6 +50,8 @@ from core.dispatch.comfy_client import ComfyUIClient
 from core.affiliate.local_higgsfield import LocalHiggsfieldAdapter
 from core.hermes.pipeline import HermesCampaignService, CampaignRequest, HermesAuditService, HermesVideoService
 from core.hermes.pipeline.director_service import KimiDirectorService
+from core.prompts.prompt_standards import apply_model_prompt_standard
+from core.dispatch.lora_presets import lora_preset_payload
 from core.hermes.platform_skills import (
     carousel_caption_text,
     detect_platform_skill,
@@ -2362,8 +2364,8 @@ def _storyboard_panels_from_package(package: Dict[str, Any], target_panels: Opti
                 "caption": _short_text(beat.get("action") or scene.get("emotional_turn") or "Story beat", 180),
                 "characters": beat.get("characters", []) if isinstance(beat.get("characters"), list) else [],
                 "location": str(scene.get("location") or ""),
-                "camera": "filmic storyboard composition, clear subject silhouette, readable blocking, cinematic camera angle",
-                "lighting": str(scene.get("time_of_day") or "consistent cinematic lighting"),
+                "camera": "filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle",
+                "lighting": str(scene.get("time_of_day") or "motivated source-based light with consistent shadow direction"),
                 "mood": str(scene.get("emotional_turn") or "narrative tension"),
                 "text": _short_text(beat.get("dialogue") or beat.get("action") or scene.get("emotional_turn") or "", 120),
                 "continuity": _short_text(json.dumps(continuity_lock, ensure_ascii=True), 260),
@@ -2386,7 +2388,7 @@ def _storyboard_panels_from_package(package: Dict[str, Any], target_panels: Opti
             "characters": [],
             "location": "script environment",
             "camera": "wide establishing frame",
-            "lighting": "consistent cinematic lighting",
+            "lighting": "motivated source-based light with consistent shadow direction",
             "mood": "opening image",
             "text": _short_text(package.get("brief") or package.get("title") or "", 120),
             "continuity": continuity_text,
@@ -2440,7 +2442,7 @@ def _storyboard_panels_from_text(script: str, target_panels: Optional[int]) -> L
             "characters": [],
             "location": "script environment",
             "camera": f"{camera}, clear subject silhouette, readable blocking, filmic 16:9 frame",
-            "lighting": "consistent cinematic lighting",
+            "lighting": "motivated source-based light with consistent shadow direction",
             "mood": "narrative progression",
             "text": _short_text(chunk, 120),
             "continuity": "derive wardrobe, props, geography, and screen direction from adjacent panels",
@@ -2503,12 +2505,12 @@ def _single_storyboard_panel_prompt(
         f"Style: {style}. "
         f"Scene action: {panel.get('visual_prompt', '')} "
         f"Setting: {panel.get('location', '')}. Camera: {panel.get('camera', '')}. "
-        f"Lighting: {panel.get('lighting', 'consistent cinematic lighting')}. "
+        f"Lighting: {panel.get('lighting', 'motivated source-based light with consistent shadow direction')}. "
         f"Mood: {panel.get('mood', 'narrative progression')}. "
         f"Characters: {character_text}. Character consistency: {character_consistency}. "
         f"Continuity: {panel.get('continuity', '')}. {text_clause} "
-        "Make one clean cinematic frame with readable blocking, sharp focus, consistent wardrobe, consistent face, "
-        "film storyboard composition, high detail, no border, no page layout, no watermark, best quality."
+        "Make one clean cinematic frame with readable blocking, sharp focal priority, consistent wardrobe, consistent face, "
+        "film storyboard composition, tactile material texture, natural skin or surface imperfections, no border, no page layout, no watermark."
         + reference_note
     )
     if negative_prompt:
@@ -2821,7 +2823,7 @@ def _build_storyboard_boards(req: ScriptStoryboardRequest) -> Dict[str, Any]:
             panel_lines.append(
                 f"Panel {local_idx}: {panel.get('visual_prompt', '')} "
                 f"Setting: {panel.get('location', '')}. Camera: {panel.get('camera', '')}. "
-                f"Lighting: {panel.get('lighting', 'consistent cinematic lighting')}. Mood: {panel.get('mood', 'narrative progression')}. "
+                f"Lighting: {panel.get('lighting', 'motivated source-based light with consistent shadow direction')}. Mood: {panel.get('mood', 'narrative progression')}. "
                 f"Character consistency: {character_text}; {character_consistency}. Continuity: {panel.get('continuity', '')}.{text_clause}"
             )
         empty_slots = panels_per_board - len(board_panels)
@@ -2834,9 +2836,9 @@ def _build_storyboard_boards(req: ScriptStoryboardRequest) -> Dict[str, Any]:
             f"This is board {index + 1} of {total_boards} for '{title}'.\n\n"
             + "\n\n".join(panel_lines)
             + empty_note
-            + "\n\nOverall style: highly detailed, consistent character design across all panels, repeated wardrobe and facial details, "
-            "consistent age, skin tone, hair, clothing, and build, cinematic lighting, sharp focus, clean readable compositions, "
-            "film grain, no watermark, no malformed text, no fake captions, masterpiece, best quality."
+            + "\n\nOverall style: consistent character design across all panels, repeated wardrobe and facial details, "
+            "consistent age, skin tone, hair, clothing, and build, source-based lighting, sharp focal priority, clean readable compositions, "
+            "visible skin and fabric texture, film grain, no watermark, no malformed text, no fake captions."
             + reference_note
             + (f"\n\nNegative prompt: {negative_prompt}." if negative_prompt else "")
         )
@@ -3244,6 +3246,7 @@ class RunCampaignRequest(BaseModel):
     brief: str
     bible_path: str = ""
     length: str = ""
+    target_shots: Optional[int] = None
     workflow_ids: List[str] = []
     identity_pack: Optional[CampaignIdentityPack] = None
     campaign_id: str = ""
@@ -3315,7 +3318,7 @@ class VideoGeneratePromptsRequest(BaseModel):
 class LocalHiggsfieldImageRequest(BaseModel):
     prompt: str
     width_and_height: str = "1696x960"
-    enhance_prompt: bool = True
+    enhance_prompt: bool = False
     quality: str = "720p"
     batch_size: int = 1
     style_id: Optional[str] = None
@@ -3352,6 +3355,22 @@ class LMStudioLoadRequest(BaseModel):
     host: str = ""
     port: int = 0
     model: str = ""
+
+
+def _video_dimensions(resolution: str, aspect_ratio: str) -> tuple[int, int]:
+    res = str(resolution or "540p").strip().lower()
+    aspect = str(aspect_ratio or "16:9").strip()
+    heights = {
+        "540p": 540,
+        "720p": 720,
+        "1080p": 1080,
+    }
+    height = heights.get(res, 540)
+    if aspect == "9:16":
+        return int(round(height * 9 / 16)), height
+    if aspect == "1:1":
+        return height, height
+    return int(round(height * 16 / 9)), height
 
 
 def _workflow_file_for_id(workflow_id: str) -> Optional[Path]:
@@ -3565,6 +3584,7 @@ async def api_hermes_run_campaign(req: RunCampaignRequest):
             brief=req.brief,
             bible_path=req.bible_path,
             length=req.length,
+            target_shots=req.target_shots,
             workflow_ids=req.workflow_ids,
             identity_pack=req.identity_pack.model_dump() if req.identity_pack else None,
             campaign_id=req.campaign_id,
@@ -3595,6 +3615,12 @@ async def api_local_higgsfield_generate_image(req: LocalHiggsfieldImageRequest):
     prompt = (req.prompt or "").strip()
     if not prompt:
         raise HTTPException(status_code=400, detail="prompt is required")
+    prompt, _ = apply_model_prompt_standard(
+        prompt,
+        workflow_id="spark_image_flux2_text_to_image",
+        model_family="flux2-dev",
+        render_type="storyboard" if "storyboard" in prompt.lower() else "image",
+    )
     adapter = _make_local_higgsfield_adapter()
     return await adapter.generate_image_soul(
         prompt=prompt,
@@ -3618,11 +3644,17 @@ async def api_local_higgsfield_generate_video(req: LocalHiggsfieldVideoRequest):
         raise HTTPException(status_code=400, detail="input_image_url is required")
     if not (req.prompt or "").strip():
         raise HTTPException(status_code=400, detail="prompt is required")
+    prompt, _ = apply_model_prompt_standard(
+        req.prompt,
+        workflow_id="04_ltx2.3_image_to_video",
+        model_family="ltx",
+        render_type="video",
+    )
     motions = [m.model_dump() for m in req.motions]
     adapter = _make_local_higgsfield_adapter()
     return await adapter.generate_video_dop(
         input_image_url=req.input_image_url,
-        prompt=req.prompt,
+        prompt=prompt,
         model=req.model,
         seed=req.seed,
         motions=motions,
@@ -3703,6 +3735,7 @@ async def api_video_process(req: VideoProcessRequest):
             req.duration = int(constraints.get("duration_default_sec", 12))
         if not req.fps:
             req.fps = int(constraints.get("fps", 24))
+    requested_width, requested_height = _video_dimensions(req.resolution, req.aspect_ratio)
     service = HermesVideoService(
         media_videos=MEDIA_VIDEOS,
         active_campaign_getter=lambda: _ACTIVE_CAMPAIGN,
@@ -3716,6 +3749,8 @@ async def api_video_process(req: VideoProcessRequest):
         workflow_id=workflow_id,
         duration=int(req.duration or 0),
         fps=int(req.fps or 0),
+        width=requested_width,
+        height=requested_height,
         prompt=str(req.prompt or ""),
         platform_skill=platform_skill,
         min_audit_score=float(req.min_audit_score),
@@ -5042,6 +5077,12 @@ async def api_config():
     }
 
 
+@app.get("/api/lora/presets")
+async def api_lora_presets():
+    """Return LoRA presets the app knows how to apply when installed in ComfyUI."""
+    return {"presets": lora_preset_payload()}
+
+
 class ConfigUpdateRequest(BaseModel):
     updates: Dict[str, Any]
 
@@ -5578,6 +5619,13 @@ def _with_character_no_text_rule(prompt: str) -> str:
     return f"{clean}, {CHARACTER_NO_TEXT_PROMPT_RULE}"
 
 
+def _strip_character_no_text_rule(prompt: str) -> str:
+    clean = str(prompt or "")
+    for term in CHARACTER_NO_TEXT_PROMPT_RULE.split(", "):
+        clean = re.sub(rf",?\s*{re.escape(term)}", "", clean, flags=re.IGNORECASE)
+    return re.sub(r"\s*,\s*,", ", ", clean).strip(" ,")
+
+
 def _character_slug(value: str) -> str:
     return re.sub(r'[^a-z0-9]+', '_', str(value or "").lower().strip()).strip('_')
 
@@ -5884,6 +5932,11 @@ class CharacterSheetExtractRequest(BaseModel):
     notes: str = ""
 
 
+class CharacterLoraPackRequest(BaseModel):
+    trigger_token: str = ""
+    notes: str = ""
+
+
 CHARACTER_SHEET_PANEL_TYPES = [
     "front_full_body",
     "three_quarter_left",
@@ -6150,6 +6203,185 @@ def _infer_reference_type(filename: str) -> str:
     return "reference"
 
 
+def _character_lora_trigger_token(cid: str, raw: str = "") -> str:
+    token = _character_slug(raw or f"{cid}_char")
+    if not token:
+        token = f"{cid}_char"
+    if not token.endswith("_char"):
+        token = f"{token}_char"
+    return token
+
+
+def _collect_character_lora_sources(char: Dict[str, Any]) -> List[Dict[str, Any]]:
+    sources: List[Dict[str, Any]] = []
+    seen: set[str] = set()
+
+    def add(url: Any, source: str, ref_type: str = "reference", meta: Optional[Dict[str, Any]] = None) -> None:
+        clean = str(url or "").strip()
+        if not clean or clean in seen:
+            return
+        if re.search(r"\.(mp4|mov|webm)(\?|$)", clean, flags=re.IGNORECASE):
+            return
+        seen.add(clean)
+        sources.append({
+            "url": clean,
+            "source": source,
+            "type": ref_type or "reference",
+            "meta": meta or {},
+        })
+
+    add(char.get("anchor_url"), "anchor_url", "anchor")
+    for key, source in [
+        ("master_references", "master_reference"),
+        ("reference_uploads", "reference_upload"),
+        ("sheet_panels", "sheet_panel"),
+        ("character_sheets", "character_sheet"),
+        ("approved_assets", "approved_asset"),
+    ]:
+        refs = char.get(key) if isinstance(char.get(key), list) else []
+        for ref in refs:
+            if isinstance(ref, dict):
+                add(ref.get("url") or ref.get("image_url"), source, str(ref.get("type") or key), ref)
+            else:
+                add(ref, source, key)
+
+    render_history = char.get("render_history") if isinstance(char.get("render_history"), list) else []
+    for entry in render_history:
+        if not isinstance(entry, dict):
+            continue
+        for image_url in entry.get("image_urls") if isinstance(entry.get("image_urls"), list) else []:
+            add(image_url, "render_history", str(entry.get("type") or "render"), entry)
+
+    return sources
+
+
+@app.post("/api/characters/{char_id}/lora-pack")
+async def api_prepare_character_lora_pack(char_id: str, req: CharacterLoraPackRequest):
+    cid = _character_slug(char_id)
+    char = _CHARACTERS_STORE.get(cid)
+    if not char:
+        raise HTTPException(status_code=404, detail=f"Character '{char_id}' not found")
+
+    normalized = _normalize_character(cid, char)
+    trigger_token = _character_lora_trigger_token(cid, req.trigger_token)
+    pack_id = f"{cid}_lora_{int(time.time())}"
+    pack_dir = CHARACTER_BANKS_DIR / "lora_packs" / cid / pack_id
+    images_dir = pack_dir / "images"
+    images_dir.mkdir(parents=True, exist_ok=True)
+
+    source_records = _collect_character_lora_sources(normalized)
+    image_records: List[Dict[str, Any]] = []
+    unresolved_records: List[Dict[str, Any]] = []
+    caption_lines: List[str] = []
+
+    for index, source in enumerate(source_records, start=1):
+        resolved = _resolve_image_path(source["url"])
+        if not resolved or not resolved.exists() or resolved.suffix.lower() not in {".jpg", ".jpeg", ".png", ".webp"}:
+            unresolved_records.append(source)
+            continue
+        suffix = resolved.suffix.lower()
+        dest_name = f"{index:03d}_{_character_slug(source.get('type') or 'reference')}{suffix}"
+        dest_path = images_dir / dest_name
+        shutil.copy2(resolved, dest_path)
+        caption = ", ".join([
+            trigger_token,
+            normalized.get("name", cid),
+            normalized.get("role", "character"),
+            source.get("type", "reference"),
+            "same identity, consistent face, consistent body proportions, realistic skin texture",
+        ])
+        record = {
+            "file_name": f"images/{dest_name}",
+            "source_url": source["url"],
+            "source": source["source"],
+            "type": source.get("type", "reference"),
+            "caption": caption,
+        }
+        image_records.append(record)
+        caption_lines.append(json.dumps(record, ensure_ascii=False))
+
+    ready_for_training = len(image_records) >= 10
+    trainer_status = "not_configured"
+    manifest = {
+        "schema_version": 1,
+        "pack_id": pack_id,
+        "created_at": _now_iso(),
+        "character_id": cid,
+        "character_name": normalized.get("name", cid),
+        "role": normalized.get("role", "Character"),
+        "trigger_token": trigger_token,
+        "ready_for_training": ready_for_training,
+        "trainer_status": trainer_status,
+        "minimum_recommended_images": 10,
+        "target_recommended_images": 30,
+        "image_count": len(image_records),
+        "images": image_records,
+        "unresolved_sources": unresolved_records,
+        "base_prompt": normalized.get("anchor_prompt", ""),
+        "negative_prompt": (normalized.get("prompt_rules") or {}).get("negative_lock", CHARACTER_NO_TEXT_PROMPT_RULE),
+        "notes": req.notes or "",
+        "training_note": "Dataset package prepared only. No local FLUX2 LoRA trainer is configured in this app yet.",
+    }
+    manifest_path = pack_dir / "manifest.json"
+    captions_path = pack_dir / "captions.jsonl"
+    readme_path = pack_dir / "README.txt"
+    manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+    captions_path.write_text("\n".join(caption_lines) + ("\n" if caption_lines else ""), encoding="utf-8")
+    readme_path.write_text(
+        "\n".join([
+            f"Character LoRA dataset pack: {pack_id}",
+            f"Character: {normalized.get('name', cid)}",
+            f"Trigger token: {trigger_token}",
+            f"Image count: {len(image_records)}",
+            f"Ready for training: {ready_for_training}",
+            "",
+            "Use manifest.json and captions.jsonl with a FLUX2-compatible LoRA trainer.",
+            "This app currently prepares the dataset package; it does not launch a trainer.",
+        ]),
+        encoding="utf-8",
+    )
+
+    lora_version = {
+        "id": pack_id,
+        "status": "dataset_ready" if ready_for_training else "needs_more_references",
+        "created_at": manifest["created_at"],
+        "trigger_token": trigger_token,
+        "image_count": len(image_records),
+        "minimum_recommended_images": 10,
+        "ready_for_training": ready_for_training,
+        "trainer_status": trainer_status,
+        "pack_path": str(pack_dir),
+        "manifest_path": str(manifest_path),
+        "notes": req.notes or "Prepared from character references",
+    }
+    training = normalized.get("training") if isinstance(normalized.get("training"), dict) else {}
+    versions = training.get("lora_versions") if isinstance(training.get("lora_versions"), list) else []
+    training.update({
+        "status": lora_version["status"],
+        "latest_lora_pack": pack_id,
+        "lora_versions": [lora_version] + versions,
+        "dataset_requirements": "10-50 approved images before training",
+    })
+    normalized["training"] = training
+    saved = _persist_normalized_character(cid, normalized)
+
+    return {
+        "status": lora_version["status"],
+        "character_id": cid,
+        "trigger_token": trigger_token,
+        "pack_id": pack_id,
+        "pack_path": str(pack_dir),
+        "manifest_path": str(manifest_path),
+        "captions_path": str(captions_path),
+        "image_count": len(image_records),
+        "ready_for_training": ready_for_training,
+        "trainer_status": trainer_status,
+        "lora_version": lora_version,
+        "character": saved,
+        "unresolved_count": len(unresolved_records),
+    }
+
+
 @app.get("/api/characters/reference/{char_id}/{filename}")
 async def api_character_reference_file(char_id: str, filename: str):
     cid = _character_slug(char_id)
@@ -6383,7 +6615,9 @@ async def api_character_role_prompt(req: CharacterRolePromptRequest):
         "Design a realistic adult character prompt plan for image generation. "
         "Reason from the requested role instead of randomizing incompatible ages, wardrobe, locations, or body type. "
         "When the role implies attractiveness, modeling, fitness, celebrity, or influencer work, make the person attractive and camera-ready while realistic. "
-        "Never include captions, labels, typography, letters, numbers, logos, watermarks, or visible text in any image prompt."
+        "Never include captions, labels, typography, letters, numbers, logos, watermarks, or visible text in normal image prompts. "
+        "Character sheet prompts must default to a no-text 4K horizontal 16:9 reference layout with a small number of large sharp panels. "
+        "Apply the flux-ltx-prompt-engineering-standard: concrete materiality, optical capture details, named light source, and positive anti-smoothness details."
     )
     user_prompt = f"""
 Role / archetype: {role}
@@ -6413,7 +6647,10 @@ Rules:
 - Do not choose elderly ages unless the role asks for retired, elder, senior, grandparent, etc.
 - Make the character attractive when the role implies model/influencer/lead/cinematic talent, but keep skin texture and anatomy realistic.
 - Include adult-only wording if the role could be confused with teen styling.
-- Every prompt must include: no text, no captions, no labels, no typography, no letters, no numbers, no logos, no watermark.
+- Include physical specificity: visible natural skin texture, slight facial asymmetry, flyaway hairs, realistic under-eye shadows, fabric weave, seam stitching, and a specific lens/light setup.
+- base_prompt and variation_prompt must include: no text, no captions, no labels, no typography, no letters, no numbers, no logos, no watermark.
+- sheet_prompt should describe a 3840x2160 horizontal 16:9 character reference turnaround sheet with a wide two-row layout: top row three large full-body turnaround views and bottom row three large face/detail panels.
+- sheet_prompt must include positive blank-layout language plus sharp eyelashes, hair strands, fabric weave, clean divider lines, no captions, no labels, no typography, no letters, no numbers, no logos, no watermark, no fake writing, no barcode artifacts.
 """.strip()
     payload = {
         "model": model,
@@ -6584,6 +6821,12 @@ async def api_character_spark_render(req: CharacterSparkRenderRequest):
     prompt = _with_character_no_text_rule(req.prompt)
     if not prompt:
         raise HTTPException(status_code=400, detail="Prompt is required")
+    prompt, _ = apply_model_prompt_standard(
+        prompt,
+        workflow_id=req.workflow_id or "01_flux2_text_to_image",
+        model_family="flux2-dev",
+        render_type=requested_type,
+    )
 
     storage_type = "anchor" if requested_type == "character" else requested_type
 
@@ -6636,6 +6879,8 @@ async def api_character_spark_render(req: CharacterSparkRenderRequest):
         seed=seed,
         output_dir=str(output_dir),
         image_paths=[str(path) for path in reference_paths],
+        width=3840 if requested_type == "sheet" else None,
+        height=2160 if requested_type == "sheet" else None,
         wait_for_output=True,
     )
     if result.get("status") != "success":
@@ -6869,25 +7114,25 @@ class NewCharacterRequest(BaseModel):
 async def api_create_character(
     name: str = Form(...),
     description: str = Form(""),
+    anchor_prompt: str = Form(""),
     anchor_image: UploadFile | None = Form(None),
 ):
-    """Create a new character with an optional drag-drop character image."""
-    import uuid as _uuid
+    """Create or update character metadata with an optional drag-drop character image."""
 
     safe_name = _character_slug(name)
     if not safe_name:
         raise HTTPException(status_code=400, detail="Invalid character name")
 
-    if safe_name in _CHARACTERS_STORE:
-        raise HTTPException(status_code=409, detail=f"Character '{safe_name}' already exists")
+    existing = _CHARACTERS_STORE.get(safe_name)
 
     # Assign accent color from palette
     accents = ["cyan", "magenta", "amber", "green"]
     existing_accents = {c.get("accent") for c in _CHARACTERS_STORE.values()}
-    accent = next((a for a in accents if a not in existing_accents), "cyan")
+    accent = existing.get("accent") if existing else next((a for a in accents if a not in existing_accents), "cyan")
 
     # Save character image if provided
     anchor_url = ""
+    final_name = ""
     if anchor_image and anchor_image.filename:
         raw_name = _character_slug(Path(anchor_image.filename).stem)
         img_ext = Path(anchor_image.filename).suffix.lower() or '.jpg'
@@ -6907,26 +7152,33 @@ async def api_create_character(
             fout.write(content)
         anchor_url = f"/api/characters/anchor/{Path(final_name).stem}"
 
-    # Build character record
-    char_data = {
-        "id": safe_name,
-        "name": name.strip().upper(),
-        "role": description[:60] if description else "Character",
-        "description": description,
-        "accent": accent,
-        "score": 0,
-        "anchor_url": anchor_url,
-        "anchor_prompt": f"Portrait of {name.strip()}, {description or ''}",
-        "dna": {},
-        "master_references": ([{
-            "id": "master_001",
+    prompt = anchor_prompt.strip() or (existing or {}).get("anchor_prompt") or f"Portrait of {name.strip()}, {description or ''}"
+    master_references = list((existing or {}).get("master_references") or [])
+    if anchor_url:
+        master_references.insert(0, {
+            "id": f"master_{len(master_references) + 1:03d}",
             "url": anchor_url,
             "type": "face_closeup",
             "source": "create_character_upload",
             "locked": True,
-            "score": 0,
+            "score": int((existing or {}).get("score") or 0),
             "created_at": _now_iso(),
-        }] if anchor_url else []),
+        })
+
+    # Build character record while preserving existing profile fields.
+    char_data = {
+        **(existing or {}),
+        "id": safe_name,
+        "name": name.strip().upper(),
+        "role": description[:60] if description else "Character",
+        "description": description,
+        "bio": description,
+        "accent": accent,
+        "score": int((existing or {}).get("score") or 0),
+        "anchor_url": anchor_url or (existing or {}).get("anchor_url", ""),
+        "anchor_prompt": prompt,
+        "dna": (existing or {}).get("dna", {}),
+        "master_references": master_references,
     }
 
     # Persist to character_banks/char_{id}.json
@@ -6943,11 +7195,14 @@ async def api_create_character(
         char_section = (
             f"\n## KEY CHARACTER: {name.strip().upper()}\n"
             f"- **Role:** {description or 'Character'}\n"
-            f"- **Character Image:** `{Path(final_name).stem}`\n\n"
+            + (f"- **Character Image:** `{Path(final_name).stem}`\n" if final_name else "")
+            + "\n"
         )
         if not world_bible_path.exists():
             world_bible_path.parent.mkdir(parents=True, exist_ok=True)
             wb_text = "# WORLD GUIDE: CHARACTER ROSTER\n\n" + char_section
+        elif f"## KEY CHARACTER: {name.strip().upper()}" in wb_text:
+            char_section = ""
         elif "## KEY CHARACTER:" not in wb_text:
             wb_text += "\n" + char_section
         else:
@@ -6962,7 +7217,7 @@ async def api_create_character(
     except Exception:
         pass  # Non-fatal — character is still created
 
-    return {"status": "created", "character": char_data}
+    return {"status": "updated" if existing else "created", "character": char_data}
 
 
 # --- Hermes Agent Profile Chat ---

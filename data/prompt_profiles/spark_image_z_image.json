@@ -4,7 +4,7 @@
   "prompt_style": "photoreal cinematic keyframe, grounded visual realism, ad-grade product framing",
   "camera_defaults": "ARRI Alexa style color science, 35mm anamorphic look, low-to-mid camera height, stabilized motion feel",
   "lighting_defaults": "directional golden-hour key with practical bounce fill and subtle atmospheric haze",
-  "quality_terms": "photoreal skin and material detail, coherent reflections, physically plausible shadows, sharp focal priority",
+  "quality_terms": "photoreal skin pores or material grain, coherent reflections, physically plausible shadows, sharp focal priority",
   "negative_prompt": "anime, cartoon, painterly distortion, blurry, low quality, extra fingers, duplicated limbs, broken vehicle geometry, watermark, text",
   "forbidden_terms": [
     "low poly",

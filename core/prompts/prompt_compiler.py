@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from core.skills.skill_loader import SkillLoader
 from core.hermes.platform_skills import platform_prompt_clause
+from core.prompts.prompt_standards import apply_model_prompt_standard, prompt_standard_skills_for_workflow
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -19,6 +20,10 @@ MODEL_STANDARD_PATHS = {
     "flux-ltx-prompt-engineering-standard": [
         PROFILE_SCRIPT_SKILLS_DIR / "flux-ltx-prompt-engineering-standard" / "SKILL.md",
         PROFILE_PRODUCT_SKILLS_DIR / "flux-ltx-prompt-engineering-standard" / "SKILL.md",
+    ],
+    "zimage-turbo-payload-generator": [
+        PROFILE_SCRIPT_SKILLS_DIR / "zimage-turbo-payload-generator" / "SKILL.md",
+        PROFILE_PRODUCT_SKILLS_DIR / "zimage-turbo-payload-generator" / "SKILL.md",
     ],
     "ltx23-prompting-workflow": [
         PROFILE_SCRIPT_SKILLS_DIR / "ltx23-prompting-workflow" / "SKILL.md",
@@ -75,7 +80,7 @@ def _load_profile(workflow_id: str) -> Tuple[Dict[str, Any], List[str]]:
                 "prompt_style": "cinematic still image",
                 "camera_defaults": "35mm lens, medium-wide framing",
                 "lighting_defaults": "soft key and practical fill",
-                "quality_terms": "high detail, coherent composition",
+                "quality_terms": "visible material texture, coherent composition",
                 "negative_prompt": "blurry, low quality, deformed, watermark, text",
                 "forbidden_terms": [],
                 "max_prompt_chars": 1200,
@@ -94,7 +99,7 @@ def _load_profile(workflow_id: str) -> Tuple[Dict[str, Any], List[str]]:
                 "prompt_style": "cinematic still image",
                 "camera_defaults": "35mm lens, medium-wide framing",
                 "lighting_defaults": "soft key and practical fill",
-                "quality_terms": "high detail, coherent composition",
+                "quality_terms": "visible material texture, coherent composition",
                 "negative_prompt": "blurry, low quality, deformed, watermark, text",
                 "forbidden_terms": [],
                 "max_prompt_chars": 1200,
@@ -178,7 +183,9 @@ def _choose_model_standard_name(workflow_id: str, model_family: str) -> str:
         return "ltx23-prompting-workflow"
     if "ltx" in family:
         return "ltx23-prompting-workflow"
-    if "flux" in wf or "z_image" in wf or "flux" in family or "sdxl" in family:
+    if "z_image" in wf or "z-image" in family:
+        return "zimage-turbo-payload-generator"
+    if "flux" in wf or "flux" in family or "sdxl" in family:
         return "flux-ltx-prompt-engineering-standard"
     return "flux-ltx-prompt-engineering-standard"
 
@@ -238,6 +245,11 @@ def _render_standard_clause(standard: Dict[str, Any]) -> str:
             "use physical material descriptors over abstract adjectives",
             "specify concrete camera and lens details",
             "specify physically plausible light behavior",
+        ],
+        "zimage-turbo-payload-generator": [
+            "sanitize generic quality tags and banned artifact phrases",
+            "use photoreal material, lens, lighting, and composition detail",
+            "keep payload-ready positive prompt text concise and node-safe",
         ],
         "ltx23-prompting-workflow": [
             "compose as one cinematic paragraph with explicit motion",
@@ -310,6 +322,9 @@ def compile_prompt_artifact(
         warnings.append("skills_unavailable")
 
     skills_used = _extract_skill_names(matched_skills)
+    for standard_skill in prompt_standard_skills_for_workflow(workflow_id, model_family):
+        if standard_skill and standard_skill not in skills_used:
+            skills_used.append(standard_skill)
     for skill_name in (platform_skill.get("skills") or []) if isinstance(platform_skill, dict) else []:
         skill_name = _safe_text(skill_name)
         if skill_name and skill_name not in skills_used:
@@ -390,6 +405,15 @@ def compile_prompt_artifact(
 
     compiled = ", ".join([p for p in parts if _safe_text(p)])
     compiled = _strip_forbidden(compiled, profile.get("forbidden_terms", []))
+    compiled, enforced_standard_skills = apply_model_prompt_standard(
+        compiled,
+        workflow_id=workflow_id,
+        model_family=model_family,
+        render_type=_safe_text(shot_meta.get("render_type")),
+    )
+    for standard_skill in enforced_standard_skills:
+        if standard_skill and standard_skill not in skills_used:
+            skills_used.append(standard_skill)
     max_chars = int(profile.get("max_prompt_chars", 1200) or 1200)
     if len(compiled) > max_chars:
         compiled = compiled[:max_chars].rstrip(", ")

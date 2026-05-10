@@ -14,7 +14,7 @@ class BaseKernelGenerator(ABC):
 class FluxKernelGenerator(BaseKernelGenerator):
     def generate_payload(self, concept: str, anchor_data: Dict[str, Any] = None) -> Dict[str, Any]:
         # FLUX 2 Dev Schema based on Kimi Research
-        cinematic_descriptors = "shot on Arri Alexa 65, Zeiss Master Prime lenses, ultra-photorealistic, extremely detailed textures, natural skin tones, volumetric lighting, cinematic depth of field, 8k resolution"
+        cinematic_descriptors = "shot on Arri Alexa 65, Zeiss Master Prime lenses, visible natural skin or material texture, realistic surface imperfections, motivated volumetric light, natural lens falloff, specific depth of field"
         if anchor_data:
             palette = ", ".join(anchor_data.get("palette", []))
             temp = anchor_data.get("color_temperature", "5600K")

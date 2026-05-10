@@ -45,6 +45,22 @@ def _with_exchange_debug(
     return parsed
 
 
+def _multi_person_cast_directive(brief: str, target_shots: int) -> str:
+    text = (brief or "").lower()
+    asks_for_people = bool(re.search(r"\b(people|persons|portraits|characters|cast|faces|headshots|models)\b", text))
+    if target_shots < 4 or not asks_for_people:
+        return ""
+    return (
+        "Multi-person cast rule: each shot must feature a visibly different person, not the same averaged face. "
+        "For every person specify a unique name or label, exact adult age or age decade, face shape, nose/jaw/eye details, "
+        "hair color/style/texture, build/height, wardrobe, occupation or social context, and a specific environment. "
+        "Do not default the whole set to one ambiguous median/biracial look, one age band, one hairstyle, or one body type. "
+        "Honor any demographic instructions in the brief exactly; otherwise use deliberate variety across age, skin tone, "
+        "facial structure, hair texture, body type, styling, and setting. "
+        "Put these distinguishing traits directly inside visual_brief so the image model receives them."
+    )
+
+
 class KimiDirectorService:
     def __init__(self) -> None:
         cfg = get_raw_config()
@@ -199,6 +215,7 @@ class KimiDirectorService:
             f"length: {length or 'unspecified'}\n"
             f"target_shots: {target}\n"
             f"world_bible_excerpt:\n{bible_text[:6000] if bible_text else 'none'}\n\n"
+            f"{_multi_person_cast_directive(brief, target)}\n\n"
             f"Generate exactly {target} shots in strict sequence and return JSON only.\n"
             f"Required schema:\n{json.dumps(schema_hint, indent=2)}"
         )
@@ -270,6 +287,7 @@ class KimiDirectorService:
             "need_additional_shots": needed,
             "existing_shots": existing_shots,
             "world_bible_excerpt": (bible_text[:4000] if bible_text else "none"),
+            "multi_person_cast_rule": _multi_person_cast_directive(brief, target_shots) or "not applicable",
             "required_output_schema": {
                 "campaign_id": "string",
                 "shots": [{
@@ -428,6 +446,7 @@ class KimiDirectorService:
                             "length": length or "unspecified",
                             "target_shots": int(target_shots),
                             "world_bible_excerpt": (bible_text[:4000] if bible_text else "none"),
+                            "multi_person_cast_rule": _multi_person_cast_directive(brief, target_shots) or "not applicable",
                             "current_shots": normalized_shots,
                             "review": review,
                             "required_output_schema": {
@@ -481,18 +500,31 @@ class KimiDirectorService:
     def build_dev_fallback_plan(self, brief: str, campaign_id: str, target_shots: Optional[int] = None) -> Dict[str, Any]:
         count = max(1, min(int(target_shots or self.requested_shot_count(brief)), 120))
         shots = []
+        cast_directive = _multi_person_cast_directive(brief, count)
+        cast_seeds = [
+            "Mara Ellis, 62-year-old retired park ranger, angular face, silver cropped hair, weathered skin, wiry build, waxed canvas jacket",
+            "Dante Brooks, 34-year-old mechanic, broad nose, close-cropped black hair, stocky build, oil-stained work shirt",
+            "Leah Novak, 27-year-old graduate student, narrow jaw, dark auburn bob, tall slim build, thrifted denim jacket",
+            "Omar Haddad, 46-year-old restaurant owner, heavy-lidded eyes, salt-and-pepper beard, average build, rolled linen sleeves",
+            "Priya Raman, 39-year-old civil engineer, round face, wavy black hair tied back, sturdy build, field vest and work boots",
+            "Caleb Ivers, 24-year-old bike courier, sharp cheekbones, sandy curls, lean build, reflective streetwear",
+            "Naomi Chen, 55-year-old florist, soft square face, gray-streaked hair, short build, patterned apron over cardigan",
+            "Mateo Silva, 31-year-old nurse, oval face, dark under-eye texture, athletic build, plain scrubs under a rain shell",
+        ]
         for i in range(1, count + 1):
+            cast_seed = cast_seeds[(i - 1) % len(cast_seeds)]
+            subject = f"{cast_seed}. " if cast_directive else ""
             shots.append({
                 "shot_id": f"SHOT_{str(i).zfill(3)}",
                 "sequence": i,
                 "narrative_intent": "fallback synthetic plan",
-                "visual_brief": f"{brief}. cinematic shot {i}, high detail, strong composition.",
-                "characters": [],
+                "visual_brief": f"{subject}{brief}. shot {i} with concrete subject action, visible material texture, motivated light source, and strong composition.",
+                "characters": [cast_seed.split(",", 1)[0]] if cast_directive else [],
                 "environment": "fallback environment",
-                "camera_direction": "cinematic framing",
-                "lighting_direction": "balanced dramatic lighting",
+                "camera_direction": "specific lens framing with clear foreground-midground-background relationship",
+                "lighting_direction": "motivated source-based lighting with stable shadow direction",
                 "rationale": "development fallback mode",
-                "constraints": "dev fallback only",
+                "constraints": "dev fallback only; preserve distinct cast identity" if cast_directive else "dev fallback only",
             })
         return {"campaign_id": campaign_id, "shots": shots, "__raw_content": json.dumps({"fallback": True, "shots": shots})}
 
