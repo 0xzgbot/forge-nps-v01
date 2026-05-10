@@ -22,6 +22,7 @@ let configDirty = {}; // dot_key -> new_value
 let currentConfig = {};
 let currentPlatformSkill = { active: false, id: "", label: "No platform skill", constraints: {} };
 let platformDetectTimer = null;
+let targetCountManualOverride = false;
 
 // Spark state
 let sparkRenderResults = {};
@@ -29,6 +30,9 @@ let sparkWebSocket = null;
 let sparkCampaignId = null;
 let videoSelection = new Set();
 let videoShotsById = {};
+let pendingVideoJobs = [];
+let videoJobPollTimer = null;
+const VIDEO_JOBS_KEY = "forge_pending_video_jobs";
 let dashboardSelection = new Set();
 let currentCampaignId = "";
 let identityAssets = [];
@@ -161,12 +165,36 @@ function inferImageTargetCount(text, fallback) {
     return fallback || 5;
 }
 
+function clampImageTargetCount(value, fallback = 5) {
+    const parsed = parseInt(value, 10);
+    if (!Number.isFinite(parsed)) return fallback;
+    return Math.max(1, Math.min(parsed, 120));
+}
+
 function updateTargetCountPill() {
-    const pill = document.getElementById("target-count-pill");
-    if (!pill) return 5;
-    const count = inferImageTargetCount($briefInput?.value || "", 5);
-    pill.textContent = "Target: " + count + " image" + (count === 1 ? "" : "s");
+    const input = document.getElementById("target-count-input");
+    const unit = document.getElementById("target-count-unit");
+    const inferred = inferImageTargetCount($briefInput?.value || "", 5);
+    const count = input && targetCountManualOverride
+        ? clampImageTargetCount(input.value, inferred)
+        : inferred;
+    if (input && document.activeElement !== input) input.value = String(count);
+    if (unit) unit.textContent = count === 1 ? "image" : "images";
     return count;
+}
+
+function onTargetCountInput() {
+    const input = document.getElementById("target-count-input");
+    if (!input) return;
+    if (!String(input.value || "").trim()) {
+        targetCountManualOverride = false;
+        updateTargetCountPill();
+        return;
+    }
+    targetCountManualOverride = true;
+    const count = clampImageTargetCount(input.value, 5);
+    const unit = document.getElementById("target-count-unit");
+    if (unit) unit.textContent = count === 1 ? "image" : "images";
 }
 const $startBatchBtn = document.getElementById("start-batch-btn");
 const $lightboxModal = document.getElementById("lightbox-modal");
@@ -203,6 +231,8 @@ window.addEventListener("DOMContentLoaded", () => {
     initMediaThumbSizeControl();
     initDashboardResizer();
     initVideoResizer();
+    loadPendingVideoJobs();
+    if (pendingVideoJobs.length) scheduleVideoJobPoll(1200);
     ["identity-type","identity-name","identity-tokens","identity-negatives"].forEach((k) => {
         const el = id(k);
         if (el) el.addEventListener("input", updateIdentityPreview);
@@ -5162,6 +5192,12 @@ async function loadVideoLibrary() {
                 vb.className = "audit-badge pass";
                 vb.textContent = "VIDEO";
                 label.appendChild(vb);
+            } else if (s.video_status) {
+                const vs = document.createElement("span");
+                const status = String(s.video_status || "").toLowerCase();
+                vs.className = "audit-badge " + (status === "error" ? "fail" : "pass");
+                vs.textContent = "VIDEO_" + status.toUpperCase();
+                label.appendChild(vs);
             }
             if (auditStatus === "pass" || auditStatus === "fail") {
                 const b = document.createElement("span");
@@ -5338,6 +5374,91 @@ function updateVideoSelectionUI() {
     }
 }
 
+function savePendingVideoJobs() {
+    try {
+        localStorage.setItem(VIDEO_JOBS_KEY, JSON.stringify(pendingVideoJobs.slice(-80)));
+    } catch (_e) {
+        // best effort
+    }
+}
+
+function loadPendingVideoJobs() {
+    try {
+        const parsed = JSON.parse(localStorage.getItem(VIDEO_JOBS_KEY) || "[]");
+        pendingVideoJobs = Array.isArray(parsed) ? parsed.filter(job => job && job.prompt_id && job.shot_id) : [];
+    } catch (_e) {
+        pendingVideoJobs = [];
+    }
+}
+
+function addPendingVideoJobs(jobs) {
+    const existing = new Map(pendingVideoJobs.map(job => [String(job.prompt_id), job]));
+    (jobs || []).forEach((job) => {
+        if (!job?.prompt_id || !job?.shot_id) return;
+        existing.set(String(job.prompt_id), {
+            ...job,
+            status: job.status || "queued",
+            queued_at: job.queued_at || new Date().toISOString(),
+        });
+    });
+    pendingVideoJobs = Array.from(existing.values());
+    savePendingVideoJobs();
+}
+
+function scheduleVideoJobPoll(delayMs = 5000) {
+    if (videoJobPollTimer) clearTimeout(videoJobPollTimer);
+    if (!pendingVideoJobs.length) return;
+    videoJobPollTimer = setTimeout(syncPendingVideoJobs, delayMs);
+}
+
+function videoJobStatusText(summary) {
+    const complete = Number(summary?.complete || 0);
+    const running = Number(summary?.running || 0);
+    const errors = Number(summary?.errors || 0);
+    const total = pendingVideoJobs.length + complete + errors;
+    return "Video jobs: " + complete + " complete, " + running + " running/queued, " + errors + " error" + (errors === 1 ? "" : "s") + (total ? " (" + total + " tracked)" : "");
+}
+
+async function syncPendingVideoJobs() {
+    if (!pendingVideoJobs.length) return;
+    const jobs = pendingVideoJobs.slice();
+    try {
+        const resp = await fetch("/api/video/sync-jobs", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ jobs }),
+        });
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok || data.status !== "ok") throw new Error(data.detail || data.error || "HTTP " + resp.status);
+        const completed = new Set();
+        const failed = [];
+        (data.results || []).forEach((result) => {
+            if (result.status === "complete") completed.add(String(result.prompt_id));
+            if (result.status === "error") failed.push(result);
+        });
+        pendingVideoJobs = pendingVideoJobs.filter(job => !completed.has(String(job.prompt_id)));
+        savePendingVideoJobs();
+        if ($sparkStatusText) $sparkStatusText.textContent = videoJobStatusText(data);
+        if ($sparkProgress) {
+            const latestComplete = (data.results || []).find(r => r.status === "complete" && r.video_url);
+            const latestError = failed[0];
+            $sparkProgress.textContent = latestComplete
+                ? "Saved " + latestComplete.video_url
+                : latestError
+                    ? ((latestError.shot_id || "job") + ": " + (latestError.error || "error"))
+                    : "Polling ComfyUI for finished MP4s...";
+        }
+        if (completed.size) {
+            await loadShots();
+            await loadVideoLibrary();
+        }
+        if (pendingVideoJobs.length) scheduleVideoJobPoll(5000);
+    } catch (e) {
+        if ($sparkStatusText) $sparkStatusText.textContent = "Video status sync failed: " + (e?.message || e);
+        scheduleVideoJobPoll(10000);
+    }
+}
+
 async function remediateFailedSelected() {
     const selected = Array.from(videoSelection);
     if (!selected.length) {
@@ -5416,12 +5537,31 @@ async function processSelectedVideos() {
         const done = (data.results || []).filter(r => r.status === "ok").length;
         const blocked = (data.results || []).filter(r => r.status === "blocked").length;
         const errs = (data.results || []).filter(r => r.status === "error").length;
-        $sparkStatusText.textContent = "Video processing complete (" + workflowId + "): " + done + " queued, " + blocked + " blocked, " + errs + " errors";
+        $sparkStatusText.textContent = "Video jobs queued (" + workflowId + "): " + done + " queued, " + blocked + " blocked, " + errs + " errors";
         const failures = (data.results || []).filter(r => r.status === "blocked" || r.status === "error");
         const failureText = failures.slice(0, 4).map(r =>
             (r.shot_id || "shot") + ": " + (r.error || (r.reasons || []).join(",") || r.status)
         ).join(" | ");
-        $sparkProgress.textContent = failureText || (data.output_dir || "");
+        const jobs = (data.results || [])
+            .filter(r => r.status === "ok" && r.prompt_id)
+            .map(r => ({
+                shot_id: r.shot_id,
+                prompt_id: r.prompt_id,
+                campaign_id: currentCampaignId || "",
+                workflow_id: r.workflow_id || workflowId,
+                seed: r.seed,
+                duration,
+                fps,
+                host: r.host || "",
+                status: "queued",
+            }));
+        if (jobs.length) {
+            addPendingVideoJobs(jobs);
+            $sparkProgress.textContent = "Queued " + jobs.length + " ComfyUI job(s). Polling for completed MP4s...";
+            scheduleVideoJobPoll(2000);
+        } else {
+            $sparkProgress.textContent = failureText || (data.output_dir || "");
+        }
         if (failures.length) {
             addLogEntry("error", "Video processing issues: " + failureText);
         }
@@ -5430,6 +5570,127 @@ async function processSelectedVideos() {
     } finally {
         $startBatchBtn.disabled = false;
         $startBatchBtn.textContent = "Process";
+    }
+}
+
+async function generateVideoPromptsForSelected() {
+    if (!videoSelection.size) {
+        $sparkStatusText.textContent = "Select at least one rendered image before generating video prompts.";
+        return;
+    }
+    const videoOptions = syncVideoQuickOptions();
+    const duration = parseInt(String(videoOptions.duration || $videoDuration?.value || 5), 10);
+    const fps = parseInt($videoFps?.value || "24", 10);
+    const workflowId = videoOptions.workflowId || getSelectedVideoWorkflow();
+    const selectedForPrompt = Array.from(videoSelection).filter(id => {
+        const shot = videoShotsById[id];
+        return shot && evaluateShotForVideo(shot).eligible;
+    });
+    const skipped = videoSelection.size - selectedForPrompt.length;
+    if (!selectedForPrompt.length) {
+        $sparkStatusText.textContent = "No rendered images selected for prompt generation.";
+        $sparkProgress.textContent = skipped ? (skipped + " selected item(s) had no image") : "";
+        return;
+    }
+
+    const btn = document.getElementById("video-generate-primary-btn");
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = "Generating Prompt...";
+    }
+    $sparkStatusText.textContent = "Generating video prompt(s) from " + selectedForPrompt.length + " selected image(s)...";
+    $sparkProgress.textContent = skipped ? (skipped + " skipped because no rendered image was available") : "";
+
+    const prompts = {};
+    try {
+        const resp = await fetch("/api/video/generate-prompts", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                shot_ids: selectedForPrompt,
+                duration,
+                fps,
+                campaign_id: currentCampaignId || "",
+                workflow_id: workflowId,
+                mode: videoOptions.mode,
+                resolution: videoOptions.resolution,
+                aspect_ratio: videoOptions.aspectRatio,
+                platform_mode: document.getElementById("platform-mode")?.value || "auto",
+            }),
+        });
+        if (!resp.ok) {
+            const text = await resp.text();
+            throw new Error(text || ("HTTP " + resp.status));
+        }
+        if (!resp.body) throw new Error("Prompt stream unavailable");
+
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let saved = 0;
+        let analyzed = 0;
+        let promptEvents = 0;
+        let streamErrors = 0;
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n");
+            buffer = lines.pop() || "";
+            for (const line of lines) {
+                if (!line.trim()) continue;
+                let event;
+                try {
+                    event = JSON.parse(line);
+                } catch (_e) {
+                    continue;
+                }
+                if (event.error) {
+                    streamErrors += 1;
+                    $sparkProgress.textContent = String(event.error);
+                    continue;
+                }
+                if (event.agent && event.status === "thinking") {
+                    $sparkStatusText.textContent = event.agent + " is generating video prompt(s)... " + analyzed + "/" + selectedForPrompt.length + " analyzed";
+                } else if (event.agent && event.result) {
+                    const shotLabel = event.shot_id ? (event.shot_id + ": ") : "";
+                    if (String(event.agent).includes("Vision Analyst")) analyzed += 1;
+                    if (String(event.agent).includes("Prompt Engineer")) promptEvents += 1;
+                    $sparkStatusText.textContent = "Prompt generation progress: " + analyzed + "/" + selectedForPrompt.length + " analyzed, " + promptEvents + " prompt update(s)";
+                    $sparkProgress.textContent = shotLabel + String(event.result).slice(0, 180);
+                }
+                if (event.prompts && typeof event.prompts === "object") {
+                    Object.assign(prompts, event.prompts);
+                    saved = Number(event.saved || Object.keys(prompts).length || saved);
+                }
+            }
+        }
+
+        if (Object.keys(prompts).length) {
+            const firstPrompt = prompts[selectedForPrompt[0]] || Object.values(prompts)[0] || "";
+            if ($videoPrompt && firstPrompt) $videoPrompt.value = String(firstPrompt);
+            selectedForPrompt.forEach((id) => {
+                if (videoShotsById[id] && prompts[id]) {
+                    videoShotsById[id].video_prompt = prompts[id];
+                    videoShotsById[id].video_prompt_source = "vision_prompt_agent";
+                }
+            });
+            $sparkStatusText.textContent = "Generated " + Object.keys(prompts).length + " video prompt(s). Review/edit, then click Process.";
+            $sparkProgress.textContent = (saved ? (saved + " prompt(s) saved to selected media") : "Prompt ready") +
+                (streamErrors ? (" · " + streamErrors + " warning(s), fallback used where needed") : "");
+            await loadVideoLibrary();
+            updateVideoSelectionUI();
+        } else {
+            $sparkStatusText.textContent = "Prompt generation finished, but no prompts were returned.";
+            $sparkProgress.textContent = streamErrors ? (streamErrors + " warning(s) reported") : "";
+        }
+    } catch (e) {
+        $sparkStatusText.textContent = "Prompt generation failed: " + (e?.message || e);
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = "Generate Prompt From Selected Images";
+        }
     }
 }
 

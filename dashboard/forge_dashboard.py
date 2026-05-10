@@ -1060,6 +1060,15 @@ MEDIA_SHOT_METADATA_FIELDS = {
     "skills_scope_version",
     "video_prompt",
     "video_prompt_source",
+    "video_path",
+    "video_url",
+    "video_prompt_id",
+    "video_workflow_id",
+    "video_seed",
+    "video_duration",
+    "video_fps",
+    "video_status",
+    "video_completed_at",
     "negative_prompt",
     "workflow_profile",
     "model_standard_name",
@@ -1114,6 +1123,71 @@ def _persist_media_shot_metadata(shot: Dict[str, Any]) -> None:
     final = folder / MEDIA_SHOT_METADATA_FILE
     tmp.write_text(json.dumps(metadata, indent=2), encoding="utf-8")
     tmp.replace(final)
+
+
+def _media_video_url_for_path(path: Path) -> str:
+    try:
+        rel = path.resolve().relative_to(MEDIA_VIDEOS.resolve())
+        return f"/media-assets/videos/{rel.as_posix()}"
+    except Exception:
+        return f"/media-assets/videos/{path.name}"
+
+
+def _history_output_items(history_entry: Dict[str, Any]) -> List[Dict[str, Any]]:
+    outputs = history_entry.get("outputs", {}) if isinstance(history_entry, dict) else {}
+    items_out: List[Dict[str, Any]] = []
+    for node_output in outputs.values():
+        if not isinstance(node_output, dict):
+            continue
+        for media_key in ("images", "gifs", "videos", "animated", "files"):
+            items = node_output.get(media_key)
+            if not isinstance(items, list):
+                continue
+            for item in items:
+                if isinstance(item, dict) and item.get("filename"):
+                    items_out.append(item)
+    return items_out
+
+
+def _has_video_output(history_entry: Dict[str, Any]) -> bool:
+    for item in _history_output_items(history_entry):
+        if Path(str(item.get("filename") or "")).suffix.lower() in {".mp4", ".mov", ".webm", ".m4v"}:
+            return True
+    return False
+
+
+def _attach_video_to_shot(
+    *,
+    shot_id: str,
+    saved_files: List[str],
+    prompt_id: str = "",
+    workflow_id: str = "",
+    seed: Any = None,
+    duration: Any = None,
+    fps: Any = None,
+) -> Optional[Dict[str, Any]]:
+    shot = _find_shot(str(shot_id))
+    if not shot:
+        return None
+    video_files = [
+        Path(path)
+        for path in saved_files
+        if Path(str(path)).suffix.lower() in {".mp4", ".mov", ".webm", ".m4v"} and Path(str(path)).exists()
+    ]
+    if not video_files:
+        return shot
+    video_path = video_files[0]
+    shot["video_path"] = str(video_path)
+    shot["video_url"] = _media_video_url_for_path(video_path)
+    shot["video_prompt_id"] = prompt_id or shot.get("video_prompt_id", "")
+    shot["video_workflow_id"] = workflow_id or shot.get("video_workflow_id", "")
+    shot["video_seed"] = seed if seed is not None else shot.get("video_seed")
+    shot["video_duration"] = duration if duration is not None else shot.get("video_duration")
+    shot["video_fps"] = fps if fps is not None else shot.get("video_fps")
+    shot["video_status"] = "complete"
+    shot["video_completed_at"] = _now_iso()
+    _persist_media_shot_metadata(shot)
+    return shot
 
 
 def _reindex_shots_from_storage() -> Dict[str, Any]:
@@ -1276,7 +1350,7 @@ async def api_recover_comfy_prompt(req: ComfyRecoverPromptRequest):
         raise HTTPException(status_code=409, detail=f"Prompt failed in Comfy: {prompt_id}")
 
     campaign_id = _safe_campaign_name(req.campaign_id) if req.campaign_id else _campaign_from_comfy_history_outputs(entry)
-    output_dir = MEDIA_IMAGES / campaign_id
+    output_dir = (MEDIA_VIDEOS if _has_video_output(entry) else MEDIA_IMAGES) / campaign_id
     client = ComfyUIClient(host)
     saved = await client.download_outputs(prompt_id, str(output_dir))
     if not saved:
@@ -1333,33 +1407,24 @@ async def api_recover_comfy_history(req: ComfyRecoverHistoryRequest):
         if campaign_id in {"", "imports"}:
             continue
 
-        outputs = entry.get("outputs", {}) if isinstance(entry.get("outputs"), dict) else {}
-        output_filenames: List[str] = []
-        for node_output in outputs.values():
-            if not isinstance(node_output, dict):
-                continue
-            for media_key in ("images", "gifs", "videos", "animated", "files"):
-                items = node_output.get(media_key)
-                if not isinstance(items, list):
-                    continue
-                for item in items:
-                    if not isinstance(item, dict):
-                        continue
-                    filename = str(item.get("filename", "") or "")
-                    if filename:
-                        output_filenames.append(filename)
+        output_filenames = [
+            str(item.get("filename", "") or "")
+            for item in _history_output_items(entry)
+            if str(item.get("filename", "") or "")
+        ]
         if not output_filenames:
             continue
         inspected += 1
 
-        image_names = [
+        media_names = [
             name for name in output_filenames
-            if Path(name).suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"}
+            if Path(name).suffix.lower() in {".png", ".jpg", ".jpeg", ".webp", ".mp4", ".mov", ".webm", ".m4v"}
         ]
-        if not image_names:
+        if not media_names:
             continue
-        output_dir = MEDIA_IMAGES / campaign_id
-        existing = [output_dir / Path(name).name for name in image_names]
+        video_only = all(Path(name).suffix.lower() in {".mp4", ".mov", ".webm", ".m4v"} for name in media_names)
+        output_dir = (MEDIA_VIDEOS if video_only else MEDIA_IMAGES) / campaign_id
+        existing = [output_dir / Path(name).name for name in media_names]
         if existing and all(p.exists() for p in existing):
             skipped_existing += 1
             continue
@@ -3315,6 +3380,22 @@ class VideoGeneratePromptsRequest(BaseModel):
     platform_mode: str = "auto"
 
 
+class VideoJobSyncItem(BaseModel):
+    shot_id: str
+    prompt_id: str
+    campaign_id: str = ""
+    workflow_id: str = ""
+    seed: Optional[int] = None
+    duration: Optional[int] = None
+    fps: Optional[int] = None
+    host: str = ""
+
+
+class VideoJobSyncRequest(BaseModel):
+    jobs: List[VideoJobSyncItem]
+    host: str = ""
+
+
 class LocalHiggsfieldImageRequest(BaseModel):
     prompt: str
     width_and_height: str = "1696x960"
@@ -3767,7 +3848,129 @@ async def api_video_process(req: VideoProcessRequest):
         if err.startswith("workflow_missing:"):
             raise HTTPException(status_code=404, detail=f"Workflow not found: {workflow_id}")
         raise HTTPException(status_code=500, detail=err)
+    for item in result.get("results", []) if isinstance(result.get("results"), list) else []:
+        if not isinstance(item, dict) or item.get("status") != "ok":
+            continue
+        shot = _find_shot(str(item.get("shot_id") or ""))
+        if not shot:
+            continue
+        shot["video_status"] = "queued"
+        shot["video_prompt_id"] = item.get("prompt_id") or ""
+        shot["video_workflow_id"] = item.get("workflow_id") or workflow_id
+        shot["video_seed"] = item.get("seed")
+        shot["video_duration"] = int(req.duration or 0)
+        shot["video_fps"] = int(req.fps or 0)
+        _persist_media_shot_metadata(shot)
     return result
+
+
+@app.post("/api/video/sync-jobs")
+async def api_video_sync_jobs(req: VideoJobSyncRequest):
+    cfg = get_raw_config()
+    default_host = (
+        req.host.strip()
+        or os.getenv("COMFYUI_PRIMARY", "")
+        or str(cfg.get("COMFYUI_PRIMARY", ""))
+    ).rstrip("/")
+    if not default_host:
+        raise HTTPException(status_code=400, detail="COMFYUI_PRIMARY is not configured")
+
+    results: List[Dict[str, Any]] = []
+    any_saved = False
+    async with httpx.AsyncClient(timeout=15.0) as http:
+        for job in req.jobs:
+            prompt_id = str(job.prompt_id or "").strip()
+            shot_id = str(job.shot_id or "").strip()
+            host = (job.host.strip() or default_host).rstrip("/")
+            if not prompt_id or not shot_id:
+                results.append({"shot_id": shot_id, "prompt_id": prompt_id, "status": "error", "error": "shot_id_and_prompt_id_required"})
+                continue
+            try:
+                hist_resp = await http.get(f"{host}/history/{prompt_id}")
+                if hist_resp.status_code != 200:
+                    results.append({"shot_id": shot_id, "prompt_id": prompt_id, "status": "error", "error": f"history_http_{hist_resp.status_code}"})
+                    continue
+                history = hist_resp.json()
+                entry = history.get(prompt_id) if isinstance(history, dict) else None
+                if not isinstance(entry, dict):
+                    queue_state = "queued"
+                    try:
+                        queue_resp = await http.get(f"{host}/queue")
+                        if queue_resp.status_code == 200:
+                            queue_data = queue_resp.json()
+                            running = queue_data.get("queue_running") if isinstance(queue_data, dict) else []
+                            pending = queue_data.get("queue_pending") if isinstance(queue_data, dict) else []
+                            if any(len(x) > 1 and x[1] == prompt_id for x in running if isinstance(x, list)):
+                                queue_state = "running"
+                            elif any(len(x) > 1 and x[1] == prompt_id for x in pending if isinstance(x, list)):
+                                queue_state = "queued"
+                            else:
+                                queue_state = "waiting_for_history"
+                    except Exception:
+                        queue_state = "queued"
+                    results.append({"shot_id": shot_id, "prompt_id": prompt_id, "status": queue_state})
+                    continue
+
+                status = entry.get("status", {}) if isinstance(entry.get("status"), dict) else {}
+                if status.get("status_str") == "error":
+                    shot = _find_shot(shot_id)
+                    if shot:
+                        shot["video_status"] = "error"
+                        shot["video_prompt_id"] = prompt_id
+                        _persist_media_shot_metadata(shot)
+                    results.append({"shot_id": shot_id, "prompt_id": prompt_id, "status": "error", "error": "comfy_execution_error", "messages": status.get("messages", [])})
+                    continue
+
+                if not status.get("completed"):
+                    results.append({"shot_id": shot_id, "prompt_id": prompt_id, "status": "running"})
+                    continue
+
+                campaign_id = _safe_campaign_name(job.campaign_id) if job.campaign_id else _campaign_from_comfy_history_outputs(entry)
+                if not campaign_id or campaign_id == "imports":
+                    shot = _find_shot(shot_id)
+                    campaign_id = _safe_campaign_name(str((shot or {}).get("campaign_id") or _ACTIVE_CAMPAIGN or "video_batch"))
+                output_dir = MEDIA_VIDEOS / campaign_id
+                comfy = ComfyUIClient(host)
+                saved = await comfy.download_outputs(prompt_id, str(output_dir))
+                video_saved = [path for path in saved if Path(path).suffix.lower() in {".mp4", ".mov", ".webm", ".m4v"}]
+                if not video_saved:
+                    shot = _find_shot(shot_id)
+                    if shot:
+                        shot["video_status"] = "error"
+                        shot["video_prompt_id"] = prompt_id
+                        _persist_media_shot_metadata(shot)
+                    results.append({"shot_id": shot_id, "prompt_id": prompt_id, "status": "error", "error": "no_video_output_found"})
+                    continue
+                attached = _attach_video_to_shot(
+                    shot_id=shot_id,
+                    saved_files=video_saved,
+                    prompt_id=prompt_id,
+                    workflow_id=job.workflow_id,
+                    seed=job.seed,
+                    duration=job.duration,
+                    fps=job.fps,
+                )
+                any_saved = any_saved or bool(video_saved)
+                results.append({
+                    "shot_id": shot_id,
+                    "prompt_id": prompt_id,
+                    "status": "complete",
+                    "campaign_id": campaign_id,
+                    "saved_files": video_saved,
+                    "video_url": (attached or {}).get("video_url", ""),
+                })
+            except Exception as e:
+                results.append({"shot_id": shot_id, "prompt_id": prompt_id, "status": "error", "error": str(e)})
+
+    reindex = _reindex_shots_from_storage() if any_saved else {"status": "skipped"}
+    return {
+        "status": "ok",
+        "results": results,
+        "complete": len([r for r in results if r.get("status") == "complete"]),
+        "running": len([r for r in results if r.get("status") in {"running", "queued", "waiting_for_history"}]),
+        "errors": len([r for r in results if r.get("status") == "error"]),
+        "reindex": reindex,
+    }
 
 
 @app.post("/api/video/generate-prompts")

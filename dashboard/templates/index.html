@@ -170,6 +170,27 @@
             background: rgba(8, 10, 14, 0.72);
             color: #77818c;
         }
+        .target-count-control {
+            gap: 6px;
+        }
+        .target-count-control input {
+            width: 54px;
+            min-height: 22px;
+            padding: 2px 6px;
+            border: 1px solid rgba(110, 120, 130, 0.45);
+            border-radius: 4px;
+            background: #111926;
+            color: #d8e6ff;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            font-weight: 700;
+            text-align: center;
+        }
+        .target-count-control input:focus {
+            outline: none;
+            border-color: #3D5AFE;
+            box-shadow: 0 0 0 1px rgba(61, 90, 254, 0.25);
+        }
         .platform-mode-select {
             min-height: 32px;
             padding: 6px 10px;
@@ -2661,14 +2682,37 @@
             font-size: 11px;
             min-height: 14px;
         }
+        .video-workflow-strip {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(110px, 1fr));
+            gap: 8px;
+        }
+        .video-workflow-step {
+            min-width: 0;
+            padding: 8px 10px;
+            border: 1px solid rgba(112, 153, 255, 0.22);
+            border-radius: 6px;
+            background: rgba(6, 14, 26, 0.72);
+            color: #91a8c8;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            line-height: 1.25;
+        }
+        .video-workflow-step strong {
+            display: block;
+            color: #e6efff;
+            font-size: 11px;
+        }
         .video-sync-controls {
             display: none;
         }
         @media (max-width: 780px) {
             .video-generate-prompt-row,
-            .video-option-strip {
+            .video-option-strip,
+            .video-workflow-strip {
                 align-items: stretch;
                 flex-direction: column;
+                grid-template-columns: 1fr;
             }
             .video-option,
             .video-generate-primary {
@@ -3659,7 +3703,11 @@
                 <textarea id="brief-input" placeholder="Describe your cinematic vision... (e.g. A lone astronaut discovers a glowing garden on an alien moon, bathed in twin-sunset light)"></textarea>
                 <div class="platform-detect-row">
                     <span id="platform-status-pill" class="platform-status-pill off">Platform skill: Auto</span>
-                    <span id="target-count-pill" class="platform-status-pill off">Target: 5 images</span>
+                    <label id="target-count-pill" class="platform-status-pill off target-count-control" for="target-count-input">
+                        <span>Target:</span>
+                        <input id="target-count-input" type="number" min="1" max="120" step="1" value="5" inputmode="numeric" oninput="onTargetCountInput()" onchange="onTargetCountInput()">
+                        <span id="target-count-unit">images</span>
+                    </label>
                     <select id="platform-mode" class="platform-mode-select" onchange="updatePlatformDetection()">
                         <option value="auto">Auto Detect</option>
                         <option value="tiktok">Force TikTok 9:16</option>
@@ -4266,8 +4314,8 @@ beach</textarea>
         <div class="spark-toolbar">
             <div class="video-generate-panel">
                 <div class="video-generate-prompt-row">
-                    <input type="text" id="video-prompt" placeholder="Describe the video you want to generate from the selected media">
-                    <button class="btn video-generate-primary" id="video-generate-primary-btn" onclick="processSelectedVideos()">Generate</button>
+                    <input type="text" id="video-prompt" placeholder="Generated motion prompt appears here, or write an override before Process">
+                    <button class="btn video-generate-primary" id="video-generate-primary-btn" onclick="generateVideoPromptsForSelected()">Generate Prompt From Selected Images</button>
                 </div>
                 <div class="video-option-strip">
                     <div class="video-option">
@@ -4307,6 +4355,13 @@ beach</textarea>
                     </div>
                 </div>
                 <div class="video-option-summary" id="video-option-summary">LTX 2.3 Fast / 5 Sec / 540p / 16:9</div>
+                <div class="video-workflow-strip" aria-label="Video workflow">
+                    <div class="video-workflow-step"><strong>01 Select</strong>Choose rendered image cards.</div>
+                    <div class="video-workflow-step"><strong>02 Prompt</strong>Generate motion prompts.</div>
+                    <div class="video-workflow-step"><strong>03 Review</strong>Edit the prompt field if needed.</div>
+                    <div class="video-workflow-step"><strong>04 Process</strong>Queue LTX video jobs.</div>
+                    <div class="video-workflow-step"><strong>05 Complete</strong>Finished MP4s appear here.</div>
+                </div>
             </div>
                 <div class="toolbar-row">
                     <div class="toolbar-group" style="flex:1;min-width:260px;">
@@ -4348,7 +4403,7 @@ beach</textarea>
 
         <!-- Status Bar -->
         <div class="spark-status" id="spark-status">
-            <span id="spark-status-text">Ready — select photos and click Process</span>
+            <span id="spark-status-text">Ready — select images, generate prompts, then click Process</span>
             <span id="spark-progress"></span>
         </div>
 
@@ -4359,7 +4414,7 @@ beach</textarea>
                 <div class="spark-grid" id="spark-grid" style="flex:1;min-height:0;overflow:auto;">
                     <!-- Grid cells will be dynamically inserted here -->
                     <div class="grid-placeholder">
-                        <p>Select photos and click <strong>Process</strong> to generate video files.</p>
+                        <p>Select photos, generate prompts, then click <strong>Process</strong> to generate video files.</p>
                     </div>
                 </div>
             </div>
