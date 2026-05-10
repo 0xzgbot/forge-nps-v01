@@ -2684,7 +2684,7 @@ async function developScriptPackage() {
     } finally {
         if (btn) {
             btn.disabled = false;
-            btn.textContent = "Build Package";
+            btn.textContent = "Build Script";
         }
     }
 }
@@ -2789,7 +2789,7 @@ async function generateShotList() {
         $scriptStatusText.textContent = "Error: " + e.message;
     } finally {
         $btn.disabled = false;
-        $btn.textContent = "Build Shotlist";
+        $btn.textContent = "Build Coverage";
     }
 }
 
@@ -3913,7 +3913,11 @@ async function createCharacterFromManager(event) {
         const resp = await fetch("/api/characters", { method: "POST", body: data });
         const payload = await resp.json().catch(() => ({}));
         if (!resp.ok) throw new Error(payload.detail || payload.error || "HTTP " + resp.status);
-        if (status) status.textContent = payload.status === "updated" ? "Character metadata updated." : "Character metadata saved.";
+        if (status) {
+            const id = payload.character?.id ? (" ID: " + payload.character.id + ".") : "";
+            const path = payload.metadata_path ? (" Metadata: " + payload.metadata_path) : "";
+            status.textContent = (payload.status === "updated" ? "Character metadata updated." : "Character metadata saved.") + id + path;
+        }
         await loadCharacters();
         await loadCharacterManager();
         switchCharacterFlowStep("render");
@@ -5240,6 +5244,16 @@ async function loadVideoLibrary() {
                 label.appendChild(preview);
             }
 
+            const videoDetail = videoStatusDetail(s);
+            if (videoDetail) {
+                const statusPreview = document.createElement("div");
+                const status = String(s.video_status || (s.video_url ? "complete" : "")).toLowerCase();
+                statusPreview.className = "video-status-detail " + status;
+                statusPreview.textContent = videoDetail.substring(0, 180) + (videoDetail.length > 180 ? "..." : "");
+                statusPreview.title = videoDetail;
+                label.appendChild(statusPreview);
+            }
+
             if (s.video_prompt) {
                 const dot = document.createElement("span");
                 dot.className = "video-prompt-dot";
@@ -5419,6 +5433,22 @@ function videoJobStatusText(summary) {
     return "Video jobs: " + complete + " complete, " + running + " running/queued, " + errors + " error" + (errors === 1 ? "" : "s") + (total ? " (" + total + " tracked)" : "");
 }
 
+function videoStatusDetail(shot) {
+    const status = String(shot?.video_status || "").toLowerCase();
+    if (!status && !shot?.video_url) return "";
+    if (shot?.video_url) return "Complete: MP4 attached to this image.";
+    if (status === "queued") return "Queued in ComfyUI" + (shot?.video_prompt_id ? " / " + String(shot.video_prompt_id).slice(0, 8) : "");
+    if (status === "running") return "Running in ComfyUI" + (shot?.video_prompt_id ? " / " + String(shot.video_prompt_id).slice(0, 8) : "");
+    if (status === "error") {
+        const pieces = [];
+        if (shot?.video_error) pieces.push(String(shot.video_error));
+        if (shot?.video_error_node) pieces.push("node " + String(shot.video_error_node));
+        if (shot?.video_error_detail) pieces.push(String(shot.video_error_detail));
+        return pieces.join(" · ") || "Video job failed.";
+    }
+    return "Video status: " + status;
+}
+
 async function syncPendingVideoJobs() {
     if (!pendingVideoJobs.length) return;
     const jobs = pendingVideoJobs.slice();
@@ -5537,7 +5567,10 @@ async function processSelectedVideos() {
         const done = (data.results || []).filter(r => r.status === "ok").length;
         const blocked = (data.results || []).filter(r => r.status === "blocked").length;
         const errs = (data.results || []).filter(r => r.status === "error").length;
-        $sparkStatusText.textContent = "Video jobs queued (" + workflowId + "): " + done + " queued, " + blocked + " blocked, " + errs + " errors";
+        const effectiveWorkflow = data.workflow_id || workflowId;
+        const preflight = data.workflow_preflight || {};
+        const rerouted = preflight.requested && preflight.workflow_id && preflight.requested !== preflight.workflow_id;
+        $sparkStatusText.textContent = "Video jobs queued (" + effectiveWorkflow + "): " + done + " queued, " + blocked + " blocked, " + errs + " errors";
         const failures = (data.results || []).filter(r => r.status === "blocked" || r.status === "error");
         const failureText = failures.slice(0, 4).map(r =>
             (r.shot_id || "shot") + ": " + (r.error || (r.reasons || []).join(",") || r.status)
@@ -5548,7 +5581,7 @@ async function processSelectedVideos() {
                 shot_id: r.shot_id,
                 prompt_id: r.prompt_id,
                 campaign_id: currentCampaignId || "",
-                workflow_id: r.workflow_id || workflowId,
+                workflow_id: r.workflow_id || effectiveWorkflow,
                 seed: r.seed,
                 duration,
                 fps,
@@ -5557,7 +5590,8 @@ async function processSelectedVideos() {
             }));
         if (jobs.length) {
             addPendingVideoJobs(jobs);
-            $sparkProgress.textContent = "Queued " + jobs.length + " ComfyUI job(s). Polling for completed MP4s...";
+            $sparkProgress.textContent = (rerouted ? ("Preflight rerouted " + preflight.requested + " to " + preflight.workflow_id + ". ") : "") +
+                "Queued " + jobs.length + " ComfyUI job(s). Polling for completed MP4s...";
             scheduleVideoJobPoll(2000);
         } else {
             $sparkProgress.textContent = failureText || (data.output_dir || "");

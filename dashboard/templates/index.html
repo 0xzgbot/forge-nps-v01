@@ -1608,6 +1608,19 @@
             font-family: 'JetBrains Mono', monospace;
             font-size: 11px;
         }
+        .script-next-action {
+            margin: 10px 12px 0;
+            padding: 8px 10px;
+            border: 1px solid rgba(112, 153, 255, 0.20);
+            border-radius: 6px;
+            background: rgba(7, 16, 30, 0.76);
+            color: #aeb9ca;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            line-height: 1.35;
+        }
+        .script-brief-panel .script-next-action { margin: 0; }
+        .script-next-action strong { color: #e6efff; }
         .script-package-panel,
         .script-scenes-panel,
         .script-json-panel,
@@ -1863,11 +1876,11 @@
             display: block;
             width: 100%;
             aspect-ratio: 16 / 9;
-            object-fit: cover;
+            object-fit: contain;
             margin: 0 0 8px;
             border: 1px solid #2f2f2f;
             border-radius: 3px;
-            background: #050505;
+            background: #05080d;
         }
         .storyboard-prompt {
             width: calc(100% - 24px);
@@ -2418,7 +2431,8 @@
             width: 100%;
             height: 100%;
             min-height: 160px;
-            object-fit: cover;
+            object-fit: contain;
+            background: #05080d;
             display: block;
         }
         .character-render-tile .caption {
@@ -2617,6 +2631,20 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
+        .video-status-detail {
+            display: block;
+            margin-top: 4px;
+            color: #9fb2c8;
+            font-size: 10px;
+            line-height: 1.25;
+            max-height: 2.5em;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .video-status-detail.error { color: #ff8a80; }
+        .video-status-detail.running,
+        .video-status-detail.queued { color: #80d8ff; }
+        .video-status-detail.complete { color: #9be59f; }
         .video-generate-panel {
             display: flex;
             flex-direction: column;
@@ -4048,6 +4076,7 @@ beach</textarea>
                         </label>
                         <button class="btn script-primary-action" id="develop-script-btn" onclick="developScriptPackage()">Build Script</button>
                     </div>
+                    <div class="script-next-action"><strong>Next:</strong> Build Script creates the locked treatment, continuity, and edit plan.</div>
                     <div id="script-status" class="script-status-line">
                         <span id="script-status-text">Ready</span>
                         <span id="script-progress"></span>
@@ -4073,6 +4102,7 @@ beach</textarea>
                             <div id="script-edit-output" class="script-output"><div class="script-empty-mini">No edit plan yet.</div></div>
                         </div>
                     </div>
+                    <div class="script-next-action"><strong>Next:</strong> Review the locked package, then Build Coverage below.</div>
                 </section>
 
                 <section class="script-panel script-scenes-panel script-step-panel" data-script-step-panel="script">
@@ -4089,6 +4119,7 @@ beach</textarea>
                         <h3>Package JSON</h3>
                     </div>
                     <textarea id="script-package-json" spellcheck="false" placeholder="The locked script package appears here. You can edit it before generating coverage."></textarea>
+                    <div class="script-next-action"><strong>Next:</strong> Any edits here are used by Build Coverage and Storyboard.</div>
                 </section>
 
                 <section class="script-panel script-shot-panel script-step-panel" data-script-step-panel="script">
@@ -4115,6 +4146,7 @@ beach</textarea>
                         </div>
                         <div id="shot-list" class="script-shot-list" style="display:none;"></div>
                     </div>
+                    <div class="script-next-action"><strong>Next:</strong> Use Storyboard to turn coverage beats into panel frames.</div>
                 </section>
 
                 <section class="script-panel script-storyboard-panel script-step-panel" data-script-step-panel="storyboard">
@@ -4174,6 +4206,7 @@ beach</textarea>
                             <p>Generate 9-panel 4K storyboard board(s) from the locked package or raw script.</p>
                         </div>
                     </div>
+                    <div class="script-next-action"><strong>Next:</strong> Render panels, assemble the board, then export start frames to Videos.</div>
                 </section>
 
                 <section class="script-panel script-video-handoff-panel script-step-panel" data-script-step-panel="videos">

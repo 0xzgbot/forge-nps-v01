@@ -1068,6 +1068,10 @@ MEDIA_SHOT_METADATA_FIELDS = {
     "video_duration",
     "video_fps",
     "video_status",
+    "video_error",
+    "video_error_detail",
+    "video_error_node",
+    "video_last_checked_at",
     "video_completed_at",
     "negative_prompt",
     "workflow_profile",
@@ -1185,6 +1189,10 @@ def _attach_video_to_shot(
     shot["video_duration"] = duration if duration is not None else shot.get("video_duration")
     shot["video_fps"] = fps if fps is not None else shot.get("video_fps")
     shot["video_status"] = "complete"
+    shot["video_error"] = ""
+    shot["video_error_detail"] = ""
+    shot["video_error_node"] = ""
+    shot["video_last_checked_at"] = _now_iso()
     shot["video_completed_at"] = _now_iso()
     _persist_media_shot_metadata(shot)
     return shot
@@ -3353,6 +3361,11 @@ class ImportBatchRequest(BaseModel):
 
 
 DEFAULT_VIDEO_WORKFLOW_ID = "04_ltx2.3_image_to_video"
+VIDEO_WORKFLOW_LABELS = {
+    "04_ltx2.3_image_to_video": "LTX 2.3 Fast Image-to-Video",
+    "02_ltx2.3_T2V_I2V_distilled": "LTX 2.3 Distilled",
+    "03_ltx2.3_T2V_two_stage": "LTX 2.3 Two Stage",
+}
 DISABLED_VIDEO_WORKFLOW_IDS = {
     "02_ltx2.3_T2V_I2V_distilled",
     "03_ltx2.3_T2V_two_stage",
@@ -3364,6 +3377,36 @@ def _normalize_video_workflow_id(workflow_id: str = "") -> str:
     if not requested or requested in DISABLED_VIDEO_WORKFLOW_IDS:
         return DEFAULT_VIDEO_WORKFLOW_ID
     return requested
+
+
+def _video_workflow_preflight(workflow_id: str = "") -> Dict[str, Any]:
+    requested = (workflow_id or "").strip() or DEFAULT_VIDEO_WORKFLOW_ID
+    normalized = _normalize_video_workflow_id(requested)
+    workflow_path = _workflow_file_for_id(normalized)
+    return {
+        "requested": requested,
+        "workflow_id": normalized,
+        "label": VIDEO_WORKFLOW_LABELS.get(normalized, normalized),
+        "available": bool(workflow_path),
+        "disabled": requested in DISABLED_VIDEO_WORKFLOW_IDS,
+        "reason": "disabled_after_comfy_sampler_failures" if requested in DISABLED_VIDEO_WORKFLOW_IDS else "",
+        "path": str(workflow_path) if workflow_path else "",
+    }
+
+
+def _compact_comfy_error(status: Dict[str, Any], fallback: str = "comfy_execution_error") -> Dict[str, str]:
+    messages = status.get("messages", []) if isinstance(status, dict) else []
+    for item in reversed(messages if isinstance(messages, list) else []):
+        if not (isinstance(item, list) and len(item) >= 2 and item[0] == "execution_error" and isinstance(item[1], dict)):
+            continue
+        detail = item[1]
+        return {
+            "error": str(detail.get("exception_type") or fallback),
+            "detail": str(detail.get("exception_message") or fallback).strip()[:500],
+            "node": str(detail.get("node_id") or ""),
+            "node_type": str(detail.get("node_type") or ""),
+        }
+    return {"error": fallback, "detail": fallback, "node": "", "node_type": ""}
 
 
 class VideoProcessRequest(BaseModel):
@@ -3408,6 +3451,23 @@ class VideoJobSyncItem(BaseModel):
 class VideoJobSyncRequest(BaseModel):
     jobs: List[VideoJobSyncItem]
     host: str = ""
+
+
+@app.get("/api/video/workflows")
+async def api_video_workflows():
+    workflows = []
+    for workflow_id, label in VIDEO_WORKFLOW_LABELS.items():
+        preflight = _video_workflow_preflight(workflow_id)
+        workflows.append({
+            **preflight,
+            "label": label,
+            "recommended": workflow_id == DEFAULT_VIDEO_WORKFLOW_ID,
+        })
+    return {
+        "status": "ok",
+        "default_workflow_id": DEFAULT_VIDEO_WORKFLOW_ID,
+        "workflows": workflows,
+    }
 
 
 class LocalHiggsfieldImageRequest(BaseModel):
@@ -3838,7 +3898,10 @@ async def api_video_process(req: VideoProcessRequest):
         resolve_image_path=_resolve_image_path,
         workflow_file_for_id=_workflow_file_for_id,
     )
-    workflow_id = _normalize_video_workflow_id(req.workflow_id)
+    preflight = _video_workflow_preflight(req.workflow_id)
+    if not preflight.get("available"):
+        raise HTTPException(status_code=404, detail=f"Workflow not found: {preflight.get('workflow_id')}")
+    workflow_id = str(preflight["workflow_id"])
     result = await service.process(
         shot_ids=[str(x) for x in req.shot_ids],
         workflow_id=workflow_id,
@@ -3869,12 +3932,17 @@ async def api_video_process(req: VideoProcessRequest):
         if not shot:
             continue
         shot["video_status"] = "queued"
+        shot["video_error"] = ""
+        shot["video_error_detail"] = ""
+        shot["video_error_node"] = ""
+        shot["video_last_checked_at"] = _now_iso()
         shot["video_prompt_id"] = item.get("prompt_id") or ""
         shot["video_workflow_id"] = item.get("workflow_id") or workflow_id
         shot["video_seed"] = item.get("seed")
         shot["video_duration"] = int(req.duration or 0)
         shot["video_fps"] = int(req.fps or 0)
         _persist_media_shot_metadata(shot)
+    result["workflow_preflight"] = preflight
     return result
 
 
@@ -3925,6 +3993,10 @@ async def api_video_sync_jobs(req: VideoJobSyncRequest):
                         if shot:
                             shot["video_status"] = "error"
                             shot["video_prompt_id"] = prompt_id
+                            shot["video_error"] = "prompt_not_in_history_or_queue"
+                            shot["video_error_detail"] = "ComfyUI no longer has this prompt in history or queue."
+                            shot["video_error_node"] = ""
+                            shot["video_last_checked_at"] = _now_iso()
                             _persist_media_shot_metadata(shot)
                         results.append({
                             "shot_id": shot_id,
@@ -3933,20 +4005,43 @@ async def api_video_sync_jobs(req: VideoJobSyncRequest):
                             "error": "prompt_not_in_history_or_queue",
                         })
                         continue
+                    shot = _find_shot(shot_id)
+                    if shot:
+                        shot["video_status"] = queue_state
+                        shot["video_last_checked_at"] = _now_iso()
+                        _persist_media_shot_metadata(shot)
                     results.append({"shot_id": shot_id, "prompt_id": prompt_id, "status": queue_state})
                     continue
 
                 status = entry.get("status", {}) if isinstance(entry.get("status"), dict) else {}
                 if status.get("status_str") == "error":
+                    compact_error = _compact_comfy_error(status)
                     shot = _find_shot(shot_id)
                     if shot:
                         shot["video_status"] = "error"
                         shot["video_prompt_id"] = prompt_id
+                        shot["video_error"] = compact_error["error"]
+                        shot["video_error_detail"] = compact_error["detail"]
+                        shot["video_error_node"] = " / ".join([x for x in (compact_error["node"], compact_error["node_type"]) if x])
+                        shot["video_last_checked_at"] = _now_iso()
                         _persist_media_shot_metadata(shot)
-                    results.append({"shot_id": shot_id, "prompt_id": prompt_id, "status": "error", "error": "comfy_execution_error", "messages": status.get("messages", [])})
+                    results.append({
+                        "shot_id": shot_id,
+                        "prompt_id": prompt_id,
+                        "status": "error",
+                        "error": compact_error["error"],
+                        "error_detail": compact_error["detail"],
+                        "error_node": compact_error["node"],
+                        "error_node_type": compact_error["node_type"],
+                    })
                     continue
 
                 if not status.get("completed"):
+                    shot = _find_shot(shot_id)
+                    if shot:
+                        shot["video_status"] = "running"
+                        shot["video_last_checked_at"] = _now_iso()
+                        _persist_media_shot_metadata(shot)
                     results.append({"shot_id": shot_id, "prompt_id": prompt_id, "status": "running"})
                     continue
 
@@ -3963,6 +4058,10 @@ async def api_video_sync_jobs(req: VideoJobSyncRequest):
                     if shot:
                         shot["video_status"] = "error"
                         shot["video_prompt_id"] = prompt_id
+                        shot["video_error"] = "no_video_output_found"
+                        shot["video_error_detail"] = "ComfyUI completed the prompt but no MP4/MOV/WEBM output was found."
+                        shot["video_error_node"] = ""
+                        shot["video_last_checked_at"] = _now_iso()
                         _persist_media_shot_metadata(shot)
                     results.append({"shot_id": shot_id, "prompt_id": prompt_id, "status": "error", "error": "no_video_output_found"})
                     continue
@@ -6844,7 +6943,7 @@ async def api_character_role_prompt(req: CharacterRolePromptRequest):
         "Reason from the requested role instead of randomizing incompatible ages, wardrobe, locations, or body type. "
         "When the role implies attractiveness, modeling, fitness, celebrity, or influencer work, make the person attractive and camera-ready while realistic. "
         "Never include captions, labels, typography, letters, numbers, logos, watermarks, or visible text in normal image prompts. "
-        "Character sheet prompts must default to a no-text 4K horizontal 16:9 reference layout with a small number of large sharp panels. "
+        "Character sheet prompts must default to a no-text 3840x2160 horizontal 16:9 reference layout with exactly six large sharp panels, not a square grid. "
         "Apply the flux-ltx-prompt-engineering-standard: concrete materiality, optical capture details, named light source, and positive anti-smoothness details."
     )
     user_prompt = f"""
@@ -6877,7 +6976,7 @@ Rules:
 - Include adult-only wording if the role could be confused with teen styling.
 - Include physical specificity: visible natural skin texture, slight facial asymmetry, flyaway hairs, realistic under-eye shadows, fabric weave, seam stitching, and a specific lens/light setup.
 - base_prompt and variation_prompt must include: no text, no captions, no labels, no typography, no letters, no numbers, no logos, no watermark.
-- sheet_prompt should describe a 3840x2160 horizontal 16:9 character reference turnaround sheet with a wide two-row layout: top row three large full-body turnaround views and bottom row three large face/detail panels.
+- sheet_prompt should describe a 3840x2160 horizontal 16:9 character reference turnaround sheet with exactly six large panels in a wide 3-by-2 layout: top row three full-body views and bottom row three face/detail panels.
 - sheet_prompt must include positive blank-layout language plus sharp eyelashes, hair strands, fabric weave, clean divider lines, no captions, no labels, no typography, no letters, no numbers, no logos, no watermark, no fake writing, no barcode artifacts.
 """.strip()
     payload = {
@@ -7025,6 +7124,39 @@ def _workflow_has_image_input(workflow_path: Path) -> bool:
     return any(marker in text for marker in ("LoadImage", "LoadImageMask", "VHS_LoadImagePath"))
 
 
+def _character_sheet_prompt(prompt: str, char: Optional[Dict[str, Any]] = None) -> str:
+    char = char or {}
+    name = str(char.get("name") or char.get("id") or "the character").strip()
+    role = str(char.get("role") or char.get("description") or "character").strip()
+    dna = char.get("visual_dna") if isinstance(char.get("visual_dna"), dict) else {}
+    anchor = str(char.get("anchor_prompt") or "").strip()
+    identity = ", ".join(
+        part for part in [
+            name,
+            role,
+            anchor[:600],
+            str(dna.get("face") or ""),
+            str(dna.get("hair") or ""),
+            str(dna.get("body") or ""),
+            str(dna.get("wardrobe") or ""),
+        ]
+        if str(part or "").strip()
+    )
+    user_prompt = str(prompt or "").strip()
+    return _with_character_no_text_rule(
+        "3840x2160 horizontal 16:9 professional character reference sheet, not square. "
+        "Clean white or neutral light-gray studio background, six large sharp panels in a wide 3-by-2 layout, generous margins, clean divider lines only. "
+        "No captions, no labels, no typography, no letters, no numbers, no fake writing, no barcode artifacts, no watermark. "
+        "Top row: full-body front view, full-body three-quarter view, full-body side/rear three-quarter view. "
+        "Bottom row: front portrait close-up, three-quarter portrait close-up, hands/wardrobe/detail close-up. "
+        "Every panel shows the same exact adult character identity, same face, same age, same hair, same body proportions, same wardrobe materials, same skin tone. "
+        "Sharp eyelashes, individual hair strands, visible pores, subtle under-eye texture, faint asymmetry, fabric weave, seam stitching, realistic hands, crisp studio optics. "
+        "Use the supplied reference images as identity lock when present. "
+        f"Character identity: {identity}. "
+        f"Additional user direction: {user_prompt}"
+    )
+
+
 @app.post("/api/characters/spark-render")
 async def api_character_spark_render(req: CharacterSparkRenderRequest):
     requested_type = (req.render_type or "character").strip().lower()
@@ -7046,7 +7178,7 @@ async def api_character_spark_render(req: CharacterSparkRenderRequest):
         safe_name = _character_slug(req.name)
     if not safe_name:
         raise HTTPException(status_code=400, detail="Character name is required")
-    prompt = _with_character_no_text_rule(req.prompt)
+    prompt = _character_sheet_prompt(req.prompt, selected_char) if requested_type == "sheet" else _with_character_no_text_rule(req.prompt)
     if not prompt:
         raise HTTPException(status_code=400, detail="Prompt is required")
     prompt, _ = apply_model_prompt_standard(
@@ -7445,7 +7577,12 @@ async def api_create_character(
     except Exception:
         pass  # Non-fatal — character is still created
 
-    return {"status": "updated" if existing else "created", "character": char_data}
+    return {
+        "status": "updated" if existing else "created",
+        "character": char_data,
+        "metadata_path": str(CHARACTER_BANKS_DIR / f"char_{safe_name}.json"),
+        "anchor_saved": bool(anchor_url),
+    }
 
 
 # --- Hermes Agent Profile Chat ---
