@@ -5430,13 +5430,13 @@ async function syncPendingVideoJobs() {
         });
         const data = await resp.json().catch(() => ({}));
         if (!resp.ok || data.status !== "ok") throw new Error(data.detail || data.error || "HTTP " + resp.status);
-        const completed = new Set();
+        const terminal = new Set();
         const failed = [];
         (data.results || []).forEach((result) => {
-            if (result.status === "complete") completed.add(String(result.prompt_id));
+            if (result.status === "complete" || result.status === "error") terminal.add(String(result.prompt_id));
             if (result.status === "error") failed.push(result);
         });
-        pendingVideoJobs = pendingVideoJobs.filter(job => !completed.has(String(job.prompt_id)));
+        pendingVideoJobs = pendingVideoJobs.filter(job => !terminal.has(String(job.prompt_id)));
         savePendingVideoJobs();
         if ($sparkStatusText) $sparkStatusText.textContent = videoJobStatusText(data);
         if ($sparkProgress) {
@@ -5448,7 +5448,7 @@ async function syncPendingVideoJobs() {
                     ? ((latestError.shot_id || "job") + ": " + (latestError.error || "error"))
                     : "Polling ComfyUI for finished MP4s...";
         }
-        if (completed.size) {
+        if (terminal.size) {
             await loadShots();
             await loadVideoLibrary();
         }

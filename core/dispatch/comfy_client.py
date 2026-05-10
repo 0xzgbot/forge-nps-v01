@@ -636,14 +636,30 @@ class ComfyUIClient:
                     return []
 
                 outputs = history[job_id].get("outputs", {})
-                logger.info(f"download_outputs: job {job_id} output keys per node: " + ", ".join(f"{nid}={list(no.keys())}" for nid, no in outputs.items()))
+                logger.info(
+                    "download_outputs: job %s output keys per node: %s",
+                    job_id,
+                    ", ".join(
+                        f"{nid}={list(no.keys())}"
+                        for nid, no in outputs.items()
+                        if isinstance(no, dict)
+                    ),
+                )
                 media_keys = ("images", "gifs", "videos", "animated", "files")
                 for node_id, node_output in outputs.items():
+                    if not isinstance(node_output, dict):
+                        continue
                     for media_key in media_keys:
                         items = node_output.get(media_key)
                         if not items:
                             continue
+                        if isinstance(items, dict):
+                            items = [items]
+                        if not isinstance(items, list):
+                            continue
                         for img_data in items:
+                            if not isinstance(img_data, dict):
+                                continue
                             filename = img_data.get("filename")
                             if not filename:
                                 continue

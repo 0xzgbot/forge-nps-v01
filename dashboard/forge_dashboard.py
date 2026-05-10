@@ -3352,11 +3352,25 @@ class ImportBatchRequest(BaseModel):
     report_path: str
 
 
+DEFAULT_VIDEO_WORKFLOW_ID = "04_ltx2.3_image_to_video"
+DISABLED_VIDEO_WORKFLOW_IDS = {
+    "02_ltx2.3_T2V_I2V_distilled",
+    "03_ltx2.3_T2V_two_stage",
+}
+
+
+def _normalize_video_workflow_id(workflow_id: str = "") -> str:
+    requested = (workflow_id or "").strip()
+    if not requested or requested in DISABLED_VIDEO_WORKFLOW_IDS:
+        return DEFAULT_VIDEO_WORKFLOW_ID
+    return requested
+
+
 class VideoProcessRequest(BaseModel):
     shot_ids: List[str]
     duration: int = 5
     fps: int = 24
-    workflow_id: str = "02_ltx2.3_T2V_I2V_distilled"
+    workflow_id: str = DEFAULT_VIDEO_WORKFLOW_ID
     mode: str = "videos"
     resolution: str = "540p"
     aspect_ratio: str = "16:9"
@@ -3373,7 +3387,7 @@ class VideoGeneratePromptsRequest(BaseModel):
     duration: int = 5
     fps: int = 24
     campaign_id: str = ""
-    workflow_id: str = "04_ltx2.3_image_to_video"
+    workflow_id: str = DEFAULT_VIDEO_WORKFLOW_ID
     mode: str = "videos"
     resolution: str = "540p"
     aspect_ratio: str = "16:9"
@@ -3824,7 +3838,7 @@ async def api_video_process(req: VideoProcessRequest):
         resolve_image_path=_resolve_image_path,
         workflow_file_for_id=_workflow_file_for_id,
     )
-    workflow_id = (req.workflow_id or "").strip()
+    workflow_id = _normalize_video_workflow_id(req.workflow_id)
     result = await service.process(
         shot_ids=[str(x) for x in req.shot_ids],
         workflow_id=workflow_id,
@@ -3893,7 +3907,7 @@ async def api_video_sync_jobs(req: VideoJobSyncRequest):
                 history = hist_resp.json()
                 entry = history.get(prompt_id) if isinstance(history, dict) else None
                 if not isinstance(entry, dict):
-                    queue_state = "queued"
+                    queue_state = ""
                     try:
                         queue_resp = await http.get(f"{host}/queue")
                         if queue_resp.status_code == 200:
@@ -3904,10 +3918,21 @@ async def api_video_sync_jobs(req: VideoJobSyncRequest):
                                 queue_state = "running"
                             elif any(len(x) > 1 and x[1] == prompt_id for x in pending if isinstance(x, list)):
                                 queue_state = "queued"
-                            else:
-                                queue_state = "waiting_for_history"
                     except Exception:
                         queue_state = "queued"
+                    if not queue_state:
+                        shot = _find_shot(shot_id)
+                        if shot:
+                            shot["video_status"] = "error"
+                            shot["video_prompt_id"] = prompt_id
+                            _persist_media_shot_metadata(shot)
+                        results.append({
+                            "shot_id": shot_id,
+                            "prompt_id": prompt_id,
+                            "status": "error",
+                            "error": "prompt_not_in_history_or_queue",
+                        })
+                        continue
                     results.append({"shot_id": shot_id, "prompt_id": prompt_id, "status": queue_state})
                     continue
 
@@ -3967,7 +3992,7 @@ async def api_video_sync_jobs(req: VideoJobSyncRequest):
         "status": "ok",
         "results": results,
         "complete": len([r for r in results if r.get("status") == "complete"]),
-        "running": len([r for r in results if r.get("status") in {"running", "queued", "waiting_for_history"}]),
+        "running": len([r for r in results if r.get("status") in {"running", "queued"}]),
         "errors": len([r for r in results if r.get("status") == "error"]),
         "reindex": reindex,
     }
@@ -3982,7 +4007,7 @@ async def api_video_generate_prompts(req: VideoGeneratePromptsRequest):
     shot_ids = [str(x) for x in req.shot_ids]
     duration = int(req.duration or 4)
     fps = int(req.fps or 24)
-    workflow_id = (req.workflow_id or "04_ltx2.3_image_to_video").strip()
+    workflow_id = _normalize_video_workflow_id(req.workflow_id)
     campaign_id = (req.campaign_id or _ACTIVE_CAMPAIGN or "video_batch").strip()
 
     # Resolve bible text if available
