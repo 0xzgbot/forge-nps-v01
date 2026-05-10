@@ -10,6 +10,9 @@ GENERIC_QUALITY_PATTERNS = [
     r"\b8k\b",
     r"\b4k quality\b",
     r"\bhyper[- ]?realistic\b",
+    r"\bperfect skin\b",
+    r"\bsmooth skin\b",
+    r"\bflawless skin\b",
 ]
 
 FLUX_UNSUPPORTED_NEGATIVE_RE = re.compile(
@@ -23,7 +26,8 @@ def clean_generic_quality_terms(prompt: str) -> str:
     out = str(prompt or "")
     for pattern in GENERIC_QUALITY_PATTERNS:
         out = re.sub(pattern, "", out, flags=re.IGNORECASE)
-    out = re.sub(r"\s*,\s*,+", ", ", out)
+    out = re.sub(r"(,\s*){2,}", ", ", out)
+    out = re.sub(r",\s*,", ", ", out)
     out = re.sub(r"\s{2,}", " ", out)
     return out.strip(" ,")
 
@@ -91,6 +95,19 @@ def _flux_positive_specificity(prompt: str, render_type: str = "") -> List[str]:
         "lighting source: motivated real light source with direction, color temperature, catchlights, practical reflections, grounded shadows",
         ["softbox", "window light", "tungsten", "sunlight", "rim light", "practical", "color temperature", "catchlight"],
     )
+    _append_missing(
+        parts,
+        prompt,
+        "anti-smoothness: visible pores, faint blemishes, subtle under-eye texture, tiny asymmetries, natural flyaway hairs, non-plastic facial planes",
+        ["pore", "blemish", "under-eye", "asymmetr", "flyaway", "non-plastic", "natural skin"],
+    )
+    if re.search(r"\b(?:people|persons|characters|portraits|models|cast|crowd|group|20|twenty|10|ten|multiple)\b", prompt, re.IGNORECASE):
+        _append_missing(
+            parts,
+            prompt,
+            "casting variation: each person has a distinct face shape, age bracket, hairstyle, body type, skin tone, wardrobe silhouette, posture, and expression; no duplicated template faces",
+            ["distinct face", "different face", "varied age", "body type", "skin tone", "wardrobe silhouette", "no duplicate"],
+        )
     return parts
 
 
