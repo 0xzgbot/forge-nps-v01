@@ -1454,6 +1454,25 @@
             border-radius: 8px;
             overflow: hidden;
         }
+        .script-advanced-details {
+            border: 1px solid rgba(112, 153, 255, 0.18);
+            border-radius: 6px;
+            background: rgba(8, 12, 20, 0.72);
+            margin: 12px 0;
+        }
+        .script-advanced-details summary {
+            cursor: pointer;
+            padding: 11px 13px;
+            color: #b9c9ff;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+        .script-advanced-details > div {
+            padding: 0 13px 13px;
+        }
         .script-step-panel {
             display: none !important;
         }
@@ -2252,6 +2271,23 @@
             }
             .script-header-actions {
                 justify-content: flex-start;
+            }
+            .storyboard-board-head {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .storyboard-board-head .storyboard-copy-row,
+            .storyboard-advanced-actions {
+                justify-content: stretch;
+            }
+            .storyboard-board-head .storyboard-copy-row .btn,
+            .storyboard-advanced-actions .btn {
+                flex: 1 1 150px;
+                min-width: 0;
+                white-space: normal;
+            }
+            .storyboard-panel-grid {
+                grid-template-columns: 1fr;
             }
         }
         /* Scrollbar */
@@ -4346,21 +4382,20 @@ beach</textarea>
                 <div>
                     <div class="script-kicker">Hermes Script Pipeline</div>
                     <h2>Script Studio</h2>
-                    <p>Saved script projects, pipeline jobs, coverage, storyboard frames, and videos.</p>
+                    <p>One prompt to script, storyboard frames, and individual video shots.</p>
                 </div>
                 <div class="script-header-actions">
                     <button class="btn btn-secondary" onclick="clearShotList()">Reset</button>
-                    <button class="btn btn-secondary" onclick="switchScriptFlowStep('jobs')">Jobs</button>
+                    <button class="btn btn-secondary" onclick="switchScriptFlowStep('jobs')">Progress</button>
                     <button class="btn btn-secondary" onclick="switchScriptFlowStep('videos')">Videos</button>
                 </div>
             </div>
             <div class="script-flow-guide" aria-label="Script Studio workspace">
                 <button class="script-flow-step active" type="button" data-script-step="projects" onclick="switchScriptFlowStep('projects')"><span>00</span><div><strong>Projects</strong><em id="script-step-status-projects">Saved</em></div></button>
                 <button class="script-flow-step" type="button" data-script-step="brief" onclick="switchScriptFlowStep('brief')"><span>01</span><div><strong>Brief</strong><em id="script-step-status-brief">Ready</em></div></button>
-                <button class="script-flow-step" type="button" data-script-step="coverage" onclick="switchScriptFlowStep('coverage')"><span>02</span><div><strong>Coverage</strong><em id="script-step-status-coverage">Waiting</em></div></button>
+                <button class="script-flow-step" type="button" data-script-step="jobs" onclick="switchScriptFlowStep('jobs')"><span>02</span><div><strong>Progress</strong><em id="script-step-status-jobs">Idle</em></div></button>
                 <button class="script-flow-step" type="button" data-script-step="storyboard" onclick="switchScriptFlowStep('storyboard')"><span>03</span><div><strong>Storyboard</strong><em id="script-step-status-storyboard">Waiting</em></div></button>
                 <button class="script-flow-step" type="button" data-script-step="videos" onclick="switchScriptFlowStep('videos')"><span>04</span><div><strong>Videos</strong><em id="script-step-status-videos">Waiting</em></div></button>
-                <button class="script-flow-step" type="button" data-script-step="jobs" onclick="switchScriptFlowStep('jobs')"><span>05</span><div><strong>Jobs</strong><em id="script-step-status-jobs">Idle</em></div></button>
             </div>
             <div id="script-status" class="script-status-line script-global-status">
                 <span id="script-status-text">Ready</span>
@@ -4382,8 +4417,8 @@ beach</textarea>
                         <div class="script-panel-head">
                             <span>JOB</span>
                             <div class="script-panel-title">
-                                <h3>Pipeline Runner</h3>
-                                <p>Save, resume, and run script to storyboard to video shots.</p>
+                                <h3>Progress</h3>
+                                <p>The full script-to-video job runs here after Generate Videos.</p>
                             </div>
                         </div>
                         <div class="script-pipeline-grid script-pipeline-advanced" style="display:none;">
@@ -4405,9 +4440,6 @@ beach</textarea>
                                 <label for="script-pipeline-video-wait">Video Wait Sec</label>
                                 <input type="number" id="script-pipeline-video-wait" min="30" max="86400" value="21600">
                             </div>
-                            <label class="storyboard-checkbox">Hook Dialogue
-                                <span><input type="checkbox" id="script-hook-first-dialogue" checked> add immediate viewer hook</span>
-                            </label>
                             <label class="storyboard-checkbox">Queue Videos
                                 <span><input type="checkbox" id="script-pipeline-run-video" checked> run image-to-video</span>
                             </label>
@@ -4450,14 +4482,16 @@ beach</textarea>
                         <textarea id="script-brief" placeholder="Paste the concept, client brief, story premise, or raw script..." rows="9"></textarea>
                     </div>
                     <div class="script-action-row">
+                        <label class="storyboard-checkbox">Hook Dialogue
+                            <span><input type="checkbox" id="script-hook-first-dialogue" checked> add immediate viewer hook</span>
+                        </label>
                         <label class="script-upload">
                             <span>Upload .md/.txt/.pdf</span>
                             <input type="file" id="brief-file-input" accept=".md,.txt,.pdf" onchange="uploadBrief()">
                         </label>
                         <button class="btn script-primary-action" id="develop-script-btn" onclick="runScriptPipeline()">Generate Videos</button>
-                        <button class="btn btn-secondary" type="button" onclick="developScriptPackage({autoContinue:false})">Package Only</button>
                     </div>
-                    <div class="script-next-action"><strong>Default:</strong> Generate Videos turns the brief into a script package, coverage, storyboard start frames, and individual video clips.</div>
+                    <div class="script-next-action"><strong>Output:</strong> Generate Videos writes the script, builds storyboard start frames, and queues individual LTX clips automatically.</div>
                 </section>
 
                 <section class="script-panel script-package-panel script-step-panel" data-script-step-panel="package">
@@ -4538,7 +4572,9 @@ beach</textarea>
                             <p>Panel frames for image-to-video start frames.</p>
                         </div>
                     </div>
-                    <div class="script-control-surface">
+                    <details class="script-advanced-details">
+                        <summary>Storyboard settings</summary>
+                        <div class="script-control-surface">
                         <div class="script-control-grid storyboard-grid">
                             <div id="script-storyboard-source" class="script-coverage-source script-storyboard-source">
                                 <strong>No storyboard plan yet.</strong>
@@ -4583,32 +4619,38 @@ beach</textarea>
                             <button class="btn btn-secondary" type="button" id="storyboard-character-sheet-btn" onclick="generateStoryboardCharacterSheet()">Character Sheet</button>
                             <button class="btn btn-secondary" type="button" onclick="pollStoryboardCharacterSheet()">Refresh Sheet</button>
                         </div>
-                    </div>
+                        </div>
+                    </details>
                     <div id="storyboard-character-sheet-output" class="storyboard-render-result"></div>
-                    <div class="script-storyboard-style">
-                        <label>Style Prompt</label>
-                        <input type="text" id="storyboard-style" value="cinematic">
-                    </div>
-                    <div class="script-storyboard-options">
-                        <label>Character Consistency
-                            <input type="text" id="storyboard-character-consistency" placeholder="same face, same clothing, repeated key traits in every panel">
-                        </label>
-                        <label>Reference Image URL
-                            <input type="text" id="storyboard-reference-image" placeholder="/media-assets/... optional character sheet">
-                        </label>
-                        <label>Negative Prompt
-                            <input type="text" id="storyboard-negative-prompt" value="blurry, soft focus, smeared detail, low resolution, deformed, extra limbs, bad hands, text, captions, labels, panel numbers, page layout, grid, contact sheet, watermark, inconsistent characters, merged panels">
-                        </label>
-                        <label class="storyboard-checkbox">Captions
-                            <span><input type="checkbox" id="storyboard-include-captions"> render caption text</span>
-                        </label>
-                    </div>
+                    <details class="script-advanced-details">
+                        <summary>Prompt controls</summary>
+                        <div>
+                            <div class="script-storyboard-style">
+                                <label>Style Prompt</label>
+                                <input type="text" id="storyboard-style" value="cinematic">
+                            </div>
+                            <div class="script-storyboard-options">
+                                <label>Character Consistency
+                                    <input type="text" id="storyboard-character-consistency" placeholder="same face, same clothing, repeated key traits in every panel">
+                                </label>
+                                <label>Reference Image URL
+                                    <input type="text" id="storyboard-reference-image" placeholder="/media-assets/... optional character sheet">
+                                </label>
+                                <label>Negative Prompt
+                                    <input type="text" id="storyboard-negative-prompt" value="blurry, soft focus, smeared detail, low resolution, deformed, extra limbs, bad hands, text, captions, labels, panel numbers, page layout, grid, contact sheet, watermark, inconsistent characters, merged panels">
+                                </label>
+                                <label class="storyboard-checkbox">Captions
+                                    <span><input type="checkbox" id="storyboard-include-captions"> render caption text</span>
+                                </label>
+                            </div>
+                        </div>
+                    </details>
                     <div id="storyboard-output" class="storyboard-output">
                         <div class="script-empty-shot">
                             <p>Generate 9-panel 4K storyboard board(s) from the locked package or raw script.</p>
                         </div>
                     </div>
-                    <div class="script-next-action"><strong>Next:</strong> Render panels, assemble the board, then export start frames to Videos.</div>
+                    <div class="script-next-action"><strong>Automatic:</strong> Generate Videos handles storyboard frames and video queueing; this page is for review.</div>
                 </section>
 
                 <section class="script-panel script-video-handoff-panel script-step-panel" data-script-step-panel="videos">
@@ -4626,7 +4668,7 @@ beach</textarea>
                                 <p id="script-video-handoff-copy">Render storyboard panels, export them as start frames, then generate videos in the Videos tab.</p>
                             </div>
                             <div class="script-video-actions">
-                                <button class="btn btn-secondary" type="button" onclick="switchScriptFlowStep('storyboard')">Back to Storyboard</button>
+                                <button class="btn btn-secondary" type="button" onclick="switchScriptFlowStep('storyboard')">Storyboard</button>
                                 <button class="btn script-primary-action" type="button" onclick="runScriptPipeline()">Generate Videos</button>
                             </div>
                         </div>
