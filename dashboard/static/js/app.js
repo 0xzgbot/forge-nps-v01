@@ -2417,7 +2417,7 @@ async function runScriptPipeline() {
                 video_aspect_ratio: videoOptions.aspectRatio,
                 run_video: true,
                 wait_for_videos: true,
-                video_wait_seconds: parseInt(scriptInputValue("script-pipeline-video-wait", "1800"), 10) || 1800,
+                video_wait_seconds: parseInt(scriptInputValue("script-pipeline-video-wait", "21600"), 10) || 21600,
                 stop_after: "videos",
             }),
         });

@@ -1173,7 +1173,7 @@ class HermesCampaignService:
 
         if pending_render_jobs:
             yield {"type": "spark", "text": f"Polling {len(pending_render_jobs)} queued ComfyUI image render(s)..."}
-        render_deadline = time.time() + max(300, int(os.getenv("FORGE_RENDER_BATCH_WAIT_SEC", "1800") or "1800"))
+        render_deadline = time.time() + max(21600, int(os.getenv("FORGE_RENDER_BATCH_WAIT_SEC", "21600") or "21600"))
         while pending_render_jobs and time.time() < render_deadline:
             if self.is_cancelled():
                 yield {"type": "error", "text": "Campaign cancelled while waiting for queued renders."}

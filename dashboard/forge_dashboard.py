@@ -922,13 +922,13 @@ class ScriptPipelineStartRequest(BaseModel):
     video_aspect_ratio: str = "16:9"
     run_video: bool = True
     wait_for_videos: bool = True
-    video_wait_seconds: int = 1800
+    video_wait_seconds: int = 21600
     stop_after: str = "videos"
 
 
 class ScriptPipelineResumeRequest(BaseModel):
     wait_for_videos: bool = True
-    video_wait_seconds: int = 1800
+    video_wait_seconds: int = 21600
 
 class StoryboardImageGenerateRequest(BaseModel):
     prompt: str
@@ -3488,7 +3488,8 @@ async def _run_script_pipeline_job(job_id: str, req: ScriptPipelineStartRequest)
             for item in items
             if not item.get("url") and item.get("job_set_id")
         ]
-        deadline = time.time() + max(300, min(int(req.video_wait_seconds or 1800), 7200))
+        frame_wait_seconds = int(os.getenv("FORGE_STORYBOARD_FRAME_WAIT_SEC", "0") or "0") or int(req.video_wait_seconds or 21600)
+        deadline = time.time() + max(21600, frame_wait_seconds)
         completed_keys: set[str] = set()
         while pending and time.time() < deadline:
             remaining = []
@@ -3496,8 +3497,9 @@ async def _run_script_pipeline_job(job_id: str, req: ScriptPipelineStartRequest)
                 try:
                     status_payload = await adapter.get_job_status(str(item.get("job_set_id") or ""))
                 except Exception as exc:
-                    item["status"] = "error"
+                    item["status"] = "queued"
                     item["error"] = str(exc)[:300]
+                    remaining.append((board_idx, item))
                     continue
                 item["status"] = status_payload.get("status", item.get("status", "queued"))
                 item["raw"] = status_payload
@@ -3632,7 +3634,8 @@ async def _run_script_pipeline_job(job_id: str, req: ScriptPipelineStartRequest)
             _pipeline_log(job, "videos", f"Queued {len(video_jobs)} ComfyUI video job(s)")
 
             if req.wait_for_videos and video_jobs:
-                deadline = time.time() + max(30, min(int(req.video_wait_seconds or 1800), 7200))
+                video_wait_seconds = int(os.getenv("FORGE_SCRIPT_VIDEO_WAIT_SEC", "0") or "0") or int(req.video_wait_seconds or 21600)
+                deadline = time.time() + max(21600, video_wait_seconds)
                 while time.time() < deadline:
                     sync_req = VideoJobSyncRequest(jobs=[VideoJobSyncItem(**vj) for vj in video_jobs])
                     sync = await api_video_sync_jobs(sync_req)
