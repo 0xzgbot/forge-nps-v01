@@ -3270,6 +3270,38 @@ def _coverage_brief_from_package(package: Dict[str, Any], original_brief: str = 
     ]).strip()
 
 
+async def _ensure_local_director_model_loaded(job: Dict[str, Any]) -> None:
+    cfg = get_raw_config()
+    if not _truthy_config(cfg.get("USE_LOCAL_DIRECTOR", "")):
+        return
+    model = str(cfg.get("LMSTUDIO_CHAT_MODEL") or cfg.get("KIMI_VISUAL_MODEL") or "").strip()
+    if not model:
+        raise RuntimeError("Local LM Studio Director is enabled, but no Director model is configured.")
+    base = _normalize_lmstudio_base_url(cfg.get("LMSTUDIO_HOST", ""), cfg.get("LMSTUDIO_PORT", ""))
+    async with httpx.AsyncClient(timeout=180.0) as client:
+        try:
+            loaded_resp = await client.get(f"{base}/v1/models")
+            loaded_resp.raise_for_status()
+            loaded = [
+                item.get("id")
+                for item in loaded_resp.json().get("data", [])
+                if isinstance(item, dict) and item.get("id")
+            ]
+        except Exception as exc:
+            raise RuntimeError(f"Local LM Studio Director is unreachable at {base}: {exc}") from exc
+        if model in loaded:
+            return
+        _pipeline_log(job, "script", f"Loading local Director model in LM Studio: {model}")
+        load_resp = await client.post(
+            f"{base}/api/v1/models/load",
+            headers={"Content-Type": "application/json"},
+            json={"model": model, "echo_load_config": True},
+        )
+        if load_resp.status_code >= 400:
+            raise RuntimeError(f"Local LM Studio model load failed: http {load_resp.status_code}: {load_resp.text[:500]}")
+        _pipeline_log(job, "script", f"Local Director model loaded: {model}")
+
+
 async def _coverage_from_script_package(
     *,
     package: Dict[str, Any],
@@ -3315,6 +3347,7 @@ async def _run_script_pipeline_job(job_id: str, req: ScriptPipelineStartRequest)
 
         if not package:
             _pipeline_log(job, "script", "Generating locked script package")
+            await _ensure_local_director_model_loaded(job)
             package = await _request_script_package(ScriptDevelopRequest(
                 title=req.title,
                 brief=req.brief,
@@ -3342,6 +3375,7 @@ async def _run_script_pipeline_job(job_id: str, req: ScriptPipelineStartRequest)
             return
 
         _pipeline_log(job, "coverage", "Generating coverage shot list")
+        await _ensure_local_director_model_loaded(job)
         coverage_shots = await _coverage_from_script_package(
             package=package,
             original_brief=req.brief,

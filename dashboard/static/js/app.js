@@ -2244,8 +2244,13 @@ function renderScriptPipelineJob(job) {
     const logEl = document.getElementById("script-pipeline-log");
     activeScriptPipelineStatus = job ? String(job.status || "queued").toUpperCase() : "";
     if (statusEl) {
-        statusEl.textContent = job
-            ? (String(job.status || "queued").toUpperCase() + " / " + String(job.phase || "queued"))
+        const friendlyError = friendlyScriptPipelineError(job);
+        statusEl.classList.toggle("error", String(job?.status || "").toLowerCase() === "error");
+        statusEl.innerHTML = job
+            ? (
+                '<strong>' + escapeHtml(String(job.status || "queued").toUpperCase() + " / " + String(job.phase || "queued")) + '</strong>' +
+                (friendlyError ? '<span>' + escapeHtml(friendlyError) + '</span>' : '')
+            )
             : "No pipeline job running.";
     }
     if (logEl) {
@@ -2260,6 +2265,28 @@ function renderScriptPipelineJob(job) {
             : '<div class="script-empty-mini">Pipeline logs appear here.</div>';
     }
     updateScriptFlowState();
+}
+
+function friendlyScriptPipelineError(job) {
+    if (!job || String(job.status || "").toLowerCase() !== "error") return "";
+    const logs = Array.isArray(job.logs) ? job.logs : [];
+    const lastError = logs.slice().reverse().find((entry) => String(entry.level || "").toLowerCase() === "error");
+    const raw = String(job.error || lastError?.message || "").trim();
+    const lower = raw.toLowerCase();
+    if (!raw) return "The pipeline stopped. Check Settings, then press Generate Videos again.";
+    if (lower.includes("no models loaded")) {
+        return "Local LM Studio Director has no model loaded. Load the Director model in Settings, then press Generate Videos again.";
+    }
+    if (lower.includes("end of life") || lower.includes("reached its end of life")) {
+        return "The selected NVIDIA Director model is no longer available. Pick a current Director model or switch to local LM Studio, then retry.";
+    }
+    if (lower.includes("readtimeout") || lower.includes("timed out") || lower.includes("timeout")) {
+        return "The Director request timed out. Use a faster loaded model or increase the timeout, then retry.";
+    }
+    if (lower.includes("missing storyboard frame outputs") || lower.includes("no storyboard frame")) {
+        return "Storyboard start frames did not render. Check the Spark/ComfyUI model selection, then retry.";
+    }
+    return "Pipeline stopped: " + raw;
 }
 
 function renderScriptVideoOutputs(shots) {
@@ -2308,7 +2335,8 @@ async function pollScriptPipelineJob(jobId) {
             scriptPipelinePollTimer = setTimeout(() => pollScriptPipelineJob(jobId), 5000);
         } else {
             await loadScriptProjects();
-            setScriptStatus(job.status === "complete" ? "Pipeline complete." : "Pipeline stopped: " + (job.error || job.status), job.phase || "");
+            const friendlyError = friendlyScriptPipelineError(job);
+            setScriptStatus(job.status === "complete" ? "Pipeline complete." : (friendlyError || "Pipeline stopped: " + (job.error || job.status)), job.phase || "");
             if (job.status === "complete") switchScriptFlowStep("videos");
         }
     } catch (e) {
