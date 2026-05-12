@@ -847,6 +847,7 @@ class ScriptDevelopRequest(BaseModel):
     runtime_seconds: int = 60
     target_scenes: int = 4
     tone: str = ""
+    hook_first_dialogue: bool = True
 
 class ScriptStoryboardRequest(BaseModel):
     script: str = ""
@@ -892,6 +893,7 @@ class ScriptProjectSaveRequest(BaseModel):
     storyboard_plan: Optional[Dict[str, Any]] = None
     storyboard_panel_jobs: Dict[str, Any] = Field(default_factory=dict)
     video_shots: List[Dict[str, Any]] = Field(default_factory=list)
+    hook_first_dialogue: bool = True
     status: str = "draft"
 
 
@@ -903,6 +905,7 @@ class ScriptPipelineStartRequest(BaseModel):
     runtime_seconds: int = 60
     target_scenes: int = 4
     target_shots: Optional[int] = None
+    hook_first_dialogue: bool = True
     storyboard_panels_per_board: int = 4
     storyboard_target_panels: Optional[int] = None
     storyboard_resolution: str = "1920x1080"
@@ -3399,6 +3402,7 @@ async def _run_script_pipeline_job(job_id: str, req: ScriptPipelineStartRequest)
                 tone=req.tone,
                 runtime_seconds=req.runtime_seconds,
                 target_scenes=req.target_scenes,
+                hook_first_dialogue=req.hook_first_dialogue,
             ))
             project = _save_script_project_payload({
                 "script_id": script_id,
@@ -3407,6 +3411,7 @@ async def _run_script_pipeline_job(job_id: str, req: ScriptPipelineStartRequest)
                 "tone": req.tone,
                 "runtime_seconds": req.runtime_seconds,
                 "target_scenes": req.target_scenes,
+                "hook_first_dialogue": req.hook_first_dialogue,
                 "package": package,
                 "status": "script_ready",
                 "active_job_id": job_id,
@@ -3435,6 +3440,7 @@ async def _run_script_pipeline_job(job_id: str, req: ScriptPipelineStartRequest)
             "tone": req.tone,
             "runtime_seconds": req.runtime_seconds,
             "target_scenes": req.target_scenes,
+            "hook_first_dialogue": req.hook_first_dialogue,
             "package": package,
             "coverage_shots": coverage_shots,
             "status": "coverage_ready",
@@ -3470,6 +3476,7 @@ async def _run_script_pipeline_job(job_id: str, req: ScriptPipelineStartRequest)
             "tone": req.tone,
             "runtime_seconds": req.runtime_seconds,
             "target_scenes": req.target_scenes,
+            "hook_first_dialogue": req.hook_first_dialogue,
             "package": package,
             "coverage_shots": coverage_shots,
             "storyboard_plan": storyboard_plan,
@@ -3912,11 +3919,22 @@ async def _request_script_package(req: ScriptDevelopRequest) -> Dict[str, Any]:
             "transition_strategy": "string",
         },
     }
+    hook_system = (
+        "Dialogue must be cinematic, immediate, and playable: every spoken line should create curiosity, conflict, reversal, or emotional pressure."
+        if req.hook_first_dialogue
+        else "Dialogue should be natural, concise, and playable; prioritize story clarity over short-form hook tactics."
+    )
+    dialogue_instruction = (
+        "Write a structured screenplay package with hook-first dialogue. The first beat must grab attention within 2 seconds. "
+        "Every spoken line must be short, specific, performable, and emotionally loaded; avoid generic exposition. "
+        if req.hook_first_dialogue
+        else "Write a structured screenplay package with natural scene dialogue. Spoken lines should be specific and performable without forcing a short-form hook. "
+    )
     system_prompt = (
         "You are Hermes Script Architect for FORGE NPS. Return only valid JSON. "
         "Your job is not to make isolated pretty shots; produce a locked script package "
         "that can be converted into scene-by-scene coverage for a cohesive movie edit. "
-        "Dialogue must be cinematic, immediate, and playable: every spoken line should create curiosity, conflict, reversal, or emotional pressure."
+        f"{hook_system}"
     )
     user_prompt = (
         f"title: {title}\n"
@@ -3924,8 +3942,7 @@ async def _request_script_package(req: ScriptDevelopRequest) -> Dict[str, Any]:
         f"target_scenes: {scene_count}\n"
         f"tone: {(req.tone or 'unspecified').strip()}\n"
         f"brief:\n{(req.brief or '').strip()}\n\n"
-        "Write a structured screenplay package with hook-first dialogue. The first beat must grab attention within 2 seconds. "
-        "Every spoken line must be short, specific, performable, and emotionally loaded; avoid generic exposition. "
+        f"{dialogue_instruction}"
         "If a beat is silent, use nonverbal vocalization or sound design intentionally instead of leaving the moment empty. "
         "Every scene must include concrete beats, continuity locks, emotional turns, edit pacing, audio strategy, transitions, "
         "per-beat dialogue, per-beat audio_cue, and per-beat performance direction. "
@@ -4128,6 +4145,8 @@ async def api_script_pipeline_start(req: ScriptPipelineStartRequest):
             req.runtime_seconds = int(existing.get("runtime_seconds") or 60)
         if not req.target_scenes:
             req.target_scenes = int(existing.get("target_scenes") or 4)
+        if not req.hook_first_dialogue and "hook_first_dialogue" in existing:
+            req.hook_first_dialogue = bool(existing.get("hook_first_dialogue"))
     except HTTPException:
         pass
     project = _save_script_project_payload({
@@ -4137,6 +4156,7 @@ async def api_script_pipeline_start(req: ScriptPipelineStartRequest):
         "tone": req.tone,
         "runtime_seconds": req.runtime_seconds,
         "target_scenes": req.target_scenes,
+        "hook_first_dialogue": req.hook_first_dialogue,
         "package": existing_package,
         "coverage_shots": existing_coverage,
         "storyboard_plan": existing_storyboard,
@@ -4167,6 +4187,7 @@ async def api_script_pipeline_start(req: ScriptPipelineStartRequest):
         "tone": req.tone,
         "runtime_seconds": req.runtime_seconds,
         "target_scenes": req.target_scenes,
+        "hook_first_dialogue": req.hook_first_dialogue,
         "package": existing_package,
         "coverage_shots": existing_coverage,
         "storyboard_plan": existing_storyboard,

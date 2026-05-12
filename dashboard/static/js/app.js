@@ -2107,6 +2107,7 @@ function currentScriptProjectPayload(status) {
         tone: scriptInputValue("script-tone", ""),
         runtime_seconds: parseInt(scriptInputValue("script-runtime", "60"), 10) || 60,
         target_scenes: parseInt(scriptInputValue("script-scenes", "4"), 10) || 4,
+        hook_first_dialogue: !!document.getElementById("script-hook-first-dialogue")?.checked,
         package: getScriptPackageFromEditor(),
         coverage_shots: Object.values(director_shots || {}),
         storyboard_plan: storyboardPlan,
@@ -2166,6 +2167,8 @@ function applyLoadedScriptProject(project) {
     setValue("script-tone", project.tone || "");
     setValue("script-runtime", project.runtime_seconds || 60);
     setValue("script-scenes", project.target_scenes || 4);
+    const hookEl = document.getElementById("script-hook-first-dialogue");
+    if (hookEl) hookEl.checked = project.hook_first_dialogue !== false;
     if ($scriptBrief) $scriptBrief.value = project.brief || "";
     scriptPackage = project.package || null;
     storyboardPlan = project.storyboard_plan || null;
@@ -2398,6 +2401,7 @@ async function runScriptPipeline() {
                 runtime_seconds: parseInt(scriptInputValue("script-runtime", "60"), 10) || 60,
                 target_scenes: parseInt(scriptInputValue("script-scenes", "4"), 10) || 4,
                 target_shots: parseInt(scriptInputValue("script-target-shots", ""), 10) || null,
+                hook_first_dialogue: !!document.getElementById("script-hook-first-dialogue")?.checked,
                 storyboard_panels_per_board: parseInt(scriptInputValue("storyboard-panels-per-board", "4"), 10) || 4,
                 storyboard_target_panels: targetPanelsRaw ? parseInt(targetPanelsRaw, 10) : null,
                 storyboard_resolution: scriptInputValue("storyboard-resolution", "1920x1080") || "1920x1080",
