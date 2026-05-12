@@ -2799,6 +2799,7 @@ function renderStoryboardPlan(plan) {
     }
     target.innerHTML = plan.boards.map((board) => {
         const panels = Array.isArray(board.panels) ? board.panels : [];
+        const jobs = storyboardPanelJobs[String(Number(board.index || 1))] || [];
         return (
             '<article class="storyboard-board" data-board-id="' + escapeHtml(board.board_id || "") + '">' +
                 '<div class="storyboard-board-head">' +
@@ -2814,12 +2815,16 @@ function renderStoryboardPlan(plan) {
                     '<button class="btn btn-secondary" onclick="assembleStoryboardPanels(' + Number(board.index || 1) + ')">Assemble Page Proof</button>' +
                     '<button class="btn btn-secondary" onclick="copyStoryboardPrompt(' + Number(board.index || 1) + ')">Copy Prompt</button>' +
                 '</div>' +
-                '<div class="storyboard-panel-grid">' + panels.map((panel, idx) => (
-                    '<div class="storyboard-panel">' +
-                        '<span>' + String(idx + 1) + '</span>' +
-                        '<p>' + escapeHtml(panel.caption || panel.visual_prompt || "") + '</p>' +
-                    '</div>'
-                )).join("") + '</div>' +
+                '<div class="storyboard-panel-grid">' + panels.map((panel, idx) => {
+                    const frameUrl = jobs[idx]?.url || "";
+                    return (
+                        '<div class="storyboard-panel">' +
+                            '<span>' + String(idx + 1) + '</span>' +
+                            (frameUrl ? '<img src="' + escapeHtml(frameUrl) + '" alt="Storyboard panel ' + String(idx + 1) + '">' : "") +
+                            '<p>' + escapeHtml(panel.caption || panel.visual_prompt || "") + '</p>' +
+                        '</div>'
+                    );
+                }).join("") + '</div>' +
                 '<textarea class="storyboard-prompt" readonly>' + escapeHtml(board.image_prompt || "") + '</textarea>' +
                 '<div class="storyboard-panel-jobs" id="storyboard-panel-jobs-' + Number(board.index || 1) + '"></div>' +
                 '<div class="storyboard-render-result" id="storyboard-render-' + Number(board.index || 1) + '"></div>' +

@@ -879,6 +879,8 @@ class ScriptStoryboardVideoExportRequest(BaseModel):
     campaign_id: str = ""
     duration_seconds: float = 4.0
     replace_existing: bool = True
+    sequence_offset: int = 0
+    total_shots: Optional[int] = None
 
 
 class ScriptProjectSaveRequest(BaseModel):
@@ -1088,6 +1090,26 @@ def _load_script_project(script_id: str) -> Dict[str, Any]:
     panel_jobs = _read_json_file(root / "storyboard_panel_jobs.json", {})
     video_shots = _read_json_file(root / "video_shots.json", [])
     job = _read_json_file(root / "pipeline_job.json", None)
+    if (
+        not video_shots
+        and isinstance(storyboard, dict)
+        and isinstance(panel_jobs, dict)
+        and any(isinstance(items, list) and any(isinstance(item, dict) and item.get("url") for item in items) for items in panel_jobs.values())
+    ):
+        video_shots = _rebuild_script_video_shots_from_storyboard_frames(sid, storyboard, panel_jobs)
+        if video_shots:
+            _write_json_atomic(root / "video_shots.json", video_shots)
+            video_complete = len([
+                s for s in video_shots
+                if str(s.get("video_status") or s.get("status") or "").lower() in {"complete", "completed", "video_rendered"} or s.get("video_url")
+            ])
+            meta = {
+                **meta,
+                "video_shot_count": len(video_shots),
+                "video_complete_count": video_complete,
+                "updated_at": meta.get("updated_at") or _now_iso(),
+            }
+            _write_json_atomic(root / "project.json", meta)
     return {
         **meta,
         "package": package if isinstance(package, dict) else None,
@@ -3155,6 +3177,19 @@ def _storyboard_motion_prompt(panel: Dict[str, Any], sequence: int, total: int, 
     )
 
 
+def _storyboard_panel_sequence(panel: Dict[str, Any], fallback_index: int, sequence_offset: int = 0) -> int:
+    if sequence_offset:
+        return max(1, int(sequence_offset) + int(fallback_index))
+    raw_id = str(panel.get("panel_id") or panel.get("id") or "")
+    match = re.search(r"(\d+)$", raw_id)
+    if match:
+        try:
+            return max(1, int(match.group(1)))
+        except ValueError:
+            pass
+    return max(1, int(fallback_index))
+
+
 def _export_storyboard_video_shots(req: ScriptStoryboardVideoExportRequest) -> Dict[str, Any]:
     board = req.board if isinstance(req.board, dict) else {}
     panels = board.get("panels") if isinstance(board.get("panels"), list) else []
@@ -3178,23 +3213,25 @@ def _export_storyboard_video_shots(req: ScriptStoryboardVideoExportRequest) -> D
 
     created: List[Dict[str, Any]] = []
     total = len(panels)
+    total_for_prompt = max(total, int(req.total_shots or 0))
     for index, (panel, url) in enumerate(zip(panels, urls), start=1):
         if not isinstance(panel, dict):
             panel = {}
         image_path = _resolve_image_path(url)
         edit_role = _storyboard_edit_role(index, total, panel)
-        shot_id = f"SB_{index:03d}"
+        sequence = _storyboard_panel_sequence(panel, index, int(req.sequence_offset or 0))
+        shot_id = f"SB_{sequence:03d}"
         record_id = f"{campaign_id}__{shot_id}"
         visual = _short_text(str(panel.get("visual_prompt") or panel.get("caption") or f"Storyboard panel {index}"), 900)
-        video_prompt = _storyboard_motion_prompt(panel, index, total, edit_role)
+        video_prompt = _storyboard_motion_prompt(panel, sequence, total_for_prompt, edit_role)
         shot = {
             "id": record_id,
             "shot_id": shot_id,
             "source": "storyboard_start_frame",
             "campaign_id": campaign_id,
             "campaign_title": title,
-            "n": index,
-            "sequence": index,
+            "n": sequence,
+            "sequence": sequence,
             "status": "rendered",
             "intent": "video",
             "description": visual,
@@ -3277,6 +3314,58 @@ def _script_video_shots(campaign_id: str) -> List[Dict[str, Any]]:
         if str(shot.get("campaign_id") or "") == campaign_id
         and str(shot.get("source") or "") == "storyboard_start_frame"
     ]
+
+
+def _rebuild_script_video_shots_from_storyboard_frames(script_id: str, storyboard: Dict[str, Any], panel_jobs: Dict[str, Any]) -> List[Dict[str, Any]]:
+    campaign_id = f"script_{_safe_script_id(script_id)}"
+    existing = _script_video_shots(campaign_id)
+    if existing:
+        return existing
+    boards = storyboard.get("boards", []) if isinstance(storyboard, dict) else []
+    if not isinstance(boards, list) or not boards:
+        return []
+    total_panels = sum(
+        len(board.get("panels", []))
+        for board in boards
+        if isinstance(board, dict) and isinstance(board.get("panels"), list)
+    )
+    rebuilt: List[Dict[str, Any]] = []
+    sequence_offset = 0
+    first_board = True
+    for board in boards:
+        if not isinstance(board, dict):
+            continue
+        panels = board.get("panels") if isinstance(board.get("panels"), list) else []
+        board_index = str(int(board.get("index") or 1))
+        jobs = panel_jobs.get(board_index, []) if isinstance(panel_jobs.get(board_index), list) else []
+        urls = [
+            str(item.get("url") or "")
+            for item in jobs
+            if isinstance(item, dict) and str(item.get("url") or "").strip()
+        ]
+        if not panels or not urls:
+            sequence_offset += len(panels)
+            continue
+        paired_count = min(len(panels), len(urls))
+        board_for_export = {**board, "panels": panels[:paired_count]}
+        try:
+            export = _export_storyboard_video_shots(ScriptStoryboardVideoExportRequest(
+                board=board_for_export,
+                panel_image_urls=urls[:paired_count],
+                title=str(storyboard.get("title") or board.get("title") or "Storyboard"),
+                campaign_id=campaign_id,
+                duration_seconds=5,
+                replace_existing=first_board,
+                sequence_offset=sequence_offset,
+                total_shots=total_panels,
+            ))
+        except Exception:
+            sequence_offset += len(panels)
+            continue
+        first_board = False
+        rebuilt.extend(export.get("shots", []) if isinstance(export.get("shots"), list) else [])
+        sequence_offset += len(panels)
+    return rebuilt
 
 
 def _pipeline_job_path(project_id: str) -> Path:
@@ -3596,10 +3685,13 @@ async def _run_script_pipeline_job(job_id: str, req: ScriptPipelineStartRequest)
         _pipeline_log(job, "videos", "Exporting storyboard frames as video shots")
         all_video_shots: List[Dict[str, Any]] = []
         first_board = True
+        sequence_offset = 0
+        total_storyboard_panels = int(storyboard_plan.get("panel_count") or 0)
         for board in storyboard_plan.get("boards", []) if isinstance(storyboard_plan.get("boards"), list) else []:
             if not isinstance(board, dict):
                 continue
             board_index = str(int(board.get("index") or 1))
+            panels = board.get("panels") if isinstance(board.get("panels"), list) else []
             urls = [str(item.get("url") or "") for item in panel_jobs.get(board_index, []) if item.get("url")]
             export = _export_storyboard_video_shots(ScriptStoryboardVideoExportRequest(
                 board=board,
@@ -3608,12 +3700,16 @@ async def _run_script_pipeline_job(job_id: str, req: ScriptPipelineStartRequest)
                 campaign_id=campaign_id,
                 duration_seconds=float(req.video_duration or 5),
                 replace_existing=first_board,
+                sequence_offset=sequence_offset,
+                total_shots=total_storyboard_panels,
             ))
             first_board = False
             all_video_shots.extend(export.get("shots", []) if isinstance(export.get("shots"), list) else [])
+            sequence_offset += len(panels)
+        current_video_shots = _script_video_shots(campaign_id) or all_video_shots
         project = _save_script_project_payload({
             "script_id": script_id,
-            "video_shots": _script_video_shots(campaign_id) or all_video_shots,
+            "video_shots": current_video_shots,
             "status": "video_shots_ready",
             "active_job_id": job_id,
         })
@@ -3631,7 +3727,7 @@ async def _run_script_pipeline_job(job_id: str, req: ScriptPipelineStartRequest)
                 resolve_image_path=_resolve_image_path,
                 workflow_file_for_id=_workflow_file_for_id,
             )
-            shot_ids = [str(s.get("id") or "") for s in _script_video_shots(campaign_id) if s.get("id")]
+            shot_ids = [str(s.get("id") or "") for s in current_video_shots if s.get("id")]
             _pipeline_log(job, "videos", f"Queueing {len(shot_ids)} image-to-video job(s)")
             result = await service.process(
                 shot_ids=shot_ids,
@@ -3677,9 +3773,10 @@ async def _run_script_pipeline_job(job_id: str, req: ScriptPipelineStartRequest)
                     shot["video_status"] = item.get("status") or "error"
                     shot["video_error"] = item.get("error") or ", ".join(item.get("reasons") or [])
             job["video_jobs"] = video_jobs
+            current_video_shots = _script_video_shots(campaign_id) or current_video_shots
             _save_script_project_payload({
                 "script_id": script_id,
-                "video_shots": _script_video_shots(campaign_id),
+                "video_shots": current_video_shots,
                 "status": "video_queued",
                 "active_job_id": job_id,
             })
@@ -3710,9 +3807,10 @@ async def _run_script_pipeline_job(job_id: str, req: ScriptPipelineStartRequest)
                         elif vj["status"] == "error":
                             errors += 1
                     job["video_jobs"] = video_jobs
+                    current_video_shots = _script_video_shots(campaign_id) or current_video_shots
                     _save_script_project_payload({
                         "script_id": script_id,
-                        "video_shots": _script_video_shots(campaign_id),
+                        "video_shots": current_video_shots,
                         "status": "video_rendering" if running else "video_complete",
                         "active_job_id": job_id,
                     })
@@ -3721,9 +3819,10 @@ async def _run_script_pipeline_job(job_id: str, req: ScriptPipelineStartRequest)
                         break
                     await asyncio.sleep(10)
 
+        current_video_shots = _script_video_shots(campaign_id) or locals().get("current_video_shots", [])
         _save_script_project_payload({
             "script_id": script_id,
-            "video_shots": _script_video_shots(campaign_id),
+            "video_shots": current_video_shots,
             "status": "complete",
             "active_job_id": job_id,
         })
