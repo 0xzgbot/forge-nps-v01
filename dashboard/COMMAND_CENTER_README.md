@@ -38,6 +38,11 @@ Uvicorn running on http://0.0.0.0:7000
 | `POST` | `/api/platform/detect` | Detect active platform skill such as TikTok Vertical from prompt text. |
 | `POST` | `/api/ideas/hooks` | Generate optional TikTok hook/audio-direction cards. |
 | `POST` | `/api/export/carousel` | Zip selected stills/clips with captions and manifest for social posting. |
+| `POST` | `/api/script/pipeline/start` | Start the job-based Script Studio pipeline from brief to script package, coverage, storyboard frames, and videos. |
+| `GET` | `/api/script/pipeline/jobs/{job_id}` | Poll Script Studio pipeline progress and retrieve the saved project state. |
+| `GET` | `/api/script/storyboard/image-models` | Return local Spark, OpenAI, and Gemini/Nano Banana storyboard render providers. |
+| `POST` | `/api/script/storyboard/render-image` | Render one storyboard frame/page with the selected storyboard image provider. |
+| `POST` | `/api/script/storyboard/export-video-shots` | Convert rendered storyboard frames into ordered image-to-video shot records. |
 | `GET` | `/api/shots` | Return current shot store. |
 | `GET` | `/api/campaigns` | Return campaign index. |
 | `POST` | `/api/audit/reprocess` | Re-audit selected shot IDs. |
@@ -83,6 +88,28 @@ Common event types:
 - `warning`
 - `error`
 - `done`
+
+## Script Studio One-Click Video
+
+The Script Studio primary action is **Generate Videos**. It is intentionally job-based rather than a chain of manual button clicks.
+
+Default flow:
+
+1. Save or create a script project.
+2. Generate a locked script package from the brief.
+3. Generate coverage from the package.
+4. Build a storyboard plan.
+5. Render individual 1080p start frames.
+6. Export those frames as image-to-video shot records.
+7. Queue LTX/ComfyUI video jobs.
+8. Display start frames and completed clips inside the Script Studio Videos step.
+
+Important behavior:
+
+- The global Videos page remains a library/workbench, but Script Studio no longer depends on **Open Videos** to finish the script-to-video path.
+- Storyboard defaults are individual production keyframes. Multi-panel storyboard pages are advanced proof artifacts only.
+- Local Spark storyboard filenames use the selected model prefix, for example `flux2_dev_...png`, `flux2_klein_...png`, or `z_image_...png`.
+- The video queue uses only `storyboard_start_frame` records with rendered images; coverage-only records are not sent to video generation.
 
 ## Settings Behavior
 

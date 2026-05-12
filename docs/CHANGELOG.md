@@ -1,5 +1,30 @@
 # Changelog
 
+## 2026-05-12 - One-click Script Studio video, Asset Vault handoff, and storyboard provider cleanup
+
+- Added a job-based Script Studio pipeline for **Generate Videos** from a short brief.
+- The default Script Studio flow now runs: brief -> locked script package -> coverage -> storyboard plan -> individual 1080p start frames -> LTX image-to-video jobs.
+- Rewired the Brief primary action away from the partial package/storyboard path and into `POST /api/script/pipeline/start`.
+- Hid advanced pipeline controls from the primary UI so the main Script Studio workflow is one click.
+- Script Studio now shows generated start frames and completed clips in its own **Videos** step instead of requiring users to open the global Videos page to finish the workflow.
+- The backend now filters video generation to `storyboard_start_frame` records only, preventing coverage-only records from being queued without rendered images.
+- Added persistent script project state for pipeline jobs, storyboard panel jobs, video shot records, and active job logs.
+- Simplified package exposure: package data remains saved for continuity and debugging, but it is no longer treated as a primary user step.
+- Added readiness cards for coverage and storyboard so users can see what source package/plan is loaded.
+- Added Asset Vault packaging for product, brand, logo, character reference, font, and style continuity assets used by storyboard generation.
+- Added storyboard image provider selection and Settings support for local Spark models, OpenAI image generation, and Gemini/Nano Banana.
+- Local storyboard providers now include Spark / Flux2.Dev, Spark / Flux2 Klein, Spark / Z-Image, and Spark / Z-Image Turbo.
+- Storyboard renders now default to individual production keyframes instead of multi-panel storyboard pages.
+- Raised default storyboard frame generation to `1920x1080` / `1080p`.
+- Changed storyboard prompts to explicitly request image-to-video start frames with no text, captions, labels, grids, contact sheets, or page layouts.
+- Page render / assemble actions remain available only as advanced proof actions.
+- Local Spark storyboard output filenames now use the selected model prefix, for example `flux2_dev_...`, `flux2_klein_...`, `z_image_...`, or `z_image_turbo_...`.
+- The previous `local_higgsfield_...` visible filename prefix is retained only on old files already rendered before this update.
+- Added/updated validation for this batch:
+  - `node --check dashboard/static/js/app.js`
+  - `python3 -m py_compile dashboard/forge_dashboard.py core/affiliate/local_higgsfield.py`
+  - `python3 -m pytest tests/test_local_higgsfield_adapter.py -q`
+
 ## 2026-05-09 - Video controls, image-count clarity, and push hygiene
 
 - Renamed the left navigation entry from **Home** to **Images** and placed **Videos** directly beneath it.

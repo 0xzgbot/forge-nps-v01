@@ -45,12 +45,26 @@ Run before each demo pass.
   - `spark`
   - `done`
 
-## 7) Audit and Retry Smoke
+## 7) Script Studio Smoke
+- Open Script Studio.
+- Paste a short brief.
+- Click **Generate Videos**.
+- Confirm the Jobs log progresses through:
+  - `script`
+  - `coverage`
+  - `storyboard`
+  - `frames`
+  - `videos`
+- Confirm the Script Studio Videos step shows generated start frames or completed clips.
+- Confirm local storyboard file prefixes use the selected model name, not a generic backend label.
+- Confirm `/api/script/pipeline/jobs/<job_id>` returns `project.video_shots`.
+
+## 8) Audit and Retry Smoke
 - Select at least one shot and run `POST /api/audit/reprocess`.
 - Select a failed shot and run `POST /api/audit/remediate`.
 - Confirm retry shot record has `retry_of`, `audit_status`, `audit_score`.
 
-## 8) Legacy Route Guard
+## 9) Legacy Route Guard
 - Confirm these routes are not used by UI flow:
   - `/api/shots/dispatch-all`
   - `/api/shots/dispatch`

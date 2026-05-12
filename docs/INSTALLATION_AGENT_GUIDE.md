@@ -71,9 +71,10 @@ Required values:
 ```bash
 KIMI_API_KEY=your_api_key_here
 NIM_ENDPOINT=https://integrate.api.nvidia.com/v1/chat/completions
-KIMI_INSTRUCT_MODEL=moonshotai/kimi-k2.6
-KIMI_THINKING_MODEL=moonshotai/kimi-k2.6
+KIMI_INSTRUCT_MODEL=~moonshotai/kimi-latest
+KIMI_THINKING_MODEL=~moonshotai/kimi-latest
 KIMI_VISUAL_MODEL=qwen3.6-35b-a3b@q6_k
+USE_LOCAL_DIRECTOR=false
 
 LMSTUDIO_HOST=http://localhost:1234
 LMSTUDIO_PORT=1234
@@ -83,6 +84,12 @@ LMSTUDIO_VISION_MODEL=qwen3.6-35b-a3b@q6_k
 COMFYUI_PRIMARY=http://localhost:8188
 COMFYUI_SECONDARY=http://localhost:8189
 FORGE_MEDIA_ROOT=/Users/zgbot/Desktop/FORGE_NPS_MEDIA
+
+STORYBOARD_IMAGE_PROVIDER=spark:flux2_dev
+OPENAI_IMAGE_MODEL=gpt-image-2
+GEMINI_IMAGE_MODEL=gemini-2.5-flash-image
+# OPENAI_API_KEY=optional_openai_key_for_storyboards
+# GEMINI_API_KEY=optional_google_ai_studio_key_for_nano_banana_storyboards
 ```
 
 Notes:
@@ -92,6 +99,8 @@ Notes:
 - Do not commit real API keys, private IPs, or machine-specific endpoint URLs unless the repo owner explicitly accepts that risk.
 - If settings appear wrong in the UI, inspect both `.env` and `data/config.json`.
 - The LM Studio host can be saved as `http://host` plus `LMSTUDIO_PORT=1234`; the app normalizes it.
+- The Director backend can be switched to local LM Studio with `USE_LOCAL_DIRECTOR=true` or the Settings toggle. When local Director is enabled, NVIDIA/Kimi API fields are greyed out in the UI and planning uses the configured LM Studio chat model.
+- Storyboard image generation has its own provider setting. Use `spark:*` providers for local Spark/ComfyUI rendering, or set OpenAI/Gemini keys if storyboard-only cloud image generation is desired.
 
 ## Media Directories
 
@@ -164,6 +173,30 @@ Workflows live under:
 
 Campaign render flow expects `COMFYUI_PRIMARY` to be reachable before Spark dispatch.
 
+## Script Studio One-Click Video
+
+Script Studio is designed for the Discord/demo workflow:
+
+1. Open **Script Studio**.
+2. Paste a short prompt or story brief.
+3. Click **Generate Videos**.
+4. Watch the **Jobs** step for package, coverage, storyboard, frame, and video progress.
+5. Review generated start frames and completed clips inside the Script Studio **Videos** step.
+
+The job runner performs:
+
+```text
+brief -> locked script package -> coverage -> storyboard plan -> 1080p start frames -> LTX image-to-video jobs
+```
+
+Operational notes:
+
+- The main path does not require opening the global Videos tab.
+- Storyboard frames are individual production keyframes, not multi-panel page renders.
+- Advanced storyboard page proofs still exist, but they are not the default video input.
+- Local Spark outputs are named by selected model, such as `flux2_dev_...png`, `flux2_klein_...png`, `z_image_...png`, or `z_image_turbo_...png`.
+- Script pipeline state is persisted to saved script projects so a refresh does not lose progress logs or generated frame/video records.
+
 ## Start the Dashboard
 
 From repo root:
@@ -206,7 +239,8 @@ In the Settings panel:
 5. Click **Load Model** only if no model is loaded or the selected model changed.
 6. Confirm ComfyUI primary host.
 7. Click **Test ComfyUI + Spark**.
-8. Save settings only after tests show the intended values.
+8. In storyboard image settings, confirm the default provider. Use `Spark / Flux2.Dev` for local generation, or configure OpenAI / Nano Banana keys if cloud storyboard frames are intentionally enabled.
+9. Save settings only after tests show the intended values.
 
 ## Smoke Tests
 
@@ -267,6 +301,32 @@ curl -sS http://localhost:7000/api/hermes/idea-board | python3 -m json.tool
 
 If the running backend is older and does not expose `/api/hermes/idea-board`, the browser UI falls back to `/api/shots` and should still render the Ideas board.
 
+Script Studio pipeline:
+
+```bash
+curl -sS -X POST http://localhost:7000/api/script/pipeline/start \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "title":"Smoke Test Short",
+    "brief":"Two cute animated characters argue over a glowing marble and then discover it was only a trick of light.",
+    "runtime_seconds":20,
+    "target_scenes":3,
+    "storyboard_panels_per_board":4,
+    "storyboard_resolution":"1920x1080",
+    "storyboard_image_provider":"spark",
+    "storyboard_spark_model":"flux2_dev",
+    "run_video":true,
+    "wait_for_videos":true,
+    "stop_after":"videos"
+  }' | python3 -m json.tool
+```
+
+Poll the returned job:
+
+```bash
+curl -sS http://localhost:7000/api/script/pipeline/jobs/<job_id> | python3 -m json.tool
+```
+
 ## Common Failures and Fixes
 
 ### Generate Images Button Appears Dead
@@ -324,6 +384,31 @@ find /Users/zgbot/Desktop/FORGE_NPS_MEDIA -maxdepth 3 -type f | head
 
 Restart the dashboard so startup reindex runs, then refresh the UI.
 
+### Script Studio Videos Page Shows No Frames
+
+Use the Script Studio **Videos** step, not the global Videos library, to inspect one-click script outputs.
+
+If it is empty:
+
+- Confirm the pipeline job reached `frames` or `videos` in the Jobs log.
+- Confirm storyboard frame jobs returned URLs.
+- Confirm `/api/script/pipeline/jobs/<job_id>` returns `project.video_shots`.
+- Confirm ComfyUI is reachable and the selected storyboard model workflow exists.
+- Do not send coverage-only records to video generation; the backend now filters for `storyboard_start_frame` records.
+
+### Storyboard Files Say The Wrong Model
+
+New local storyboard renders should use model prefixes, for example:
+
+```text
+flux2_dev_<job>_00001.png
+flux2_klein_<job>_00001.png
+z_image_<job>_00001.png
+z_image_turbo_<job>_00001.png
+```
+
+Older files with `local_higgsfield_...` were created by the previous compatibility adapter prefix and are not renamed retroactively.
+
 ## Git Workflow for Agents
 
 Before edits:
@@ -353,6 +438,8 @@ Run before submission/demo:
 6. `/api/hermes/chat` returns real content.
 7. `/api/hermes/run-campaign` reaches Kimi planning.
 8. A short campaign reaches Spark dispatch.
-9. Rendered media appears in dashboard.
-10. `/api/hermes/idea-board` returns a board, or the Ideas UI falls back to `/api/shots`.
-11. Audit/remediation reports pass/fail details, not generic placeholders.
+9. A short Script Studio prompt reaches `frames` and `videos` phases through **Generate Videos**.
+10. Script Studio **Videos** displays generated start frames or completed clips without requiring the global Videos page.
+11. Rendered media appears in dashboard.
+12. `/api/hermes/idea-board` returns a board, or the Ideas UI falls back to `/api/shots`.
+13. Audit/remediation reports pass/fail details, not generic placeholders.

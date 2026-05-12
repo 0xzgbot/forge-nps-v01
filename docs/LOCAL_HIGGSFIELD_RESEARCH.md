@@ -1,10 +1,12 @@
-# Local Higgsfield-Compatible Adapter Research
+# Local Creative Adapter Compatibility Notes
 
-Date: 2026-05-07
+Date: 2026-05-12
 
 ## Scope
 
-This note captures the public Higgsfield MCP/API surface observed from official metadata and public wrapper repositories, then maps it to a Forge-local equivalent backed by ComfyUI. This is an interoperability layer, not a private Higgsfield clone.
+This note explains the legacy Higgsfield-shaped adapter in Forge and the current local Spark/ComfyUI behavior.
+
+The compatibility routes still exist because earlier UI and automation code expected async "creative job set" semantics. They are not a Higgsfield integration, they are not a remote Higgsfield client, and new visible output filenames should not use Higgsfield branding. Current local renders are named by the selected model, for example `flux2_dev_...`, `flux2_klein_...`, `z_image_...`, or `z_image_turbo_...`.
 
 ## What The Public Surface Shows
 
@@ -39,7 +41,7 @@ Sources:
 
 ## Local Forge Mapping
 
-Forge now exposes local compatibility endpoints:
+Forge exposes local compatibility endpoints:
 
 | Local endpoint | Purpose |
 | --- | --- |
@@ -61,9 +63,16 @@ Data is stored under:
 
 Results are served by the dashboard through `/media-assets/local_higgsfield/...`.
 
+Important naming behavior:
+
+- The storage folder remains `local_higgsfield` for backward compatibility.
+- New ComfyUI output filenames use the actual selected model prefix.
+- Old files named `local_higgsfield_...` are historical outputs and are not renamed retroactively.
+- Script Studio storyboard generation should use the dedicated storyboard provider selection rather than treating this adapter name as a user-facing model.
+
 ## Gaps Versus Real Higgsfield
 
-The local adapter deliberately does not try to replicate private Higgsfield models. The achievable replacement is functional:
+The local adapter deliberately does not try to replicate private Higgsfield models. The replacement is functional:
 
 - Local image generation uses Forge text-to-image workflows.
 - Local image-to-video uses Forge LTX image-to-video workflows.
