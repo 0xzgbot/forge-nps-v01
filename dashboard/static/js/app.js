@@ -2245,11 +2245,12 @@ function renderScriptPipelineJob(job) {
     activeScriptPipelineStatus = job ? String(job.status || "queued").toUpperCase() : "";
     if (statusEl) {
         const friendlyError = friendlyScriptPipelineError(job);
+        const detail = friendlyError || scriptPipelineStatusDetail(job);
         statusEl.classList.toggle("error", String(job?.status || "").toLowerCase() === "error");
         statusEl.innerHTML = job
             ? (
                 '<strong>' + escapeHtml(String(job.status || "queued").toUpperCase() + " / " + String(job.phase || "queued")) + '</strong>' +
-                (friendlyError ? '<span>' + escapeHtml(friendlyError) + '</span>' : '')
+                (detail ? '<span>' + escapeHtml(detail) + '</span>' : '')
             )
             : "No pipeline job running.";
     }
@@ -2287,6 +2288,30 @@ function friendlyScriptPipelineError(job) {
         return "Storyboard start frames did not render. Check the Spark/ComfyUI model selection, then retry.";
     }
     return "Pipeline stopped: " + raw;
+}
+
+function scriptPipelineStatusDetail(job) {
+    if (!job) return "";
+    const status = String(job.status || "").toLowerCase();
+    const phase = String(job.phase || "").toLowerCase();
+    const logs = Array.isArray(job.logs) ? job.logs : [];
+    if (status === "queued") return "Queued. The app will run script, coverage, storyboard, start frames, then videos automatically.";
+    if (status === "complete") return "Done. Open the Videos step in Script Studio to review the generated shot clips.";
+    if (status !== "running") return "";
+    if (phase === "script") return "Writing the locked script package from your brief.";
+    if (phase === "coverage") return "Breaking the script into production shots.";
+    if (phase === "storyboard") return "Building the storyboard plan from the shot list.";
+    if (phase === "frames") {
+        const completed = logs.filter((entry) => String(entry.message || "").includes("Rendered board")).length;
+        const queued = logs.filter((entry) => String(entry.message || "").includes("Queued board")).length;
+        const total = Number(job.storyboard_count || 0);
+        return "Rendering storyboard start frames" + (total ? " (" + completed + " of " + total + " done" + (queued ? ", " + queued + " queued" : "") + ")" : "") + ". Videos queue automatically after this.";
+    }
+    if (phase === "video") {
+        const jobs = Array.isArray(job.video_jobs) ? job.video_jobs.length : 0;
+        return "Generating individual video shots" + (jobs ? " (" + jobs + " queued)" : "") + ".";
+    }
+    return "Running. The remaining steps continue automatically.";
 }
 
 function renderScriptVideoOutputs(shots) {
