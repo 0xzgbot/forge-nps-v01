@@ -71,7 +71,7 @@ Required values:
 ```bash
 KIMI_API_KEY=your_api_key_here
 NIM_ENDPOINT=https://integrate.api.nvidia.com/v1/chat/completions
-KIMI_INSTRUCT_MODEL=moonshotai/kimi-k2-instruct
+KIMI_INSTRUCT_MODEL=moonshotai/kimi-k2.6
 KIMI_THINKING_MODEL=moonshotai/kimi-k2.6
 KIMI_VISUAL_MODEL=qwen3.6-35b-a3b@q6_k
 

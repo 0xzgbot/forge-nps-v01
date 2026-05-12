@@ -370,9 +370,16 @@ class HermesCampaignService:
         def elapsed_ms() -> int:
             return int((time.perf_counter() - pipeline_t0) * 1000)
 
+        director_backend = str(getattr(self.director, "backend", "") or "nvidia").strip().lower()
+        director_provider = "LM Studio" if director_backend == "lmstudio" else "Kimi"
+        director_profile_key = "profile_director_lmstudio" if director_backend == "lmstudio" else "profile_director_kimi"
+        critic_profile_key = "profile_critic_lmstudio" if director_backend == "lmstudio" else "profile_critic_kimi"
+        director_role = f"{director_provider} / Director Planner"
+        critic_role = f"{director_provider} / Coverage Critic"
+
         yield {"type": "pipeline_timing", "stage": "backend_stream_open", "elapsed_ms": elapsed_ms()}
-        yield {"type": "profile", "profile_color_key": "profile_director_kimi", "text": "Kimi / Director Planner online"}
-        yield {"type": "profile", "profile_color_key": "profile_critic_kimi", "text": "Kimi / Coverage Critic online"}
+        yield {"type": "profile", "profile_color_key": director_profile_key, "text": f"{director_role} online"}
+        yield {"type": "profile", "profile_color_key": critic_profile_key, "text": f"{critic_role} online"}
         yield {"type": "profile", "profile_color_key": "profile_compiler_lmstudio", "text": "Hermes / Prompt Compiler online"}
         yield {"type": "profile", "profile_color_key": "profile_continuity_lmstudio", "text": "Hermes / Continuity Guard online"}
         yield {"type": "profile", "profile_color_key": "profile_remediation_lmstudio", "text": "Hermes / Remediation Reprompter online"}
@@ -434,7 +441,7 @@ class HermesCampaignService:
             detail = str(getattr(self.profile_cli, "last_error", "") or "unknown").strip()
             yield {
                 "type": "error",
-                "text": f"Campaign stopped: Hermes campaign intake failed before Kimi planning. detail={detail[:500]}",
+                "text": f"Campaign stopped: Hermes campaign intake failed before {director_provider} planning. detail={detail[:500]}",
             }
             yield {"type": "done", "text": "Campaign stopped: Hermes intake unavailable."}
             return
@@ -455,7 +462,7 @@ class HermesCampaignService:
         if intake_context and intake_context != "{}":
             planning_brief = f"{platform_brief}\n\nHermes campaign intake:\n{intake_context[:4000]}"
 
-        yield {"type": "kimi", "text": "Generating shot list..."}
+        yield {"type": "kimi", "profile_color_key": director_profile_key, "role_label": director_role, "text": "Generating shot list..."}
         use_fallback = os.getenv("FORGE_DEV_FALLBACK", "false").lower() == "true"
 
         kimi_plan_t0 = time.perf_counter()
@@ -469,9 +476,9 @@ class HermesCampaignService:
             )
         except Exception as e:
             reason = self._exc_reason(e)
-            yield {"type": "error", "text": f"Kimi shot generation failed: {reason}"}
+            yield {"type": "error", "text": f"{director_provider} shot generation failed: {reason}"}
             if not use_fallback:
-                yield {"type": "done", "text": "Campaign stopped: Kimi failure before Spark dispatch."}
+                yield {"type": "done", "text": f"Campaign stopped: {director_provider} failure before Spark dispatch."}
                 return
             plan = self.director.build_dev_fallback_plan(req.brief, campaign_id, target_shots=target_shots)
             yield {"type": "error", "text": "Falling back to local synthetic shot list (FORGE_DEV_FALLBACK=true)"}
@@ -485,18 +492,18 @@ class HermesCampaignService:
             "elapsed_ms": elapsed_ms(),
             "duration_ms": int((time.perf_counter() - kimi_plan_t0) * 1000),
         }
-        yield {"type": "kimi_raw", "campaign_id": campaign_id, "text": raw_content}
+        yield {"type": "kimi_raw", "campaign_id": campaign_id, "profile_color_key": director_profile_key, "role_label": director_role, "text": raw_content}
 
         try:
             kimi_shots = self.director.normalize_shots(plan, campaign_id)
         except Exception as e:
-            yield {"type": "error", "text": f"Kimi plan parse failed: {e}"}
-            yield {"type": "done", "text": "Campaign stopped: invalid Kimi plan."}
+            yield {"type": "error", "text": f"{director_provider} plan parse failed: {e}"}
+            yield {"type": "done", "text": f"Campaign stopped: invalid {director_provider} plan."}
             return
 
         if len(kimi_shots) < target_shots:
             missing = target_shots - len(kimi_shots)
-            yield {"type": "kimi", "text": f"Director returned {len(kimi_shots)}/{target_shots} shots. Requesting {missing} additional shots..."}
+            yield {"type": "kimi", "profile_color_key": director_profile_key, "role_label": director_role, "text": f"Director returned {len(kimi_shots)}/{target_shots} shots. Requesting {missing} additional shots..."}
             try:
                 top_up = await self.director.request_missing_shots(
                     brief=planning_brief,
@@ -511,7 +518,7 @@ class HermesCampaignService:
                 if top_up_raw:
                     raw_content = f"{raw_content}\n\n---TOP_UP---\n{top_up_raw}"
                     self.campaigns[campaign_id]["kimi_raw_response"] = raw_content
-                    yield {"type": "kimi_raw", "campaign_id": campaign_id, "text": top_up_raw}
+                    yield {"type": "kimi_raw", "campaign_id": campaign_id, "profile_color_key": director_profile_key, "role_label": director_role, "text": top_up_raw}
                 top_up_shots = self.director.normalize_shots(top_up, campaign_id)
                 existing_ids = {s["shot_id"] for s in kimi_shots}
                 existing_seq = {int(s["sequence"]) for s in kimi_shots}
@@ -523,17 +530,17 @@ class HermesCampaignService:
                     existing_seq.add(int(s["sequence"]))
                 kimi_shots = sorted(kimi_shots, key=lambda x: x["sequence"])
             except Exception as e:
-                yield {"type": "error", "text": f"Kimi top-up failed: {e}"}
+                yield {"type": "error", "text": f"{director_provider} top-up failed: {e}"}
 
         if len(kimi_shots) < target_shots and not use_fallback:
             yield {
                 "type": "error",
                 "text": (
-                    f"Kimi coverage incomplete: only {len(kimi_shots)} shots returned vs {target_shots} requested. "
+                    f"{director_provider} coverage incomplete: only {len(kimi_shots)} shots returned vs {target_shots} requested. "
                     "Campaign stopped before Spark."
                 ),
             }
-            yield {"type": "done", "text": "Campaign stopped: incomplete Kimi shot plan."}
+            yield {"type": "done", "text": f"Campaign stopped: incomplete {director_provider} shot plan."}
             return
 
         review: Dict[str, Any] = {}
@@ -548,10 +555,12 @@ class HermesCampaignService:
                 "elapsed_ms": elapsed_ms(),
                 "duration_ms": int((time.perf_counter() - review_t0) * 1000),
             }
-            yield {"type": "profile", "profile_color_key": "profile_critic_kimi", "text": "Kimi / Coverage Critic completed review."}
+            yield {"type": "profile", "profile_color_key": critic_profile_key, "text": f"{critic_role} completed review."}
             yield {
                 "type": "kimi_review",
                 "campaign_id": campaign_id,
+                "profile_color_key": critic_profile_key,
+                "role_label": critic_role,
                 "score": review.get("score"),
                 "status": review.get("status"),
                 "director_notes": review.get("director_notes", ""),
@@ -562,9 +571,9 @@ class HermesCampaignService:
             if score is not None and score < min_score and not use_fallback:
                 yield {
                     "type": "error",
-                    "text": f"Kimi director self-check score {score} below threshold {min_score}. Campaign stopped before Spark.",
+                    "text": f"{director_provider} director self-check score {score} below threshold {min_score}. Campaign stopped before Spark.",
                 }
-                yield {"type": "done", "text": "Campaign stopped: Kimi self-check below threshold."}
+                yield {"type": "done", "text": f"Campaign stopped: {director_provider} self-check below threshold."}
                 return
 
             needs_revision = False
@@ -582,7 +591,7 @@ class HermesCampaignService:
                         "text": "TikTok hook remediation applied to the first shot for low watch-time risk.",
                     }
             if needs_revision:
-                yield {"type": "kimi", "text": "Director revision pass running..."}
+                yield {"type": "kimi", "profile_color_key": director_profile_key, "role_label": director_role, "text": "Director revision pass running..."}
                 try:
                     revision_t0 = time.perf_counter()
                     revised = await self.director.revise_plan(
@@ -604,12 +613,12 @@ class HermesCampaignService:
                     self._record_agent_exchange(campaign_id, revised.get("__exchange"))
                     if revised_raw:
                         self.campaigns[campaign_id]["kimi_revision_raw_response"] = revised_raw
-                        yield {"type": "kimi_raw", "campaign_id": campaign_id, "text": revised_raw}
+                        yield {"type": "kimi_raw", "campaign_id": campaign_id, "profile_color_key": director_profile_key, "role_label": director_role, "text": revised_raw}
                     revised_shots = self.director.normalize_shots(revised, campaign_id)
                     if len(revised_shots) >= len(kimi_shots):
                         kimi_shots = revised_shots
                         self.campaigns[campaign_id]["kimi_revision_applied"] = True
-                        yield {"type": "kimi", "text": f"Director revision applied: {len(kimi_shots)} shots"}
+                        yield {"type": "kimi", "profile_color_key": director_profile_key, "role_label": director_role, "text": f"Director revision applied: {len(kimi_shots)} shots"}
                     else:
                         self.campaigns[campaign_id]["kimi_revision_applied"] = False
                         yield {
@@ -621,13 +630,13 @@ class HermesCampaignService:
                     yield {"type": "warning", "text": f"Director revision unavailable: {self._exc_reason(e)}"}
         except Exception as e:
             if os.getenv("FORGE_KIMI_REQUIRE_SELF_CHECK", "true").lower() != "false":
-                yield {"type": "error", "text": f"Kimi self-check failed: {e}"}
-                yield {"type": "done", "text": "Campaign stopped: Kimi self-check unavailable."}
+                yield {"type": "error", "text": f"{director_provider} self-check failed: {e}"}
+                yield {"type": "done", "text": f"Campaign stopped: {director_provider} self-check unavailable."}
                 return
-            yield {"type": "warning", "text": f"Kimi self-check unavailable: {e}"}
+            yield {"type": "warning", "text": f"{director_provider} self-check unavailable: {e}"}
 
-        yield {"type": "kimi_plan", "campaign_id": campaign_id, "count": len(kimi_shots), "target_shots": target_shots, "shots": kimi_shots}
-        yield {"type": "kimi", "text": f"Shot list ready: {len(kimi_shots)} shots (requested {target_shots})"}
+        yield {"type": "kimi_plan", "campaign_id": campaign_id, "profile_color_key": director_profile_key, "role_label": director_role, "count": len(kimi_shots), "target_shots": target_shots, "shots": kimi_shots}
+        yield {"type": "kimi", "profile_color_key": director_profile_key, "role_label": director_role, "text": f"Shot list ready: {len(kimi_shots)} shots (requested {target_shots})"}
 
         cfg = get_raw_config()
         host = (

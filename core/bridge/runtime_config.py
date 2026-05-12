@@ -33,8 +33,14 @@ CONFIGURABLE_KEYS = [
     "KIMI_VISUAL_ENDPOINT_API1",
     "KIMI_VISUAL_ENDPOINT_API2",
     "KIMI_VISUAL_ENDPOINT_ACTIVE",
+    "USE_LOCAL_DIRECTOR",
     "OPENROUTER_API_KEY",
     "OPENROUTER_ENDPOINT",
+    "OPENAI_API_KEY",
+    "OPENAI_IMAGE_MODEL",
+    "GEMINI_API_KEY",
+    "GEMINI_IMAGE_MODEL",
+    "STORYBOARD_IMAGE_PROVIDER",
     "COMFYUI_PRIMARY",
     "COMFYUI_SECONDARY",
     "SPARK_WORKFLOW_FILE",
@@ -52,6 +58,13 @@ SECRET_KEYS = {
     "NOUS_API_KEY",
     "KIMI_API_KEY",
     "OPENROUTER_API_KEY",
+    "OPENAI_API_KEY",
+    "GEMINI_API_KEY",
+}
+
+MODEL_REPLACEMENTS = {
+    "moonshotai/kimi-k2-instruct": "moonshotai/kimi-k2.6",
+    "moonshotai/kimi-k2-instruct-0905": "moonshotai/kimi-k2.6",
 }
 
 # Frontend/UI alias keys -> canonical env/config keys
@@ -67,12 +80,19 @@ KEY_ALIASES = {
     "nim_endpoint": "NIM_ENDPOINT",
     "openrouter_api_key": "OPENROUTER_API_KEY",
     "openrouter_endpoint": "OPENROUTER_ENDPOINT",
+    "openai_api_key": "OPENAI_API_KEY",
+    "openai_image_model": "OPENAI_IMAGE_MODEL",
+    "gemini_api_key": "GEMINI_API_KEY",
+    "gemini_image_model": "GEMINI_IMAGE_MODEL",
+    "storyboard_image_provider": "STORYBOARD_IMAGE_PROVIDER",
     "director_endpoint_api1": "KIMI_DIRECTOR_ENDPOINT_API1",
     "director_endpoint_api2": "KIMI_DIRECTOR_ENDPOINT_API2",
     "director_endpoint_active": "KIMI_DIRECTOR_ENDPOINT_ACTIVE",
     "visual_endpoint_api1": "KIMI_VISUAL_ENDPOINT_API1",
     "visual_endpoint_api2": "KIMI_VISUAL_ENDPOINT_API2",
     "visual_endpoint_active": "KIMI_VISUAL_ENDPOINT_ACTIVE",
+    "use_local_director": "USE_LOCAL_DIRECTOR",
+    "director_use_local": "USE_LOCAL_DIRECTOR",
     "comfy_primary": "COMFYUI_PRIMARY",
     "comfy_secondary": "COMFYUI_SECONDARY",
     "spark_url": "COMFYUI_PRIMARY",
@@ -101,6 +121,11 @@ def _load_json_config() -> Dict[str, Any]:
 def _normalize_overrides(raw: Dict[str, Any]) -> Dict[str, Any]:
     normalized: Dict[str, Any] = {}
 
+    def normalize_value(canonical: str, value: str) -> str:
+        if canonical in {"KIMI_INSTRUCT_MODEL", "KIMI_THINKING_MODEL"}:
+            return MODEL_REPLACEMENTS.get(value.strip(), value)
+        return value
+
     def put(key: str, value: Any, *, allow_empty: bool = True):
         canonical = KEY_ALIASES.get(key, key)
         if canonical in CONFIGURABLE_KEYS:
@@ -109,7 +134,7 @@ def _normalize_overrides(raw: Dict[str, Any]) -> Dict[str, Any]:
                     return
                 normalized[canonical] = ""
                 return
-            normalized[canonical] = "" if value is None else str(value)
+            normalized[canonical] = normalize_value(canonical, "" if value is None else str(value))
 
     def put_legacy(container: Dict[str, Any], key: str, canonical_key: str):
         if key not in container:
@@ -214,7 +239,10 @@ def get_raw_config() -> Dict[str, str]:
     """Return merged config without masking (for internal use)."""
     base = {k: _read_env_value(k) for k in CONFIGURABLE_KEYS}
     overrides = _load_json_config()
-    return {**base, **overrides}
+    merged = {**base, **overrides}
+    for key in ("KIMI_INSTRUCT_MODEL", "KIMI_THINKING_MODEL"):
+        merged[key] = MODEL_REPLACEMENTS.get(str(merged.get(key, "")).strip(), merged.get(key, ""))
+    return merged
 
 
 def set_config(updates: Dict[str, Any]) -> Dict[str, str]:
@@ -225,7 +253,10 @@ def set_config(updates: Dict[str, Any]) -> Dict[str, str]:
         if canonical in CONFIGURABLE_KEYS:
             if canonical in SECRET_KEYS and str(v or "").strip() == "" and current.get(canonical):
                 continue
-            current[canonical] = str(v) if v is not None else ""
+            value = str(v) if v is not None else ""
+            if canonical in {"KIMI_INSTRUCT_MODEL", "KIMI_THINKING_MODEL"}:
+                value = MODEL_REPLACEMENTS.get(value.strip(), value)
+            current[canonical] = value
     _save_json_config(current)
     return get_config()
 

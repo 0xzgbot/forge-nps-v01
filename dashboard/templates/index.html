@@ -381,7 +381,9 @@
         .log-row.system .log-bubble { background: #2c3f50; border-color: #4f6477; }
         .log-row.error .log-bubble { background: #6b1f1f; border-color: #c74646; }
         .log-row.profile_director_kimi .log-bubble { background: #113a7a; border-color: #2c67c7; }
+        .log-row.profile_director_lmstudio .log-bubble { background: #5a2f1d; border-color: #b76a40; }
         .log-row.profile_critic_kimi .log-bubble { background: #0c4f66; border-color: #1d8ab0; }
+        .log-row.profile_critic_lmstudio .log-bubble { background: #4a3a18; border-color: #b99832; }
         .log-row.profile_compiler_lmstudio .log-bubble { background: #5a2f1d; border-color: #b76a40; }
         .log-row.profile_continuity_lmstudio .log-bubble { background: #3b2d6f; border-color: #7f62d9; }
         .log-row.profile_remediation_lmstudio .log-bubble { background: #5f1f4f; border-color: #c64aa3; }
@@ -993,6 +995,27 @@
             font-family: 'JetBrains Mono', monospace;
             letter-spacing: 1px;
         }
+        .form-row.is-disabled label,
+        .form-row.is-disabled span {
+            color: #555;
+        }
+        .form-row input:disabled,
+        .form-row select:disabled,
+        .form-row textarea:disabled {
+            background: #151515;
+            border-color: #2a2a2a;
+            color: #666;
+            cursor: not-allowed;
+        }
+        .settings-mode-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .settings-local-director-row {
+            padding: 8px 0 4px;
+        }
         .form-inline {
             display: flex;
             gap: 8px;
@@ -1349,7 +1372,7 @@
         }
         .script-flow-guide {
             display: grid;
-            grid-template-columns: repeat(4, minmax(150px, 1fr));
+            grid-template-columns: repeat(7, minmax(105px, 1fr));
             gap: 8px;
             padding-top: 12px;
         }
@@ -1524,7 +1547,8 @@
         #script-package-json,
         .script-shot-controls input,
         .script-storyboard-controls input,
-        .script-storyboard-style input {
+        .script-storyboard-style input,
+        .script-inline-field select {
             width: 100%;
             background: #222;
             border: 1px solid #444;
@@ -1544,6 +1568,85 @@
             flex-direction: column;
             gap: 6px;
             flex: 1 1 220px;
+        }
+        .script-project-shell {
+            display: grid;
+            grid-template-columns: minmax(260px, 0.42fr) minmax(360px, 1fr);
+            gap: 14px;
+            align-items: stretch;
+        }
+        .script-project-panel {
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+        .script-project-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 420px;
+            overflow: auto;
+            padding: 12px;
+        }
+        .script-project-item {
+            width: 100%;
+            display: grid;
+            gap: 4px;
+            text-align: left;
+            padding: 10px;
+            border: 1px solid #2d3440;
+            border-radius: 6px;
+            background: #10141b;
+            color: #d7deea;
+            cursor: pointer;
+        }
+        .script-project-item.active,
+        .script-project-item:hover {
+            border-color: #6f8cff;
+            background: #151d31;
+        }
+        .script-project-item strong {
+            font-size: 12px;
+        }
+        .script-project-item span {
+            color: #8b94a7;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+        }
+        .script-pipeline-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            align-items: end;
+            padding: 12px;
+        }
+        .script-pipeline-log {
+            display: grid;
+            gap: 6px;
+            padding: 0 12px 12px;
+        }
+        .script-pipeline-log-row {
+            display: grid;
+            grid-template-columns: 100px 1fr;
+            gap: 8px;
+            padding: 7px 9px;
+            border: 1px solid #27303e;
+            border-radius: 5px;
+            background: #0b1018;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+        }
+        .script-pipeline-log-row.error {
+            border-color: rgba(251, 113, 133, 0.42);
+            background: rgba(127, 29, 29, 0.18);
+        }
+        .script-pipeline-log-row span {
+            color: #9fb2ff;
+            text-transform: uppercase;
+        }
+        .script-pipeline-log-row p {
+            margin: 0;
+            color: #c8d0dd;
         }
         .script-primary-action {
             min-width: 190px;
@@ -1656,6 +1759,38 @@
         }
         .script-output p {
             margin: 0 0 10px;
+        }
+        .script-source-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+            padding: 7px 9px;
+            border: 1px solid rgba(110, 231, 183, 0.26);
+            border-radius: 5px;
+            background: rgba(20, 83, 45, 0.18);
+            color: #b9fbcf;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+        }
+        .script-source-badge.fallback {
+            border-color: rgba(251, 146, 60, 0.38);
+            background: rgba(124, 45, 18, 0.20);
+            color: #fed7aa;
+        }
+        .script-source-badge strong,
+        .script-source-badge em {
+            color: inherit;
+            font-style: normal;
+            opacity: 0.72;
+        }
+        .script-source-error {
+            padding: 8px 10px;
+            border: 1px solid rgba(251, 146, 60, 0.36);
+            border-radius: 5px;
+            background: rgba(124, 45, 18, 0.18);
+            color: #fed7aa;
         }
         .script-scenes-panel,
         .script-storyboard-panel,
@@ -1929,6 +2064,36 @@
             border-radius: 4px;
             background: #050505;
         }
+        .asset-vault-rule-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 12px;
+        }
+        .asset-vault-span-2 {
+            grid-column: 1 / -1;
+        }
+        .asset-vault-reference-editor,
+        #asset-vault-reference-rows {
+            display: grid;
+            gap: 12px;
+        }
+        .asset-reference-row {
+            display: grid;
+            grid-template-columns: minmax(110px, 0.7fr) minmax(140px, 1fr) minmax(180px, 1.2fr) minmax(220px, 1.6fr) auto;
+            gap: 8px;
+            align-items: start;
+        }
+        .character-reference-thumb .btn {
+            width: 100%;
+            margin-top: 6px;
+            min-height: 28px;
+            padding: 4px 8px;
+        }
+        @media (max-width: 900px) {
+            .asset-reference-row {
+                grid-template-columns: 1fr;
+            }
+        }
         .script-shot-list-wrap {
             max-height: 620px;
             overflow: auto;
@@ -1970,6 +2135,7 @@
         }
         @media (max-width: 1100px) {
             .script-flow,
+            .script-project-shell,
             .script-grid-2 {
                 grid-template-columns: 1fr;
             }
@@ -3579,12 +3745,15 @@
             align-content: flex-start;
         }
         #script-view .script-flow {
-            align-items: start;
-            grid-auto-rows: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
             overflow: visible;
         }
         #script-view .script-panel {
             overflow: visible;
+            width: 100%;
+            box-sizing: border-box;
         }
         #script-view .script-brief-panel {
             min-height: 0;
@@ -3605,6 +3774,8 @@
         }
         #script-view #script-package-json {
             min-height: 220px;
+            max-height: 360px;
+            overflow: auto;
         }
         #script-view .script-shot-list-wrap {
             max-height: none;
@@ -3688,7 +3859,7 @@
             <div class="nav-tab" data-page="identity-view" onclick="switchPage('identity-view')">Characters</div>
             <div class="nav-tab" data-page="ideas-view" onclick="switchPage('ideas-view')">Ideas</div>
             <div class="nav-tab" data-page="script-view" onclick="switchPage('script-view')">Script</div>
-            <div class="nav-tab" data-page="products-view" onclick="switchPage('products-view')">Products</div>
+            <div class="nav-tab" data-page="products-view" onclick="switchPage('products-view')">Asset Vault</div>
             <div class="nav-tab" data-page="memory-view" onclick="switchPage('memory-view'); loadMemoryTab()">Memory</div>
             <div class="nav-tab" data-page="settings-view" onclick="switchPage('settings-view')">Settings</div>
         </div>
@@ -3897,6 +4068,14 @@
             <div class="settings-card ai-provider-card">
                 <h3><span class="settings-step">2</span> Cloud Director API</h3>
                 <p class="card-desc">Remote API used for director planning when API mode is active.</p>
+                <div class="settings-mode-row settings-local-director-row">
+                    <span class="backend-label">NVIDIA Director</span>
+                    <label class="toggle" title="Route Director Planner and self-check through LM Studio">
+                        <input type="checkbox" id="cfg-director-use-local" onchange="onDirectorLocalToggle()">
+                        <span class="slider"></span>
+                    </label>
+                    <span class="backend-label">(local) LM Studio Director</span>
+                </div>
                 <div class="settings-form-grid settings-form-grid-single">
                     <div class="form-row">
                         <label>API Key</label>
@@ -3908,21 +4087,23 @@
                     </div>
                     <div class="form-row">
                         <label>Director Model</label>
-                        <input type="text" id="cfg-director-model" placeholder="moonshotai/kimi-k2-instruct" onchange="markDirty('models.director_kimi.model_name')">
+                        <input type="text" id="cfg-director-model" placeholder="moonshotai/kimi-k2.6" onchange="markDirty('models.director_kimi.model_name')">
                     </div>
                     <div class="form-row">
                         <label>Director Endpoint</label>
                         <input type="text" id="cfg-director-endpoint-api1" placeholder="https://integrate.api.nvidia.com/v1/chat/completions" onchange="markDirty('models.director_kimi.endpoint_api1')">
                     </div>
                 </div>
-                <div class="card-actions">
-                    <button class="btn btn-secondary" onclick="testProvider()">Test Provider</button>
-                    <button class="btn btn-secondary" onclick="testDirector()">Test Director</button>
-                </div>
-                <div class="settings-result-grid">
-                    <div id="kimi-test-result" class="test-result"></div>
-                    <div id="director-test-result" class="test-result"></div>
-                </div>
+	                <div class="card-actions">
+	                    <button class="btn btn-secondary" onclick="testProvider()">Test Provider</button>
+	                    <button class="btn btn-secondary" onclick="testDirector()">Test Director</button>
+	                    <button class="btn btn-secondary" onclick="testDirectorSelfCheck()">Test Self-Check</button>
+	                </div>
+	                <div class="settings-result-grid">
+	                    <div id="kimi-test-result" class="test-result"></div>
+	                    <div id="director-test-result" class="test-result"></div>
+	                    <div id="director-self-check-result" class="test-result"></div>
+	                </div>
             </div>
 
             <div class="settings-card comfy-card">
@@ -3932,14 +4113,6 @@
                     <div class="form-row">
                         <label>Spark Primary WebSocket</label>
                         <input type="text" id="cfg-spark-primary" placeholder="ws://localhost:8000" onchange="markDirty('spark.primary')">
-                    </div>
-                    <div class="form-row">
-                        <label>Spark Secondary WebSocket</label>
-                        <input type="text" id="cfg-spark-secondary" placeholder="ws://localhost:8001" onchange="markDirty('spark.secondary')">
-                    </div>
-                    <div class="form-row">
-                        <label>Spark Workflow File</label>
-                        <input type="text" id="cfg-spark-workflow" placeholder="workflows/01_flux2_text_to_image.json" onchange="markDirty('spark.workflow_file')">
                     </div>
                     <div class="form-row">
                         <label>ComfyUI Primary</label>
@@ -3961,8 +4134,46 @@
                 <div id="comfyui-test-result" class="test-result"></div>
             </div>
 
+            <div class="settings-card">
+                <h3><span class="settings-step">4</span> Storyboard Image Models</h3>
+                <p class="card-desc">Used only by Script → Storyboard. Main Images, Characters, Videos, and remediation stay on Spark/ComfyUI.</p>
+                <div class="settings-form-grid settings-form-grid-single">
+                    <div class="form-row">
+                        <label>Default Storyboard Model</label>
+                        <select id="cfg-storyboard-provider" onchange="markDirty('storyboard_images.default_provider')">
+                            <option value="spark:flux2_dev">Spark / Flux2.Dev</option>
+                            <option value="spark:flux2_klein">Spark / Flux2 Klein</option>
+                            <option value="spark:z_image">Spark / Z-Image</option>
+                            <option value="spark:z_image_turbo">Spark / Z-Image Turbo</option>
+                            <option value="openai">OpenAI Image</option>
+                            <option value="gemini">Nano Banana</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <label>OpenAI API Key</label>
+                        <input type="password" id="cfg-openai-api-key" placeholder="OpenAI API key..." onchange="markDirty('storyboard_images.openai_api_key')">
+                    </div>
+                    <div class="form-row">
+                        <label>OpenAI Image Model</label>
+                        <input type="text" id="cfg-openai-image-model" placeholder="gpt-image-2" onchange="markDirty('storyboard_images.openai_model')">
+                    </div>
+                    <div class="form-row">
+                        <label>Gemini API Key</label>
+                        <input type="password" id="cfg-gemini-api-key" placeholder="Google AI Studio key..." onchange="markDirty('storyboard_images.gemini_api_key')">
+                    </div>
+	                    <div class="form-row">
+	                        <label>Nano Banana Model</label>
+	                        <input type="text" id="cfg-gemini-image-model" placeholder="gemini-2.5-flash-image" onchange="markDirty('storyboard_images.gemini_model')">
+	                    </div>
+	                </div>
+	                <div class="settings-actions">
+	                    <button class="btn" onclick="testStoryboardProviders()">Check Storyboard Providers</button>
+	                    <span id="storyboard-provider-test-result" class="test-result"></span>
+	                </div>
+	            </div>
+
             <div class="settings-card settings-card-wide bank-editor-card">
-                <h3><span class="settings-step">4</span> Bank Editor</h3>
+                <h3><span class="settings-step">5</span> Bank Editor</h3>
                 <p class="card-desc">Default prompt bank entries used by character variation templates.</p>
                 <div class="settings-bank-grid">
                     <div class="form-row">
@@ -4026,23 +4237,78 @@ beach</textarea>
             <div class="script-director-header">
                 <div>
                     <div class="script-kicker">Hermes Script Pipeline</div>
-                    <h2>Script Builder</h2>
-                    <p>Idea → script package → storyboard frames → videos.</p>
+                    <h2>Script Studio</h2>
+                    <p>Saved script projects, pipeline jobs, coverage, storyboard frames, and videos.</p>
                 </div>
                 <div class="script-header-actions">
                     <button class="btn btn-secondary" onclick="clearShotList()">Reset</button>
+                    <button class="btn btn-secondary" onclick="switchScriptFlowStep('jobs')">Jobs</button>
                     <button class="btn btn-secondary" onclick="switchScriptFlowStep('videos')">Videos</button>
                 </div>
             </div>
-            <div class="script-flow-guide" aria-label="Script workflow">
-                <button class="script-flow-step active" type="button" data-script-step="idea" onclick="switchScriptFlowStep('idea')"><span>01</span><div><strong>Idea</strong><em id="script-step-status-idea">Ready</em></div></button>
-                <button class="script-flow-step" type="button" data-script-step="script" onclick="switchScriptFlowStep('script')"><span>02</span><div><strong>Script</strong><em id="script-step-status-script">Waiting</em></div></button>
-                <button class="script-flow-step" type="button" data-script-step="storyboard" onclick="switchScriptFlowStep('storyboard')"><span>03</span><div><strong>Storyboard</strong><em id="script-step-status-storyboard">Waiting</em></div></button>
-                <button class="script-flow-step" type="button" data-script-step="videos" onclick="switchScriptFlowStep('videos')"><span>04</span><div><strong>Videos</strong><em id="script-step-status-videos">Waiting</em></div></button>
+            <div class="script-flow-guide" aria-label="Script Studio workspace">
+                <button class="script-flow-step active" type="button" data-script-step="projects" onclick="switchScriptFlowStep('projects')"><span>00</span><div><strong>Projects</strong><em id="script-step-status-projects">Saved</em></div></button>
+                <button class="script-flow-step" type="button" data-script-step="brief" onclick="switchScriptFlowStep('brief')"><span>01</span><div><strong>Brief</strong><em id="script-step-status-brief">Ready</em></div></button>
+                <button class="script-flow-step" type="button" data-script-step="package" onclick="switchScriptFlowStep('package')"><span>02</span><div><strong>Package</strong><em id="script-step-status-package">Waiting</em></div></button>
+                <button class="script-flow-step" type="button" data-script-step="coverage" onclick="switchScriptFlowStep('coverage')"><span>03</span><div><strong>Coverage</strong><em id="script-step-status-coverage">Waiting</em></div></button>
+                <button class="script-flow-step" type="button" data-script-step="storyboard" onclick="switchScriptFlowStep('storyboard')"><span>04</span><div><strong>Storyboard</strong><em id="script-step-status-storyboard">Waiting</em></div></button>
+                <button class="script-flow-step" type="button" data-script-step="videos" onclick="switchScriptFlowStep('videos')"><span>05</span><div><strong>Videos</strong><em id="script-step-status-videos">Waiting</em></div></button>
+                <button class="script-flow-step" type="button" data-script-step="jobs" onclick="switchScriptFlowStep('jobs')"><span>06</span><div><strong>Jobs</strong><em id="script-step-status-jobs">Idle</em></div></button>
             </div>
 
             <div class="script-flow">
-                <section class="script-panel script-brief-panel script-step-panel active" data-script-step-panel="idea">
+                <section class="script-panel script-project-panel script-step-panel active" data-script-step-panel="projects">
+                        <div class="script-panel-head">
+                            <span>00</span>
+                            <h3>Saved Scripts</h3>
+                        </div>
+                        <div id="script-project-list" class="script-project-list">
+                            <div class="script-empty-mini">No saved scripts yet.</div>
+                        </div>
+                        <div class="script-next-action"><strong>Next:</strong> Load a script project or open Brief to create a new one.</div>
+                </section>
+                <section class="script-panel script-project-panel script-step-panel" data-script-step-panel="jobs">
+                        <div class="script-panel-head">
+                            <span>JOB</span>
+                            <div class="script-panel-title">
+                                <h3>Pipeline Runner</h3>
+                                <p>Save, resume, and run script to storyboard to video shots.</p>
+                            </div>
+                        </div>
+                        <div class="script-pipeline-grid">
+                            <div class="script-inline-field">
+                                <label for="script-project-id">Project ID</label>
+                                <input type="text" id="script-project-id" placeholder="Auto">
+                            </div>
+                            <div class="script-inline-field">
+                                <label for="script-pipeline-stop-after">Stop After</label>
+                                <select id="script-pipeline-stop-after">
+                                    <option value="videos">Videos</option>
+                                    <option value="frames">Start Frames</option>
+                                    <option value="storyboard">Storyboard</option>
+                                    <option value="coverage">Coverage</option>
+                                    <option value="script">Script</option>
+                                </select>
+                            </div>
+                            <div class="script-inline-field">
+                                <label for="script-pipeline-video-wait">Video Wait Sec</label>
+                                <input type="number" id="script-pipeline-video-wait" min="30" max="7200" value="1800">
+                            </div>
+                            <label class="storyboard-checkbox">Queue Videos
+                                <span><input type="checkbox" id="script-pipeline-run-video" checked> run image-to-video</span>
+                            </label>
+                            <label class="storyboard-checkbox">Wait
+                                <span><input type="checkbox" id="script-pipeline-wait-video" checked> collect completed clips</span>
+                            </label>
+                            <button class="btn btn-secondary" type="button" onclick="saveScriptProject()">Save Script</button>
+                            <button class="btn script-primary-action" type="button" id="run-script-pipeline-btn" onclick="runScriptPipeline()">Run Pipeline</button>
+                        </div>
+                        <div id="script-pipeline-status" class="script-next-action">No pipeline job running.</div>
+                        <div id="script-pipeline-log" class="script-pipeline-log">
+                            <div class="script-empty-mini">Pipeline logs appear here.</div>
+                        </div>
+                </section>
+                <section class="script-panel script-brief-panel script-step-panel" data-script-step-panel="brief">
                     <div class="script-panel-head">
                         <span>01</span>
                         <h3>Brief</h3>
@@ -4083,7 +4349,7 @@ beach</textarea>
                     </div>
                 </section>
 
-                <section class="script-panel script-package-panel script-step-panel" data-script-step-panel="script">
+                <section class="script-panel script-package-panel script-step-panel" data-script-step-panel="package">
                     <div class="script-panel-head">
                         <span>02A</span>
                         <h3>Locked Package</h3>
@@ -4105,7 +4371,7 @@ beach</textarea>
                     <div class="script-next-action"><strong>Next:</strong> Review the locked package, then Build Coverage below.</div>
                 </section>
 
-                <section class="script-panel script-scenes-panel script-step-panel" data-script-step-panel="script">
+                <section class="script-panel script-scenes-panel script-step-panel" data-script-step-panel="package">
                     <div class="script-panel-head">
                         <span>02B</span>
                         <h3>Scenes and Beats</h3>
@@ -4113,7 +4379,7 @@ beach</textarea>
                     <div id="script-scenes-output" class="script-scenes-output"><div class="script-empty-mini">Generate the package to see scene structure.</div></div>
                 </section>
 
-                <section class="script-panel script-json-panel script-step-panel" data-script-step-panel="script">
+                <section class="script-panel script-json-panel script-step-panel" data-script-step-panel="package">
                     <div class="script-panel-head">
                         <span>02C</span>
                         <h3>Package JSON</h3>
@@ -4122,7 +4388,7 @@ beach</textarea>
                     <div class="script-next-action"><strong>Next:</strong> Any edits here are used by Build Coverage and Storyboard.</div>
                 </section>
 
-                <section class="script-panel script-shot-panel script-step-panel" data-script-step-panel="script">
+                <section class="script-panel script-shot-panel script-step-panel" data-script-step-panel="coverage">
                     <div class="script-panel-head">
                         <span>02D</span>
                         <div class="script-panel-title">
@@ -4170,6 +4436,23 @@ beach</textarea>
                             <div class="script-inline-field">
                                 <label for="storyboard-resolution">Resolution</label>
                                 <input type="text" id="storyboard-resolution" value="3840x2160">
+                            </div>
+                            <div class="script-inline-field">
+                                <label for="storyboard-image-model">Render Model</label>
+                                <select id="storyboard-image-model">
+                                    <option value="spark:flux2_dev">Spark / Flux2.Dev</option>
+                                    <option value="spark:flux2_klein">Spark / Flux2 Klein</option>
+                                    <option value="spark:z_image">Spark / Z-Image</option>
+                                    <option value="spark:z_image_turbo">Spark / Z-Image Turbo</option>
+                                    <option value="openai">OpenAI Image</option>
+                                    <option value="gemini">Nano Banana</option>
+                                </select>
+                            </div>
+                            <div class="script-inline-field">
+                                <label for="storyboard-asset-vault-package">Asset Vault</label>
+                                <select id="storyboard-asset-vault-package">
+                                    <option value="">No Asset Vault package</option>
+                                </select>
                             </div>
                             <button class="btn script-primary-action" id="generate-storyboard-btn" onclick="generateStoryboard()">Build Storyboard</button>
                         </div>
@@ -4232,7 +4515,7 @@ beach</textarea>
                     </div>
                 </section>
 
-                <section class="script-panel script-chat-panel script-step-panel" data-script-step-panel="idea">
+                <section class="script-panel script-chat-panel script-step-panel" data-script-step-panel="brief">
                     <div class="script-chat-header">
                         <span>Hermes Notes</span>
                         <span id="script-chat-status">Ready</span>
@@ -4246,22 +4529,22 @@ beach</textarea>
             </div>
         </div>  <!-- /#script-view -->
 
-        <!-- Products View -->
+        <!-- Asset Vault View -->
         <div id="products-view" class="page-view products-view">
             <div class="spark-header">
-                <h2>Products</h2>
+                <h2>Asset Vault</h2>
             </div>
             <div class="studio-scroll">
                 <div class="studio-grid">
                     <div class="studio-card col-5">
-                        <h3>Product Character</h3>
-                        <div style="aspect-ratio:1/1;border:1px solid var(--border);border-radius:var(--r-md);background:radial-gradient(circle at 50% 35%, rgba(255,106,42,0.16), transparent 28%), linear-gradient(135deg, rgba(110,168,254,0.06), rgba(214,168,79,0.08));display:grid;place-items:center;color:var(--amber);letter-spacing:.18em;text-transform:uppercase;">Character Preview</div>
+                        <h3>Linked Character</h3>
+                        <div style="aspect-ratio:1/1;border:1px solid var(--border);border-radius:var(--r-md);background:radial-gradient(circle at 50% 35%, rgba(255,106,42,0.16), transparent 28%), linear-gradient(135deg, rgba(110,168,254,0.06), rgba(214,168,79,0.08));display:grid;place-items:center;color:var(--amber);letter-spacing:.18em;text-transform:uppercase;">Reference Preview</div>
                     </div>
                     <div class="studio-card magenta col-7">
-                        <h3>Product Description Editor</h3>
+                        <h3>Package Description Editor</h3>
                         <div class="control-grid">
                             <div class="control-field">
-                                <label>Product Name</label>
+                                <label>Package Name</label>
                                 <input type="text" value="Emberdrive Mk-II">
                             </div>
                             <div class="control-field">
@@ -4278,7 +4561,7 @@ beach</textarea>
                             </div>
                             <div class="control-field">
                                 <label>Seed Lock</label>
-                                <label class="model-checkbox"><input type="checkbox" checked> Deterministic product seed</label>
+                                <label class="model-checkbox"><input type="checkbox" checked> Deterministic package seed</label>
                             </div>
                         </div>
                         <div class="control-field" style="margin-top:12px;">
@@ -4323,9 +4606,9 @@ beach</textarea>
                         </div>
                     </div>
                     <div class="studio-card col-12">
-                        <h3>Product Variation Gallery</h3>
+                        <h3>Package Variation Gallery</h3>
                         <div class="spark-grid" style="min-height:260px;padding:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;">
-                            <div class="grid-placeholder"><p>No product renders loaded.</p></div>
+                            <div class="grid-placeholder"><p>No package renders loaded.</p></div>
                         </div>
                     </div>
                 </div>

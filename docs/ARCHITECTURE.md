@@ -59,7 +59,7 @@ Forge NPS is a multi-service app. The dashboard coordinates external Kimi/NVIDIA
 | Ideas | Hermes/shot-store kanban board grouped by intake, planning, prompt compile, render, audit, revise, and approved stages. |
 | Characters | Identity asset management, character image upload, DNA editing, character render prompts, and character render history. |
 | Script | Script package generation, Director shot-list generation, and fallback coverage generation. |
-| Products | Product-oriented prompt and asset workspace. |
+| Asset Vault | Product, brand, reference, style, and linked-character packages used by storyboard continuity. |
 | Renders | Image/video processing, failed render remediation, media refresh, and video workflow dispatch. |
 | Memory | Provenance graph, insights, playback, and campaign/event filtering. |
 | Settings | Provider, endpoint, ComfyUI/Spark, LM Studio, Kimi/NIM, and profile configuration. |
