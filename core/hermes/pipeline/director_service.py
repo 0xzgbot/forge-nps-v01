@@ -3,10 +3,11 @@ import os
 import re
 import asyncio
 from typing import Any, Dict, List, Optional
+from urllib.parse import urlsplit, urlunsplit
 
 import httpx
 
-from core.bridge.runtime_config import get_raw_config
+from core.bridge.runtime_config import MODEL_REPLACEMENTS, get_raw_config
 
 
 def _extract_json_block(text: str) -> Any:
@@ -45,6 +46,38 @@ def _with_exchange_debug(
     return parsed
 
 
+def _normalize_model_name(model_name: str) -> str:
+    cleaned = (model_name or "").strip()
+    return MODEL_REPLACEMENTS.get(cleaned, cleaned)
+
+
+def _truthy(value: Any) -> bool:
+    return str(value or "").strip().lower() in {"1", "true", "yes", "on", "local", "lmstudio"}
+
+
+def _lmstudio_chat_endpoint(cfg: Dict[str, Any]) -> str:
+    host = (
+        str(cfg.get("LMSTUDIO_HOST", "") or "")
+        or os.getenv("LMSTUDIO_HOST", "")
+        or "http://localhost"
+    ).strip().rstrip("/")
+    port = str(cfg.get("LMSTUDIO_PORT", "") or os.getenv("LMSTUDIO_PORT", "") or "1234").strip()
+    if host.endswith("/v1"):
+        host = host[:-3].rstrip("/")
+    if not host.startswith(("http://", "https://")):
+        host = "http://" + host
+    parts = urlsplit(host)
+    netloc = parts.netloc
+    try:
+        has_port = parts.port is not None
+    except ValueError:
+        has_port = ":" in netloc.rsplit("@", 1)[-1]
+    if port and not has_port:
+        netloc = f"{netloc}:{port}"
+    base = urlunsplit((parts.scheme, netloc, parts.path.rstrip("/"), "", "")).rstrip("/")
+    return f"{base}/v1/chat/completions"
+
+
 def _multi_person_cast_directive(brief: str, target_shots: int) -> str:
     text = (brief or "").lower()
     asks_for_people = bool(re.search(r"\b(people|persons|portraits|characters|cast|faces|headshots|models)\b", text))
@@ -64,6 +97,8 @@ def _multi_person_cast_directive(brief: str, target_shots: int) -> str:
 class KimiDirectorService:
     def __init__(self) -> None:
         cfg = get_raw_config()
+        self.use_local_director = _truthy(os.getenv("USE_LOCAL_DIRECTOR", "") or cfg.get("USE_LOCAL_DIRECTOR", ""))
+        self.backend = "lmstudio" if self.use_local_director else "nvidia"
         raw_key = (
             os.getenv("KIMI_API_KEY", "")
             or str(cfg.get("KIMI_API_KEY", ""))
@@ -72,36 +107,60 @@ class KimiDirectorService:
             or str(cfg.get("NOUS_API_KEY", ""))
         ).strip()
         self.api_key = self._sanitize_api_key(raw_key)
-        active = (os.getenv("KIMI_DIRECTOR_ENDPOINT_ACTIVE", "") or str(cfg.get("KIMI_DIRECTOR_ENDPOINT_ACTIVE", "api1"))).strip().lower()
-        api1 = (os.getenv("KIMI_DIRECTOR_ENDPOINT_API1", "") or str(cfg.get("KIMI_DIRECTOR_ENDPOINT_API1", ""))).strip()
-        api2 = (os.getenv("KIMI_DIRECTOR_ENDPOINT_API2", "") or str(cfg.get("KIMI_DIRECTOR_ENDPOINT_API2", ""))).strip()
-        endpoint = api2 if active == "api2" and api2 else api1
-        if not endpoint:
-            endpoint = (
-                os.getenv("NIM_ENDPOINT", "")
-                or os.getenv("KIMI_ENDPOINT", "")
-                or str(cfg.get("NIM_ENDPOINT", ""))
-                or os.getenv("NOUS_ENDPOINT", "")
-                or os.getenv("OPENROUTER_ENDPOINT", "")
-                or str(cfg.get("NOUS_ENDPOINT", ""))
-            ).strip()
-        if not endpoint:
-            endpoint = "https://inference-api.nousresearch.com/v1/chat/completions"
-        endpoint = endpoint.rstrip("/")
-        if not endpoint.endswith("/chat/completions"):
-            endpoint += "/chat/completions"
+        if self.use_local_director:
+            endpoint = _lmstudio_chat_endpoint(cfg)
+        else:
+            active = (os.getenv("KIMI_DIRECTOR_ENDPOINT_ACTIVE", "") or str(cfg.get("KIMI_DIRECTOR_ENDPOINT_ACTIVE", "api1"))).strip().lower()
+            api1 = (os.getenv("KIMI_DIRECTOR_ENDPOINT_API1", "") or str(cfg.get("KIMI_DIRECTOR_ENDPOINT_API1", ""))).strip()
+            api2 = (os.getenv("KIMI_DIRECTOR_ENDPOINT_API2", "") or str(cfg.get("KIMI_DIRECTOR_ENDPOINT_API2", ""))).strip()
+            endpoint = api2 if active == "api2" and api2 else api1
+            if not endpoint:
+                endpoint = (
+                    os.getenv("NIM_ENDPOINT", "")
+                    or os.getenv("KIMI_ENDPOINT", "")
+                    or str(cfg.get("NIM_ENDPOINT", ""))
+                    or os.getenv("NOUS_ENDPOINT", "")
+                    or os.getenv("OPENROUTER_ENDPOINT", "")
+                    or str(cfg.get("NOUS_ENDPOINT", ""))
+                ).strip()
+            if not endpoint:
+                endpoint = "https://inference-api.nousresearch.com/v1/chat/completions"
+            endpoint = endpoint.rstrip("/")
+            if not endpoint.endswith("/chat/completions"):
+                endpoint += "/chat/completions"
         self.endpoint = endpoint
-        self.model_name = (
-            os.getenv("KIMI_INSTRUCT_MODEL", "")
+        self.model_name = _normalize_model_name(
+            (os.getenv("LMSTUDIO_CHAT_MODEL", "") or str(cfg.get("LMSTUDIO_CHAT_MODEL", "")) if self.use_local_director else "")
+            or os.getenv("KIMI_INSTRUCT_MODEL", "")
             or str(cfg.get("KIMI_INSTRUCT_MODEL", ""))
             or os.getenv("DIRECTOR_MODEL", "")
             or str(cfg.get("DIRECTOR_MODEL", "Hermes-4-405B"))
-        ).strip()
-        self.thinking_model_name = (
-            os.getenv("KIMI_THINKING_MODEL", "")
+        )
+        self.thinking_model_name = _normalize_model_name(
+            (os.getenv("LMSTUDIO_CHAT_MODEL", "") or str(cfg.get("LMSTUDIO_CHAT_MODEL", "")) if self.use_local_director else "")
+            or os.getenv("KIMI_THINKING_MODEL", "")
             or str(cfg.get("KIMI_THINKING_MODEL", ""))
             or self.model_name
-        ).strip()
+        )
+
+    def _auth_headers(self) -> Dict[str, str]:
+        headers = {"Content-Type": "application/json"}
+        if self.api_key and not self.use_local_director:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+        return headers
+
+    def _response_format(self) -> Dict[str, str]:
+        if self.use_local_director:
+            return {"type": "text"}
+        return {"type": "json_object"}
+
+    def _require_ready(self) -> None:
+        if self.use_local_director:
+            if not self.model_name:
+                raise RuntimeError("missing_lmstudio_chat_model")
+            return
+        if not self.api_key:
+            raise RuntimeError("missing_kimi_api_key")
 
     @staticmethod
     def _sanitize_api_key(raw_key: str) -> str:
@@ -185,8 +244,7 @@ class KimiDirectorService:
         length: str = "",
         target_shots: Optional[int] = None,
     ) -> Dict[str, Any]:
-        if not self.api_key:
-            raise RuntimeError("missing_kimi_api_key")
+        self._require_ready()
 
         target = int(target_shots or self.requested_shot_count(brief, length))
         schema_hint = {
@@ -226,7 +284,7 @@ class KimiDirectorService:
                 {"role": "user", "content": user_prompt},
             ],
             "temperature": 0.4,
-            "response_format": {"type": "json_object"},
+            "response_format": self._response_format(),
             "max_tokens": self._max_tokens_for_target(target),
         }
         timeout_sec = float(os.getenv("FORGE_KIMI_TIMEOUT_SEC", "300"))
@@ -238,7 +296,7 @@ class KimiDirectorService:
         async with httpx.AsyncClient(timeout=timeout_sec) as client:
             resp = await client.post(
                 self.endpoint,
-                headers={"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"},
+                headers=self._auth_headers(),
                 json=payload,
             )
             if resp.status_code >= 400:
@@ -267,8 +325,7 @@ class KimiDirectorService:
         bible_text: str = "",
         length: str = "",
     ) -> Dict[str, Any]:
-        if not self.api_key:
-            raise RuntimeError("missing_kimi_api_key")
+        self._require_ready()
 
         have = len(existing_shots or [])
         if have >= target_shots:
@@ -311,7 +368,7 @@ class KimiDirectorService:
                 {"role": "user", "content": json.dumps(prompt)},
             ],
             "temperature": 0.35,
-            "response_format": {"type": "json_object"},
+            "response_format": self._response_format(),
             "max_tokens": self._max_tokens_for_target(target_shots),
         }
         timeout_sec = float(os.getenv("FORGE_KIMI_TIMEOUT_SEC", "300"))
@@ -320,7 +377,7 @@ class KimiDirectorService:
         async with httpx.AsyncClient(timeout=timeout_sec) as client:
             resp = await client.post(
                 self.endpoint,
-                headers={"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"},
+                headers=self._auth_headers(),
                 json=payload,
             )
             if resp.status_code >= 400:
@@ -345,8 +402,7 @@ class KimiDirectorService:
         campaign_id: str,
         normalized_shots: List[Dict[str, Any]],
     ) -> Dict[str, Any]:
-        if not self.api_key:
-            raise RuntimeError("missing_kimi_api_key")
+        self._require_ready()
         # Judge-facing: require Kimi second pass critique for coverage/coherence risk.
         system_prompt = (
             "You are Kimi Quality Director. "
@@ -373,7 +429,7 @@ class KimiDirectorService:
                 {"role": "user", "content": json.dumps(prompt)},
             ],
             "temperature": 0.2,
-            "response_format": {"type": "json_object"},
+            "response_format": self._response_format(),
             "max_tokens": 4096,
         }
         timeout_sec = float(os.getenv("FORGE_KIMI_SELF_CHECK_TIMEOUT_SEC", "90"))
@@ -384,7 +440,7 @@ class KimiDirectorService:
                 try:
                     resp = await client.post(
                         self.endpoint,
-                        headers={"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"},
+                        headers=self._auth_headers(),
                         json=payload,
                     )
                     if resp.status_code >= 400:
@@ -425,8 +481,7 @@ class KimiDirectorService:
         bible_text: str = "",
         length: str = "",
     ) -> Dict[str, Any]:
-        if not self.api_key:
-            raise RuntimeError("missing_kimi_api_key")
+        self._require_ready()
 
         system_prompt = (
             "You are Kimi Director Revision pass. "
@@ -469,7 +524,7 @@ class KimiDirectorService:
                 },
             ],
             "temperature": 0.45,
-            "response_format": {"type": "json_object"},
+            "response_format": self._response_format(),
             "max_tokens": self._max_tokens_for_target(target_shots),
         }
         timeout_sec = float(os.getenv("FORGE_KIMI_TIMEOUT_SEC", "300"))
@@ -478,7 +533,7 @@ class KimiDirectorService:
         async with httpx.AsyncClient(timeout=timeout_sec) as client:
             resp = await client.post(
                 self.endpoint,
-                headers={"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"},
+                headers=self._auth_headers(),
                 json=payload,
             )
             if resp.status_code >= 400:

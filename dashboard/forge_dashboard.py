@@ -51,6 +51,7 @@ from core.affiliate.local_higgsfield import LocalHiggsfieldAdapter
 from core.hermes.pipeline import HermesCampaignService, CampaignRequest, HermesAuditService, HermesVideoService
 from core.hermes.pipeline.director_service import KimiDirectorService
 from core.prompts.prompt_standards import apply_model_prompt_standard
+from core.storyboard.image_providers import StoryboardImageProvider
 from core.dispatch.lora_presets import lora_preset_payload
 from core.hermes.platform_skills import (
     carousel_caption_text,
@@ -70,6 +71,8 @@ MEDIA_IDENTITY_ASSETS.mkdir(parents=True, exist_ok=True)
 MEDIA_IDENTITY_TEMPLATES = MEDIA_ROOT / "identity_templates"
 MEDIA_IDENTITY_TEMPLATES.mkdir(parents=True, exist_ok=True)
 NEXUS_DB = REPO_ROOT / ".forge-nexus" / "forge.db"
+SCRIPT_PROJECTS_DIR = REPO_ROOT / "data" / "scripts"
+SCRIPT_PROJECTS_DIR.mkdir(parents=True, exist_ok=True)
 
 app = FastAPI()
 _NEXUS_HANDLERS: Optional[ForgeMCPHandlers] = None
@@ -137,6 +140,10 @@ def _normalize_lmstudio_base_url(host: str = "", port: Any = None) -> str:
             path = path[: -len(suffix)].rstrip("/")
             break
     return urlunsplit((parts.scheme, netloc, path, "", ""))
+
+
+def _truthy_config(value: Any) -> bool:
+    return str(value or "").strip().lower() in {"1", "true", "yes", "on", "local", "lmstudio"}
 
 
 def _lmstudio_base_candidates(host: str = "", port: Any = None) -> List[str]:
@@ -559,6 +566,31 @@ class ShotDispatchRequest(BaseModel):
 class ProductListResponse(BaseModel):
     products: List[Dict[str, Any]]
 
+
+class AssetVaultPackageRequest(BaseModel):
+    name: str
+    description: str = ""
+    kind: str = "package"
+    element_type: str = "product"
+    asset_type: str = "product"
+    character_ids: List[str] = Field(default_factory=list)
+    character_refs: List[Dict[str, Any]] = Field(default_factory=list)
+    references: List[Dict[str, Any]] = Field(default_factory=list)
+    tags: List[str] = Field(default_factory=list)
+    notes: str = ""
+    brand_rules: str = ""
+    style_rules: str = ""
+    logo_notes: str = ""
+    font_notes: str = ""
+    prop_notes: str = ""
+    location_notes: str = ""
+    status: str = "draft"
+
+
+class AssetVaultCharacterLinkRequest(BaseModel):
+    role: str = "reference"
+    notes: str = ""
+
 class VisualAuditRequest(BaseModel):
     frame_base64: str
     mime_type: str
@@ -742,6 +774,7 @@ class SubmitRecipeRequest(BaseModel):
 # --- In-memory shots store ---
 _SHOTS_STORE: List[Dict[str, Any]] = []
 _CAMPAIGNS: Dict[str, Dict[str, Any]] = {}
+_SCRIPT_PIPELINE_JOBS: Dict[str, Dict[str, Any]] = {}
 _ACTIVE_CAMPAIGN: Optional[str] = None
 _CANCEL_CAMPAIGN = False
 
@@ -818,6 +851,7 @@ class ScriptDevelopRequest(BaseModel):
 class ScriptStoryboardRequest(BaseModel):
     script: str = ""
     package: Optional[Dict[str, Any]] = None
+    asset_vault_package_id: str = ""
     panels_per_board: int = 9
     target_panels: Optional[int] = None
     resolution: str = "3840x2160"
@@ -844,6 +878,93 @@ class ScriptStoryboardVideoExportRequest(BaseModel):
     campaign_id: str = ""
     duration_seconds: float = 4.0
     replace_existing: bool = True
+
+
+class ScriptProjectSaveRequest(BaseModel):
+    script_id: str = ""
+    title: str = ""
+    brief: str = ""
+    tone: str = ""
+    runtime_seconds: int = 60
+    target_scenes: int = 4
+    package: Optional[Dict[str, Any]] = None
+    coverage_shots: List[Dict[str, Any]] = Field(default_factory=list)
+    storyboard_plan: Optional[Dict[str, Any]] = None
+    storyboard_panel_jobs: Dict[str, Any] = Field(default_factory=dict)
+    video_shots: List[Dict[str, Any]] = Field(default_factory=list)
+    status: str = "draft"
+
+
+class ScriptPipelineStartRequest(BaseModel):
+    script_id: str = ""
+    title: str = ""
+    brief: str = ""
+    tone: str = ""
+    runtime_seconds: int = 60
+    target_scenes: int = 4
+    target_shots: Optional[int] = None
+    storyboard_panels_per_board: int = 9
+    storyboard_target_panels: Optional[int] = None
+    storyboard_resolution: str = "3840x2160"
+    storyboard_style: str = "cinematic"
+    storyboard_character_consistency: str = ""
+    storyboard_negative_prompt: str = "blurry, deformed, extra limbs, text errors, inconsistent characters, merged panels"
+    storyboard_reference_image_url: str = ""
+    storyboard_include_captions: bool = False
+    storyboard_image_provider: str = "spark"
+    storyboard_image_model: str = ""
+    storyboard_spark_model: str = "flux2_dev"
+    asset_vault_package_id: str = ""
+    video_workflow_id: str = "04_ltx2.3_image_to_video"
+    video_duration: int = 5
+    video_fps: int = 24
+    video_resolution: str = "540p"
+    video_aspect_ratio: str = "16:9"
+    run_video: bool = True
+    wait_for_videos: bool = True
+    video_wait_seconds: int = 1800
+    stop_after: str = "videos"
+
+
+class ScriptPipelineResumeRequest(BaseModel):
+    wait_for_videos: bool = True
+    video_wait_seconds: int = 1800
+
+class StoryboardImageGenerateRequest(BaseModel):
+    prompt: str
+    provider: str = "spark"
+    model: str = ""
+    spark_model: str = "flux2_dev"
+    width_and_height: str = "1280x720"
+    quality: str = "720p"
+    title: str = "storyboard"
+    image_reference_url: str = ""
+    enhance_prompt: bool = False
+    wait_for_output: bool = False
+
+
+STORYBOARD_SPARK_MODELS: Dict[str, Dict[str, str]] = {
+    "z_image": {
+        "label": "Spark / Z-Image",
+        "workflow_id": "spark_image_z_image",
+        "model_family": "z-image",
+    },
+    "z_image_turbo": {
+        "label": "Spark / Z-Image Turbo",
+        "workflow_id": "spark_image_z_image_turbo",
+        "model_family": "z-image",
+    },
+    "flux2_dev": {
+        "label": "Spark / Flux2.Dev",
+        "workflow_id": "01_flux2_text_to_image",
+        "model_family": "flux2-dev",
+    },
+    "flux2_klein": {
+        "label": "Spark / Flux2 Klein",
+        "workflow_id": "08_flux2_klein_9b_text_to_image",
+        "model_family": "flux2-klein-9b",
+    },
+}
 
 class RenameCampaignRequest(BaseModel):
     old_campaign_id: str
@@ -896,6 +1017,148 @@ def _short_text(value: Any, limit: int = 180) -> str:
     if len(text) <= limit:
         return text
     return text[: max(0, limit - 3)].rstrip() + "..."
+
+
+def _safe_script_id(value: str = "", title: str = "") -> str:
+    raw = (value or "").strip() or (title or "").strip() or f"script_{uuid.uuid4().hex[:8]}"
+    slug = re.sub(r"[^a-zA-Z0-9]+", "_", raw).strip("_").lower()
+    if not slug:
+        slug = f"script_{uuid.uuid4().hex[:8]}"
+    if len(slug) > 64:
+        slug = slug[:64].strip("_")
+    return slug
+
+
+def _script_project_dir(script_id: str) -> Path:
+    sid = _safe_script_id(script_id)
+    path = (SCRIPT_PROJECTS_DIR / sid).resolve()
+    if not str(path).startswith(str(SCRIPT_PROJECTS_DIR.resolve())):
+        raise HTTPException(status_code=400, detail="invalid script id")
+    return path
+
+
+def _write_json_atomic(path: Path, data: Any) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.parent / f".{path.name}.tmp"
+    tmp.write_text(json.dumps(data, ensure_ascii=True, indent=2), encoding="utf-8")
+    tmp.replace(path)
+
+
+def _read_json_file(path: Path, fallback: Any = None) -> Any:
+    try:
+        if not path.exists():
+            return fallback
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return fallback
+
+
+def _script_project_summary(project: Dict[str, Any]) -> Dict[str, Any]:
+    return {
+        "script_id": project.get("script_id", ""),
+        "title": project.get("title", "") or "Untitled Script",
+        "brief": _short_text(project.get("brief", ""), 240),
+        "tone": project.get("tone", ""),
+        "runtime_seconds": project.get("runtime_seconds", 60),
+        "target_scenes": project.get("target_scenes", 4),
+        "status": project.get("status", "draft"),
+        "updated_at": project.get("updated_at", ""),
+        "created_at": project.get("created_at", ""),
+        "has_package": bool(project.get("has_package")),
+        "coverage_count": int(project.get("coverage_count") or 0),
+        "storyboard_count": int(project.get("storyboard_count") or 0),
+        "video_shot_count": int(project.get("video_shot_count") or 0),
+        "video_complete_count": int(project.get("video_complete_count") or 0),
+        "active_job_id": project.get("active_job_id", ""),
+    }
+
+
+def _load_script_project(script_id: str) -> Dict[str, Any]:
+    sid = _safe_script_id(script_id)
+    root = _script_project_dir(sid)
+    meta = _read_json_file(root / "project.json", {})
+    if not isinstance(meta, dict) or not meta:
+        raise HTTPException(status_code=404, detail=f"script project not found: {sid}")
+    package = _read_json_file(root / "script_package.json", None)
+    coverage = _read_json_file(root / "coverage_shots.json", [])
+    storyboard = _read_json_file(root / "storyboard_plan.json", None)
+    panel_jobs = _read_json_file(root / "storyboard_panel_jobs.json", {})
+    video_shots = _read_json_file(root / "video_shots.json", [])
+    job = _read_json_file(root / "pipeline_job.json", None)
+    return {
+        **meta,
+        "package": package if isinstance(package, dict) else None,
+        "coverage_shots": coverage if isinstance(coverage, list) else [],
+        "storyboard_plan": storyboard if isinstance(storyboard, dict) else None,
+        "storyboard_panel_jobs": panel_jobs if isinstance(panel_jobs, dict) else {},
+        "video_shots": video_shots if isinstance(video_shots, list) else [],
+        "active_job": job if isinstance(job, dict) else None,
+    }
+
+
+def _save_script_project_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
+    now = _now_iso()
+    sid = _safe_script_id(str(payload.get("script_id") or ""), str(payload.get("title") or ""))
+    root = _script_project_dir(sid)
+    existing = _read_json_file(root / "project.json", {})
+    if not isinstance(existing, dict):
+        existing = {}
+    package = payload.get("package", None)
+    coverage = payload.get("coverage_shots", [])
+    storyboard = payload.get("storyboard_plan")
+    panel_jobs = payload.get("storyboard_panel_jobs", {})
+    video_shots = payload.get("video_shots", [])
+    if not isinstance(coverage, list):
+        coverage = []
+    if not isinstance(panel_jobs, dict):
+        panel_jobs = {}
+    if not isinstance(video_shots, list):
+        video_shots = []
+    storyboard_boards = storyboard.get("boards", []) if isinstance(storyboard, dict) else []
+    video_complete = len([
+        s for s in video_shots
+        if str(s.get("video_status") or s.get("status") or "").lower() in {"complete", "completed", "video_rendered"} or s.get("video_url")
+    ])
+    meta = {
+        **existing,
+        "script_id": sid,
+        "title": str(payload.get("title") or existing.get("title") or "Untitled Script"),
+        "brief": str(payload.get("brief") or existing.get("brief") or ""),
+        "tone": str(payload.get("tone") or existing.get("tone") or ""),
+        "runtime_seconds": int(payload.get("runtime_seconds") or existing.get("runtime_seconds") or 60),
+        "target_scenes": int(payload.get("target_scenes") or existing.get("target_scenes") or 4),
+        "status": str(payload.get("status") or existing.get("status") or "draft"),
+        "created_at": existing.get("created_at") or now,
+        "updated_at": now,
+        "has_package": isinstance(package, dict) or bool(existing.get("has_package")),
+        "coverage_count": len(coverage) if "coverage_shots" in payload else int(existing.get("coverage_count") or 0),
+        "storyboard_count": sum(len(b.get("panels", [])) for b in storyboard_boards if isinstance(b, dict)) if isinstance(storyboard, dict) else int(existing.get("storyboard_count") or 0),
+        "video_shot_count": len(video_shots) if "video_shots" in payload else int(existing.get("video_shot_count") or 0),
+        "video_complete_count": video_complete if "video_shots" in payload else int(existing.get("video_complete_count") or 0),
+        "active_job_id": str(payload.get("active_job_id") or existing.get("active_job_id") or ""),
+    }
+    _write_json_atomic(root / "project.json", meta)
+    if isinstance(package, dict):
+        _write_json_atomic(root / "script_package.json", package)
+    if "coverage_shots" in payload:
+        _write_json_atomic(root / "coverage_shots.json", coverage)
+    if isinstance(storyboard, dict):
+        _write_json_atomic(root / "storyboard_plan.json", storyboard)
+    if "storyboard_panel_jobs" in payload:
+        _write_json_atomic(root / "storyboard_panel_jobs.json", panel_jobs)
+    if "video_shots" in payload:
+        _write_json_atomic(root / "video_shots.json", video_shots)
+    return _load_script_project(sid)
+
+
+def _list_script_projects() -> List[Dict[str, Any]]:
+    projects: List[Dict[str, Any]] = []
+    for path in SCRIPT_PROJECTS_DIR.glob("*/project.json"):
+        data = _read_json_file(path, {})
+        if isinstance(data, dict) and data.get("script_id"):
+            projects.append(_script_project_summary(data))
+    projects.sort(key=lambda p: str(p.get("updated_at") or ""), reverse=True)
+    return projects
 
 
 class IdeaCardCreateRequest(BaseModel):
@@ -2411,6 +2674,96 @@ def _storyboard_source_package(req: ScriptStoryboardRequest) -> Optional[Dict[st
     return _package_from_shotlist_brief(req.script or "")
 
 
+def _asset_vault_prompt_context(package: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    if not package:
+        return {"summary": "", "character_consistency": "", "reference_urls": []}
+    pieces = [
+        f"Asset Vault package: {package.get('name', '')}",
+        f"Package type: {package.get('asset_type') or package.get('element_type') or 'package'}",
+        f"Description: {_short_text(str(package.get('description') or ''), 420)}",
+    ]
+    for key, label in [
+        ("brand_rules", "Brand rules"),
+        ("style_rules", "Style rules"),
+        ("logo_notes", "Logo notes"),
+        ("font_notes", "Font notes"),
+        ("prop_notes", "Prop notes"),
+        ("location_notes", "Location notes"),
+        ("notes", "Production notes"),
+    ]:
+        value = _short_text(str(package.get(key) or ""), 360)
+        if value:
+            pieces.append(f"{label}: {value}")
+    tags = package.get("tags") if isinstance(package.get("tags"), list) else []
+    if tags:
+        pieces.append("Tags: " + ", ".join(str(t) for t in tags[:16]))
+
+    character_lines: List[str] = []
+    for char in package.get("characters", []) if isinstance(package.get("characters"), list) else []:
+        if not isinstance(char, dict):
+            continue
+        character_lines.append(
+            _short_text(
+                f"{char.get('name') or char.get('id')}: package role {char.get('vault_role') or 'reference'}; "
+                f"character role {char.get('role') or 'Character'}; notes {char.get('vault_notes') or ''}",
+                260,
+            )
+        )
+    if character_lines:
+        pieces.append("Linked character references: " + " | ".join(character_lines[:10]))
+
+    reference_urls: List[str] = []
+    reference_lines: List[str] = []
+    refs = package.get("references") if isinstance(package.get("references"), list) else []
+    for ref in refs:
+        if not isinstance(ref, dict):
+            continue
+        if str(ref.get("url") or "").strip():
+            reference_urls.append(str(ref.get("url")).strip())
+        reference_lines.append(
+            _short_text(
+                f"{ref.get('type') or 'reference'} - {ref.get('name') or ''}: {ref.get('prompt') or ref.get('notes') or ''}",
+                260,
+            )
+        )
+    if reference_lines:
+        pieces.append("Package assets: " + " | ".join(reference_lines[:18]))
+
+    return {
+        "summary": _short_text(" ".join(p for p in pieces if p), 2400),
+        "character_consistency": "; ".join(character_lines[:10]),
+        "reference_urls": reference_urls[:12],
+    }
+
+
+def _apply_asset_vault_to_panels(panels: List[Dict[str, Any]], package: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    context = _asset_vault_prompt_context(package)
+    summary = str(context.get("summary") or "")
+    if not summary:
+        return panels
+    linked_names = [
+        str(char.get("name") or char.get("id") or "").strip()
+        for char in package.get("characters", []) if isinstance(char, dict)
+    ] if isinstance(package, dict) and isinstance(package.get("characters"), list) else []
+    for panel in panels:
+        existing_chars = panel.get("characters") if isinstance(panel.get("characters"), list) else []
+        merged_chars = list(existing_chars)
+        for name in linked_names:
+            if name and name not in merged_chars:
+                merged_chars.append(name)
+        panel["characters"] = merged_chars
+        panel["asset_vault_context"] = summary
+        panel["visual_prompt"] = _short_text(
+            f"{panel.get('visual_prompt', '')} Asset Vault continuity lock: {summary}",
+            1600,
+        )
+        panel["continuity"] = _short_text(
+            f"{panel.get('continuity', '')} Asset Vault: {package.get('name', '')}; preserve package product, logo, font, style, prop, location, and linked character references exactly.",
+            520,
+        )
+    return panels
+
+
 def _storyboard_panels_from_package(package: Dict[str, Any], target_panels: Optional[int]) -> List[Dict[str, Any]]:
     panels: List[Dict[str, Any]] = []
     acts = package.get("script", {}).get("acts", [])
@@ -2586,6 +2939,8 @@ def _single_storyboard_panel_prompt(
         "film storyboard composition, tactile material texture, natural skin or surface imperfections, no border, no page layout, no watermark."
         + reference_note
     )
+    if panel.get("asset_vault_context"):
+        prompt += f" Asset Vault production package lock: {panel.get('asset_vault_context')}."
     if negative_prompt:
         prompt += f" Negative prompt: {negative_prompt}."
     return prompt
@@ -2835,18 +3190,432 @@ def _export_storyboard_video_shots(req: ScriptStoryboardVideoExportRequest) -> D
     }
 
 
+def _storyboard_payload_url(payload: Dict[str, Any]) -> str:
+    if not isinstance(payload, dict):
+        return ""
+    if payload.get("url"):
+        return str(payload.get("url") or "")
+    jobs = payload.get("jobs") if isinstance(payload.get("jobs"), list) else []
+    first = jobs[0] if jobs and isinstance(jobs[0], dict) else {}
+    results = first.get("results") if isinstance(first.get("results"), dict) else {}
+    for key in ("raw", "min"):
+        item = results.get(key) if isinstance(results.get(key), dict) else {}
+        if item.get("url"):
+            return str(item.get("url") or "")
+    all_items = results.get("all") if isinstance(results.get("all"), list) else []
+    for item in all_items:
+        if isinstance(item, dict) and item.get("url"):
+            return str(item.get("url") or "")
+    return ""
+
+
+def _script_project_shots(campaign_id: str) -> List[Dict[str, Any]]:
+    return [
+        dict(shot)
+        for shot in _SHOTS_STORE
+        if str(shot.get("campaign_id") or "") == campaign_id
+    ]
+
+
+def _pipeline_job_path(project_id: str) -> Path:
+    return _script_project_dir(project_id) / "pipeline_job.json"
+
+
+def _save_pipeline_job(job: Dict[str, Any]) -> None:
+    job["updated_at"] = _now_iso()
+    _SCRIPT_PIPELINE_JOBS[str(job.get("job_id") or "")] = job
+    project_id = str(job.get("script_id") or "")
+    if project_id:
+        _write_json_atomic(_pipeline_job_path(project_id), job)
+
+
+def _pipeline_log(job: Dict[str, Any], phase: str, message: str, level: str = "info", **extra: Any) -> None:
+    entry = {
+        "timestamp": _now_iso(),
+        "phase": phase,
+        "level": level,
+        "message": message,
+        **extra,
+    }
+    logs = job.setdefault("logs", [])
+    if isinstance(logs, list):
+        logs.append(entry)
+        if len(logs) > 300:
+            del logs[: len(logs) - 300]
+    job["phase"] = phase
+    _save_pipeline_job(job)
+
+
+def _coverage_brief_from_package(package: Dict[str, Any], original_brief: str = "") -> str:
+    return "\n".join([
+        "LOCKED SCRIPT PACKAGE FOR SHOTLIST GENERATION:",
+        json.dumps(package, ensure_ascii=True, indent=2),
+        "",
+        "Generate coverage from the locked package. Preserve scene_id, beat_id, continuity, screen direction, edit role, duration, transition intent, audio cue, character wardrobe, prop state, and location state. Do not invent unrelated scenes.",
+        ("\nORIGINAL USER BRIEF:\n" + original_brief.strip()) if original_brief.strip() else "",
+    ]).strip()
+
+
+async def _coverage_from_script_package(
+    *,
+    package: Dict[str, Any],
+    original_brief: str,
+    campaign_id: str,
+    runtime_seconds: int,
+    target_shots: Optional[int],
+) -> List[Dict[str, Any]]:
+    brief = _coverage_brief_from_package(package, original_brief)
+    director = KimiDirectorService()
+    target = int(target_shots or director.requested_shot_count(brief, str(runtime_seconds or "")))
+    target = max(1, min(target, 120))
+    try:
+        plan = await director.request_plan(
+            brief=brief,
+            campaign_id=campaign_id,
+            length=str(runtime_seconds or ""),
+            target_shots=target,
+        )
+        normalized = director.normalize_shots(plan, campaign_id)
+    except Exception:
+        normalized = _fallback_director_shots_from_brief(brief, campaign_id, target)
+    shots = [_script_shot_from_director_plan(s, campaign_id) for s in normalized]
+    _SHOTS_STORE[:] = [
+        s for s in _SHOTS_STORE
+        if not (str(s.get("source") or "") == "script_director" and str(s.get("campaign_id") or "") == campaign_id)
+    ]
+    _SHOTS_STORE.extend(shots)
+    return shots
+
+
+async def _run_script_pipeline_job(job_id: str, req: ScriptPipelineStartRequest) -> None:
+    job = _SCRIPT_PIPELINE_JOBS.get(job_id)
+    if not job:
+        return
+    script_id = str(job.get("script_id") or "")
+    campaign_id = f"script_{script_id}"
+    try:
+        job["status"] = "running"
+        _pipeline_log(job, "project", "Pipeline started")
+        project = _load_script_project(script_id)
+        package = project.get("package") if isinstance(project.get("package"), dict) else None
+
+        if not package:
+            _pipeline_log(job, "script", "Generating locked script package")
+            package = await _request_script_package(ScriptDevelopRequest(
+                title=req.title,
+                brief=req.brief,
+                tone=req.tone,
+                runtime_seconds=req.runtime_seconds,
+                target_scenes=req.target_scenes,
+            ))
+            project = _save_script_project_payload({
+                "script_id": script_id,
+                "title": req.title,
+                "brief": req.brief,
+                "tone": req.tone,
+                "runtime_seconds": req.runtime_seconds,
+                "target_scenes": req.target_scenes,
+                "package": package,
+                "status": "script_ready",
+                "active_job_id": job_id,
+            })
+        else:
+            _pipeline_log(job, "script", "Using saved script package")
+
+        if req.stop_after == "script":
+            job["status"] = "complete"
+            _pipeline_log(job, "script", "Pipeline stopped after script package")
+            return
+
+        _pipeline_log(job, "coverage", "Generating coverage shot list")
+        coverage_shots = await _coverage_from_script_package(
+            package=package,
+            original_brief=req.brief,
+            campaign_id=campaign_id,
+            runtime_seconds=req.runtime_seconds,
+            target_shots=req.target_shots,
+        )
+        project = _save_script_project_payload({
+            "script_id": script_id,
+            "title": req.title,
+            "brief": req.brief,
+            "tone": req.tone,
+            "runtime_seconds": req.runtime_seconds,
+            "target_scenes": req.target_scenes,
+            "package": package,
+            "coverage_shots": coverage_shots,
+            "status": "coverage_ready",
+            "active_job_id": job_id,
+        })
+        job["coverage_count"] = len(coverage_shots)
+        _pipeline_log(job, "coverage", f"Coverage ready: {len(coverage_shots)} shot(s)")
+
+        if req.stop_after == "coverage":
+            job["status"] = "complete"
+            _pipeline_log(job, "coverage", "Pipeline stopped after coverage")
+            return
+
+        _pipeline_log(job, "storyboard", "Building storyboard plan")
+        storyboard_plan = _build_storyboard_boards(ScriptStoryboardRequest(
+            script=_coverage_brief_from_package(package, req.brief),
+            package=package,
+            asset_vault_package_id=req.asset_vault_package_id,
+            panels_per_board=req.storyboard_panels_per_board,
+            target_panels=req.storyboard_target_panels,
+            resolution=req.storyboard_resolution,
+            title=req.title,
+            style=req.storyboard_style,
+            character_consistency=req.storyboard_character_consistency,
+            negative_prompt=req.storyboard_negative_prompt,
+            reference_image_url=req.storyboard_reference_image_url,
+            include_captions=req.storyboard_include_captions,
+        ))
+        project = _save_script_project_payload({
+            "script_id": script_id,
+            "title": req.title,
+            "brief": req.brief,
+            "tone": req.tone,
+            "runtime_seconds": req.runtime_seconds,
+            "target_scenes": req.target_scenes,
+            "package": package,
+            "coverage_shots": coverage_shots,
+            "storyboard_plan": storyboard_plan,
+            "status": "storyboard_ready",
+            "active_job_id": job_id,
+        })
+        job["storyboard_count"] = int(storyboard_plan.get("panel_count") or 0)
+        _pipeline_log(job, "storyboard", f"Storyboard ready: {storyboard_plan.get('panel_count', 0)} panel(s)")
+
+        if req.stop_after == "storyboard":
+            job["status"] = "complete"
+            _pipeline_log(job, "storyboard", "Pipeline stopped after storyboard plan")
+            return
+
+        panel_jobs: Dict[str, Any] = {}
+        _pipeline_log(job, "frames", "Rendering storyboard panel start frames")
+        for board in storyboard_plan.get("boards", []) if isinstance(storyboard_plan.get("boards"), list) else []:
+            if not isinstance(board, dict):
+                continue
+            board_index = str(int(board.get("index") or 1))
+            panel_jobs[board_index] = []
+            panels = board.get("panels") if isinstance(board.get("panels"), list) else []
+            for idx, panel in enumerate(panels, start=1):
+                if not isinstance(panel, dict):
+                    panel = {}
+                payload = await _generate_storyboard_image(StoryboardImageGenerateRequest(
+                    provider=req.storyboard_image_provider,
+                    model=req.storyboard_image_model,
+                    spark_model=req.storyboard_spark_model,
+                    prompt=str(panel.get("single_panel_prompt") or panel.get("visual_prompt") or panel.get("caption") or ""),
+                    width_and_height=str(panel.get("width_and_height") or board.get("panel_width_and_height") or "1280x720"),
+                    quality="720p",
+                    title=f"{script_id}_board_{board_index}_panel_{idx}",
+                    enhance_prompt=False,
+                    wait_for_output=True,
+                    image_reference_url=str(board.get("reference_image_url") or ""),
+                ))
+                url = _storyboard_payload_url(payload)
+                item = {
+                    "index": idx,
+                    "status": payload.get("status", "queued"),
+                    "job_set_id": payload.get("job_set_id") or payload.get("id") or "",
+                    "provider": payload.get("provider") or req.storyboard_image_provider,
+                    "model": payload.get("model") or req.storyboard_spark_model or req.storyboard_image_model,
+                    "url": url,
+                    "raw": payload,
+                }
+                panel_jobs[board_index].append(item)
+                _save_script_project_payload({
+                    "script_id": script_id,
+                    "storyboard_panel_jobs": panel_jobs,
+                    "status": "frames_rendering",
+                    "active_job_id": job_id,
+                })
+                _pipeline_log(job, "frames", f"Rendered/submitted board {board_index} panel {idx}", url=url)
+        missing = [
+            f"{board_idx}:{item.get('index')}"
+            for board_idx, items in panel_jobs.items()
+            for item in items
+            if not item.get("url")
+        ]
+        if missing:
+            raise RuntimeError("missing storyboard frame outputs: " + ", ".join(missing[:12]))
+        project = _save_script_project_payload({
+            "script_id": script_id,
+            "storyboard_panel_jobs": panel_jobs,
+            "status": "frames_ready",
+            "active_job_id": job_id,
+        })
+
+        if req.stop_after == "frames":
+            job["status"] = "complete"
+            _pipeline_log(job, "frames", "Pipeline stopped after start frames")
+            return
+
+        _pipeline_log(job, "videos", "Exporting storyboard frames as video shots")
+        all_video_shots: List[Dict[str, Any]] = []
+        first_board = True
+        for board in storyboard_plan.get("boards", []) if isinstance(storyboard_plan.get("boards"), list) else []:
+            if not isinstance(board, dict):
+                continue
+            board_index = str(int(board.get("index") or 1))
+            urls = [str(item.get("url") or "") for item in panel_jobs.get(board_index, []) if item.get("url")]
+            export = _export_storyboard_video_shots(ScriptStoryboardVideoExportRequest(
+                board=board,
+                panel_image_urls=urls,
+                title=req.title or str(storyboard_plan.get("title") or "Storyboard"),
+                campaign_id=campaign_id,
+                duration_seconds=float(req.video_duration or 5),
+                replace_existing=first_board,
+            ))
+            first_board = False
+            all_video_shots.extend(export.get("shots", []) if isinstance(export.get("shots"), list) else [])
+        project = _save_script_project_payload({
+            "script_id": script_id,
+            "video_shots": _script_project_shots(campaign_id) or all_video_shots,
+            "status": "video_shots_ready",
+            "active_job_id": job_id,
+        })
+        _pipeline_log(job, "videos", f"Created {len(all_video_shots)} video shot record(s)")
+
+        if req.run_video:
+            preflight = _video_workflow_preflight(req.video_workflow_id)
+            if not preflight.get("available"):
+                raise RuntimeError(f"video workflow not found: {preflight.get('workflow_id')}")
+            workflow_id = str(preflight.get("workflow_id") or req.video_workflow_id)
+            service = HermesVideoService(
+                media_videos=MEDIA_VIDEOS,
+                active_campaign_getter=lambda: campaign_id,
+                find_shot=_find_shot,
+                resolve_image_path=_resolve_image_path,
+                workflow_file_for_id=_workflow_file_for_id,
+            )
+            shot_ids = [str(s.get("id") or "") for s in _script_project_shots(campaign_id) if s.get("id")]
+            _pipeline_log(job, "videos", f"Queueing {len(shot_ids)} image-to-video job(s)")
+            result = await service.process(
+                shot_ids=shot_ids,
+                workflow_id=workflow_id,
+                duration=int(req.video_duration or 5),
+                fps=int(req.video_fps or 24),
+                width=None,
+                height=None,
+                prompt="",
+                min_audit_score=0,
+                min_audit_confidence=0,
+                require_audit_pass=False,
+                allow_failed_override=True,
+            )
+            if result.get("status") == "error":
+                raise RuntimeError(str(result.get("error") or "video_process_error"))
+            video_jobs = []
+            for item in result.get("results", []) if isinstance(result.get("results"), list) else []:
+                if not isinstance(item, dict):
+                    continue
+                shot = _find_shot(str(item.get("shot_id") or ""))
+                if item.get("status") == "ok" and shot:
+                    shot["video_status"] = "queued"
+                    shot["video_prompt_id"] = item.get("prompt_id") or ""
+                    shot["video_workflow_id"] = item.get("workflow_id") or workflow_id
+                    shot["video_seed"] = item.get("seed")
+                    shot["video_duration"] = int(req.video_duration or 5)
+                    shot["video_fps"] = int(req.video_fps or 24)
+                    shot["video_last_checked_at"] = _now_iso()
+                    _persist_media_shot_metadata(shot)
+                    video_jobs.append({
+                        "shot_id": item.get("shot_id"),
+                        "prompt_id": item.get("prompt_id"),
+                        "campaign_id": campaign_id,
+                        "workflow_id": item.get("workflow_id") or workflow_id,
+                        "seed": item.get("seed"),
+                        "duration": int(req.video_duration or 5),
+                        "fps": int(req.video_fps or 24),
+                        "host": item.get("host") or "",
+                        "status": "queued",
+                    })
+                elif shot:
+                    shot["video_status"] = item.get("status") or "error"
+                    shot["video_error"] = item.get("error") or ", ".join(item.get("reasons") or [])
+            job["video_jobs"] = video_jobs
+            _save_script_project_payload({
+                "script_id": script_id,
+                "video_shots": _script_project_shots(campaign_id),
+                "status": "video_queued",
+                "active_job_id": job_id,
+            })
+            _pipeline_log(job, "videos", f"Queued {len(video_jobs)} ComfyUI video job(s)")
+
+            if req.wait_for_videos and video_jobs:
+                deadline = time.time() + max(30, min(int(req.video_wait_seconds or 1800), 7200))
+                while time.time() < deadline:
+                    sync_req = VideoJobSyncRequest(jobs=[VideoJobSyncItem(**vj) for vj in video_jobs])
+                    sync = await api_video_sync_jobs(sync_req)
+                    sync_results = sync.get("results", []) if isinstance(sync, dict) else []
+                    by_prompt = {str(r.get("prompt_id") or ""): r for r in sync_results if isinstance(r, dict)}
+                    running = 0
+                    complete = 0
+                    errors = 0
+                    for vj in video_jobs:
+                        r = by_prompt.get(str(vj.get("prompt_id") or ""))
+                        if not r:
+                            continue
+                        vj["status"] = r.get("status") or vj.get("status")
+                        if r.get("video_url"):
+                            vj["video_url"] = r.get("video_url")
+                        if vj["status"] == "complete":
+                            complete += 1
+                        elif vj["status"] in {"running", "queued", "in_progress"}:
+                            running += 1
+                        elif vj["status"] == "error":
+                            errors += 1
+                    job["video_jobs"] = video_jobs
+                    _save_script_project_payload({
+                        "script_id": script_id,
+                        "video_shots": _script_project_shots(campaign_id),
+                        "status": "video_rendering" if running else "video_complete",
+                        "active_job_id": job_id,
+                    })
+                    _pipeline_log(job, "videos", f"Video sync: {complete} complete, {running} running, {errors} error(s)")
+                    if not running:
+                        break
+                    await asyncio.sleep(10)
+
+        _save_script_project_payload({
+            "script_id": script_id,
+            "video_shots": _script_project_shots(campaign_id),
+            "status": "complete",
+            "active_job_id": job_id,
+        })
+        job["status"] = "complete"
+        _pipeline_log(job, "complete", "Pipeline complete")
+    except Exception as e:
+        job["status"] = "error"
+        job["error"] = str(e)[:1000]
+        _pipeline_log(job, str(job.get("phase") or "error"), f"Pipeline failed: {str(e)[:500]}", level="error")
+        try:
+            _save_script_project_payload({
+                "script_id": script_id,
+                "status": "error",
+                "active_job_id": job_id,
+            })
+        except Exception:
+            pass
+
+
 def _build_storyboard_boards(req: ScriptStoryboardRequest) -> Dict[str, Any]:
     panels_per_board = max(1, min(int(req.panels_per_board or 9), 9))
     target_panels = req.target_panels
     if target_panels is not None:
         target_panels = max(1, min(int(target_panels), 60))
     package = _storyboard_source_package(req)
+    asset_vault_package = _asset_vault_package_by_id(req.asset_vault_package_id) if (req.asset_vault_package_id or "").strip() else None
+    asset_context = _asset_vault_prompt_context(asset_vault_package)
     if package:
         panels = _storyboard_panels_from_package(package, target_panels)
         title = req.title or str(package.get("title") or "Storyboard")
     else:
         panels = _storyboard_panels_from_text(req.script or "", target_panels)
         title = req.title or "Storyboard"
+    panels = _apply_asset_vault_to_panels(panels, asset_vault_package)
     if not panels:
         raise HTTPException(status_code=400, detail="script or package required")
 
@@ -2866,6 +3635,12 @@ def _build_storyboard_boards(req: ScriptStoryboardRequest) -> Dict[str, Any]:
                 for c in chars[:6]
                 if isinstance(c, dict)
             )
+    if asset_context.get("character_consistency"):
+        character_consistency = (
+            f"{character_consistency}; {asset_context['character_consistency']}"
+            if character_consistency
+            else str(asset_context["character_consistency"])
+        )
     if not character_consistency:
         character_consistency = "highly consistent character design, same face and clothing across all panels"
     negative_prompt = (req.negative_prompt or "").strip()
@@ -2873,6 +3648,8 @@ def _build_storyboard_boards(req: ScriptStoryboardRequest) -> Dict[str, Any]:
     reference_note = ""
     if (req.reference_image_url or "").strip():
         reference_note = f" Use the supplied character sheet/reference image for identity consistency: {req.reference_image_url.strip()}."
+    if asset_context.get("reference_urls"):
+        reference_note += " Use these Asset Vault visual references when the provider supports references: " + ", ".join(asset_context["reference_urls"]) + "."
     for index in range(total_boards):
         board_panels = [dict(panel) for panel in panels[index * panels_per_board:(index + 1) * panels_per_board]]
         layout_columns, layout_rows, layout = _storyboard_layout_dimensions(len(board_panels) or panels_per_board)
@@ -2897,7 +3674,8 @@ def _build_storyboard_boards(req: ScriptStoryboardRequest) -> Dict[str, Any]:
                 f"Panel {local_idx}: {panel.get('visual_prompt', '')} "
                 f"Setting: {panel.get('location', '')}. Camera: {panel.get('camera', '')}. "
                 f"Lighting: {panel.get('lighting', 'motivated source-based light with consistent shadow direction')}. Mood: {panel.get('mood', 'narrative progression')}. "
-                f"Character consistency: {character_text}; {character_consistency}. Continuity: {panel.get('continuity', '')}.{text_clause}"
+                f"Character consistency: {character_text}; {character_consistency}. Continuity: {panel.get('continuity', '')}. "
+                f"Asset Vault: {panel.get('asset_vault_context', '')}.{text_clause}"
             )
         empty_slots = panels_per_board - len(board_panels)
         empty_note = f"\nLeave {empty_slots} unused panel slot(s) as clean black empty frames with white borders." if empty_slots else ""
@@ -2912,6 +3690,7 @@ def _build_storyboard_boards(req: ScriptStoryboardRequest) -> Dict[str, Any]:
             + "\n\nOverall style: consistent character design across all panels, repeated wardrobe and facial details, "
             "consistent age, skin tone, hair, clothing, and build, source-based lighting, sharp focal priority, clean readable compositions, "
             "visible skin and fabric texture, film grain, no watermark, no malformed text, no fake captions."
+            + (f"\n\nAsset Vault production lock: {asset_context.get('summary', '')}" if asset_context.get("summary") else "")
             + reference_note
             + (f"\n\nNegative prompt: {negative_prompt}." if negative_prompt else "")
         )
@@ -2939,14 +3718,14 @@ def _build_storyboard_boards(req: ScriptStoryboardRequest) -> Dict[str, Any]:
         "panels_per_board": panels_per_board,
         "panel_count": len(panels),
         "board_count": len(boards),
+        "asset_vault_package": asset_vault_package or None,
         "boards": boards,
     }
 
 
 async def _request_script_package(req: ScriptDevelopRequest) -> Dict[str, Any]:
     director = KimiDirectorService()
-    if not director.api_key:
-        return _fallback_script_package(req)
+    director._require_ready()
 
     title = (req.title or "").strip() or "Untitled Forge Film"
     scene_count = max(1, min(int(req.target_scenes or 4), 12))
@@ -3019,14 +3798,14 @@ async def _request_script_package(req: ScriptDevelopRequest) -> Dict[str, Any]:
             {"role": "user", "content": user_prompt},
         ],
         "temperature": 0.45,
-        "response_format": {"type": "json_object"},
+        "response_format": director._response_format(),
         "max_tokens": 12000,
     }
     timeout_sec = max(float(os.getenv("FORGE_KIMI_TIMEOUT_SEC", "120")), 180.0)
     async with httpx.AsyncClient(timeout=timeout_sec) as client:
         resp = await client.post(
             director.endpoint,
-            headers={"Authorization": f"Bearer {director.api_key}", "Content-Type": "application/json"},
+            headers=director._auth_headers(),
             json=payload,
         )
         if resp.status_code >= 400:
@@ -3034,7 +3813,9 @@ async def _request_script_package(req: ScriptDevelopRequest) -> Dict[str, Any]:
         data = resp.json()
         content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
         package = _extract_json_response(content)
-        package["source"] = "director_api"
+        package["source"] = "lmstudio_director" if director.backend == "lmstudio" else "director_api"
+        package["director_backend"] = director.backend
+        package["director_model"] = director.model_name
         return package
 
 
@@ -3162,9 +3943,210 @@ async def api_script_develop(req: ScriptDevelopRequest):
         return {"status": "fallback", "package": fallback, "source": "fallback", "error": str(e)[:500]}
 
 
+@app.get("/api/script/projects")
+async def api_script_projects():
+    return {"status": "ok", "projects": _list_script_projects()}
+
+
+@app.get("/api/script/projects/{script_id}")
+async def api_script_project(script_id: str):
+    project = _load_script_project(script_id)
+    return {"status": "ok", "project": project}
+
+
+@app.post("/api/script/projects/save")
+async def api_script_project_save(req: ScriptProjectSaveRequest):
+    project = _save_script_project_payload(req.model_dump())
+    return {"status": "ok", "project": project}
+
+
+@app.post("/api/script/pipeline/start")
+async def api_script_pipeline_start(req: ScriptPipelineStartRequest):
+    if not (req.brief or "").strip() and not (req.script_id or "").strip():
+        raise HTTPException(status_code=400, detail="brief or script_id required")
+    script_id = _safe_script_id(req.script_id, req.title)
+    existing_package = None
+    existing_coverage: List[Dict[str, Any]] = []
+    existing_storyboard = None
+    existing_panel_jobs: Dict[str, Any] = {}
+    existing_video_shots: List[Dict[str, Any]] = []
+    try:
+        existing = _load_script_project(script_id)
+        existing_package = existing.get("package") if isinstance(existing.get("package"), dict) else None
+        existing_coverage = existing.get("coverage_shots") if isinstance(existing.get("coverage_shots"), list) else []
+        existing_storyboard = existing.get("storyboard_plan") if isinstance(existing.get("storyboard_plan"), dict) else None
+        existing_panel_jobs = existing.get("storyboard_panel_jobs") if isinstance(existing.get("storyboard_panel_jobs"), dict) else {}
+        existing_video_shots = existing.get("video_shots") if isinstance(existing.get("video_shots"), list) else []
+        if not req.title:
+            req.title = str(existing.get("title") or "")
+        if not req.brief:
+            req.brief = str(existing.get("brief") or "")
+        if not req.tone:
+            req.tone = str(existing.get("tone") or "")
+        if not req.runtime_seconds:
+            req.runtime_seconds = int(existing.get("runtime_seconds") or 60)
+        if not req.target_scenes:
+            req.target_scenes = int(existing.get("target_scenes") or 4)
+    except HTTPException:
+        pass
+    project = _save_script_project_payload({
+        "script_id": script_id,
+        "title": req.title,
+        "brief": req.brief,
+        "tone": req.tone,
+        "runtime_seconds": req.runtime_seconds,
+        "target_scenes": req.target_scenes,
+        "package": existing_package,
+        "coverage_shots": existing_coverage,
+        "storyboard_plan": existing_storyboard,
+        "storyboard_panel_jobs": existing_panel_jobs,
+        "video_shots": existing_video_shots,
+        "status": "queued",
+    })
+    job_id = f"scriptjob_{uuid.uuid4().hex[:12]}"
+    job = {
+        "job_id": job_id,
+        "script_id": script_id,
+        "status": "queued",
+        "phase": "queued",
+        "created_at": _now_iso(),
+        "updated_at": _now_iso(),
+        "request": req.model_dump(),
+        "logs": [],
+        "coverage_count": 0,
+        "storyboard_count": 0,
+        "video_jobs": [],
+        "error": "",
+    }
+    _SCRIPT_PIPELINE_JOBS[job_id] = job
+    _save_script_project_payload({
+        "script_id": script_id,
+        "title": req.title,
+        "brief": req.brief,
+        "tone": req.tone,
+        "runtime_seconds": req.runtime_seconds,
+        "target_scenes": req.target_scenes,
+        "package": existing_package,
+        "coverage_shots": existing_coverage,
+        "storyboard_plan": existing_storyboard,
+        "storyboard_panel_jobs": existing_panel_jobs,
+        "video_shots": existing_video_shots,
+        "status": "queued",
+        "active_job_id": job_id,
+    })
+    _save_pipeline_job(job)
+    asyncio.create_task(_run_script_pipeline_job(job_id, req))
+    return {"status": "ok", "job": job, "project": project}
+
+
+@app.get("/api/script/pipeline/jobs/{job_id}")
+async def api_script_pipeline_job(job_id: str):
+    job = _SCRIPT_PIPELINE_JOBS.get(job_id)
+    if not job:
+        for path in SCRIPT_PROJECTS_DIR.glob("*/pipeline_job.json"):
+            data = _read_json_file(path, {})
+            if isinstance(data, dict) and data.get("job_id") == job_id:
+                job = data
+                _SCRIPT_PIPELINE_JOBS[job_id] = data
+                break
+    if not job:
+        raise HTTPException(status_code=404, detail=f"pipeline job not found: {job_id}")
+    project = None
+    try:
+        project = _load_script_project(str(job.get("script_id") or ""))
+    except Exception:
+        project = None
+    return {"status": "ok", "job": job, "project": project}
+
+
 @app.post("/api/script/storyboard")
 async def api_script_storyboard(req: ScriptStoryboardRequest):
     return _build_storyboard_boards(req)
+
+
+@app.get("/api/script/storyboard/image-models")
+async def api_script_storyboard_image_models():
+    cfg = get_raw_config()
+    openai_model = str(cfg.get("OPENAI_IMAGE_MODEL", "") or os.getenv("OPENAI_IMAGE_MODEL", "") or "gpt-image-2")
+    gemini_model = str(cfg.get("GEMINI_IMAGE_MODEL", "") or os.getenv("GEMINI_IMAGE_MODEL", "") or "gemini-2.5-flash-image")
+    default_provider = str(cfg.get("STORYBOARD_IMAGE_PROVIDER", "") or os.getenv("STORYBOARD_IMAGE_PROVIDER", "") or "spark:flux2_dev")
+    if default_provider == "spark":
+        default_provider = "spark:flux2_dev"
+    return {
+        "status": "ok",
+        "default": default_provider,
+        "models": [
+            {
+                "id": f"spark:{key}",
+                "provider": "spark",
+                "model": key,
+                "label": meta["label"],
+                "workflow_id": meta["workflow_id"],
+                "available": bool(_workflow_file_for_id(meta["workflow_id"])),
+                "local": True,
+            }
+            for key, meta in STORYBOARD_SPARK_MODELS.items()
+        ] + [
+            {
+                "id": "openai",
+                "provider": "openai",
+                "model": openai_model,
+                "label": f"OpenAI / {openai_model}",
+                "available": bool(os.getenv("OPENAI_API_KEY", "") or str(cfg.get("OPENAI_API_KEY", "") or "")),
+                "local": False,
+            },
+            {
+                "id": "gemini",
+                "provider": "gemini",
+                "model": gemini_model,
+                "label": f"Nano Banana / {gemini_model}",
+                "available": bool(os.getenv("GEMINI_API_KEY", "") or str(cfg.get("GEMINI_API_KEY", "") or "")),
+                "local": False,
+            },
+        ],
+    }
+
+
+@app.get("/api/script/storyboard/provider-health")
+async def api_script_storyboard_provider_health():
+    cfg = get_raw_config()
+    openai_key_set = bool(os.getenv("OPENAI_API_KEY", "") or str(cfg.get("OPENAI_API_KEY", "") or ""))
+    gemini_key_set = bool(os.getenv("GEMINI_API_KEY", "") or str(cfg.get("GEMINI_API_KEY", "") or ""))
+    spark_models = [
+        {
+            "id": f"spark:{key}",
+            "label": meta["label"],
+            "workflow_id": meta["workflow_id"],
+            "available": bool(_workflow_file_for_id(meta["workflow_id"])),
+        }
+        for key, meta in STORYBOARD_SPARK_MODELS.items()
+    ]
+    return {
+        "status": "ok",
+        "default": str(cfg.get("STORYBOARD_IMAGE_PROVIDER", "") or os.getenv("STORYBOARD_IMAGE_PROVIDER", "") or "spark:flux2_dev"),
+        "providers": {
+            "spark": {
+                "available": any(item["available"] for item in spark_models),
+                "models": spark_models,
+                "message": "Local Spark/ComfyUI workflows are used only by Script -> Storyboard for this selector.",
+            },
+            "openai": {
+                "available": openai_key_set,
+                "key_set": openai_key_set,
+                "model": str(cfg.get("OPENAI_IMAGE_MODEL", "") or os.getenv("OPENAI_IMAGE_MODEL", "") or "gpt-image-2"),
+            },
+            "gemini": {
+                "available": gemini_key_set,
+                "key_set": gemini_key_set,
+                "model": str(cfg.get("GEMINI_IMAGE_MODEL", "") or os.getenv("GEMINI_IMAGE_MODEL", "") or "gemini-2.5-flash-image"),
+            },
+        },
+    }
+
+
+@app.post("/api/script/storyboard/render-image")
+async def api_script_storyboard_render_image(req: StoryboardImageGenerateRequest):
+    return await _generate_storyboard_image(req)
 
 
 @app.post("/api/script/storyboard/assemble")
@@ -3532,6 +4514,8 @@ def _workflow_file_for_id(workflow_id: str) -> Optional[Path]:
     candidates = [
         REPO_ROOT / "workflows" / f"{workflow_id}.json",
         REPO_ROOT / "workflows" / f"{workflow_id}_api.json",
+        REPO_ROOT / "workflows" / "_disabled_non_numbered" / f"{workflow_id}.json",
+        REPO_ROOT / "workflows" / "_disabled_non_numbered" / f"{workflow_id}_api.json",
     ]
     for c in candidates:
         if c.exists():
@@ -3633,6 +4617,117 @@ def _media_url_for_path(path: Path, *, is_video: bool = False) -> str:
     if not dest.exists() or dest.stat().st_size != path.stat().st_size:
         shutil.copy2(path, dest)
     return f"/media-assets/{folder}/{dest.name}"
+
+
+def _storyboard_image_job_payload(
+    *,
+    provider: str,
+    model: str,
+    url: str,
+    path: str,
+    status: str = "completed",
+    metadata: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    job_id = f"storyboard_{provider}_{uuid.uuid4().hex[:10]}"
+    return {
+        "status": status,
+        "provider": provider,
+        "model": model,
+        "job_set_id": job_id,
+        "id": job_id,
+        "url": url,
+        "path": path,
+        "metadata": metadata or {},
+        "jobs": [
+            {
+                "id": job_id,
+                "status": status,
+                "provider": provider,
+                "model": model,
+                "results": {
+                    "raw": {"url": url, "path": path},
+                    "min": {"url": url, "path": path},
+                    "all": [{"url": url, "path": path}],
+                },
+            }
+        ],
+    }
+
+
+async def _generate_storyboard_image(req: StoryboardImageGenerateRequest) -> Dict[str, Any]:
+    prompt = (req.prompt or "").strip()
+    if not prompt:
+        raise HTTPException(status_code=400, detail="prompt is required")
+    provider = (req.provider or "spark").strip().lower()
+    if provider in {"spark", "comfy", "comfyui", "local"}:
+        spark_key = (req.spark_model or req.model or "flux2_dev").strip().lower()
+        spark_model = STORYBOARD_SPARK_MODELS.get(spark_key, STORYBOARD_SPARK_MODELS["flux2_dev"])
+        workflow_id = spark_model["workflow_id"]
+        if not _workflow_file_for_id(workflow_id):
+            raise HTTPException(status_code=404, detail=f"Storyboard Spark workflow not found: {workflow_id}")
+        prompt, _ = apply_model_prompt_standard(
+            prompt,
+            workflow_id=workflow_id,
+            model_family=spark_model["model_family"],
+            render_type="storyboard",
+        )
+        adapter = _make_local_higgsfield_adapter()
+        payload = await adapter.generate_image_soul(
+            prompt=prompt,
+            width_and_height=req.width_and_height,
+            enhance_prompt=req.enhance_prompt,
+            quality=req.quality,
+            batch_size=1,
+            style_id="",
+            style_strength=0.0,
+            seed=None,
+            custom_reference_id="",
+            custom_reference_strength=0.0,
+            image_reference_url=req.image_reference_url,
+            wait_for_output=req.wait_for_output,
+            workflow_id=workflow_id,
+        )
+        payload["provider"] = "spark"
+        payload["model"] = spark_key
+        payload["workflow_id"] = workflow_id
+        payload["model_label"] = spark_model["label"]
+        return payload
+
+    cfg = get_raw_config()
+    service = StoryboardImageProvider(
+        openai_api_key=os.getenv("OPENAI_API_KEY", "") or str(cfg.get("OPENAI_API_KEY", "") or ""),
+        openai_model=str(cfg.get("OPENAI_IMAGE_MODEL", "") or os.getenv("OPENAI_IMAGE_MODEL", "") or "gpt-image-2"),
+        gemini_api_key=os.getenv("GEMINI_API_KEY", "") or str(cfg.get("GEMINI_API_KEY", "") or ""),
+        gemini_model=str(cfg.get("GEMINI_IMAGE_MODEL", "") or os.getenv("GEMINI_IMAGE_MODEL", "") or "gemini-2.5-flash-image"),
+    )
+    output_dir = MEDIA_ROOT / "storyboards" / "generated"
+    try:
+        result = await service.generate(
+            provider=provider,
+            prompt=prompt,
+            output_dir=output_dir,
+            title=req.title,
+            model=req.model,
+            size="auto",
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+    url = _media_url_for_path(result.path)
+    _record_pipeline_event(
+        "storyboard_image_generated",
+        source="script",
+        success=True,
+        extra={"provider": result.provider, "model": result.model, "url": url},
+    )
+    return _storyboard_image_job_payload(
+        provider=result.provider,
+        model=result.model,
+        url=url,
+        path=str(result.path),
+        metadata=result.metadata,
+    )
 
 
 def _make_audit_service() -> HermesAuditService:
@@ -5362,8 +6457,11 @@ async def api_config():
     visual_api1 = str(cfg.get("KIMI_VISUAL_ENDPOINT_API1", "") or endpoint or "")
     visual_api2 = str(cfg.get("KIMI_VISUAL_ENDPOINT_API2", "") or "")
     visual_active = str(cfg.get("KIMI_VISUAL_ENDPOINT_ACTIVE", "") or "api1")
+    use_local_director = _truthy_config(cfg.get("USE_LOCAL_DIRECTOR", ""))
     director_selected = director_api2 if director_active == "api2" and director_api2 else director_api1
     visual_selected = visual_api2 if visual_active == "api2" and visual_api2 else visual_api1
+    openai_key = str(cfg.get("OPENAI_API_KEY", "") or "")
+    gemini_key = str(cfg.get("GEMINI_API_KEY", "") or "")
     try:
         lm_port_value: Any = int(lm_port or "1234") if lm_host else ""
     except ValueError:
@@ -5381,6 +6479,10 @@ async def api_config():
                 "endpoint_api1": director_api1,
                 "endpoint_api2": director_api2,
                 "endpoint_active": director_active,
+                "use_local": use_local_director,
+                "active_backend": "lmstudio" if use_local_director else "nvidia",
+                "local_model_name": lm_model,
+                "local_endpoint": f"{_normalize_lmstudio_base_url(lm_host, lm_port)}/v1/chat/completions",
             },
             "kimi_vl": {
                 "model_name": vision_model,
@@ -5400,6 +6502,13 @@ async def api_config():
             "primary": comfy_primary,
             "secondary": comfy_secondary,
             "workflow_file": spark_workflow_file,
+        },
+        "storyboard_images": {
+            "default_provider": str(cfg.get("STORYBOARD_IMAGE_PROVIDER", "") or "spark:flux2_dev"),
+            "openai_api_key_set": bool(openai_key),
+            "openai_model": str(cfg.get("OPENAI_IMAGE_MODEL", "") or "gpt-image-2"),
+            "gemini_api_key_set": bool(gemini_key),
+            "gemini_model": str(cfg.get("GEMINI_IMAGE_MODEL", "") or "gemini-2.5-flash-image"),
         },
     }
 
@@ -5458,6 +6567,7 @@ async def api_config_save(req: FlatConfigUpdateRequest):
         "models.director_kimi.endpoint_api1": "KIMI_DIRECTOR_ENDPOINT_API1",
         "models.director_kimi.endpoint_api2": "KIMI_DIRECTOR_ENDPOINT_API2",
         "models.director_kimi.endpoint_active": "KIMI_DIRECTOR_ENDPOINT_ACTIVE",
+        "models.director_kimi.use_local": "USE_LOCAL_DIRECTOR",
         "models.kimi_vl.model_name": "KIMI_VISUAL_MODEL",
         "models.kimi_vl.endpoint": "NIM_ENDPOINT",
         "models.kimi_vl.endpoint_api1": "KIMI_VISUAL_ENDPOINT_API1",
@@ -5471,11 +6581,16 @@ async def api_config_save(req: FlatConfigUpdateRequest):
         "spark.primary": "COMFYUI_PRIMARY",
         "spark.secondary": "COMFYUI_SECONDARY",
         "spark.workflow_file": "SPARK_WORKFLOW_FILE",
+        "storyboard_images.default_provider": "STORYBOARD_IMAGE_PROVIDER",
+        "storyboard_images.openai_api_key": "OPENAI_API_KEY",
+        "storyboard_images.openai_model": "OPENAI_IMAGE_MODEL",
+        "storyboard_images.gemini_api_key": "GEMINI_API_KEY",
+        "storyboard_images.gemini_model": "GEMINI_IMAGE_MODEL",
     }
     for k, v in (updates or {}).items():
         mapped[key_map.get(k, k)] = v
     current_cfg = get_raw_config()
-    for secret_key in ["NOUS_API_KEY", "KIMI_API_KEY", "OPENROUTER_API_KEY"]:
+    for secret_key in ["NOUS_API_KEY", "KIMI_API_KEY", "OPENROUTER_API_KEY", "OPENAI_API_KEY", "GEMINI_API_KEY"]:
         if secret_key in mapped and not str(mapped.get(secret_key) or "").strip() and str(current_cfg.get(secret_key, "") or "").strip():
             mapped.pop(secret_key, None)
     updated = set_config(mapped)
@@ -5499,6 +6614,7 @@ async def api_config_effective():
         "status": "ok",
         "effective": masked,
         "active": {
+            "director_backend": "lmstudio" if _truthy_config(raw.get("USE_LOCAL_DIRECTOR", "")) else "nvidia",
             "director_endpoint": director_api2 if director_active == "api2" and director_api2 else director_api1,
             "vision_endpoint": vision_api2 if vision_active == "api2" and vision_api2 else vision_api1,
             "comfy_primary": str(raw.get("COMFYUI_PRIMARY", "")).strip(),
@@ -5515,6 +6631,40 @@ class KimiTestRequest(BaseModel):
     model: str = ""
     host: str = ""
     port: Any = ""
+    use_local: Optional[bool] = None
+
+
+def _director_test_target(cfg: Dict[str, Any], req: Optional[KimiTestRequest] = None, *, self_check: bool = False) -> Dict[str, Any]:
+    use_local = _truthy_config(cfg.get("USE_LOCAL_DIRECTOR", ""))
+    if req is not None and req.use_local is not None:
+        use_local = bool(req.use_local)
+    if use_local:
+        host = req.host if req and req.host else str(cfg.get("LMSTUDIO_HOST", "") or "")
+        port = req.port if req and req.port not in (None, "", 0, "0") else str(cfg.get("LMSTUDIO_PORT", "") or "")
+        model = (
+            (req.model if req and req.model else "")
+            or str(cfg.get("LMSTUDIO_CHAT_MODEL", "") or "")
+            or str(cfg.get("KIMI_THINKING_MODEL" if self_check else "KIMI_INSTRUCT_MODEL", "") or "")
+        ).strip()
+        return {
+            "backend": "lmstudio",
+            "endpoint": f"{_normalize_lmstudio_base_url(host, port)}/v1/chat/completions",
+            "api_key": "",
+            "model": model,
+        }
+    active = str(cfg.get("KIMI_DIRECTOR_ENDPOINT_ACTIVE", "api1") or "api1").strip().lower()
+    api1 = str(cfg.get("KIMI_DIRECTOR_ENDPOINT_API1", "") or cfg.get("NIM_ENDPOINT", "") or "").strip()
+    api2 = str(cfg.get("KIMI_DIRECTOR_ENDPOINT_API2", "") or "").strip()
+    endpoint = api2 if active == "api2" and api2 else api1
+    if req is not None and req.endpoint:
+        endpoint = req.endpoint
+    model_key = "KIMI_THINKING_MODEL" if self_check else "KIMI_INSTRUCT_MODEL"
+    return {
+        "backend": "nvidia",
+        "endpoint": endpoint,
+        "api_key": (req.api_key if req and req.api_key else str(cfg.get("KIMI_API_KEY", "") or "")).strip(),
+        "model": (req.model if req and req.model else str(cfg.get(model_key, "") or "")).strip(),
+    }
 
 
 async def _test_chat_completion(endpoint: str, api_key: str, model: str) -> Dict[str, Any]:
@@ -5538,7 +6688,8 @@ async def _test_chat_completion(endpoint: str, api_key: str, model: str) -> Dict
         headers["Authorization"] = f"Bearer {api_key}"
     t0 = time.time()
     try:
-        async with httpx.AsyncClient(timeout=20.0) as client:
+        timeout = httpx.Timeout(float(os.getenv("FORGE_PROVIDER_TEST_TIMEOUT_SEC", "75")), connect=8.0)
+        async with httpx.AsyncClient(timeout=timeout) as client:
             r = await client.post(endpoint, headers=headers, json=payload)
         if r.status_code >= 400:
             return {"status": "error", "error": f"http {r.status_code}: {r.text[:200]}", "endpoint": endpoint, "model": model}
@@ -5546,6 +6697,99 @@ async def _test_chat_completion(endpoint: str, api_key: str, model: str) -> Dict
     except Exception as e:
         reason = str(e).strip() or e.__class__.__name__
         return {"status": "error", "error": reason, "endpoint": endpoint, "model": model}
+
+
+def _sample_self_check_shots() -> List[Dict[str, Any]]:
+    return [
+        {
+            "shot_id": "SHOT_001",
+            "sequence": 1,
+            "visual_brief": "Wide establishing shot of a founder entering a clean studio with a matte black product case on a white sweep.",
+            "rationale": "Establishes geography, product presence, and restrained premium tone.",
+            "constraints": "Keep product case geometry consistent; no logos invented.",
+            "camera": "wide 24mm locked-off frame",
+            "lighting_direction": "large soft key from camera left with subtle rim",
+        },
+        {
+            "shot_id": "SHOT_002",
+            "sequence": 2,
+            "visual_brief": "Medium shot of the founder opening the case, revealing a compact silver device with one amber status light.",
+            "rationale": "Introduces the hero object and hand interaction.",
+            "constraints": "Same founder wardrobe, same product case, amber light only.",
+            "camera": "medium 50mm over-table angle",
+            "lighting_direction": "same soft key, controlled reflection on metal",
+        },
+        {
+            "shot_id": "SHOT_003",
+            "sequence": 3,
+            "visual_brief": "Close-up insert of the device surface, showing brushed metal texture, clean seams, and the amber light reflected on the table.",
+            "rationale": "Gives product detail coverage for edit emphasis.",
+            "constraints": "No text, no extra buttons, no shape change.",
+            "camera": "macro close-up",
+            "lighting_direction": "soft specular highlight from camera left",
+        },
+        {
+            "shot_id": "SHOT_004",
+            "sequence": 4,
+            "visual_brief": "Final hero frame with founder in soft focus behind the product, product centered and readable on the white sweep.",
+            "rationale": "Creates final campaign image with clear product priority.",
+            "constraints": "Preserve founder identity and product shape from prior shots.",
+            "camera": "85mm shallow depth hero frame",
+            "lighting_direction": "same soft key plus narrow rim on product edge",
+        },
+    ]
+
+
+async def _test_director_self_check(endpoint: str, api_key: str, model: str) -> Dict[str, Any]:
+    cfg = get_raw_config()
+    endpoint = (
+        endpoint
+        or str(cfg.get("KIMI_DIRECTOR_ENDPOINT_API1", "") or cfg.get("NIM_ENDPOINT", "") or "")
+    ).strip().rstrip("/")
+    if endpoint and not endpoint.endswith("/chat/completions"):
+        endpoint += "/chat/completions"
+    api_key = (api_key or str(cfg.get("KIMI_API_KEY", "") or "")).strip()
+    model = (model or str(cfg.get("KIMI_THINKING_MODEL", "") or cfg.get("KIMI_INSTRUCT_MODEL", "") or "")).strip()
+    if endpoint.startswith("https://") and not api_key:
+        return {"status": "error", "error": "missing api key"}
+    if not endpoint:
+        return {"status": "error", "error": "missing endpoint"}
+    if not model:
+        return {"status": "error", "error": "missing model"}
+
+    director = KimiDirectorService()
+    director.endpoint = endpoint
+    director.api_key = director._sanitize_api_key(api_key)
+    director.model_name = model
+    director.thinking_model_name = model
+    if not api_key and not endpoint.startswith("https://"):
+        director.use_local_director = True
+        director.backend = "lmstudio"
+    brief = (
+        "Representative self-check test: four-shot premium product campaign in a clean studio. "
+        "The critic should evaluate coverage, continuity, and renderability."
+    )
+    t0 = time.time()
+    try:
+        review = await director.self_check_plan(brief, f"settings_self_check_{uuid.uuid4().hex[:8]}", _sample_self_check_shots())
+        return {
+            "status": "ok",
+            "latency_ms": int((time.time() - t0) * 1000),
+            "endpoint": endpoint,
+            "model": model,
+            "score": review.get("score"),
+            "review_status": review.get("status"),
+            "director_notes": _short_text(str(review.get("director_notes") or ""), 300),
+            "coverage_gaps": review.get("coverage_gaps", []),
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": str(e).strip() or e.__class__.__name__,
+            "latency_ms": int((time.time() - t0) * 1000),
+            "endpoint": endpoint,
+            "model": model,
+        }
 
 
 async def _test_vision_completion(endpoint: str, api_key: str, model: str) -> Dict[str, Any]:
@@ -5642,26 +6886,41 @@ async def api_test_nous(req: KimiTestRequest):
 @app.get("/api/test/director")
 async def api_test_director():
     cfg = get_raw_config()
-    active = str(cfg.get("KIMI_DIRECTOR_ENDPOINT_ACTIVE", "api1") or "api1").strip().lower()
-    api1 = str(cfg.get("KIMI_DIRECTOR_ENDPOINT_API1", "") or cfg.get("NIM_ENDPOINT", "") or "").strip()
-    api2 = str(cfg.get("KIMI_DIRECTOR_ENDPOINT_API2", "") or "").strip()
-    endpoint = api2 if active == "api2" and api2 else api1
-    api_key = str(cfg.get("KIMI_API_KEY", "") or "").strip()
-    model = str(cfg.get("KIMI_INSTRUCT_MODEL", "") or "").strip()
-    if endpoint.startswith("https://") and not api_key:
+    target = _director_test_target(cfg)
+    if target["endpoint"].startswith("https://") and not target["api_key"]:
         return {"status": "error", "error": "missing api key"}
-    return await _test_chat_completion(endpoint, api_key, model)
+    result = await _test_chat_completion(target["endpoint"], target["api_key"], target["model"])
+    result["backend"] = target["backend"]
+    return result
 
 
 @app.post("/api/test/director")
 async def api_test_director_post(req: KimiTestRequest):
     cfg = get_raw_config()
-    endpoint = (req.endpoint or str(cfg.get("KIMI_DIRECTOR_ENDPOINT_API1", "") or cfg.get("NIM_ENDPOINT", "") or "")).strip()
-    api_key = (req.api_key or str(cfg.get("KIMI_API_KEY", "") or "")).strip()
-    model = (req.model or str(cfg.get("KIMI_INSTRUCT_MODEL", "") or "")).strip()
-    if endpoint.startswith("https://") and not api_key:
+    target = _director_test_target(cfg, req)
+    if target["endpoint"].startswith("https://") and not target["api_key"]:
         return {"status": "error", "error": "missing api key"}
-    return await _test_chat_completion(endpoint, api_key, model)
+    result = await _test_chat_completion(target["endpoint"], target["api_key"], target["model"])
+    result["backend"] = target["backend"]
+    return result
+
+
+@app.get("/api/test/director-self-check")
+async def api_test_director_self_check():
+    cfg = get_raw_config()
+    target = _director_test_target(cfg, self_check=True)
+    result = await _test_director_self_check(target["endpoint"], target["api_key"], target["model"])
+    result["backend"] = target["backend"]
+    return result
+
+
+@app.post("/api/test/director-self-check")
+async def api_test_director_self_check_post(req: KimiTestRequest):
+    cfg = get_raw_config()
+    target = _director_test_target(cfg, req, self_check=True)
+    result = await _test_director_self_check(target["endpoint"], target["api_key"], target["model"])
+    result["backend"] = target["backend"]
+    return result
 
 
 @app.get("/api/test/vision")
@@ -6153,6 +7412,210 @@ def _persist_character(char_id: str, char_data: Dict[str, Any]) -> None:
 
 
 _scan_character_files()
+
+
+ASSET_VAULT_DIR = REPO_ROOT / "data" / "asset_vault"
+ASSET_VAULT_PACKAGES_PATH = ASSET_VAULT_DIR / "packages.json"
+
+
+def _asset_slug(value: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "_", str(value or "").lower().strip()).strip("_")
+    return slug[:80] or f"vault_{uuid.uuid4().hex[:8]}"
+
+
+def _read_asset_vault_packages() -> List[Dict[str, Any]]:
+    if not ASSET_VAULT_PACKAGES_PATH.exists():
+        return []
+    try:
+        data = json.loads(ASSET_VAULT_PACKAGES_PATH.read_text(encoding="utf-8"))
+        if isinstance(data, list):
+            return [item for item in data if isinstance(item, dict)]
+        if isinstance(data, dict) and isinstance(data.get("packages"), list):
+            return [item for item in data["packages"] if isinstance(item, dict)]
+    except Exception:
+        return []
+    return []
+
+
+def _write_asset_vault_packages(packages: List[Dict[str, Any]]) -> None:
+    ASSET_VAULT_DIR.mkdir(parents=True, exist_ok=True)
+    tmp = ASSET_VAULT_PACKAGES_PATH.with_suffix(".json.tmp")
+    stored = [_asset_vault_storage_package(pkg) for pkg in packages]
+    tmp.write_text(json.dumps(stored, ensure_ascii=True, indent=2), encoding="utf-8")
+    tmp.replace(ASSET_VAULT_PACKAGES_PATH)
+
+
+def _character_summary_for_vault(char_id: str) -> Optional[Dict[str, Any]]:
+    cid = _character_slug(char_id)
+    char = _CHARACTERS_STORE.get(cid)
+    if not char:
+        return None
+    normalized = _normalize_character(cid, char)
+    return {
+        "id": normalized.get("id", cid),
+        "name": normalized.get("name", cid.replace("_", " ").title()),
+        "role": normalized.get("role", "Character"),
+        "anchor_url": normalized.get("anchor_url", ""),
+        "score": normalized.get("score", 0),
+        "status": normalized.get("status", ""),
+    }
+
+
+def _normalize_vault_tags(tags: Any) -> List[str]:
+    if isinstance(tags, str):
+        raw = re.split(r"[,;\n]+", tags)
+    elif isinstance(tags, list):
+        raw = tags
+    else:
+        raw = []
+    normalized: List[str] = []
+    seen: set[str] = set()
+    for tag in raw:
+        value = re.sub(r"\s+", " ", str(tag or "").strip())
+        if not value:
+            continue
+        key = value.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        normalized.append(value[:48])
+    return normalized[:40]
+
+
+def _normalize_vault_references(references: Any) -> List[Dict[str, Any]]:
+    if not isinstance(references, list):
+        return []
+    normalized: List[Dict[str, Any]] = []
+    for index, ref in enumerate(references):
+        if not isinstance(ref, dict):
+            continue
+        ref_type = str(ref.get("type") or ref.get("asset_type") or "reference").strip().lower()
+        if ref_type not in {"product", "logo", "font", "style", "prop", "location", "reference", "image", "brand"}:
+            ref_type = "reference"
+        name = _short_text(str(ref.get("name") or ref.get("title") or f"{ref_type.title()} {index + 1}"), 90)
+        url = str(ref.get("url") or ref.get("image_url") or ref.get("anchor_url") or "").strip()
+        prompt = _short_text(str(ref.get("prompt") or ref.get("description") or ref.get("notes") or ""), 360)
+        normalized.append({
+            "id": _asset_slug(str(ref.get("id") or f"{ref_type}_{name}_{index}")),
+            "type": ref_type,
+            "name": name,
+            "url": url,
+            "prompt": prompt,
+            "notes": _short_text(str(ref.get("notes") or ""), 260),
+        })
+    return normalized[:80]
+
+
+def _normalize_vault_character_refs(package: Dict[str, Any]) -> List[Dict[str, Any]]:
+    refs: List[Dict[str, Any]] = []
+    seen: set[str] = set()
+    raw_refs = package.get("character_refs") if isinstance(package.get("character_refs"), list) else []
+    for ref in raw_refs:
+        if not isinstance(ref, dict):
+            continue
+        cid = _character_slug(str(ref.get("id") or ref.get("character_id") or ""))
+        if not cid or cid in seen:
+            continue
+        seen.add(cid)
+        refs.append({
+            "id": cid,
+            "role": _short_text(str(ref.get("role") or "reference"), 48),
+            "notes": _short_text(str(ref.get("notes") or ""), 240),
+        })
+    raw_ids = package.get("character_ids") if isinstance(package.get("character_ids"), list) else []
+    for cid_raw in raw_ids:
+        cid = _character_slug(str(cid_raw or ""))
+        if not cid or cid in seen:
+            continue
+        seen.add(cid)
+        refs.append({"id": cid, "role": "reference", "notes": ""})
+    return refs[:40]
+
+
+def _normalize_asset_vault_package(package: Dict[str, Any]) -> Dict[str, Any]:
+    now = _now_iso()
+    name = str(package.get("name") or package.get("title") or "Untitled Package").strip()
+    package_id = _asset_slug(str(package.get("id") or name))
+    character_refs = _normalize_vault_character_refs(package)
+    character_ids = [ref["id"] for ref in character_refs]
+    characters = []
+    for ref in character_refs:
+        summary = _character_summary_for_vault(ref["id"])
+        if not summary:
+            continue
+        hydrated = dict(summary)
+        hydrated["vault_role"] = ref.get("role", "reference")
+        hydrated["vault_notes"] = ref.get("notes", "")
+        characters.append(hydrated)
+    return {
+        "id": package_id,
+        "name": name,
+        "description": str(package.get("description") or "").strip(),
+        "kind": str(package.get("kind") or "package").strip() or "package",
+        "element_type": str(package.get("element_type") or "product").strip() or "product",
+        "asset_type": str(package.get("asset_type") or package.get("element_type") or "product").strip() or "product",
+        "character_ids": character_ids,
+        "character_refs": character_refs,
+        "characters": characters,
+        "references": _normalize_vault_references(package.get("references")),
+        "tags": _normalize_vault_tags(package.get("tags")),
+        "notes": str(package.get("notes") or "").strip(),
+        "brand_rules": str(package.get("brand_rules") or "").strip(),
+        "style_rules": str(package.get("style_rules") or "").strip(),
+        "logo_notes": str(package.get("logo_notes") or "").strip(),
+        "font_notes": str(package.get("font_notes") or "").strip(),
+        "prop_notes": str(package.get("prop_notes") or "").strip(),
+        "location_notes": str(package.get("location_notes") or "").strip(),
+        "status": str(package.get("status") or "draft").strip() or "draft",
+        "created_at": str(package.get("created_at") or now),
+        "updated_at": str(package.get("updated_at") or now),
+    }
+
+
+def _asset_vault_storage_package(package: Dict[str, Any]) -> Dict[str, Any]:
+    stored = _normalize_asset_vault_package(package)
+    stored.pop("characters", None)
+    return stored
+
+
+def _list_asset_vault_packages() -> List[Dict[str, Any]]:
+    return [_normalize_asset_vault_package(pkg) for pkg in _read_asset_vault_packages()]
+
+
+def _asset_vault_package_by_id(package_id: str) -> Optional[Dict[str, Any]]:
+    pid = _asset_slug(package_id)
+    for package in _list_asset_vault_packages():
+        if package.get("id") == pid:
+            return package
+    return None
+
+
+def _asset_vault_request_payload(req: AssetVaultPackageRequest, existing: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    payload = dict(existing or {})
+    payload.update({
+        "name": req.name,
+        "description": req.description,
+        "kind": req.kind,
+        "element_type": req.element_type,
+        "asset_type": req.asset_type,
+        "character_ids": req.character_ids,
+        "character_refs": req.character_refs,
+        "references": req.references,
+        "tags": req.tags,
+        "notes": req.notes,
+        "brand_rules": req.brand_rules,
+        "style_rules": req.style_rules,
+        "logo_notes": req.logo_notes,
+        "font_notes": req.font_notes,
+        "prop_notes": req.prop_notes,
+        "location_notes": req.location_notes,
+        "status": req.status,
+        "updated_at": _now_iso(),
+    })
+    if existing and existing.get("id"):
+        payload["id"] = existing["id"]
+        payload["created_at"] = existing.get("created_at") or payload["updated_at"]
+    return payload
 
 
 @app.get("/api/characters")
@@ -6884,7 +8347,7 @@ def _configured_kimi_director() -> Dict[str, str]:
     return {
         "endpoint": endpoint,
         "api_key": str(cfg.get("KIMI_API_KEY", "") or os.getenv("KIMI_API_KEY", "") or "").strip(),
-        "model": str(cfg.get("KIMI_INSTRUCT_MODEL", "") or os.getenv("KIMI_INSTRUCT_MODEL", "") or "moonshotai/kimi-k2-instruct").strip(),
+        "model": str(cfg.get("KIMI_INSTRUCT_MODEL", "") or os.getenv("KIMI_INSTRUCT_MODEL", "") or "moonshotai/kimi-k2.6").strip(),
     }
 
 
@@ -7695,8 +9158,178 @@ async def api_hermes_chat_stream(req: HermesChatRequest):
 
 @app.get("/api/products")
 async def api_get_products():
-    """Return configured products. No synthetic product data is generated."""
-    return {"status": "ok", "products": []}
+    """Compatibility endpoint: products now live as Asset Vault packages."""
+    packages = _list_asset_vault_packages()
+    return {"status": "ok", "products": [pkg for pkg in packages if pkg.get("element_type") == "product"], "packages": packages}
+
+
+@app.get("/api/asset-vault/packages")
+async def api_asset_vault_packages():
+    return {"status": "ok", "packages": _list_asset_vault_packages()}
+
+
+@app.get("/api/asset-vault/packages/{package_id}")
+async def api_asset_vault_get_package(package_id: str):
+    package = _asset_vault_package_by_id(package_id)
+    if not package:
+        raise HTTPException(status_code=404, detail=f"Asset Vault package not found: {package_id}")
+    return {"status": "ok", "package": package}
+
+
+@app.post("/api/asset-vault/packages")
+async def api_asset_vault_create_package(req: AssetVaultPackageRequest):
+    packages = _list_asset_vault_packages()
+    package = _normalize_asset_vault_package(_asset_vault_request_payload(req))
+    if any(pkg.get("id") == package["id"] for pkg in packages):
+        raise HTTPException(status_code=409, detail=f"Asset Vault package already exists: {package['id']}")
+    packages.append(package)
+    _write_asset_vault_packages(packages)
+    return {"status": "ok", "package": package}
+
+
+@app.put("/api/asset-vault/packages/{package_id}")
+async def api_asset_vault_update_package(package_id: str, req: AssetVaultPackageRequest):
+    packages = _list_asset_vault_packages()
+    pid = _asset_slug(package_id)
+    for index, existing in enumerate(packages):
+        if existing.get("id") != pid:
+            continue
+        updated = _normalize_asset_vault_package(_asset_vault_request_payload(req, existing))
+        packages[index] = updated
+        _write_asset_vault_packages(packages)
+        return {"status": "ok", "package": updated}
+    raise HTTPException(status_code=404, detail=f"Asset Vault package not found: {package_id}")
+
+
+@app.delete("/api/asset-vault/packages/{package_id}")
+async def api_asset_vault_delete_package(package_id: str):
+    packages = _list_asset_vault_packages()
+    pid = _asset_slug(package_id)
+    remaining = [pkg for pkg in packages if pkg.get("id") != pid]
+    if len(remaining) == len(packages):
+        raise HTTPException(status_code=404, detail=f"Asset Vault package not found: {package_id}")
+    _write_asset_vault_packages(remaining)
+    return {"status": "ok", "deleted": pid}
+
+
+@app.post("/api/asset-vault/packages/{package_id}/duplicate")
+async def api_asset_vault_duplicate_package(package_id: str):
+    packages = _list_asset_vault_packages()
+    original = _asset_vault_package_by_id(package_id)
+    if not original:
+        raise HTTPException(status_code=404, detail=f"Asset Vault package not found: {package_id}")
+    clone = dict(original)
+    clone.pop("characters", None)
+    base_name = f"{original.get('name') or 'Package'} Copy"
+    clone["name"] = base_name
+    clone["id"] = _asset_slug(base_name)
+    suffix = 2
+    existing_ids = {pkg.get("id") for pkg in packages}
+    while clone["id"] in existing_ids:
+        clone["name"] = f"{base_name} {suffix}"
+        clone["id"] = _asset_slug(clone["name"])
+        suffix += 1
+    clone["created_at"] = _now_iso()
+    clone["updated_at"] = clone["created_at"]
+    normalized = _normalize_asset_vault_package(clone)
+    packages.append(normalized)
+    _write_asset_vault_packages(packages)
+    return {"status": "ok", "package": normalized}
+
+
+@app.post("/api/asset-vault/packages/{package_id}/references/upload")
+async def api_asset_vault_upload_reference(
+    package_id: str,
+    file: UploadFile = File(...),
+    asset_type: str = Form("reference"),
+    name: str = Form(""),
+    prompt: str = Form(""),
+):
+    packages = _list_asset_vault_packages()
+    pid = _asset_slug(package_id)
+    upload_name = _asset_slug(Path(file.filename or "asset").stem)
+    suffix = Path(file.filename or "").suffix.lower()
+    if suffix not in {".png", ".jpg", ".jpeg", ".webp", ".gif", ".avif", ".ttf", ".otf", ".woff", ".woff2", ".pdf"}:
+        suffix = ".bin"
+    out_dir = MEDIA_ROOT / "asset_vault" / pid
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out_path = out_dir / f"{upload_name}_{uuid.uuid4().hex[:8]}{suffix}"
+    with out_path.open("wb") as out:
+        shutil.copyfileobj(file.file, out)
+
+    ref = {
+        "id": _asset_slug(f"{asset_type}_{upload_name}_{uuid.uuid4().hex[:6]}"),
+        "type": str(asset_type or "reference").strip().lower() or "reference",
+        "name": _short_text(name or Path(file.filename or "Asset").stem, 90),
+        "url": _media_url_for_path(out_path),
+        "prompt": _short_text(prompt or "", 360),
+        "notes": "",
+    }
+    for pkg in packages:
+        if pkg.get("id") == pid:
+            refs = _normalize_vault_references(pkg.get("references"))
+            refs.append(ref)
+            pkg["references"] = refs
+            pkg["updated_at"] = _now_iso()
+            normalized = [_normalize_asset_vault_package(item) for item in packages]
+            _write_asset_vault_packages(normalized)
+            return {
+                "status": "ok",
+                "reference": ref,
+                "package": next(item for item in normalized if item.get("id") == pid),
+            }
+    try:
+        out_path.unlink(missing_ok=True)
+    except Exception:
+        pass
+    raise HTTPException(status_code=404, detail=f"Asset Vault package not found: {package_id}")
+
+
+@app.post("/api/asset-vault/packages/{package_id}/characters/{char_id}")
+async def api_asset_vault_add_character(package_id: str, char_id: str, req: Optional[AssetVaultCharacterLinkRequest] = None):
+    packages = _list_asset_vault_packages()
+    pid = _asset_slug(package_id)
+    cid = _character_slug(char_id)
+    if cid not in _CHARACTERS_STORE:
+        raise HTTPException(status_code=404, detail=f"Character not found: {char_id}")
+    for pkg in packages:
+        if pkg.get("id") == pid:
+            refs = _normalize_vault_character_refs(pkg)
+            role = (req.role if req else "reference") or "reference"
+            notes = (req.notes if req else "") or ""
+            found = False
+            for ref in refs:
+                if ref.get("id") == cid:
+                    ref["role"] = _short_text(role, 48)
+                    ref["notes"] = _short_text(notes, 240)
+                    found = True
+                    break
+            if not found:
+                refs.append({"id": cid, "role": _short_text(role, 48), "notes": _short_text(notes, 240)})
+            pkg["character_refs"] = refs
+            pkg["character_ids"] = [ref["id"] for ref in refs]
+            pkg["updated_at"] = _now_iso()
+            normalized = [_normalize_asset_vault_package(item) for item in packages]
+            _write_asset_vault_packages(normalized)
+            return {"status": "ok", "package": next(item for item in normalized if item.get("id") == pid)}
+    raise HTTPException(status_code=404, detail=f"Asset Vault package not found: {package_id}")
+
+
+@app.delete("/api/asset-vault/packages/{package_id}/characters/{char_id}")
+async def api_asset_vault_remove_character(package_id: str, char_id: str):
+    packages = _list_asset_vault_packages()
+    pid = _asset_slug(package_id)
+    cid = _character_slug(char_id)
+    for pkg in packages:
+        if pkg.get("id") == pid:
+            refs = [ref for ref in _normalize_vault_character_refs(pkg) if ref.get("id") != cid]
+            pkg["character_refs"] = refs
+            pkg["character_ids"] = [ref["id"] for ref in refs]
+            pkg["updated_at"] = _now_iso()
+            normalized = [_normalize_asset_vault_package(item) for item in packages]
+            _write_asset_vault_packages(normalized)
+            return {"status": "ok", "package": next(item for item in normalized if item.get("id") == pid)}
+    raise HTTPException(status_code=404, detail=f"Asset Vault package not found: {package_id}")
 
 
 if __name__ == "__main__":

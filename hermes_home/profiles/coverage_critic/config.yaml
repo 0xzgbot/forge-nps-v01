@@ -1,5 +1,5 @@
 model:
-  default: moonshotai/kimi-k2-instruct
+  default: moonshotai/kimi-k2.6
   provider: nvidia
   base_url: https://integrate.api.nvidia.com/v1/chat/completions
 providers: {}

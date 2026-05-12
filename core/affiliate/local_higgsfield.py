@@ -258,6 +258,7 @@ class LocalHiggsfieldAdapter:
         custom_reference_strength: float = 1.0,
         image_reference_url: Optional[str] = None,
         wait_for_output: bool = False,
+        workflow_id: str = "01_flux2_text_to_image",
     ) -> Dict[str, Any]:
         job_set_id = str(uuid.uuid4())
         width, height = _parse_size(width_and_height)
@@ -277,7 +278,14 @@ class LocalHiggsfieldAdapter:
             prompt_parts.append("Ad-ready, coherent product/subject identity, polished composition.")
         final_prompt = " ".join(part for part in prompt_parts if part)
 
-        workflow = self.workflow_file_for_id("01_flux2_text_to_image") or self.workflow_file_for_id("08_flux2_klein_9b_text_to_image")
+        requested_workflow_id = (workflow_id or "01_flux2_text_to_image").strip()
+        workflow = self.workflow_file_for_id(requested_workflow_id)
+        if not workflow and requested_workflow_id != "01_flux2_text_to_image":
+            workflow = self.workflow_file_for_id("01_flux2_text_to_image")
+            requested_workflow_id = "01_flux2_text_to_image"
+        if not workflow:
+            workflow = self.workflow_file_for_id("08_flux2_klein_9b_text_to_image")
+            requested_workflow_id = "08_flux2_klein_9b_text_to_image" if workflow else requested_workflow_id
         if not workflow:
             job = self._make_job_set(
                 job_set_id=job_set_id,
@@ -315,6 +323,7 @@ class LocalHiggsfieldAdapter:
                 "width_and_height": width_and_height,
                 "quality": quality,
                 "batch_size": batch_size,
+                "workflow_id": requested_workflow_id,
                 "style_id": style_id,
                 "style_strength": style_strength,
                 "seed": submit.get("seed", seed),

@@ -14,6 +14,12 @@ let scriptPackage = null;
 let storyboardPlan = null;
 let storyboardPanelJobs = {};
 let storyboardCharacterSheetJob = null;
+let storyboardImageModels = [];
+let scriptProjects = [];
+let currentScriptProjectId = "";
+let activeScriptPipelineJobId = "";
+let activeScriptPipelineStatus = "";
+let scriptPipelinePollTimer = null;
 let campaignActive = false;
 let campaignAbortController = null;
 let campaignRecoveryTimer = null;
@@ -207,13 +213,16 @@ const $dashboardLeftPane = document.getElementById("dashboard-left-pane");
 window.addEventListener("DOMContentLoaded", () => {
     setDefaultVideoWorkflow();
     initVideoQuickOptions();
-    switchScriptFlowStep("idea");
+    switchScriptFlowStep("projects");
     const scriptBriefEl = document.getElementById("script-brief");
     if (scriptBriefEl) scriptBriefEl.addEventListener("input", updateScriptFlowState);
     const scriptPackageEl = document.getElementById("script-package-json");
     if (scriptPackageEl) scriptPackageEl.addEventListener("input", updateScriptFlowState);
     if ($briefInput) $briefInput.addEventListener("input", updateTargetCountPill);
     updateTargetCountPill();
+    loadStoryboardImageModels();
+    loadStoryboardAssetVaultPackages();
+    loadScriptProjects();
     loadCharacters();
     loadStats();
     loadShots();
@@ -1371,11 +1380,14 @@ async function loadConfig() {
         // Director
         const director = models.director_kimi || {};
         document.getElementById("cfg-director-model").value = director.model_name || "";
+        const directorLocalEl = document.getElementById("cfg-director-use-local");
+        if (directorLocalEl) directorLocalEl.checked = !!director.use_local;
         const directorEndpointEl = document.getElementById("cfg-director-endpoint");
         if (directorEndpointEl) directorEndpointEl.value = director.endpoint || "";
         const dApi1 = director.endpoint_api1 || director.endpoint || "";
         const dApi1El = document.getElementById("cfg-director-endpoint-api1");
         if (dApi1El) dApi1El.value = dApi1;
+        updateDirectorLocalState();
 
         // Vision / audit model
         const kimiVl = models.kimi_vl || {};
@@ -1402,10 +1414,23 @@ async function loadConfig() {
         const spark = currentConfig.spark || {};
         const sparkPrimaryEl = document.getElementById("cfg-spark-primary");
         if (sparkPrimaryEl) sparkPrimaryEl.value = spark.primary || "";
-        const sparkSecondaryEl = document.getElementById("cfg-spark-secondary");
-        if (sparkSecondaryEl) sparkSecondaryEl.value = spark.secondary || "";
-        const sparkWorkflowEl = document.getElementById("cfg-spark-workflow");
-        if (sparkWorkflowEl) sparkWorkflowEl.value = spark.workflow_file || "";
+        const sb = currentConfig.storyboard_images || {};
+        const sbProviderEl = document.getElementById("cfg-storyboard-provider");
+        if (sbProviderEl) sbProviderEl.value = sb.default_provider || "spark:flux2_dev";
+        const sbOpenaiKeyEl = document.getElementById("cfg-openai-api-key");
+        if (sbOpenaiKeyEl) {
+            sbOpenaiKeyEl.value = "";
+            sbOpenaiKeyEl.placeholder = sb.openai_api_key_set ? "••••••••  (key saved — paste to replace)" : "OpenAI API key...";
+        }
+        const sbOpenaiModelEl = document.getElementById("cfg-openai-image-model");
+        if (sbOpenaiModelEl) sbOpenaiModelEl.value = sb.openai_model || "gpt-image-2";
+        const sbGeminiKeyEl = document.getElementById("cfg-gemini-api-key");
+        if (sbGeminiKeyEl) {
+            sbGeminiKeyEl.value = "";
+            sbGeminiKeyEl.placeholder = sb.gemini_api_key_set ? "••••••••  (key saved — paste to replace)" : "Google AI Studio key...";
+        }
+        const sbGeminiModelEl = document.getElementById("cfg-gemini-image-model");
+        if (sbGeminiModelEl) sbGeminiModelEl.value = sb.gemini_model || "gemini-2.5-flash-image";
         loadSettingsBanks();
 
     } catch (e) {
@@ -1492,6 +1517,22 @@ function onBackendModeToggle() {
     markDirty('backend_mode');
 }
 
+function updateDirectorLocalState() {
+    const useLocal = !!document.getElementById("cfg-director-use-local")?.checked;
+    ["cfg-kimi-api-key", "cfg-kimi-endpoint", "cfg-director-model", "cfg-director-endpoint-api1"].forEach((id) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.disabled = useLocal;
+        const row = el.closest(".form-row");
+        if (row) row.classList.toggle("is-disabled", useLocal);
+    });
+}
+
+function onDirectorLocalToggle() {
+    updateDirectorLocalState();
+    markDirty('models.director_kimi.use_local');
+}
+
 // ---------------------------------------------------------------------------
 // Settings: Track Changes
 // ---------------------------------------------------------------------------
@@ -1507,6 +1548,7 @@ function markDirty(dotKey) {
         'kimi.endpoint': () => fieldValue("cfg-kimi-endpoint"),
         'models.director_kimi.model_name': () => fieldValue("cfg-director-model"),
         'models.director_kimi.endpoint_api1': () => fieldValue("cfg-director-endpoint-api1"),
+        'models.director_kimi.use_local': () => !!document.getElementById("cfg-director-use-local")?.checked,
         'models.kimi_vl.model_name': () => fieldValue("cfg-visual-model"),
         'models.kimi_vl.endpoint_api1': () => fieldValue("cfg-vision-endpoint-api1"),
         'models.hermes_3.host': () => fieldValue("cfg-lmstudio-host"),
@@ -1518,8 +1560,11 @@ function markDirty(dotKey) {
         'comfyui.primary': () => fieldValue("cfg-comfyui-primary"),
         'comfyui.secondary': () => fieldValue("cfg-comfyui-secondary"),
         'spark.primary': () => fieldValue("cfg-spark-primary"),
-        'spark.secondary': () => fieldValue("cfg-spark-secondary"),
-        'spark.workflow_file': () => fieldValue("cfg-spark-workflow"),
+        'storyboard_images.default_provider': () => fieldValue("cfg-storyboard-provider"),
+        'storyboard_images.openai_api_key': () => fieldValue("cfg-openai-api-key"),
+        'storyboard_images.openai_model': () => fieldValue("cfg-openai-image-model"),
+        'storyboard_images.gemini_api_key': () => fieldValue("cfg-gemini-api-key"),
+        'storyboard_images.gemini_model': () => fieldValue("cfg-gemini-image-model"),
     };
 
     if (fieldMap[dotKey]) {
@@ -1535,6 +1580,7 @@ function collectAllSettings() {
         'kimi.endpoint',
         'models.director_kimi.model_name',
         'models.director_kimi.endpoint_api1',
+        'models.director_kimi.use_local',
         'models.kimi_vl.model_name',
         'models.kimi_vl.endpoint_api1',
         'models.hermes_3.host',
@@ -1543,8 +1589,11 @@ function collectAllSettings() {
         'comfyui.primary',
         'comfyui.secondary',
         'spark.primary',
-        'spark.secondary',
-        'spark.workflow_file',
+        'storyboard_images.default_provider',
+        'storyboard_images.openai_api_key',
+        'storyboard_images.openai_model',
+        'storyboard_images.gemini_api_key',
+        'storyboard_images.gemini_model',
     ];
     const previous = { ...configDirty };
     configDirty = {};
@@ -1593,10 +1642,44 @@ async function saveAllSettings() {
 // ---------------------------------------------------------------------------
 function showToast(msg, type) {
     const $toast = document.getElementById("settings-toast");
+    if (!$toast) {
+        if (typeof addLogEntry === "function") addLogEntry(type === "err" ? "error" : "info", msg);
+        return;
+    }
     $toast.textContent = msg;
     $toast.className = "test-result " + type;
     if (type === "ok" || type === "err") {
         setTimeout(() => { $toast.className = "test-result"; }, 3000);
+    }
+}
+
+async function testStoryboardProviders() {
+    const resultEl = document.getElementById("storyboard-provider-test-result") || document.getElementById("settings-toast");
+    if (resultEl) {
+        resultEl.textContent = "Checking storyboard providers...";
+        resultEl.className = "test-result loading";
+    }
+    try {
+        const resp = await fetch("/api/script/storyboard/provider-health");
+        const data = await resp.json();
+        if (!resp.ok || data.status !== "ok") throw new Error(data.detail || data.error || "provider health failed");
+        const providers = data.providers || {};
+        const sparkCount = (providers.spark?.models || []).filter((item) => item.available).length;
+        const lines = [
+            "Spark workflows: " + sparkCount + " ready",
+            "OpenAI: " + (providers.openai?.key_set ? "key saved" : "no key"),
+            "Nano Banana: " + (providers.gemini?.key_set ? "key saved" : "no key"),
+        ];
+        if (resultEl) {
+            resultEl.textContent = lines.join(" / ");
+            resultEl.className = "test-result ok";
+        }
+        await loadStoryboardImageModels();
+    } catch (e) {
+        if (resultEl) {
+            resultEl.textContent = "Storyboard provider check failed: " + (e?.message || e);
+            resultEl.className = "test-result err";
+        }
     }
 }
 
@@ -1641,6 +1724,7 @@ async function testProvider() {
 
 async function testDirector() {
     const $result = document.getElementById("director-test-result");
+    const useLocal = !!document.getElementById("cfg-director-use-local")?.checked;
     $result.textContent = "Testing Director...";
     $result.className = "test-result loading";
     try {
@@ -1648,14 +1732,17 @@ async function testDirector() {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                endpoint: document.getElementById("cfg-director-endpoint-api1")?.value || "",
-                model: document.getElementById("cfg-director-model")?.value || "",
-                api_key: document.getElementById("cfg-kimi-api-key")?.value || "",
+                endpoint: useLocal ? "" : (document.getElementById("cfg-director-endpoint-api1")?.value || ""),
+                model: useLocal ? (document.getElementById("cfg-lmstudio-model")?.value || "") : (document.getElementById("cfg-director-model")?.value || ""),
+                api_key: useLocal ? "" : (document.getElementById("cfg-kimi-api-key")?.value || ""),
+                host: useLocal ? (document.getElementById("cfg-lmstudio-host")?.value || "") : "",
+                port: useLocal ? (document.getElementById("cfg-lmstudio-port")?.value || "") : "",
+                use_local: useLocal,
             }),
         });
         const data = await resp.json();
         if (data.status === "ok") {
-            $result.textContent = "Director OK: " + data.model + " (" + data.latency_ms + "ms)";
+            $result.textContent = "Director OK: " + (data.backend || "remote") + " / " + data.model + " (" + data.latency_ms + "ms)";
             $result.className = "test-result ok";
         } else {
             $result.textContent = "Director failed: " + (data.error || "unknown error");
@@ -1663,6 +1750,43 @@ async function testDirector() {
         }
     } catch (e) {
         $result.textContent = "Director error: " + e.message;
+        $result.className = "test-result err";
+    }
+}
+
+async function testDirectorSelfCheck() {
+    const $result = document.getElementById("director-self-check-result") || document.getElementById("director-test-result");
+    const useLocal = !!document.getElementById("cfg-director-use-local")?.checked;
+    $result.textContent = "Testing Director self-check with representative shot plan...";
+    $result.className = "test-result loading";
+    try {
+        const resp = await fetch("/api/test/director-self-check", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                endpoint: useLocal ? "" : (document.getElementById("cfg-director-endpoint-api1")?.value || ""),
+                model: useLocal ? (document.getElementById("cfg-lmstudio-model")?.value || "") : (document.getElementById("cfg-director-model")?.value || ""),
+                api_key: useLocal ? "" : (document.getElementById("cfg-kimi-api-key")?.value || ""),
+                host: useLocal ? (document.getElementById("cfg-lmstudio-host")?.value || "") : "",
+                port: useLocal ? (document.getElementById("cfg-lmstudio-port")?.value || "") : "",
+                use_local: useLocal,
+            }),
+        });
+        const data = await resp.json();
+        if (data.status === "ok") {
+            $result.textContent =
+                "Self-check OK: " + (data.backend || "remote") + " / " + data.model +
+                " (" + data.latency_ms + "ms, score " + (data.score ?? "n/a") +
+                ", " + (data.review_status || "status n/a") + ")";
+            $result.className = "test-result ok";
+        } else {
+            $result.textContent =
+                "Self-check failed: " + (data.error || "unknown error") +
+                (data.latency_ms ? " after " + data.latency_ms + "ms" : "");
+            $result.className = "test-result err";
+        }
+    } catch (e) {
+        $result.textContent = "Self-check error: " + e.message;
         $result.className = "test-result err";
     }
 }
@@ -1951,7 +2075,7 @@ let $scriptProgress = document.getElementById("script-progress");
 let $shotList = document.getElementById("shot-list");
 let $shotListPlaceholder = document.getElementById("shot-list-placeholder");
 let $sendToSparkBtn = document.getElementById("send-to-spark-btn");
-let currentScriptFlowStep = "idea";
+let currentScriptFlowStep = "projects";
 
 let characterMap = {}; // id -> name for linking
 
@@ -1971,6 +2095,257 @@ function refreshScriptDomRefs() {
 function scriptInputValue(idName, fallback) {
     const el = document.getElementById(idName);
     return (el?.value || fallback || "").trim();
+}
+
+function currentScriptProjectPayload(status) {
+    return {
+        script_id: currentScriptProjectId || scriptInputValue("script-project-id", ""),
+        title: scriptInputValue("script-title", ""),
+        brief: ($scriptBrief?.value || "").trim(),
+        tone: scriptInputValue("script-tone", ""),
+        runtime_seconds: parseInt(scriptInputValue("script-runtime", "60"), 10) || 60,
+        target_scenes: parseInt(scriptInputValue("script-scenes", "4"), 10) || 4,
+        package: getScriptPackageFromEditor(),
+        coverage_shots: Object.values(director_shots || {}),
+        storyboard_plan: storyboardPlan,
+        storyboard_panel_jobs: storyboardPanelJobs || {},
+        video_shots: [],
+        status: status || "draft",
+    };
+}
+
+function renderScriptProjectList() {
+    const list = document.getElementById("script-project-list");
+    if (!list) return;
+    if (!scriptProjects.length) {
+        list.innerHTML = '<div class="script-empty-mini">No saved scripts yet.</div>';
+        return;
+    }
+    list.innerHTML = scriptProjects.map((project) => {
+        const active = project.script_id === currentScriptProjectId ? " active" : "";
+        const counts = [
+            project.has_package ? "script" : "",
+            project.coverage_count ? project.coverage_count + " shots" : "",
+            project.storyboard_count ? project.storyboard_count + " panels" : "",
+            project.video_complete_count ? project.video_complete_count + "/" + project.video_shot_count + " videos" : (project.video_shot_count ? project.video_shot_count + " video shots" : ""),
+        ].filter(Boolean).join(" / ");
+        return (
+            '<button class="script-project-item' + active + '" type="button" onclick="loadScriptProject(\'' + escapeHtml(project.script_id || "") + '\')">' +
+                '<strong>' + escapeHtml(project.title || project.script_id || "Untitled") + '</strong>' +
+                '<span>' + escapeHtml(project.status || "draft") + (counts ? " / " + counts : "") + '</span>' +
+            '</button>'
+        );
+    }).join("");
+}
+
+async function loadScriptProjects() {
+    try {
+        const resp = await fetch("/api/script/projects");
+        const data = await resp.json();
+        if (!resp.ok || data.status !== "ok") throw new Error(data.detail || data.error || "project load failed");
+        scriptProjects = Array.isArray(data.projects) ? data.projects : [];
+        renderScriptProjectList();
+        updateScriptFlowState();
+    } catch (e) {
+        addLogEntry("warning", "Script project list unavailable: " + (e?.message || e));
+    }
+}
+
+function applyLoadedScriptProject(project) {
+    refreshScriptDomRefs();
+    currentScriptProjectId = project.script_id || "";
+    const projectIdEl = document.getElementById("script-project-id");
+    if (projectIdEl) projectIdEl.value = currentScriptProjectId;
+    const setValue = (idName, value) => {
+        const el = document.getElementById(idName);
+        if (el) el.value = value == null ? "" : String(value);
+    };
+    setValue("script-title", project.title || "");
+    setValue("script-tone", project.tone || "");
+    setValue("script-runtime", project.runtime_seconds || 60);
+    setValue("script-scenes", project.target_scenes || 4);
+    if ($scriptBrief) $scriptBrief.value = project.brief || "";
+    scriptPackage = project.package || null;
+    storyboardPlan = project.storyboard_plan || null;
+    storyboardPanelJobs = project.storyboard_panel_jobs || {};
+    director_shots = {};
+    if (Array.isArray(project.coverage_shots)) {
+        project.coverage_shots.forEach((shot) => {
+            if (shot?.id) director_shots[shot.id] = shot;
+        });
+    }
+    renderScriptPackage(scriptPackage);
+    if (storyboardPlan) renderStoryboardPlan(storyboardPlan);
+    if ($shotList && $shotListPlaceholder) {
+        $shotList.innerHTML = "";
+        const shots = Object.values(director_shots || {});
+        $shotList.style.display = shots.length ? "flex" : "none";
+        $shotListPlaceholder.style.display = shots.length ? "none" : "block";
+        shots.forEach((shot, idx) => renderShotCard(shot, idx + 1, shots.length));
+    }
+    if (project.active_job?.job_id) {
+        activeScriptPipelineJobId = project.active_job.job_id;
+        renderScriptPipelineJob(project.active_job);
+        if (["queued", "running"].includes(project.active_job.status)) pollScriptPipelineJob(activeScriptPipelineJobId);
+    }
+    renderScriptProjectList();
+    updateScriptFlowState();
+    setScriptStatus("Loaded script project: " + (project.title || currentScriptProjectId), project.status || "");
+}
+
+async function loadScriptProject(scriptId) {
+    if (!scriptId) return;
+    try {
+        const resp = await fetch("/api/script/projects/" + encodeURIComponent(scriptId));
+        const data = await resp.json();
+        if (!resp.ok || data.status !== "ok") throw new Error(data.detail || data.error || "project load failed");
+        applyLoadedScriptProject(data.project || {});
+    } catch (e) {
+        setScriptStatus("Load failed: " + (e?.message || e), "");
+    }
+}
+
+async function saveScriptProject(status) {
+    refreshScriptDomRefs();
+    const payload = currentScriptProjectPayload(status || "draft");
+    if (!payload.title && !payload.brief) {
+        setScriptStatus("Enter a title or brief before saving.", "");
+        return null;
+    }
+    try {
+        const resp = await fetch("/api/script/projects/save", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+        });
+        const data = await resp.json();
+        if (!resp.ok || data.status !== "ok") throw new Error(data.detail || data.error || "save failed");
+        applyLoadedScriptProject(data.project || {});
+        await loadScriptProjects();
+        setScriptStatus("Saved script project.", data.project?.script_id || "");
+        return data.project;
+    } catch (e) {
+        setScriptStatus("Save failed: " + (e?.message || e), "");
+        return null;
+    }
+}
+
+function renderScriptPipelineJob(job) {
+    const statusEl = document.getElementById("script-pipeline-status");
+    const logEl = document.getElementById("script-pipeline-log");
+    activeScriptPipelineStatus = job ? String(job.status || "queued").toUpperCase() : "";
+    if (statusEl) {
+        statusEl.textContent = job
+            ? (String(job.status || "queued").toUpperCase() + " / " + String(job.phase || "queued"))
+            : "No pipeline job running.";
+    }
+    if (logEl) {
+        const logs = Array.isArray(job?.logs) ? job.logs.slice(-12) : [];
+        logEl.innerHTML = logs.length
+            ? logs.map((entry) => (
+                '<div class="script-pipeline-log-row ' + escapeHtml(entry.level || "info") + '">' +
+                    '<span>' + escapeHtml(entry.phase || "") + '</span>' +
+                    '<p>' + escapeHtml(entry.message || "") + '</p>' +
+                '</div>'
+            )).join("")
+            : '<div class="script-empty-mini">Pipeline logs appear here.</div>';
+    }
+    updateScriptFlowState();
+}
+
+async function pollScriptPipelineJob(jobId) {
+    if (!jobId) return;
+    activeScriptPipelineJobId = jobId;
+    if (scriptPipelinePollTimer) clearTimeout(scriptPipelinePollTimer);
+    try {
+        const resp = await fetch("/api/script/pipeline/jobs/" + encodeURIComponent(jobId));
+        const data = await resp.json();
+        if (!resp.ok || data.status !== "ok") throw new Error(data.detail || data.error || "job status failed");
+        const job = data.job || {};
+        renderScriptPipelineJob(job);
+        if (data.project) {
+            const previousJob = activeScriptPipelineJobId;
+            applyLoadedScriptProject(data.project);
+            activeScriptPipelineJobId = previousJob;
+            renderScriptPipelineJob(job);
+        }
+        if (["queued", "running"].includes(job.status)) {
+            scriptPipelinePollTimer = setTimeout(() => pollScriptPipelineJob(jobId), 5000);
+        } else {
+            await loadScriptProjects();
+            setScriptStatus(job.status === "complete" ? "Pipeline complete." : "Pipeline stopped: " + (job.error || job.status), job.phase || "");
+        }
+    } catch (e) {
+        renderScriptPipelineJob({ status: "error", phase: "poll", logs: [{ level: "error", phase: "poll", message: e?.message || String(e) }] });
+    }
+}
+
+async function runScriptPipeline() {
+    refreshScriptDomRefs();
+    const brief = ($scriptBrief?.value || "").trim();
+    if (!brief && !currentScriptProjectId) {
+        setScriptStatus("Enter a brief or load a saved script before running the pipeline.", "");
+        return;
+    }
+    const btn = document.getElementById("run-script-pipeline-btn");
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = "Starting...";
+    }
+    const imageSelection = getStoryboardImageSelection();
+    const videoOptions = syncVideoQuickOptions();
+    try {
+        switchScriptFlowStep("jobs");
+        const saved = await saveScriptProject("queued");
+        const targetPanelsRaw = scriptInputValue("storyboard-target-panels", "");
+        const resp = await fetch("/api/script/pipeline/start", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                script_id: saved?.script_id || currentScriptProjectId || "",
+                title: scriptInputValue("script-title", ""),
+                brief,
+                tone: scriptInputValue("script-tone", ""),
+                runtime_seconds: parseInt(scriptInputValue("script-runtime", "60"), 10) || 60,
+                target_scenes: parseInt(scriptInputValue("script-scenes", "4"), 10) || 4,
+                target_shots: parseInt(scriptInputValue("script-target-shots", ""), 10) || null,
+                storyboard_panels_per_board: parseInt(scriptInputValue("storyboard-panels-per-board", "9"), 10) || 9,
+                storyboard_target_panels: targetPanelsRaw ? parseInt(targetPanelsRaw, 10) : null,
+                storyboard_resolution: scriptInputValue("storyboard-resolution", "3840x2160") || "3840x2160",
+                storyboard_style: scriptInputValue("storyboard-style", "cinematic"),
+                storyboard_character_consistency: scriptInputValue("storyboard-character-consistency", ""),
+                storyboard_negative_prompt: scriptInputValue("storyboard-negative-prompt", "blurry, deformed, extra limbs, text errors, inconsistent characters, merged panels"),
+                storyboard_reference_image_url: scriptInputValue("storyboard-reference-image", ""),
+                storyboard_include_captions: !!document.getElementById("storyboard-include-captions")?.checked,
+                storyboard_image_provider: imageSelection.provider,
+                storyboard_image_model: imageSelection.model || "",
+                storyboard_spark_model: imageSelection.spark_model || "",
+                asset_vault_package_id: selectedStoryboardAssetVaultPackageId(),
+                video_workflow_id: videoOptions.workflowId,
+                video_duration: parseInt(String(videoOptions.duration || 5), 10) || 5,
+                video_fps: parseInt($videoFps?.value || "24", 10) || 24,
+                video_resolution: videoOptions.resolution,
+                video_aspect_ratio: videoOptions.aspectRatio,
+                run_video: !!document.getElementById("script-pipeline-run-video")?.checked,
+                wait_for_videos: !!document.getElementById("script-pipeline-wait-video")?.checked,
+                video_wait_seconds: parseInt(scriptInputValue("script-pipeline-video-wait", "1800"), 10) || 1800,
+                stop_after: document.getElementById("script-pipeline-stop-after")?.value || "videos",
+            }),
+        });
+        const data = await resp.json();
+        if (!resp.ok || data.status !== "ok") throw new Error(data.detail || data.error || "pipeline start failed");
+        activeScriptPipelineJobId = data.job?.job_id || "";
+        renderScriptPipelineJob(data.job);
+        setScriptStatus("Pipeline queued.", activeScriptPipelineJobId);
+        pollScriptPipelineJob(activeScriptPipelineJobId);
+    } catch (e) {
+        setScriptStatus("Pipeline start failed: " + (e?.message || e), "");
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = "Run Pipeline";
+        }
+    }
 }
 
 function setScriptStatus(text, progress) {
@@ -2021,20 +2396,28 @@ function updateScriptFlowState() {
     const shotCount = scriptFlowCountShots();
     const boardCount = Array.isArray(storyboardPlan?.boards) ? storyboardPlan.boards.length : 0;
     const selectedVideos = videoSelection?.size || 0;
+    const projectCount = Array.isArray(scriptProjects) ? scriptProjects.length : 0;
+    const jobStatus = activeScriptPipelineJobId ? (activeScriptPipelineStatus || "Active") : "Idle";
 
-    setScriptStepStatus("idea", hasBrief ? "Brief set" : "Ready");
-    setScriptStepStatus("script", hasPackage ? "Package ready" : "Waiting");
+    setScriptStepStatus("projects", projectCount ? projectCount + " saved" : "Saved");
+    setScriptStepStatus("brief", hasBrief ? "Brief set" : "Ready");
+    setScriptStepStatus("package", hasPackage ? "Package ready" : "Waiting");
+    setScriptStepStatus("coverage", shotCount ? shotCount + " shot" + (shotCount === 1 ? "" : "s") : "Waiting");
     setScriptStepStatus("storyboard", boardCount ? boardCount + " board" + (boardCount === 1 ? "" : "s") : "Waiting");
     setScriptStepStatus("videos", selectedVideos ? selectedVideos + " selected" : shotCount ? "Coverage ready" : "Waiting");
+    setScriptStepStatus("jobs", jobStatus);
 
     document.querySelectorAll(".script-flow-step[data-script-step]").forEach((el) => {
         const step = el.dataset.scriptStep;
         el.classList.toggle("active", step === currentScriptFlowStep);
         el.classList.toggle("complete",
-            (step === "idea" && hasBrief) ||
-            (step === "script" && hasPackage) ||
+            (step === "projects" && projectCount > 0) ||
+            (step === "brief" && hasBrief) ||
+            (step === "package" && hasPackage) ||
+            (step === "coverage" && shotCount > 0) ||
             (step === "storyboard" && boardCount > 0) ||
-            (step === "videos" && selectedVideos > 0)
+            (step === "videos" && selectedVideos > 0) ||
+            (step === "jobs" && !!activeScriptPipelineJobId)
         );
     });
     updateScriptVideoHandoff();
@@ -2042,10 +2425,21 @@ function updateScriptFlowState() {
 
 function switchScriptFlowStep(step) {
     refreshScriptDomRefs();
-    currentScriptFlowStep = step || "idea";
+    const aliases = {
+        idea: "brief",
+        script: "package",
+        shots: "coverage",
+        shotlist: "coverage",
+        pipeline: "jobs",
+    };
+    currentScriptFlowStep = aliases[step] || step || "projects";
     document.querySelectorAll("[data-script-step-panel]").forEach((panel) => {
         panel.classList.toggle("active", panel.dataset.scriptStepPanel === currentScriptFlowStep);
     });
+    if (currentScriptFlowStep === "storyboard") {
+        loadStoryboardImageModels();
+        loadStoryboardAssetVaultPackages();
+    }
     updateScriptFlowState();
 }
 
@@ -2158,8 +2552,18 @@ function renderScriptPackage(pkg) {
 
     const treatment = pkg.treatment || {};
     if (treatmentEl) {
+        const source = String(pkg.source || "").trim();
+        const sourceClass = source === "fallback" ? " fallback" : "";
+        const sourceLabel = source
+            ? '<div class="script-source-badge' + sourceClass + '"><strong>Source</strong><span>' + escapeHtml(source) + '</span>' + (pkg.director_model ? '<em>' + escapeHtml(pkg.director_model) + '</em>' : '') + '</div>'
+            : "";
+        const sourceError = pkg.error
+            ? '<p class="script-source-error"><strong>Generation error</strong><br>' + escapeHtml(pkg.error) + '</p>'
+            : "";
         treatmentEl.innerHTML =
+            sourceLabel +
             '<h3>' + escapeHtml(pkg.title || "Untitled") + '</h3>' +
+            sourceError +
             '<p><strong>Logline</strong><br>' + escapeHtml(treatment.logline || "") + '</p>' +
             '<p><strong>Synopsis</strong><br>' + escapeHtml(treatment.synopsis || "") + '</p>' +
             '<p><strong>Visual Language</strong><br>' + escapeHtml(treatment.visual_language || "") + '</p>';
@@ -2282,6 +2686,7 @@ async function generateStoryboard() {
             body: JSON.stringify({
                 script: sourceText,
                 package: sourcePackage || null,
+                asset_vault_package_id: selectedStoryboardAssetVaultPackageId(),
                 panels_per_board: parseInt(scriptInputValue("storyboard-panels-per-board", "9"), 10) || 9,
                 target_panels: targetPanelsRaw ? parseInt(targetPanelsRaw, 10) : null,
                 resolution: scriptInputValue("storyboard-resolution", "3840x2160") || "3840x2160",
@@ -2301,7 +2706,8 @@ async function generateStoryboard() {
         storyboardPanelJobs = {};
         renderStoryboardPlan(data);
         switchScriptFlowStep("storyboard");
-        setScriptStatus("Storyboard ready: " + data.board_count + " board image(s), " + data.panel_count + " panel(s).", "Storyboard");
+        const vaultName = data.asset_vault_package?.name ? " using " + data.asset_vault_package.name : "";
+        setScriptStatus("Storyboard ready: " + data.board_count + " board image(s), " + data.panel_count + " panel(s)" + vaultName + ".", "Storyboard");
     } catch (e) {
         setScriptStatus("Storyboard failed: " + e.message, "");
         addLogEntry("error", "Storyboard failed: " + e.message);
@@ -2319,8 +2725,77 @@ function getStoryboardBoard(boardIndex) {
 }
 
 function storyboardJobResultUrl(job) {
+    if (job?.url) return job.url;
     const firstJob = Array.isArray(job?.jobs) ? job.jobs[0] : null;
     return firstJob?.results?.raw?.url || firstJob?.results?.min?.url || firstJob?.results?.all?.[0]?.url || "";
+}
+
+async function loadStoryboardImageModels() {
+    const select = document.getElementById("storyboard-image-model");
+    if (!select) return;
+    try {
+        const resp = await fetch("/api/script/storyboard/image-models");
+        const data = await resp.json();
+        if (!resp.ok || data.status !== "ok") throw new Error(data.detail || data.error || "model load failed");
+        storyboardImageModels = Array.isArray(data.models) ? data.models : [];
+        const defaultValue = data.default || "spark:flux2_dev";
+        select.innerHTML = storyboardImageModels.map((item) => {
+            const disabled = item.available === false ? " disabled" : "";
+            const suffix = item.available === false ? " (not configured)" : "";
+            return '<option value="' + escapeHtml(item.id || "") + '"' + disabled + '>' + escapeHtml((item.label || item.id || "") + suffix) + '</option>';
+        }).join("");
+        if (storyboardImageModels.some((item) => item.id === defaultValue && item.available !== false)) {
+            select.value = defaultValue;
+        } else if (!select.value && select.options.length) {
+            select.selectedIndex = 0;
+        }
+    } catch (e) {
+        select.innerHTML =
+            '<option value="spark:flux2_dev">Spark / Flux2.Dev</option>' +
+            '<option value="spark:flux2_klein">Spark / Flux2 Klein</option>';
+        addLogEntry("warning", "Storyboard model list unavailable: " + (e?.message || e));
+    }
+}
+
+async function loadStoryboardAssetVaultPackages() {
+    const select = document.getElementById("storyboard-asset-vault-package");
+    if (!select) return;
+    try {
+        const packages = await fetchAssetVaultPackages();
+        const current = select.value || "";
+        select.innerHTML =
+            '<option value="">No Asset Vault package</option>' +
+            packages.map((pkg) => (
+                '<option value="' + escapeHtml(pkg.id || "") + '">' +
+                escapeHtml((pkg.name || pkg.id || "Package") + (pkg.asset_type ? " / " + pkg.asset_type : "")) +
+                '</option>'
+            )).join("");
+        if (current && packages.some((pkg) => pkg.id === current)) select.value = current;
+    } catch (e) {
+        select.innerHTML = '<option value="">Asset Vault unavailable</option>';
+        addLogEntry("warning", "Asset Vault package list unavailable: " + (e?.message || e));
+    }
+}
+
+function selectedStoryboardAssetVaultPackageId() {
+    return document.getElementById("storyboard-asset-vault-package")?.value || "";
+}
+
+function getStoryboardImageSelection() {
+    const value = document.getElementById("storyboard-image-model")?.value || "spark:flux2_dev";
+    if (value.startsWith("spark:")) {
+        return { provider: "spark", spark_model: value.split(":", 2)[1] || "flux2_dev", model: "" };
+    }
+    const item = storyboardImageModels.find((m) => m.id === value) || {};
+    if (value === "openai") return { provider: "openai", spark_model: "", model: item.model || "" };
+    if (value === "gemini") return { provider: "gemini", spark_model: "", model: item.model || "" };
+    return { provider: "spark", spark_model: "flux2_dev", model: "" };
+}
+
+function getStoryboardImageLabel() {
+    const value = document.getElementById("storyboard-image-model")?.value || "spark:flux2_dev";
+    const item = storyboardImageModels.find((m) => m.id === value);
+    return item?.label || value.replace("spark:", "Spark / ");
 }
 
 function renderStoryboardPanelJobList(boardIndex) {
@@ -2360,18 +2835,21 @@ async function renderStoryboardPanels(boardIndex) {
         url: "",
     }));
     renderStoryboardPanelJobList(boardIndex);
-    if (resultEl) resultEl.textContent = "Submitting " + panels.length + " individual panel render(s) to Spark...";
+    const modelSelection = getStoryboardImageSelection();
+    const modelLabel = getStoryboardImageLabel();
+    if (resultEl) resultEl.textContent = "Submitting " + panels.length + " individual panel render(s) to " + modelLabel + "...";
     try {
         for (let idx = 0; idx < panels.length; idx += 1) {
             const panel = panels[idx];
-            const resp = await fetch("/api/local-higgsfield/generate-image", {
+            const resp = await fetch("/api/script/storyboard/render-image", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
+                    ...modelSelection,
                     prompt: panel.single_panel_prompt || panel.visual_prompt || panel.caption || "",
                     width_and_height: panel.width_and_height || board.panel_width_and_height || "1280x720",
                     quality: "720p",
-                    batch_size: 1,
+                    title: (storyboardPlan?.title || "storyboard") + "_panel_" + String(idx + 1),
                     enhance_prompt: false,
                     wait_for_output: false,
                     image_reference_url: board.reference_image_url || undefined,
@@ -2383,11 +2861,13 @@ async function renderStoryboardPanels(boardIndex) {
                 index: idx + 1,
                 status: data.status || "queued",
                 job_set_id: data.job_set_id || data.id || "",
+                provider: data.provider || modelSelection.provider,
+                model: data.model || modelSelection.spark_model || modelSelection.model || "",
                 url: storyboardJobResultUrl(data),
             };
             renderStoryboardPanelJobList(boardIndex);
         }
-        if (resultEl) resultEl.textContent = "Panel jobs submitted. Refresh until all panels show completed, then assemble.";
+        if (resultEl) resultEl.textContent = "Panel jobs submitted to " + modelLabel + ". Refresh until all panels show completed, then assemble.";
         return storyboardPanelJobs[String(boardIndex)] || [];
     } catch (e) {
         if (resultEl) resultEl.textContent = "Panel render failed: " + e.message;
@@ -2406,6 +2886,7 @@ async function pollStoryboardPanelJobs(boardIndex) {
     for (let idx = 0; idx < jobs.length; idx += 1) {
         const job = jobs[idx];
         if (!job.job_set_id || job.url) continue;
+        if (job.provider && job.provider !== "spark") continue;
         try {
             const resp = await fetch("/api/local-higgsfield/jobs/" + encodeURIComponent(job.job_set_id));
             const data = await resp.json();
@@ -2516,16 +2997,19 @@ async function generateStoryboardCharacterSheet() {
         btn.disabled = true;
         btn.textContent = "Sheet...";
     }
-    if (sheetEl) sheetEl.textContent = "Submitting character sheet to Spark...";
+    const modelSelection = getStoryboardImageSelection();
+    const modelLabel = getStoryboardImageLabel();
+    if (sheetEl) sheetEl.textContent = "Submitting character sheet to " + modelLabel + "...";
     try {
-        const resp = await fetch("/api/local-higgsfield/generate-image", {
+        const resp = await fetch("/api/script/storyboard/render-image", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
+                ...modelSelection,
                 prompt: storyboardCharacterSheetPrompt(),
                 width_and_height: "3840x2160",
                 quality: "1080p",
-                batch_size: 1,
+                title: (scriptInputValue("script-title", "storyboard") || "storyboard") + "_character_sheet",
                 enhance_prompt: false,
                 wait_for_output: false,
             }),
@@ -2535,6 +3019,8 @@ async function generateStoryboardCharacterSheet() {
         storyboardCharacterSheetJob = {
             job_set_id: data.job_set_id || data.id || "",
             status: data.status || "queued",
+            provider: data.provider || modelSelection.provider,
+            model: data.model || modelSelection.spark_model || modelSelection.model || "",
             url: storyboardJobResultUrl(data),
         };
         if (storyboardCharacterSheetJob.url) {
@@ -2558,6 +3044,10 @@ async function pollStoryboardCharacterSheet() {
     if (!storyboardCharacterSheetJob?.job_set_id) {
         if (sheetEl) sheetEl.textContent = "No character sheet job submitted yet.";
         return null;
+    }
+    if (storyboardCharacterSheetJob.provider && storyboardCharacterSheetJob.provider !== "spark") {
+        renderStoryboardCharacterSheetStatus();
+        return storyboardCharacterSheetJob;
     }
     try {
         const resp = await fetch("/api/local-higgsfield/jobs/" + encodeURIComponent(storyboardCharacterSheetJob.job_set_id));
@@ -2618,16 +3108,19 @@ async function renderStoryboardBoard(boardIndex) {
     const board = getStoryboardBoard(boardIndex);
     if (!board) return;
     const resultEl = document.getElementById("storyboard-render-" + Number(boardIndex));
-    if (resultEl) resultEl.textContent = "Submitting storyboard board to Spark...";
+    const modelSelection = getStoryboardImageSelection();
+    const modelLabel = getStoryboardImageLabel();
+    if (resultEl) resultEl.textContent = "Submitting storyboard board to " + modelLabel + "...";
     try {
-        const resp = await fetch("/api/local-higgsfield/generate-image", {
+        const resp = await fetch("/api/script/storyboard/render-image", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
+                ...modelSelection,
                 prompt: board.image_prompt,
                 width_and_height: board.width_and_height || "3840x2160",
                 quality: "4k",
-                batch_size: 1,
+                title: (storyboardPlan?.title || "storyboard") + "_board_" + String(boardIndex),
                 enhance_prompt: false,
                 wait_for_output: false,
                 image_reference_url: board.reference_image_url || undefined,
@@ -2636,7 +3129,10 @@ async function renderStoryboardBoard(boardIndex) {
         const data = await resp.json();
         if (!resp.ok) throw new Error(data.detail || data.error || "render failed");
         if (resultEl) {
-            resultEl.innerHTML = '<span>Submitted.</span><code>' + escapeHtml(data.job_set_id || data.prompt_id || data.status || "queued") + '</code>';
+            const url = storyboardJobResultUrl(data);
+            resultEl.innerHTML =
+                '<span>Submitted to ' + escapeHtml(modelLabel) + '.</span><code>' + escapeHtml(data.job_set_id || data.prompt_id || data.status || "queued") + '</code>' +
+                (url ? '<br><img src="' + escapeHtml(url) + '" alt="Storyboard board render">' : "");
         }
         if (typeof loadVideoLibrary === "function") loadVideoLibrary();
     } catch (e) {
@@ -2676,8 +3172,14 @@ async function developScriptPackage() {
         }
         scriptPackage = data.package;
         renderScriptPackage(scriptPackage);
-        switchScriptFlowStep("script");
-        setScriptStatus((data.status === "fallback" ? "Fallback script package ready" : "Script package ready") + ". Review locks, then generate coverage.", "Locked");
+        switchScriptFlowStep("coverage");
+        if (data.status === "fallback") {
+            const reason = data.error ? ": " + data.error : "";
+            setScriptStatus("Fallback package ready - model generation failed" + reason, "Fallback");
+            addLogEntry("warning", "Script package used fallback" + reason);
+        } else {
+            setScriptStatus("Script package ready. Review locks, then generate coverage.", "Locked");
+        }
     } catch (e) {
         setScriptStatus("Script package failed: " + e.message, "");
         addLogEntry("error", "Script package failed: " + e.message);
@@ -2733,7 +3235,7 @@ async function generateShotList() {
     $btn.textContent = "Building...";
         $scriptStatusText.textContent = scriptPackage ? "Director is converting locked script into coverage..." : "Director is analyzing brief...";
         $scriptProgress.textContent = "";
-        switchScriptFlowStep("script");
+        switchScriptFlowStep("coverage");
 
     // Clear existing shots
     director_shots = {};
@@ -3026,6 +3528,12 @@ function clearShotList() {
     director_shots = {};
     scriptPackage = null;
     storyboardPlan = null;
+    storyboardPanelJobs = {};
+    currentScriptProjectId = "";
+    activeScriptPipelineJobId = "";
+    activeScriptPipelineStatus = "";
+    const projectIdEl = document.getElementById("script-project-id");
+    if (projectIdEl) projectIdEl.value = "";
     $shotList.innerHTML = "";
     $shotList.style.display = "none";
     $shotListPlaceholder.style.display = "block";
@@ -3034,7 +3542,7 @@ function clearShotList() {
     renderScriptPackage(null);
     renderStoryboardPlan(null);
     updateSendToSparkBtn();
-    switchScriptFlowStep("idea");
+    switchScriptFlowStep("brief");
 }
 
 // ---------------------------------------------------------------------------
@@ -3066,7 +3574,9 @@ function addLogEntry(type, text) {
         system: "[SYS]",
         error: "[ERR]",
         profile_director_kimi: "[Kimi / Director Planner]",
+        profile_director_lmstudio: "[LM Studio / Director Planner]",
         profile_critic_kimi: "[Kimi / Coverage Critic]",
+        profile_critic_lmstudio: "[LM Studio / Coverage Critic]",
         profile_compiler_lmstudio: "[Hermes / Prompt Compiler]",
         profile_continuity_lmstudio: "[Hermes / Continuity Guard]",
         profile_remediation_lmstudio: "[Hermes / Remediation Reprompter]",
@@ -3132,13 +3642,13 @@ function campaignStatusFromEvent(event) {
         case "pipeline_timing":
             return ["Timing", event.stage || "pipeline", elapsed, "running"];
         case "kimi":
-            return ["Kimi", text || "Planning...", shotId || "director", "running"];
+            return [event.role_label || "Director", text || "Planning...", shotId || "director", "running"];
         case "kimi_raw":
-            return ["Kimi", "Director plan received.", event.campaign_id || "raw", "running"];
+            return [event.role_label || "Director", "Director plan received.", event.campaign_id || "raw", "running"];
         case "kimi_plan":
-            return ["Kimi", text || ("Structured plan received (" + (event.count || 0) + " / " + (event.target_shots || event.count || 0) + " shots)"), "plan", "running"];
+            return [event.role_label || "Director", text || ("Structured plan received (" + (event.count || 0) + " / " + (event.target_shots || event.count || 0) + " shots)"), "plan", "running"];
         case "kimi_review":
-            return ["Kimi", "Coverage review score " + (event.score !== undefined ? event.score : "n/a"), event.status || "review", "running"];
+            return [event.role_label || "Coverage Critic", "Coverage review score " + (event.score !== undefined ? event.score : "n/a"), event.status || "review", "running"];
         case "hermes":
             return ["Hermes", text || "Working...", shotId || "brain", "running"];
         case "compiler":
@@ -3324,23 +3834,24 @@ function handleCampaignEvent(event) {
 
     switch (type) {
         case "kimi":
-            addLogEntry("kimi", text);
+            addLogEntry(event.profile_color_key || "kimi", text);
             break;
 
         case "kimi_raw":
-            addLogEntry("kimi", "Raw preview: " + text + (event.campaign_id ? " — full exchange: /api/campaigns/" + event.campaign_id + "/agent-exchanges" : ""));
+            addLogEntry(event.profile_color_key || "kimi", "Raw preview: " + text + (event.campaign_id ? " — full exchange: /api/campaigns/" + event.campaign_id + "/agent-exchanges" : ""));
             break;
 
         case "kimi_plan":
-            addLogEntry("kimi", text || ("Structured plan received (" + (event.count || 0) + " / " + (event.target_shots || event.count || 0) + " shots)"));
+            addLogEntry(event.profile_color_key || "kimi", text || ("Structured plan received (" + (event.count || 0) + " / " + (event.target_shots || event.count || 0) + " shots)"));
             break;
 
         case "kimi_review": {
             const score = event.score !== undefined ? event.score : "n/a";
             const status = event.status || "unknown";
-            addLogEntry("kimi", "[review] status=" + status + " score=" + score);
+            addLogEntry(event.profile_color_key || "kimi", "[review] status=" + status + " score=" + score);
             if (Array.isArray(event.coverage_gaps) && event.coverage_gaps.length) {
-                addLogEntry("memory", "Kimi coverage gaps: " + event.coverage_gaps.slice(0, 3).join("; "));
+                const critic = event.role_label || "Coverage Critic";
+                addLogEntry("memory", critic + " gaps: " + event.coverage_gaps.slice(0, 3).join("; "));
             }
             if (event.director_notes) {
                 addLogEntry("hermes", "Director notes: " + event.director_notes);
@@ -6690,7 +7201,7 @@ const SHELL_VIEWS = {
     home: { section: "Images", current: "Generation" },
     characters: { section: "Characters", current: "DNA" },
     script: { section: "Script", current: "Director" },
-    products: { section: "Products", current: "Prompt Builder" },
+    products: { section: "Asset Vault", current: "Packages" },
     spark: { section: "Spark", current: "Queue" },
     memory: { section: "Memory", current: "Graph" },
     settings: { section: "Settings", current: "System" },
@@ -6705,6 +7216,8 @@ let shellState = {
     selectedProductId: "",
     productBanks: {},
     productRecipe: null,
+    assetVaultPackages: [],
+    assetVaultCharacters: [],
     variations: [],
 };
 
@@ -6714,6 +7227,7 @@ function getShellView() {
 
 function normalizeProducts(payload) {
     if (Array.isArray(payload)) return payload;
+    if (Array.isArray(payload?.packages)) return payload.packages;
     if (Array.isArray(payload?.products)) return payload.products;
     return [];
 }
@@ -6731,7 +7245,9 @@ function productDescription(product) {
 }
 
 function productImage(product) {
-    return product?.image_url || product?.anchor_url || product?.anchor_src || "";
+    const refs = Array.isArray(product?.references) ? product.references : [];
+    const ref = refs.find((item) => item && item.url);
+    return product?.image_url || product?.anchor_url || product?.anchor_src || ref?.url || "";
 }
 
 function renderProductPreview(product) {
@@ -6741,6 +7257,27 @@ function renderProductPreview(product) {
     }
     const label = productName(product).slice(0, 2).toUpperCase();
     return '<div class="product-preview-fallback"><span>' + escapeHtml(label) + '</span></div>';
+}
+
+async function fetchAssetVaultPackages() {
+    const resp = await fetch("/api/asset-vault/packages");
+    if (!resp.ok) throw new Error("HTTP " + resp.status);
+    const payload = await resp.json();
+    shellState.assetVaultPackages = Array.isArray(payload?.packages) ? payload.packages : [];
+    shellState.products = shellState.assetVaultPackages.map((product) => ({ ...product, id: productId(product) }));
+    if (!shellState.selectedProductId && shellState.products.length) shellState.selectedProductId = shellState.products[0].id;
+    if (shellState.products.length && !shellState.products.some((p) => p.id === shellState.selectedProductId)) {
+        shellState.selectedProductId = shellState.products[0].id;
+    }
+    return shellState.products;
+}
+
+async function fetchAssetVaultCharacters() {
+    const resp = await fetch("/api/characters");
+    if (!resp.ok) throw new Error("HTTP " + resp.status);
+    const payload = await resp.json();
+    shellState.assetVaultCharacters = Array.isArray(payload) ? payload : [];
+    return shellState.assetVaultCharacters;
 }
 
 function renderPortrait(char, size) {
@@ -6843,7 +7380,7 @@ function renderShellPlaceholder(viewId) {
                     '<section class="panel"><div class="panel-header"><div class="title">Quick Actions</div></div><div class="panel-body quick-actions">' +
                         '<button class="quick-action" onclick="navigate(\'characters\')"><span class="title">Character DNA</span><span class="desc">Manage characters and traits</span></button>' +
                         '<button class="quick-action" onclick="navigate(\'script\')"><span class="title">Script Director</span><span class="desc">Plan, edit, and select shots</span></button>' +
-                        '<button class="quick-action" onclick="navigate(\'products\')"><span class="title">Product Builder</span><span class="desc">Compose product prompt recipes</span></button>' +
+                        '<button class="quick-action" onclick="navigate(\'products\')"><span class="title">Asset Vault</span><span class="desc">Manage product, brand, and reference packages</span></button>' +
                         '<button class="quick-action" onclick="navigate(\'spark\')"><span class="title">Spark Queue</span><span class="desc">Review render work</span></button>' +
                     '</div></section>' +
                 '</div>' +
@@ -6954,17 +7491,7 @@ function renderScriptTab() {
 }
 
 async function fetchProducts() {
-    const resp = await fetch("/api/products");
-    if (!resp.ok) throw new Error("HTTP " + resp.status);
-    const payload = await resp.json();
-    shellState.products = normalizeProducts(payload).map((product) => ({ ...product, id: productId(product) }));
-    if (!shellState.selectedProductId && shellState.products.length) {
-        shellState.selectedProductId = shellState.products[0].id;
-    }
-    if (shellState.products.length && !shellState.products.some((p) => p.id === shellState.selectedProductId)) {
-        shellState.selectedProductId = shellState.products[0].id;
-    }
-    return shellState.products;
+    return fetchAssetVaultPackages();
 }
 
 async function fetchProductBanks() {
@@ -6981,22 +7508,22 @@ async function renderProductsTab() {
     view.innerHTML =
         '<div class="view-inner">' +
             '<div class="view-header">' +
-                '<div><div class="eyebrow">Product System</div><h1>Products</h1><p class="sub">Product roster, bank-driven visual recipes, deterministic seeds, and render-ready prompt output.</p></div>' +
-                '<div class="actions"><button class="btn" onclick="renderProductsTab()">Refresh</button><button class="btn btn-primary" onclick="buildProductRecipe()">Build Prompt</button></div>' +
+                '<div><div class="eyebrow">Production Memory</div><h1>Asset Vault</h1><p class="sub">Reusable product, brand, reference, style, and linked character packages for storyboard continuity.</p></div>' +
+                '<div class="actions"><button class="btn" onclick="renderProductsTab()">Refresh</button><button class="btn btn-primary" onclick="createAssetVaultPackage()">New Package</button></div>' +
             '</div>' +
             '<div id="product-error" class="character-error hidden"></div>' +
-            '<div id="product-content" class="character-loading">Loading products...</div>' +
+            '<div id="product-content" class="character-loading">Loading Asset Vault packages...</div>' +
         '</div>';
 
     try {
-        await Promise.all([fetchProducts(), fetchProductBanks()]);
+        await Promise.all([fetchProducts(), fetchProductBanks(), fetchAssetVaultCharacters()]);
         renderProductsContent();
     } catch (e) {
         const err = document.getElementById("product-error");
         const content = document.getElementById("product-content");
         if (err) {
             err.classList.remove("hidden");
-            err.textContent = "Product data unavailable: " + (e?.message || e);
+            err.textContent = "Asset Vault data unavailable: " + (e?.message || e);
         }
         if (content) content.innerHTML = "";
     }
@@ -7009,24 +7536,41 @@ function renderProductsContent() {
     if (selected) shellState.selectedProductId = selected.id;
     const initialName = selected ? productName(selected) : "";
     const initialDescription = selected ? productDescription(selected) : "";
+    const linkedCharacters = selected && Array.isArray(selected.characters) ? selected.characters : [];
+    const selectedType = selected?.asset_type || selected?.element_type || "product";
+    const selectedStatus = selected?.status || "draft";
     content.innerHTML =
         '<div class="product-workspace">' +
             '<aside class="product-sidebar panel">' +
-                '<div class="panel-header"><div class="title">Roster</div><div class="meta">' + shellState.products.length + '</div></div>' +
+                '<div class="panel-header"><div class="title">Packages</div><div class="meta">' + shellState.products.length + '</div></div>' +
                 '<div class="panel-body product-roster">' + renderProductRoster(selected) + '</div>' +
             '</aside>' +
             '<section class="product-main">' +
                 '<div class="product-builder-grid">' +
                     '<section class="panel product-identity-card">' +
-                        '<div class="panel-header"><div class="title">Product Identity</div><div class="meta">descriptor</div></div>' +
+                        '<div class="panel-header"><div class="title">Vault Package</div><div class="meta">' + escapeHtml(selectedType) + '</div></div>' +
                         '<div class="panel-body product-identity-body">' +
                             '<div class="product-preview">' + renderProductPreview(selected || { name: "Product" }) + '</div>' +
                             '<div class="product-form-stack">' +
-                                '<label class="field"><span class="t-label">Product Name</span><input class="input" id="product-name-input" value="' + escapeHtml(initialName) + '" placeholder="Emberdrive Mk-II"></label>' +
-                                '<label class="field"><span class="t-label">Description</span><textarea class="textarea" id="product-description-input" rows="6" placeholder="Describe the physical product, signature details, materials, proportions, and brand cues.">' + escapeHtml(initialDescription) + '</textarea></label>' +
-                                '<label class="product-check"><input type="checkbox" id="product-seed-lock" checked> Deterministic product seed</label>' +
+                                '<label class="field"><span class="t-label">Package Name</span><input class="input" id="product-name-input" value="' + escapeHtml(initialName) + '" placeholder="Aurora Launch Kit"></label>' +
+                                '<div class="form-inline">' +
+                                    '<label class="form-row"><span>Package Type</span><select class="select" id="asset-vault-type">' + renderAssetVaultTypeOptions(selectedType) + '</select></label>' +
+                                    '<label class="form-row"><span>Status</span><select class="select" id="asset-vault-status">' + renderAssetVaultStatusOptions(selectedStatus) + '</select></label>' +
+                                '</div>' +
+                                '<label class="field"><span class="t-label">Description</span><textarea class="textarea" id="product-description-input" rows="6" placeholder="Describe the product, brand rules, style, references, and continuity needs.">' + escapeHtml(initialDescription) + '</textarea></label>' +
+                                '<label class="field"><span class="t-label">Tags</span><input class="input" id="asset-vault-tags" value="' + escapeHtml((selected?.tags || []).join(", ")) + '" placeholder="hero product, launch, continuity"></label>' +
+                                '<label class="product-check"><input type="checkbox" id="product-seed-lock" checked> Deterministic package seed</label>' +
+                                '<div class="product-recipe-actions">' +
+                                    '<button class="btn btn-primary" type="button" onclick="saveAssetVaultPackage()">Save Package</button>' +
+                                    '<button class="btn" type="button" onclick="duplicateAssetVaultPackage()">Duplicate</button>' +
+                                    '<button class="btn btn-secondary" type="button" onclick="deleteAssetVaultPackage()">Delete</button>' +
+                                '</div>' +
                             '</div>' +
                         '</div>' +
+                    '</section>' +
+                    '<section class="panel product-banks-card">' +
+                        '<div class="panel-header"><div class="title">Linked Characters</div><div class="meta">' + linkedCharacters.length + '</div></div>' +
+                        '<div class="panel-body product-bank-grid">' + renderAssetVaultCharacterControls(selected) + '</div>' +
                     '</section>' +
                     '<section class="panel product-banks-card">' +
                         '<div class="panel-header"><div class="title">Variation Banks</div><div class="meta">' + Object.keys(shellState.productBanks).length + ' banks</div></div>' +
@@ -7034,15 +7578,31 @@ function renderProductsContent() {
                     '</section>' +
                 '</div>' +
                 '<section class="panel product-recipe-card">' +
+                    '<div class="panel-header"><div class="title">Production Rules</div><div class="meta">prompt locks</div></div>' +
+                    '<div class="panel-body asset-vault-rule-grid">' +
+                        renderAssetVaultRuleField("brand_rules", "Brand Rules", selected?.brand_rules || "") +
+                        renderAssetVaultRuleField("style_rules", "Style Rules", selected?.style_rules || "") +
+                        renderAssetVaultRuleField("logo_notes", "Logo Notes", selected?.logo_notes || "") +
+                        renderAssetVaultRuleField("font_notes", "Font Notes", selected?.font_notes || "") +
+                        renderAssetVaultRuleField("prop_notes", "Prop Notes", selected?.prop_notes || "") +
+                        renderAssetVaultRuleField("location_notes", "Location Notes", selected?.location_notes || "") +
+                        '<label class="field asset-vault-span-2"><span class="t-label">Notes</span><textarea class="textarea" id="asset-vault-notes" rows="3" placeholder="Any extra package-level continuity instructions.">' + escapeHtml(selected?.notes || "") + '</textarea></label>' +
+                    '</div>' +
+                '</section>' +
+                '<section class="panel product-recipe-card">' +
+                    '<div class="panel-header"><div class="title">Package Assets</div><div class="meta">' + (Array.isArray(selected?.references) ? selected.references.length : 0) + ' refs</div></div>' +
+                    '<div class="panel-body">' + renderAssetVaultReferenceEditor(selected) + '</div>' +
+                '</section>' +
+                '<section class="panel product-recipe-card">' +
                     '<div class="panel-header"><div class="title">Prompt Recipe</div><div class="meta" id="product-recipe-meta">not built</div></div>' +
                     '<div class="panel-body">' +
                         '<textarea class="textarea product-prompt-output" id="product-prompt-output" readonly placeholder="Build a prompt to preview the compiled recipe."></textarea>' +
-                        '<div class="product-recipe-actions"><button class="btn" onclick="copyProductPrompt()">Copy Prompt</button><span class="t-meta" id="product-copy-status"></span></div>' +
+                        '<div class="product-recipe-actions"><button class="btn btn-primary" onclick="buildProductRecipe()">Build Prompt</button><button class="btn" onclick="copyProductPrompt()">Copy Prompt</button><span class="t-meta" id="product-copy-status"></span></div>' +
                     '</div>' +
                 '</section>' +
                 '<section class="panel product-gallery-card">' +
-                    '<div class="panel-header"><div class="title">Product Variation Gallery</div><div class="meta">renders</div></div>' +
-                    '<div class="panel-body product-gallery-empty">No product renders loaded.</div>' +
+                    '<div class="panel-header"><div class="title">Package Variation Gallery</div><div class="meta">renders</div></div>' +
+                    '<div class="panel-body product-gallery-empty">No package renders loaded.</div>' +
                 '</section>' +
             '</section>' +
         '</div>';
@@ -7050,7 +7610,7 @@ function renderProductsContent() {
 
 function renderProductRoster(selected) {
     if (!shellState.products.length) {
-        return '<div class="product-empty">No configured products. Use the custom identity editor to compile a product prompt.</div>';
+        return '<div class="product-empty">No Asset Vault packages yet. Create a package, then link products, references, and characters.</div>';
     }
     return shellState.products.map((product) => {
         const active = selected && product.id === selected.id ? " active" : "";
@@ -7061,6 +7621,298 @@ function renderProductRoster(selected) {
             '</button>'
         );
     }).join("");
+}
+
+function renderAssetVaultTypeOptions(current) {
+    const types = [
+        ["product", "Product"],
+        ["brand", "Brand"],
+        ["logo", "Logo"],
+        ["font", "Font"],
+        ["style", "Style"],
+        ["prop", "Prop"],
+        ["location", "Location"],
+        ["reference", "Reference"],
+        ["mixed", "Mixed Package"],
+    ];
+    return types.map(([value, label]) => '<option value="' + value + '"' + (value === current ? " selected" : "") + '>' + label + '</option>').join("");
+}
+
+function renderAssetVaultStatusOptions(current) {
+    const statuses = [
+        ["draft", "Draft"],
+        ["needs_review", "Needs Review"],
+        ["production_approved", "Production Approved"],
+        ["archived", "Archived"],
+    ];
+    return statuses.map(([value, label]) => '<option value="' + value + '"' + (value === current ? " selected" : "") + '>' + label + '</option>').join("");
+}
+
+function renderAssetVaultRuleField(id, label, value) {
+    return '<label class="field"><span class="t-label">' + escapeHtml(label) + '</span><textarea class="textarea" id="asset-vault-' + escapeHtml(id) + '" rows="3">' + escapeHtml(value || "") + '</textarea></label>';
+}
+
+function renderAssetVaultReferenceEditor(selected) {
+    const refs = Array.isArray(selected?.references) ? selected.references : [];
+    const rows = refs.map((ref, index) => renderAssetVaultReferenceRow(ref, index)).join("");
+    return (
+        '<div class="asset-vault-reference-editor">' +
+            '<div class="asset-reference-row">' +
+                '<select class="select" id="asset-vault-upload-type">' + renderAssetVaultReferenceTypeOptions("reference") + '</select>' +
+                '<input class="input" id="asset-vault-upload-name" placeholder="Uploaded asset name">' +
+                '<input class="input" type="file" id="asset-vault-upload-file" accept="image/*,.ttf,.otf,.woff,.woff2,.pdf">' +
+                '<input class="input" id="asset-vault-upload-prompt" placeholder="Prompt lock / notes for uploaded asset">' +
+                '<button class="btn" type="button" onclick="uploadAssetVaultReference()">Upload</button>' +
+            '</div>' +
+            '<div id="asset-vault-reference-rows">' + (rows || '<div class="product-empty">No assets yet. Add logos, product refs, font notes, style refs, props, or locations.</div>') + '</div>' +
+            '<div class="product-recipe-actions"><button class="btn" type="button" onclick="addAssetVaultReferenceRow()">Add Asset Reference</button></div>' +
+        '</div>'
+    );
+}
+
+function renderAssetVaultReferenceRow(ref, index) {
+    const currentType = ref?.type || "reference";
+    return (
+        '<div class="asset-reference-row" data-index="' + Number(index) + '">' +
+            '<select class="select asset-reference-type">' + renderAssetVaultReferenceTypeOptions(currentType) + '</select>' +
+            '<input class="input asset-reference-name" value="' + escapeHtml(ref?.name || "") + '" placeholder="Name">' +
+            '<input class="input asset-reference-url" value="' + escapeHtml(ref?.url || "") + '" placeholder="/media-assets/... or URL">' +
+            '<textarea class="textarea asset-reference-prompt" rows="2" placeholder="Prompt lock / visual notes">' + escapeHtml(ref?.prompt || ref?.notes || "") + '</textarea>' +
+            '<button class="btn btn-secondary" type="button" onclick="removeAssetVaultReferenceRow(this)">Remove</button>' +
+        '</div>'
+    );
+}
+
+function renderAssetVaultReferenceTypeOptions(current) {
+    const types = ["product", "logo", "font", "style", "prop", "location", "image", "brand", "reference"];
+    return types.map((type) => '<option value="' + type + '"' + (type === current ? " selected" : "") + '>' + type + '</option>').join("");
+}
+
+function addAssetVaultReferenceRow() {
+    const holder = document.getElementById("asset-vault-reference-rows");
+    if (!holder) return;
+    if (holder.querySelector(".product-empty")) holder.innerHTML = "";
+    holder.insertAdjacentHTML("beforeend", renderAssetVaultReferenceRow({ type: "reference" }, holder.querySelectorAll(".asset-reference-row").length));
+}
+
+function removeAssetVaultReferenceRow(button) {
+    const row = button?.closest?.(".asset-reference-row");
+    if (row) row.remove();
+}
+
+function collectAssetVaultReferences() {
+    return Array.from(document.querySelectorAll(".asset-reference-row")).map((row, index) => ({
+        id: "ref_" + String(index + 1),
+        type: row.querySelector(".asset-reference-type")?.value || "reference",
+        name: row.querySelector(".asset-reference-name")?.value.trim() || "Reference " + String(index + 1),
+        url: row.querySelector(".asset-reference-url")?.value.trim() || "",
+        prompt: row.querySelector(".asset-reference-prompt")?.value.trim() || "",
+    })).filter((ref) => ref.name || ref.url || ref.prompt);
+}
+
+function selectedAssetVaultPackage() {
+    return shellState.products.find((p) => p.id === shellState.selectedProductId) || shellState.products[0] || null;
+}
+
+function collectAssetVaultPackagePayload(selected) {
+    const name = document.getElementById("product-name-input")?.value.trim() || selected?.name || "Untitled Package";
+    const assetType = document.getElementById("asset-vault-type")?.value || selected?.asset_type || "product";
+    const tags = (document.getElementById("asset-vault-tags")?.value || "")
+        .split(/[,;\n]+/)
+        .map((tag) => tag.trim())
+        .filter(Boolean);
+    return {
+        name,
+        description: document.getElementById("product-description-input")?.value.trim() || "",
+        kind: selected?.kind || "package",
+        element_type: assetType,
+        asset_type: assetType,
+        status: document.getElementById("asset-vault-status")?.value || selected?.status || "draft",
+        tags,
+        character_ids: Array.isArray(selected?.character_ids) ? selected.character_ids : [],
+        character_refs: Array.isArray(selected?.character_refs) ? selected.character_refs : [],
+        references: collectAssetVaultReferences(),
+        brand_rules: document.getElementById("asset-vault-brand_rules")?.value.trim() || "",
+        style_rules: document.getElementById("asset-vault-style_rules")?.value.trim() || "",
+        logo_notes: document.getElementById("asset-vault-logo_notes")?.value.trim() || "",
+        font_notes: document.getElementById("asset-vault-font_notes")?.value.trim() || "",
+        prop_notes: document.getElementById("asset-vault-prop_notes")?.value.trim() || "",
+        location_notes: document.getElementById("asset-vault-location_notes")?.value.trim() || "",
+        notes: document.getElementById("asset-vault-notes")?.value.trim() || "",
+    };
+}
+
+function renderAssetVaultCharacterControls(selected) {
+    if (!selected) return '<div class="product-empty">Create or select a package before linking characters.</div>';
+    const linked = Array.isArray(selected.characters) ? selected.characters : [];
+    const linkedHtml = linked.length
+        ? '<div class="character-reference-strip">' + linked.map((char) => (
+            '<figure class="character-reference-thumb">' +
+                (char.anchor_url ? '<img src="' + escapeHtml(char.anchor_url) + '" alt="' + escapeHtml(char.name || char.id || "Character") + '">' : '<div class="product-preview-fallback"><span>' + escapeHtml(String(char.name || char.id || "C").slice(0, 2).toUpperCase()) + '</span></div>') +
+                '<figcaption>' + escapeHtml(char.name || char.id || "Character") + '<br><small>' + escapeHtml(char.vault_role || "reference") + '</small></figcaption>' +
+                '<button class="btn btn-secondary" type="button" onclick="removeCharacterFromAssetVaultPackage(\'' + escapeHtml(char.id || "") + '\')">Remove</button>' +
+            '</figure>'
+        )).join("") + '</div>'
+        : '<div class="product-empty">No linked characters. Characters remain managed in the Characters tab.</div>';
+    const options = shellState.assetVaultCharacters.map((char) => {
+        const cid = char.id || "";
+        const label = (char.name || cid) + (char.role ? " / " + char.role : "");
+        return '<option value="' + escapeHtml(cid) + '">' + escapeHtml(label) + '</option>';
+    }).join("");
+    return (
+        '<div class="asset-vault-character-link">' +
+            linkedHtml +
+            '<div class="product-recipe-actions">' +
+                '<select class="select" id="asset-vault-character-select">' + (options || '<option value="">No characters found</option>') + '</select>' +
+                '<input class="input" id="asset-vault-character-role" value="reference" placeholder="package role">' +
+                '<input class="input" id="asset-vault-character-notes" placeholder="continuity note">' +
+                '<button class="btn" type="button" onclick="addCharacterToAssetVaultPackage()">Add Character Reference</button>' +
+            '</div>' +
+        '</div>'
+    );
+}
+
+async function createAssetVaultPackage() {
+    const name = "Untitled Package " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    try {
+        const resp = await fetch("/api/asset-vault/packages", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                name,
+                description: "",
+                element_type: "product",
+                asset_type: "product",
+                character_ids: [],
+                character_refs: [],
+                references: [],
+                tags: [],
+            }),
+        });
+        const data = await resp.json();
+        if (!resp.ok || data.status !== "ok") throw new Error(data.detail || data.error || "create failed");
+        shellState.selectedProductId = data.package?.id || "";
+        await renderProductsTab();
+    } catch (e) {
+        showToast("Asset Vault create failed: " + (e?.message || e), "err");
+    }
+}
+
+async function saveAssetVaultPackage() {
+    const selected = selectedAssetVaultPackage();
+    if (!selected) return;
+    try {
+        const resp = await fetch("/api/asset-vault/packages/" + encodeURIComponent(selected.id), {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(collectAssetVaultPackagePayload(selected)),
+        });
+        const data = await resp.json();
+        if (!resp.ok || data.status !== "ok") throw new Error(data.detail || data.error || "save failed");
+        shellState.selectedProductId = data.package?.id || selected.id;
+        await fetchAssetVaultPackages();
+        renderProductsContent();
+        await loadStoryboardAssetVaultPackages();
+        showToast("Asset Vault package saved.", "ok");
+    } catch (e) {
+        showToast("Asset Vault save failed: " + (e?.message || e), "err");
+    }
+}
+
+async function duplicateAssetVaultPackage() {
+    const selected = selectedAssetVaultPackage();
+    if (!selected) return;
+    try {
+        const resp = await fetch("/api/asset-vault/packages/" + encodeURIComponent(selected.id) + "/duplicate", { method: "POST" });
+        const data = await resp.json();
+        if (!resp.ok || data.status !== "ok") throw new Error(data.detail || data.error || "duplicate failed");
+        shellState.selectedProductId = data.package?.id || "";
+        await fetchAssetVaultPackages();
+        renderProductsContent();
+        await loadStoryboardAssetVaultPackages();
+    } catch (e) {
+        showToast("Asset Vault duplicate failed: " + (e?.message || e), "err");
+    }
+}
+
+async function uploadAssetVaultReference() {
+    const selected = selectedAssetVaultPackage();
+    const fileEl = document.getElementById("asset-vault-upload-file");
+    const file = fileEl?.files?.[0];
+    if (!selected || !file) return;
+    const form = new FormData();
+    form.append("file", file);
+    form.append("asset_type", document.getElementById("asset-vault-upload-type")?.value || "reference");
+    form.append("name", document.getElementById("asset-vault-upload-name")?.value.trim() || file.name);
+    form.append("prompt", document.getElementById("asset-vault-upload-prompt")?.value.trim() || "");
+    try {
+        const resp = await fetch("/api/asset-vault/packages/" + encodeURIComponent(selected.id) + "/references/upload", {
+            method: "POST",
+            body: form,
+        });
+        const data = await resp.json();
+        if (!resp.ok || data.status !== "ok") throw new Error(data.detail || data.error || "upload failed");
+        await fetchAssetVaultPackages();
+        renderProductsContent();
+        await loadStoryboardAssetVaultPackages();
+    } catch (e) {
+        showToast("Asset upload failed: " + (e?.message || e), "err");
+    }
+}
+
+async function deleteAssetVaultPackage() {
+    const selected = selectedAssetVaultPackage();
+    if (!selected) return;
+    if (!window.confirm("Delete Asset Vault package '" + productName(selected) + "'?")) return;
+    try {
+        const resp = await fetch("/api/asset-vault/packages/" + encodeURIComponent(selected.id), { method: "DELETE" });
+        const data = await resp.json();
+        if (!resp.ok || data.status !== "ok") throw new Error(data.detail || data.error || "delete failed");
+        shellState.selectedProductId = "";
+        await fetchAssetVaultPackages();
+        renderProductsContent();
+        await loadStoryboardAssetVaultPackages();
+    } catch (e) {
+        showToast("Asset Vault delete failed: " + (e?.message || e), "err");
+    }
+}
+
+async function addCharacterToAssetVaultPackage() {
+    const selected = selectedAssetVaultPackage();
+    const charId = document.getElementById("asset-vault-character-select")?.value || "";
+    if (!selected || !charId) return;
+    try {
+        const resp = await fetch("/api/asset-vault/packages/" + encodeURIComponent(selected.id) + "/characters/" + encodeURIComponent(charId), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                role: document.getElementById("asset-vault-character-role")?.value.trim() || "reference",
+                notes: document.getElementById("asset-vault-character-notes")?.value.trim() || "",
+            }),
+        });
+        const data = await resp.json();
+        if (!resp.ok || data.status !== "ok") throw new Error(data.detail || data.error || "link failed");
+        await fetchAssetVaultPackages();
+        renderProductsContent();
+    } catch (e) {
+        showToast("Character link failed: " + (e?.message || e), "err");
+    }
+}
+
+async function removeCharacterFromAssetVaultPackage(charId) {
+    const selected = selectedAssetVaultPackage();
+    if (!selected || !charId) return;
+    try {
+        const resp = await fetch("/api/asset-vault/packages/" + encodeURIComponent(selected.id) + "/characters/" + encodeURIComponent(charId), {
+            method: "DELETE",
+        });
+        const data = await resp.json();
+        if (!resp.ok || data.status !== "ok") throw new Error(data.detail || data.error || "unlink failed");
+        await fetchAssetVaultPackages();
+        renderProductsContent();
+    } catch (e) {
+        showToast("Character unlink failed: " + (e?.message || e), "err");
+    }
 }
 
 function renderProductBankControls() {
@@ -7194,20 +8046,30 @@ function renderSettingsTab() {
                     <div class="panel-header"><div class="title"><span class="settings-step">2</span> Cloud Director API</div><div class="meta">optional</div></div>
                     <div class="panel-body">
                         <p class="card-desc">Remote API used for director planning when API mode is active.</p>
+                        <div class="settings-mode-row settings-local-director-row">
+                            <span class="backend-label">NVIDIA Director</span>
+                            <label class="toggle" title="Route Director Planner and self-check through LM Studio">
+                                <input type="checkbox" id="cfg-director-use-local" onchange="onDirectorLocalToggle()">
+                                <span class="slider"></span>
+                            </label>
+                            <span class="backend-label">(local) LM Studio Director</span>
+                        </div>
                         <div class="settings-form-grid settings-form-grid-single">
                             <label class="form-row"><span>API Key</span><input class="input" type="password" id="cfg-kimi-api-key" placeholder="Bearer token..." onchange="markDirty('kimi.api_key')"></label>
                             <label class="form-row"><span>Provider Endpoint</span><input class="input" type="text" id="cfg-kimi-endpoint" placeholder="https://integrate.api.nvidia.com/v1/chat/completions" onchange="markDirty('kimi.endpoint')"></label>
-                            <label class="form-row"><span>Director Model</span><input class="input" type="text" id="cfg-director-model" placeholder="moonshotai/kimi-k2-instruct" onchange="markDirty('models.director_kimi.model_name')"></label>
+                            <label class="form-row"><span>Director Model</span><input class="input" type="text" id="cfg-director-model" placeholder="moonshotai/kimi-k2.6" onchange="markDirty('models.director_kimi.model_name')"></label>
                             <label class="form-row"><span>Director Endpoint</span><input class="input" type="text" id="cfg-director-endpoint-api1" placeholder="https://integrate.api.nvidia.com/v1/chat/completions" onchange="markDirty('models.director_kimi.endpoint_api1')"></label>
                         </div>
-                        <div class="card-actions">
-                            <button class="btn" onclick="testProvider()">Test Provider</button>
-                            <button class="btn" onclick="testDirector()">Test Director</button>
-                        </div>
-                        <div class="settings-result-grid">
-                            <div id="kimi-test-result" class="test-result"></div>
-                            <div id="director-test-result" class="test-result"></div>
-                        </div>
+	                        <div class="card-actions">
+	                            <button class="btn" onclick="testProvider()">Test Provider</button>
+	                            <button class="btn" onclick="testDirector()">Test Director</button>
+	                            <button class="btn" onclick="testDirectorSelfCheck()">Test Self-Check</button>
+	                        </div>
+	                        <div class="settings-result-grid">
+	                            <div id="kimi-test-result" class="test-result"></div>
+	                            <div id="director-test-result" class="test-result"></div>
+	                            <div id="director-self-check-result" class="test-result"></div>
+	                        </div>
                     </div>
                 </section>
 
@@ -7217,8 +8079,6 @@ function renderSettingsTab() {
                         <p class="card-desc">Spark and ComfyUI endpoints used by image and video generation.</p>
                         <div class="settings-form-grid settings-form-grid-single">
                             <label class="form-row"><span>Spark Primary WebSocket</span><input class="input" type="text" id="cfg-spark-primary" placeholder="ws://localhost:8000" onchange="markDirty('spark.primary')"></label>
-                            <label class="form-row"><span>Spark Secondary WebSocket</span><input class="input" type="text" id="cfg-spark-secondary" placeholder="ws://localhost:8001" onchange="markDirty('spark.secondary')"></label>
-                            <label class="form-row"><span>Spark Workflow File</span><input class="input" type="text" id="cfg-spark-workflow" placeholder="workflows/01_flux2_text_to_image.json" onchange="markDirty('spark.workflow_file')"></label>
                             <label class="form-row"><span>ComfyUI Primary</span><input class="input" type="text" id="cfg-comfyui-primary" placeholder="http://localhost:8188" onchange="markDirty('comfyui.primary')"></label>
                             <label class="form-row"><span>ComfyUI Secondary</span><input class="input" type="text" id="cfg-comfyui-secondary" placeholder="http://localhost:8189" onchange="markDirty('comfyui.secondary')"></label>
                         </div>
@@ -7232,8 +8092,24 @@ function renderSettingsTab() {
                     </div>
                 </section>
 
+                <section class="panel settings-panel">
+                    <div class="panel-header"><div class="title"><span class="settings-step">4</span> Storyboard Image Models</div><div class="meta">Script only</div></div>
+                    <div class="panel-body">
+                        <p class="card-desc">Used only by Script → Storyboard. Main Images, Characters, Videos, and remediation stay on Spark/ComfyUI.</p>
+                        <div class="settings-form-grid settings-form-grid-single">
+                            <label class="form-row"><span>Default Storyboard Model</span><select class="select" id="cfg-storyboard-provider" onchange="markDirty('storyboard_images.default_provider')"><option value="spark:flux2_dev">Spark / Flux2.Dev</option><option value="spark:flux2_klein">Spark / Flux2 Klein</option><option value="spark:z_image">Spark / Z-Image</option><option value="spark:z_image_turbo">Spark / Z-Image Turbo</option><option value="openai">OpenAI Image</option><option value="gemini">Nano Banana</option></select></label>
+                            <label class="form-row"><span>OpenAI API Key</span><input class="input" type="password" id="cfg-openai-api-key" placeholder="OpenAI API key..." onchange="markDirty('storyboard_images.openai_api_key')"></label>
+                            <label class="form-row"><span>OpenAI Image Model</span><input class="input" type="text" id="cfg-openai-image-model" placeholder="gpt-image-2" onchange="markDirty('storyboard_images.openai_model')"></label>
+	                            <label class="form-row"><span>Gemini API Key</span><input class="input" type="password" id="cfg-gemini-api-key" placeholder="Google AI Studio key..." onchange="markDirty('storyboard_images.gemini_api_key')"></label>
+	                            <label class="form-row"><span>Nano Banana Model</span><input class="input" type="text" id="cfg-gemini-image-model" placeholder="gemini-2.5-flash-image" onchange="markDirty('storyboard_images.gemini_model')"></label>
+	                        </div>
+	                        <div class="card-actions"><button class="btn" onclick="testStoryboardProviders()">Check Storyboard Providers</button></div>
+	                        <div id="storyboard-provider-test-result" class="test-result"></div>
+	                    </div>
+	                </section>
+
                 <section class="panel settings-panel settings-card-wide bank-editor-card">
-                    <div class="panel-header"><div class="title"><span class="settings-step">4</span> Bank Editor</div><div class="meta">prompt variation banks</div></div>
+                    <div class="panel-header"><div class="title"><span class="settings-step">5</span> Bank Editor</div><div class="meta">prompt variation banks</div></div>
                     <div class="panel-body">
                         <p class="card-desc">Default prompt bank entries used by character variation templates.</p>
                         <div class="settings-bank-grid">

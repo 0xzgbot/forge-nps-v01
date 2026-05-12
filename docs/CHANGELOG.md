@@ -47,7 +47,7 @@ Current local workspace note:
 - Refreshed the dashboard command center with a denser dark production-console layout.
 - Added an **Ideas** tab with a Hermes idea board / kanban view grouped by production stage.
 - Removed the standalone **Models** tab. Model and provider configuration remain in Settings.
-- Kept Home, Ideas, Characters, Script, Products, Renders, Memory, and Settings as the active sidebar navigation.
+- Kept Home, Ideas, Characters, Script, Asset Vault, Renders, Memory, and Settings as the active sidebar navigation.
 - Added responsive/mobile handling for the idea board and dashboard panes.
 
 ### Prompt Generation Controls
