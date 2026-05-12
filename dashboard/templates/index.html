@@ -1439,11 +1439,13 @@
             flex-wrap: wrap;
         }
         .script-flow {
-            display: grid;
-            grid-template-columns: minmax(340px, 0.9fr) minmax(420px, 1.1fr);
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
             gap: 14px;
             padding-top: 14px;
             min-height: 0;
+            overflow: visible;
         }
         .script-panel {
             min-width: 0;
@@ -1517,6 +1519,7 @@
             flex-direction: column;
             gap: 12px;
             padding: 14px;
+            overflow: visible;
         }
         .script-brief-panel .script-panel-head {
             margin: -14px -14px 0;
@@ -1567,7 +1570,19 @@
             display: flex;
             flex-direction: column;
             gap: 6px;
-            flex: 1 1 220px;
+            flex: 1 1 260px;
+            min-width: min(100%, 260px);
+        }
+        .script-brief-panel .script-action-row {
+            display: grid;
+            grid-template-columns: minmax(260px, 1fr) minmax(180px, max-content) minmax(160px, max-content);
+            align-items: end;
+            gap: 12px;
+            justify-content: stretch;
+        }
+        .script-brief-panel .script-action-row .btn {
+            width: 100%;
+            min-height: 48px;
         }
         .script-project-shell {
             display: grid;
@@ -2227,6 +2242,7 @@
         }
         @media (max-width: 1100px) {
             .script-flow,
+            .script-brief-panel .script-action-row,
             .script-project-shell,
             .script-grid-2 {
                 grid-template-columns: 1fr;
@@ -3843,7 +3859,7 @@
             overflow: visible;
         }
         #script-view .script-panel {
-            overflow: hidden;
+            overflow: visible;
             width: 100%;
             box-sizing: border-box;
         }
