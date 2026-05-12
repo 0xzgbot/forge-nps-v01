@@ -2513,7 +2513,9 @@ def _fallback_script_package(req: ScriptDevelopRequest) -> Dict[str, Any]:
                 {
                     "beat_id": beat_a,
                     "action": f"{label}: establish the visible stakes from the brief.",
-                    "dialogue": "",
+                    "dialogue": "Hero: Wait. Did that just move?",
+                    "audio_cue": "immediate curiosity sting, close foreground breath, environment drops slightly under the line",
+                    "performance": "deliver as a low, urgent hook that makes the viewer lean in within the first two seconds",
                     "characters": ["Hero"],
                     "continuity": {
                         "wardrobe": "locked hero wardrobe from continuity panel",
@@ -2524,7 +2526,9 @@ def _fallback_script_package(req: ScriptDevelopRequest) -> Dict[str, Any]:
                 {
                     "beat_id": beat_b,
                     "action": "Turn the scene into a concrete visual decision that sets up the next scene.",
-                    "dialogue": "",
+                    "dialogue": "Hero: If I am wrong, why is it answering me?",
+                    "audio_cue": "tight rhythmic pulse, prop detail sound, subtle rising room tone into the cut",
+                    "performance": "confident but unsettled, with a clear emotional turn at the end of the line",
                     "characters": ["Hero"],
                     "continuity": {
                         "wardrobe": "same as previous beat",
@@ -2774,6 +2778,13 @@ def _storyboard_panels_from_package(package: Dict[str, Any], target_panels: Opti
                 scenes.extend([s for s in act["scenes"] if isinstance(s, dict)])
     continuity = package.get("continuity", {}) if isinstance(package.get("continuity"), dict) else {}
     continuity_text = _short_text(json.dumps(continuity, ensure_ascii=True), 520)
+    edit_plan = package.get("edit_plan", {}) if isinstance(package.get("edit_plan"), dict) else {}
+    audio_strategy = str(edit_plan.get("audio_strategy") or "").strip()
+    character_performance = "; ".join([
+        f"{c.get('name')}: {c.get('performance')}"
+        for c in continuity.get("characters", [])
+        if isinstance(c, dict) and (c.get("name") or c.get("performance"))
+    ])
     for scene in scenes:
         beats = scene.get("beats", [])
         if not isinstance(beats, list) or not beats:
@@ -2783,6 +2794,9 @@ def _storyboard_panels_from_package(package: Dict[str, Any], target_panels: Opti
                 continue
             panel_num = len(panels) + 1
             continuity_lock = beat.get("continuity", {}) if isinstance(beat.get("continuity"), dict) else {}
+            dialogue = _short_text(str(beat.get("dialogue") or ""), 260)
+            audio_cue = _short_text(str(beat.get("audio_cue") or scene.get("audio_cue") or audio_strategy or ""), 300)
+            performance = _short_text(str(beat.get("performance") or scene.get("performance") or character_performance or ""), 320)
             panels.append({
                 "panel_id": f"PANEL_{panel_num:03d}",
                 "scene_id": str(scene.get("scene_id") or ""),
@@ -2793,7 +2807,10 @@ def _storyboard_panels_from_package(package: Dict[str, Any], target_panels: Opti
                 "camera": "filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle",
                 "lighting": str(scene.get("time_of_day") or "motivated source-based light with consistent shadow direction"),
                 "mood": str(scene.get("emotional_turn") or "narrative tension"),
-                "text": _short_text(beat.get("dialogue") or beat.get("action") or scene.get("emotional_turn") or "", 120),
+                "text": _short_text(dialogue or beat.get("action") or scene.get("emotional_turn") or "", 120),
+                "dialogue": dialogue,
+                "audio_prompt": audio_cue,
+                "performance_direction": performance,
                 "continuity": _short_text(json.dumps(continuity_lock, ensure_ascii=True), 260),
                 "visual_prompt": (
                     f"{beat.get('action') or scene.get('emotional_turn') or 'story beat'}. "
@@ -3095,18 +3112,43 @@ def _storyboard_edit_role(sequence: int, total: int, panel: Dict[str, Any]) -> s
     return "continuity coverage beat"
 
 
+def _ltx_dialogue_sentence(dialogue: str) -> str:
+    text = _short_text(str(dialogue or "").strip(), 220)
+    if not text:
+        return "none; silent acting only, do not invent spoken words"
+    speaker = "The character"
+    line = text
+    if ":" in text:
+        left, right = text.split(":", 1)
+        if left.strip() and right.strip():
+            speaker = left.strip()
+            line = right.strip()
+    line = line.strip().strip('"')
+    return f'{speaker}: "{line}"'
+
+
 def _storyboard_motion_prompt(panel: Dict[str, Any], sequence: int, total: int, edit_role: str) -> str:
     camera = str(panel.get("camera") or "subtle cinematic camera move").strip()
     action = _short_text(str(panel.get("visual_prompt") or panel.get("caption") or "Continue the scene from this frame."), 420)
     continuity = _short_text(str(panel.get("continuity") or "preserve wardrobe, subject identity, props, lighting, and screen direction"), 240)
+    dialogue = _short_text(str(panel.get("dialogue") or ""), 260)
+    audio_prompt = _short_text(str(panel.get("audio_prompt") or ""), 320)
+    performance = _short_text(str(panel.get("performance_direction") or ""), 320)
+    dialogue_line = _ltx_dialogue_sentence(dialogue)
+    audio_line = audio_prompt or "natural location ambience and motivated foley only"
+    performance_line = performance or "subtle, readable acting timed to the spoken or silent beat"
     return (
-        f"Use this image as the first frame for shot {sequence} of {total}. "
-        f"Animate the scripted beat: {action} "
-        f"Camera direction: {camera}; controlled cinematic motion, no abrupt reframing. "
-        f"Edit role: {edit_role}. "
+        f"LTX 2.3 short shot prompt. Shot {sequence} of {total}; edit role: {edit_role}. "
+        f"Use the supplied image as the locked first frame. "
+        f"Visual action: {action} "
+        f"Exact dialogue: {dialogue_line}. "
+        f"Audio cue: {audio_line}. "
+        f"Performance: {performance_line}. "
+        f"Camera: {camera}; controlled cinematic motion, no abrupt reframing. "
         f"Continuity lock: {continuity}. "
-        "Preserve character identity, wardrobe, props, lighting, lens feel, and location geometry. "
-        "Natural motion only, no morphing, no new characters, no text overlays, no cuts inside the clip."
+        "Generate synchronized audio for this short clip from the dialogue and audio cue only. "
+        "Do not add extra dialogue, subtitles, captions, text overlays, new characters, morphing, or cuts inside the clip. "
+        "Preserve character identity, wardrobe, props, lighting, lens feel, and location geometry."
     )
 
 
@@ -3159,6 +3201,9 @@ def _export_storyboard_video_shots(req: ScriptStoryboardVideoExportRequest) -> D
             "start_frame_url": url,
             "video_prompt": video_prompt,
             "video_prompt_source": "storyboard_export",
+            "dialogue": str(panel.get("dialogue") or ""),
+            "audio_prompt": str(panel.get("audio_prompt") or ""),
+            "performance_direction": str(panel.get("performance_direction") or ""),
             "duration_sec": duration,
             "scene_id": str(panel.get("scene_id") or ""),
             "beat_id": str(panel.get("beat_id") or ""),
@@ -3842,7 +3887,9 @@ async def _request_script_package(req: ScriptDevelopRequest) -> Dict[str, Any]:
                     "beats": [{
                         "beat_id": "SC_001_B01",
                         "action": "string",
-                        "dialogue": "string",
+                        "dialogue": "string; compelling spoken line or nonverbal vocalization that hooks attention and reveals character intent",
+                        "audio_cue": "string; sound design, ambience, music, silence, breath, foley, or voice treatment for this beat",
+                        "performance": "string; delivery, timing, subtext, and emotional shift for the actor or character",
                         "characters": ["string"],
                         "continuity": {
                             "wardrobe": "string",
@@ -3868,7 +3915,8 @@ async def _request_script_package(req: ScriptDevelopRequest) -> Dict[str, Any]:
     system_prompt = (
         "You are Hermes Script Architect for FORGE NPS. Return only valid JSON. "
         "Your job is not to make isolated pretty shots; produce a locked script package "
-        "that can be converted into scene-by-scene coverage for a cohesive movie edit."
+        "that can be converted into scene-by-scene coverage for a cohesive movie edit. "
+        "Dialogue must be cinematic, immediate, and playable: every spoken line should create curiosity, conflict, reversal, or emotional pressure."
     )
     user_prompt = (
         f"title: {title}\n"
@@ -3876,8 +3924,11 @@ async def _request_script_package(req: ScriptDevelopRequest) -> Dict[str, Any]:
         f"target_scenes: {scene_count}\n"
         f"tone: {(req.tone or 'unspecified').strip()}\n"
         f"brief:\n{(req.brief or '').strip()}\n\n"
-        "Write a structured screenplay package. Every scene must include concrete beats, "
-        "continuity locks, emotional turns, edit pacing, audio strategy, and transitions. "
+        "Write a structured screenplay package with hook-first dialogue. The first beat must grab attention within 2 seconds. "
+        "Every spoken line must be short, specific, performable, and emotionally loaded; avoid generic exposition. "
+        "If a beat is silent, use nonverbal vocalization or sound design intentionally instead of leaving the moment empty. "
+        "Every scene must include concrete beats, continuity locks, emotional turns, edit pacing, audio strategy, transitions, "
+        "per-beat dialogue, per-beat audio_cue, and per-beat performance direction. "
         "Keep output concise enough for downstream shot planning.\n\n"
         f"Required JSON schema:\n{json.dumps(schema_hint, indent=2)}"
     )
