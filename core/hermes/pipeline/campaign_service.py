@@ -305,6 +305,26 @@ class HermesCampaignService:
         tmp.write_text(json.dumps(metadata, ensure_ascii=True, indent=2), encoding="utf-8")
         tmp.replace(metadata_path)
 
+    def _attach_rendered_image(self, shot_record: Dict[str, Any], image_path: str) -> None:
+        shot_record["image_path"] = image_path
+        try:
+            rel = Path(image_path).resolve().relative_to(self.media_images.resolve())
+            shot_record["image_url"] = f"/external-renders/{rel.as_posix()}"
+        except Exception:
+            shot_record["image_url"] = f"/external-renders/{Path(image_path).name}"
+        try:
+            self._persist_media_shot_metadata(shot_record)
+        except Exception as e:
+            self.record_event(
+                "render_metadata_persist_failed",
+                shot_id=str(shot_record.get("id") or ""),
+                campaign_id=str(shot_record.get("campaign_id") or ""),
+                workflow_id=str(shot_record.get("workflow_id") or ""),
+                source=str(shot_record.get("source") or ""),
+                success=False,
+                extra={"reason": str(e)},
+            )
+
     @staticmethod
     def _exc_reason(e: Exception) -> str:
         msg = str(e).strip()
@@ -316,6 +336,130 @@ class HermesCampaignService:
         if rep and rep != f"{cls}()":
             return f"{cls}: {rep}"
         return cls or "unknown_error"
+
+    async def _audit_completed_shot(self, shot_record: Dict[str, Any]) -> AsyncIterator[Dict[str, Any]]:
+        record_id = str(shot_record.get("id") or "")
+        campaign_id = str(shot_record.get("campaign_id") or "")
+        workflow_id = str(shot_record.get("workflow_id") or "")
+        source = str(shot_record.get("source") or "campaign")
+        shot_id = str(shot_record.get("shot_id") or record_id)
+        image_path = str(shot_record.get("image_path") or "")
+        if not image_path:
+            return
+
+        transition_shot(shot_record, "audit_started")
+        self.record_event("audit_started", shot_id=record_id, campaign_id=campaign_id, workflow_id=workflow_id, source=source)
+        try:
+            audit = await self.audit_render(image_path, shot_record["compiled_prompt"], campaign_id)
+        except Exception as e:
+            transition_shot(shot_record, "final_fail")
+            self.record_event("audit_result", shot_id=record_id, campaign_id=campaign_id, workflow_id=workflow_id, source=source, success=False, extra={"reason": f"audit_exception:{e}"})
+            yield {"type": "error", "shot_id": shot_id, "text": f"Audit failed for {shot_id}: {e}"}
+            return
+
+        score = float(audit.get("score", 0) or 0)
+        passed = bool(audit.get("passed", False))
+        shot_record["audit_model"] = os.getenv("KIMI_VISUAL_MODEL", os.getenv("LMSTUDIO_VISION_MODEL", "qwen3.6-35b-a3b"))
+        shot_record["audit_status"] = "pass" if passed else "fail"
+        shot_record["audit_score"] = score
+        shot_record["audit_issues"] = audit.get("issues", [])
+        shot_record["audit_model_score"] = float(audit.get("model_score", score) or 0)
+        shot_record["audit_checks_score"] = float(audit.get("checks_score", 0) or 0)
+        shot_record["audit_confidence"] = float(audit.get("confidence", 0) or 0)
+        shot_record["audit_model_passed"] = bool(audit.get("model_passed", passed))
+        shot_record["audit_final_passed"] = bool(audit.get("final_passed", passed))
+        shot_record["audit_checks"] = audit.get("checks", {})
+        shot_record["audit_critical_failures"] = audit.get("critical_failures", [])
+        shot_record["audit_noncritical_issues"] = audit.get("noncritical_issues", [])
+        shot_record["audit_decision_reasons"] = audit.get("audit_decision_reasons", [])
+        shot_record["audit_raw_response"] = audit
+        shot_record["audit_timestamp"] = self.now_iso()
+        expected_traits = ((shot_record.get("identity_pack") or {}).get("identity_tokens") or []) if isinstance(shot_record.get("identity_pack"), dict) else []
+        shot_record["identity_expected_traits"] = expected_traits
+        detected_notes = []
+        detected_notes.extend([str(x) for x in (shot_record.get("audit_decision_reasons") or [])[:4]])
+        detected_notes.extend([str(x) for x in (shot_record.get("audit_issues") or [])[:4]])
+        shot_record["identity_detected_notes"] = detected_notes[:6]
+        if shot_record.get("identity_type"):
+            shot_record["identity_status"] = "pass" if passed else "fail"
+            shot_record["identity_score"] = score
+            shot_record["identity_fail_reasons"] = [] if passed else detected_notes[:4]
+        transition_shot(shot_record, "audited_pass" if passed else "audited_fail")
+        try:
+            self._persist_media_shot_metadata(shot_record)
+        except Exception as e:
+            self.record_event(
+                "audit_metadata_persist_failed",
+                shot_id=record_id,
+                campaign_id=campaign_id,
+                workflow_id=workflow_id,
+                source=source,
+                success=False,
+                extra={"reason": str(e)},
+            )
+            yield {"type": "error", "shot_id": shot_id, "text": f"Audit metadata persist failed for {shot_id}: {e}"}
+
+        self.record_event(
+            "audit_result",
+            shot_id=record_id,
+            campaign_id=campaign_id,
+            workflow_id=workflow_id,
+            source=source,
+            success=passed,
+            extra={
+                "audit_score": score,
+                "audit_model_score": shot_record.get("audit_model_score"),
+                "audit_checks_score": shot_record.get("audit_checks_score"),
+                "audit_issues": shot_record.get("audit_issues") or [],
+                "audit_critical_failures": shot_record.get("audit_critical_failures") or [],
+                "audit_noncritical_issues": shot_record.get("audit_noncritical_issues") or [],
+                "audit_decision_reasons": shot_record.get("audit_decision_reasons") or [],
+            },
+        )
+        if passed:
+            yield {"type": "memory", "shot_id": shot_id, "text": f"Audit pass ({score:.1f})"}
+            return
+
+        issues = shot_record.get("audit_issues") or []
+        reasons = shot_record.get("audit_decision_reasons") or []
+        critical = shot_record.get("audit_critical_failures") or []
+        feedback = str(audit.get("feedback", "") or "")
+        audit_error = str(audit.get("error", "") or "")
+        top = []
+        top.extend([str(x) for x in critical[:2]])
+        top.extend([str(x) for x in reasons[:2]])
+        if not top:
+            top.extend([str(x) for x in issues[:2]])
+        if not top and feedback:
+            top.append(feedback[:220])
+        if not top and audit_error:
+            top.append(audit_error[:220])
+        if not top and isinstance(audit, dict):
+            raw_hint = str(audit.get("detail") or audit.get("message") or "")
+            if raw_hint:
+                top.append(raw_hint[:220])
+        reason_text = "; ".join([t for t in top if t]) or "no_reason_returned"
+        yield {"type": "error", "shot_id": shot_id, "text": f"Audit fail for {shot_id} ({score:.1f}): {reason_text}"}
+        yield {"type": "memory", "shot_id": shot_id, "text": f"Audit fail ({score:.1f})"}
+        auto_remediate = os.getenv("FORGE_AUTO_REMEDIATE_ON_FAIL", "true").lower() == "true"
+        if auto_remediate and self.remediate_failed:
+            yield {"type": "hermes", "shot_id": shot_id, "text": f"Auto-remediation queued for {shot_id}..."}
+            try:
+                rem_task = asyncio.create_task(self.remediate_failed([record_id]))
+                self._detached_tasks.add(rem_task)
+                rem_task.add_done_callback(self._detached_tasks.discard)
+                rem = await asyncio.shield(rem_task)
+                rlist = rem.get("results", []) if isinstance(rem, dict) else []
+                if rlist:
+                    r0 = rlist[0] or {}
+                    if r0.get("status") == "ok":
+                        yield {"type": "memory", "shot_id": shot_id, "text": f"Auto-remediation complete: retry={r0.get('retry_shot_id', 'n/a')} status={r0.get('retry_audit_status', 'n/a')}"}
+                    else:
+                        yield {"type": "error", "shot_id": shot_id, "text": f"Auto-remediation failed for {shot_id}: {r0.get('reason', r0.get('status', 'unknown'))}"}
+                else:
+                    yield {"type": "warning", "shot_id": shot_id, "text": f"Auto-remediation returned no result for {shot_id}"}
+            except Exception as e:
+                yield {"type": "error", "shot_id": shot_id, "text": f"Auto-remediation exception for {shot_id}: {self._exc_reason(e)}"}
 
     async def stream_campaign(self, req: CampaignRequest) -> AsyncIterator[Dict[str, Any]]:
         requested_id = (req.campaign_id or "").strip()
@@ -650,6 +794,7 @@ class HermesCampaignService:
         comfy = ComfyUIClient(host)
         rendered_count = 0
         source = "fallback" if use_fallback else "campaign"
+        pending_render_jobs: List[Dict[str, Any]] = []
 
         for i, shot in enumerate(kimi_shots, start=1):
             if self.is_cancelled():
@@ -818,6 +963,7 @@ class HermesCampaignService:
                         output_dir=str(self.media_images / campaign_id),
                         width=(platform_skill.get("constraints") or {}).get("width") if platform_skill.get("active") else None,
                         height=(platform_skill.get("constraints") or {}).get("height") if platform_skill.get("active") else None,
+                        wait_for_output=False,
                     )
                 except Exception as e:
                     transition_shot(shot_record, "final_fail")
@@ -843,31 +989,36 @@ class HermesCampaignService:
                             "text": f"LoRA preset {submit['lora'].get('requested')}: {lora_state}",
                         }
 
-                rendered_count += 1
                 prompt_id = submit.get("prompt_id", "")
                 saved = submit.get("saved_files", [])
                 image_path = saved[0] if saved else ""
                 shot_record["prompt_id"] = prompt_id
+                if not image_path:
+                    pending_render_jobs.append({
+                        "record_id": record_id,
+                        "shot_record": shot_record,
+                        "shot_id": effective_shot["shot_id"],
+                        "workflow_id": workflow_id,
+                        "prompt_id": prompt_id,
+                        "output_dir": str(self.media_images / campaign_id),
+                    })
+                    yield {
+                        "type": "spark",
+                        "campaign_id": campaign_id,
+                        "id": record_id,
+                        "shot_id": effective_shot["shot_id"],
+                        "status": "queued",
+                        "prompt_id": prompt_id,
+                        "image_url": "",
+                        "text": f"Queued {effective_shot['shot_id']} ({workflow_id})",
+                    }
+                    self.record_event("render_queued", shot_id=record_id, campaign_id=campaign_id, workflow_id=workflow_id, source=source, success=True, extra={"prompt_id": prompt_id})
+                    continue
+
+                rendered_count += 1
                 transition_shot(shot_record, "rendered")
                 if image_path:
-                    shot_record["image_path"] = image_path
-                    try:
-                        rel = Path(image_path).resolve().relative_to(self.media_images.resolve())
-                        shot_record["image_url"] = f"/external-renders/{rel.as_posix()}"
-                    except Exception:
-                        shot_record["image_url"] = f"/external-renders/{Path(image_path).name}"
-                    try:
-                        self._persist_media_shot_metadata(shot_record)
-                    except Exception as e:
-                        self.record_event(
-                            "render_metadata_persist_failed",
-                            shot_id=record_id,
-                            campaign_id=campaign_id,
-                            workflow_id=workflow_id,
-                            source=source,
-                            success=False,
-                            extra={"reason": str(e)},
-                        )
+                    self._attach_rendered_image(shot_record, image_path)
                 yield {
                     "type": "spark",
                     "campaign_id": campaign_id,
@@ -1019,5 +1170,58 @@ class HermesCampaignService:
                                     yield {"type": "warning", "shot_id": effective_shot["shot_id"], "text": f"Auto-remediation returned no result for {effective_shot['shot_id']}"}
                             except Exception as e:
                                 yield {"type": "error", "shot_id": effective_shot["shot_id"], "text": f"Auto-remediation exception for {effective_shot['shot_id']}: {self._exc_reason(e)}"}
+
+        if pending_render_jobs:
+            yield {"type": "spark", "text": f"Polling {len(pending_render_jobs)} queued ComfyUI image render(s)..."}
+        render_deadline = time.time() + max(300, int(os.getenv("FORGE_RENDER_BATCH_WAIT_SEC", "1800") or "1800"))
+        while pending_render_jobs and time.time() < render_deadline:
+            if self.is_cancelled():
+                yield {"type": "error", "text": "Campaign cancelled while waiting for queued renders."}
+                break
+            remaining: List[Dict[str, Any]] = []
+            for pending in pending_render_jobs:
+                shot_record = pending["shot_record"]
+                prompt_id = str(pending.get("prompt_id") or "")
+                workflow_id = str(pending.get("workflow_id") or shot_record.get("workflow_id") or "")
+                record_id = str(pending.get("record_id") or shot_record.get("id") or "")
+                shot_id = str(pending.get("shot_id") or shot_record.get("shot_id") or record_id)
+                try:
+                    saved = await comfy.download_outputs(prompt_id, str(pending.get("output_dir") or self.media_images / campaign_id))
+                except Exception as e:
+                    remaining.append(pending)
+                    yield {"type": "warning", "shot_id": shot_id, "text": f"Render poll failed for {shot_id}: {self._exc_reason(e)}"}
+                    continue
+                if not saved:
+                    remaining.append(pending)
+                    continue
+                image_path = saved[0]
+                rendered_count += 1
+                transition_shot(shot_record, "rendered")
+                self._attach_rendered_image(shot_record, image_path)
+                yield {
+                    "type": "spark",
+                    "campaign_id": campaign_id,
+                    "id": record_id,
+                    "shot_id": shot_id,
+                    "status": "rendered",
+                    "prompt_id": prompt_id,
+                    "image_url": shot_record.get("image_url", ""),
+                    "text": f"Rendered and stored {shot_id} ({workflow_id})",
+                }
+                self.record_event("render_result", shot_id=record_id, campaign_id=campaign_id, workflow_id=workflow_id, source=source, success=True, extra={"prompt_id": prompt_id})
+                async for audit_event in self._audit_completed_shot(shot_record):
+                    yield audit_event
+            pending_render_jobs = remaining
+            if pending_render_jobs:
+                await asyncio.sleep(5)
+        if pending_render_jobs:
+            for pending in pending_render_jobs:
+                shot_record = pending["shot_record"]
+                record_id = str(pending.get("record_id") or shot_record.get("id") or "")
+                workflow_id = str(pending.get("workflow_id") or shot_record.get("workflow_id") or "")
+                shot_id = str(pending.get("shot_id") or shot_record.get("shot_id") or record_id)
+                transition_shot(shot_record, "final_fail")
+                yield {"type": "error", "shot_id": shot_id, "text": f"Render timed out before image output was available for {shot_id}."}
+                self.record_event("render_result", shot_id=record_id, campaign_id=campaign_id, workflow_id=workflow_id, source=source, success=False, extra={"reason": "render_batch_timeout"})
 
         yield {"type": "done", "text": f"Campaign complete. {rendered_count} shots processed."}
