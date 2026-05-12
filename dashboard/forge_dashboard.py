@@ -1090,6 +1090,7 @@ def _load_script_project(script_id: str) -> Dict[str, Any]:
     panel_jobs = _read_json_file(root / "storyboard_panel_jobs.json", {})
     video_shots = _read_json_file(root / "video_shots.json", [])
     job = _read_json_file(root / "pipeline_job.json", None)
+    video_shots_changed = False
     if (
         not video_shots
         and isinstance(storyboard, dict)
@@ -1097,19 +1098,22 @@ def _load_script_project(script_id: str) -> Dict[str, Any]:
         and any(isinstance(items, list) and any(isinstance(item, dict) and item.get("url") for item in items) for items in panel_jobs.values())
     ):
         video_shots = _rebuild_script_video_shots_from_storyboard_frames(sid, storyboard, panel_jobs)
-        if video_shots:
-            _write_json_atomic(root / "video_shots.json", video_shots)
-            video_complete = len([
-                s for s in video_shots
-                if str(s.get("video_status") or s.get("status") or "").lower() in {"complete", "completed", "video_rendered"} or s.get("video_url")
-            ])
-            meta = {
-                **meta,
-                "video_shot_count": len(video_shots),
-                "video_complete_count": video_complete,
-                "updated_at": meta.get("updated_at") or _now_iso(),
-            }
-            _write_json_atomic(root / "project.json", meta)
+        video_shots_changed = bool(video_shots)
+    if isinstance(video_shots, list) and video_shots:
+        video_shots_changed = _repair_script_video_urls_from_existing_outputs(sid, video_shots, job) or video_shots_changed
+    if video_shots_changed and video_shots:
+        _write_json_atomic(root / "video_shots.json", video_shots)
+        video_complete = len([
+            s for s in video_shots
+            if str(s.get("video_status") or s.get("status") or "").lower() in {"complete", "completed", "video_rendered"} or s.get("video_url")
+        ])
+        meta = {
+            **meta,
+            "video_shot_count": len(video_shots),
+            "video_complete_count": video_complete,
+            "updated_at": meta.get("updated_at") or _now_iso(),
+        }
+        _write_json_atomic(root / "project.json", meta)
     return {
         **meta,
         "package": package if isinstance(package, dict) else None,
@@ -3366,6 +3370,118 @@ def _rebuild_script_video_shots_from_storyboard_frames(script_id: str, storyboar
         rebuilt.extend(export.get("shots", []) if isinstance(export.get("shots"), list) else [])
         sequence_offset += len(panels)
     return rebuilt
+
+
+def _script_video_file_candidates(record_id: str, campaign_id: str) -> List[Path]:
+    safe_campaign = _safe_campaign_name(campaign_id)
+    root = MEDIA_VIDEOS / safe_campaign
+    if not root.exists():
+        return []
+    exts = {".mp4", ".mov", ".webm", ".m4v"}
+    return sorted(
+        path for path in root.glob(f"{record_id}__video*")
+        if path.is_file() and path.suffix.lower() in exts
+    )
+
+
+def _attach_existing_video_file_to_script_shot(
+    shot: Dict[str, Any],
+    video_path: Path,
+    job: Optional[Dict[str, Any]] = None,
+) -> bool:
+    if not video_path.exists():
+        return False
+    shot["video_path"] = str(video_path)
+    shot["video_url"] = _media_video_url_for_path(video_path)
+    if isinstance(job, dict):
+        shot["video_prompt_id"] = job.get("prompt_id") or shot.get("video_prompt_id", "")
+        shot["video_workflow_id"] = job.get("workflow_id") or shot.get("video_workflow_id", "")
+        shot["video_seed"] = job.get("seed", shot.get("video_seed"))
+        shot["video_duration"] = job.get("duration", shot.get("video_duration"))
+        shot["video_fps"] = job.get("fps", shot.get("video_fps"))
+    shot["video_status"] = "complete"
+    shot["video_error"] = ""
+    shot["video_error_detail"] = ""
+    shot["video_error_node"] = ""
+    shot["video_last_checked_at"] = _now_iso()
+    shot["video_completed_at"] = shot.get("video_completed_at") or _now_iso()
+    _persist_media_shot_metadata(shot)
+    return True
+
+
+def _repair_script_video_urls_from_existing_outputs(script_id: str, video_shots: List[Dict[str, Any]], job: Any = None) -> bool:
+    if not video_shots:
+        return False
+    campaign_id = f"script_{_safe_script_id(script_id)}"
+    changed = False
+    video_jobs = job.get("video_jobs", []) if isinstance(job, dict) and isinstance(job.get("video_jobs"), list) else []
+    jobs_by_shot: Dict[str, List[Dict[str, Any]]] = {}
+    for item in video_jobs:
+        if isinstance(item, dict):
+            jobs_by_shot.setdefault(str(item.get("shot_id") or ""), []).append(item)
+
+    for shot in video_shots:
+        if not isinstance(shot, dict) or shot.get("video_url"):
+            continue
+        record_id = str(shot.get("id") or "")
+        if not record_id:
+            continue
+        candidates = _script_video_file_candidates(record_id, campaign_id)
+        if candidates and _attach_existing_video_file_to_script_shot(shot, candidates[0], (jobs_by_shot.get(record_id) or [{}])[0]):
+            changed = True
+
+    if all(isinstance(shot, dict) and shot.get("video_url") for shot in video_shots):
+        return changed
+
+    complete_jobs = [
+        item for item in video_jobs
+        if isinstance(item, dict) and str(item.get("status") or "").lower() in {"complete", "completed"} and item.get("shot_id")
+    ]
+    old_shot_ids = sorted({str(item.get("shot_id") or "") for item in complete_jobs})
+    if len(old_shot_ids) < 2:
+        return changed
+    match_numbers = [
+        int(match.group(1))
+        for old_id in old_shot_ids
+        for match in [re.search(r"__SB_(\d+)$", old_id)]
+        if match
+    ]
+    if not match_numbers:
+        return changed
+    per_board = max(match_numbers)
+    if per_board <= 0:
+        return changed
+
+    legacy_files_by_base: Dict[int, List[Path]] = {}
+    legacy_jobs_by_base: Dict[int, List[Dict[str, Any]]] = {}
+    for old_id in old_shot_ids:
+        match = re.search(r"__SB_(\d+)$", old_id)
+        if not match:
+            continue
+        base_num = int(match.group(1))
+        legacy_files_by_base[base_num] = _script_video_file_candidates(old_id, campaign_id)
+        legacy_jobs_by_base[base_num] = jobs_by_shot.get(old_id, [])
+
+    ordered_shots = sorted(
+        [shot for shot in video_shots if isinstance(shot, dict)],
+        key=lambda shot: int(shot.get("sequence") or shot.get("n") or 0),
+    )
+    for shot in ordered_shots:
+        if shot.get("video_url"):
+            continue
+        sequence = int(shot.get("sequence") or shot.get("n") or 0)
+        if sequence <= 0:
+            continue
+        base_num = ((sequence - 1) % per_board) + 1
+        occurrence = (sequence - 1) // per_board
+        candidates = legacy_files_by_base.get(base_num, [])
+        if occurrence >= len(candidates):
+            continue
+        legacy_jobs = legacy_jobs_by_base.get(base_num, [])
+        legacy_job = legacy_jobs[occurrence] if occurrence < len(legacy_jobs) else None
+        if _attach_existing_video_file_to_script_shot(shot, candidates[occurrence], legacy_job):
+            changed = True
+    return changed
 
 
 def _pipeline_job_path(project_id: str) -> Path:
