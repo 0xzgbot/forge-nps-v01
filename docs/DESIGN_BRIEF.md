@@ -414,14 +414,14 @@ dashboard/
 
 | Phase | Scope | Est. Time |
 |---|---|---|
-| **P0** | Design system CSS + tab shell + Home overview | 3-4 hrs |
-| **P1** | Renders tab (batch controls + grid) | 2-3 hrs |
+| **P0** | Design system CSS + tab shell + Images overview | 3-4 hrs |
+| **P1** | Videos tab (batch controls + grid) | 2-3 hrs |
 | **P2** | Characters tab (DNA editor + gallery) | 2-3 hrs |
 | **P3** | Memory tab (port existing into shell) | 1-2 hrs |
-| **P4** | Script tab (shot list table) | 1-2 hrs |
-| **P5** | Models tab (backend selector + connection cards) | 1 hr |
+| **P4** | Script Studio one-click video pipeline | 1-2 hrs |
+| **P5** | Settings model/provider cards | 1 hr |
 | **P6** | Settings tab (config editor) | 1 hr |
-| **P7** | Products tab | 1 hr |
+| **P7** | Asset Vault packages | 1 hr |
 | **P8** | Polish: animations, responsive, empty states, iconography | 2-3 hrs |
 
 **Total MVP:** ~12-15 hours of focused frontend work.

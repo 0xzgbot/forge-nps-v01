@@ -13,3 +13,5 @@ Primary operational docs live here so the repository root stays readable on GitH
 Current refresh notes:
 
 - [CHANGELOG.md](CHANGELOG.md) records the May 2026 dashboard, Idea Board, character terminology, script fallback, and profile tooling changes.
+- Script Studio now supports one-click **Generate Videos** from a short prompt: package, coverage, storyboard start frames, and individual LTX clips are run through the job-based pipeline.
+- Storyboard image generation is model-selectable for local Spark/ComfyUI, OpenAI image generation, and Gemini/Nano Banana providers. Local output filenames use the selected model prefix.

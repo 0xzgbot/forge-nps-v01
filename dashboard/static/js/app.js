@@ -15,6 +15,7 @@ let storyboardPlan = null;
 let storyboardPanelJobs = {};
 let storyboardCharacterSheetJob = null;
 let storyboardImageModels = [];
+let scriptVideoShots = [];
 let scriptProjects = [];
 let currentScriptProjectId = "";
 let activeScriptPipelineJobId = "";
@@ -218,6 +219,7 @@ window.addEventListener("DOMContentLoaded", () => {
     if (scriptBriefEl) scriptBriefEl.addEventListener("input", updateScriptFlowState);
     const scriptPackageEl = document.getElementById("script-package-json");
     if (scriptPackageEl) scriptPackageEl.addEventListener("input", updateScriptFlowState);
+    if (scriptPackageEl) scriptPackageEl.addEventListener("input", updateCoverageSourceState);
     if ($briefInput) $briefInput.addEventListener("input", updateTargetCountPill);
     updateTargetCountPill();
     loadStoryboardImageModels();
@@ -2109,7 +2111,7 @@ function currentScriptProjectPayload(status) {
         coverage_shots: Object.values(director_shots || {}),
         storyboard_plan: storyboardPlan,
         storyboard_panel_jobs: storyboardPanelJobs || {},
-        video_shots: [],
+        video_shots: scriptVideoShots,
         status: status || "draft",
     };
 }
@@ -2168,6 +2170,11 @@ function applyLoadedScriptProject(project) {
     scriptPackage = project.package || null;
     storyboardPlan = project.storyboard_plan || null;
     storyboardPanelJobs = project.storyboard_panel_jobs || {};
+    scriptVideoShots = Array.isArray(project.video_shots) ? project.video_shots : [];
+    videoSelection.clear();
+    scriptVideoShots.forEach((shot) => {
+        if (shot?.id && (shot.image_url || shot.video_url)) videoSelection.add(shot.id);
+    });
     director_shots = {};
     if (Array.isArray(project.coverage_shots)) {
         project.coverage_shots.forEach((shot) => {
@@ -2176,6 +2183,7 @@ function applyLoadedScriptProject(project) {
     }
     renderScriptPackage(scriptPackage);
     if (storyboardPlan) renderStoryboardPlan(storyboardPlan);
+    renderScriptVideoOutputs(scriptVideoShots);
     if ($shotList && $shotListPlaceholder) {
         $shotList.innerHTML = "";
         const shots = Object.values(director_shots || {});
@@ -2188,6 +2196,7 @@ function applyLoadedScriptProject(project) {
         renderScriptPipelineJob(project.active_job);
         if (["queued", "running"].includes(project.active_job.status)) pollScriptPipelineJob(activeScriptPipelineJobId);
     }
+    if (typeof loadVideoLibrary === "function" && scriptVideoShots.length) loadVideoLibrary();
     renderScriptProjectList();
     updateScriptFlowState();
     setScriptStatus("Loaded script project: " + (project.title || currentScriptProjectId), project.status || "");
@@ -2253,6 +2262,32 @@ function renderScriptPipelineJob(job) {
     updateScriptFlowState();
 }
 
+function renderScriptVideoOutputs(shots) {
+    const target = document.getElementById("script-video-output-list");
+    if (!target) return;
+    const items = (Array.isArray(shots) ? shots : []).filter((shot) => shot && (shot.image_url || shot.video_url));
+    if (!items.length) {
+        target.innerHTML = '<div class="script-empty-shot"><p>No generated start frames or videos yet.</p></div>';
+        return;
+    }
+    target.innerHTML = '<div class="script-video-output-grid">' + items.map((shot, idx) => {
+        const status = shot.video_url
+            ? "video complete"
+            : shot.video_status
+                ? "video " + String(shot.video_status).toLowerCase()
+                : "start frame ready";
+        const media = shot.video_url
+            ? '<video src="' + escapeHtml(shot.video_url) + '" controls muted playsinline preload="metadata"></video>'
+            : '<img src="' + escapeHtml(shot.image_url || "") + '" alt="' + escapeHtml(shot.id || "storyboard frame") + '">';
+        return (
+            '<article class="script-video-output-card">' +
+                media +
+                '<div><strong>Shot ' + String(idx + 1).padStart(2, "0") + '</strong><span>' + escapeHtml(status) + '</span></div>' +
+            '</article>'
+        );
+    }).join("") + '</div>';
+}
+
 async function pollScriptPipelineJob(jobId) {
     if (!jobId) return;
     activeScriptPipelineJobId = jobId;
@@ -2274,6 +2309,7 @@ async function pollScriptPipelineJob(jobId) {
         } else {
             await loadScriptProjects();
             setScriptStatus(job.status === "complete" ? "Pipeline complete." : "Pipeline stopped: " + (job.error || job.status), job.phase || "");
+            if (job.status === "complete") switchScriptFlowStep("videos");
         }
     } catch (e) {
         renderScriptPipelineJob({ status: "error", phase: "poll", logs: [{ level: "error", phase: "poll", message: e?.message || String(e) }] });
@@ -2287,10 +2323,10 @@ async function runScriptPipeline() {
         setScriptStatus("Enter a brief or load a saved script before running the pipeline.", "");
         return;
     }
-    const btn = document.getElementById("run-script-pipeline-btn");
+    const btn = document.getElementById("develop-script-btn") || document.getElementById("run-script-pipeline-btn");
     if (btn) {
         btn.disabled = true;
-        btn.textContent = "Starting...";
+        btn.textContent = "Generating...";
     }
     const imageSelection = getStoryboardImageSelection();
     const videoOptions = syncVideoQuickOptions();
@@ -2309,12 +2345,12 @@ async function runScriptPipeline() {
                 runtime_seconds: parseInt(scriptInputValue("script-runtime", "60"), 10) || 60,
                 target_scenes: parseInt(scriptInputValue("script-scenes", "4"), 10) || 4,
                 target_shots: parseInt(scriptInputValue("script-target-shots", ""), 10) || null,
-                storyboard_panels_per_board: parseInt(scriptInputValue("storyboard-panels-per-board", "9"), 10) || 9,
+                storyboard_panels_per_board: parseInt(scriptInputValue("storyboard-panels-per-board", "4"), 10) || 4,
                 storyboard_target_panels: targetPanelsRaw ? parseInt(targetPanelsRaw, 10) : null,
-                storyboard_resolution: scriptInputValue("storyboard-resolution", "3840x2160") || "3840x2160",
+                storyboard_resolution: scriptInputValue("storyboard-resolution", "1920x1080") || "1920x1080",
                 storyboard_style: scriptInputValue("storyboard-style", "cinematic"),
                 storyboard_character_consistency: scriptInputValue("storyboard-character-consistency", ""),
-                storyboard_negative_prompt: scriptInputValue("storyboard-negative-prompt", "blurry, deformed, extra limbs, text errors, inconsistent characters, merged panels"),
+                storyboard_negative_prompt: scriptInputValue("storyboard-negative-prompt", "blurry, soft focus, smeared detail, low resolution, deformed, extra limbs, bad hands, text, captions, labels, panel numbers, page layout, grid, contact sheet, watermark, inconsistent characters, merged panels"),
                 storyboard_reference_image_url: scriptInputValue("storyboard-reference-image", ""),
                 storyboard_include_captions: !!document.getElementById("storyboard-include-captions")?.checked,
                 storyboard_image_provider: imageSelection.provider,
@@ -2326,24 +2362,24 @@ async function runScriptPipeline() {
                 video_fps: parseInt($videoFps?.value || "24", 10) || 24,
                 video_resolution: videoOptions.resolution,
                 video_aspect_ratio: videoOptions.aspectRatio,
-                run_video: !!document.getElementById("script-pipeline-run-video")?.checked,
-                wait_for_videos: !!document.getElementById("script-pipeline-wait-video")?.checked,
+                run_video: true,
+                wait_for_videos: true,
                 video_wait_seconds: parseInt(scriptInputValue("script-pipeline-video-wait", "1800"), 10) || 1800,
-                stop_after: document.getElementById("script-pipeline-stop-after")?.value || "videos",
+                stop_after: "videos",
             }),
         });
         const data = await resp.json();
         if (!resp.ok || data.status !== "ok") throw new Error(data.detail || data.error || "pipeline start failed");
         activeScriptPipelineJobId = data.job?.job_id || "";
         renderScriptPipelineJob(data.job);
-        setScriptStatus("Pipeline queued.", activeScriptPipelineJobId);
+        setScriptStatus("Script-to-video pipeline queued.", activeScriptPipelineJobId);
         pollScriptPipelineJob(activeScriptPipelineJobId);
     } catch (e) {
         setScriptStatus("Pipeline start failed: " + (e?.message || e), "");
     } finally {
         if (btn) {
             btn.disabled = false;
-            btn.textContent = "Run Pipeline";
+            btn.textContent = "Generate Videos";
         }
     }
 }
@@ -2368,10 +2404,17 @@ function updateScriptVideoHandoff() {
     const title = document.getElementById("script-video-handoff-title");
     const copy = document.getElementById("script-video-handoff-copy");
     const selected = videoSelection?.size || 0;
+    const outputs = Array.isArray(scriptVideoShots) ? scriptVideoShots.filter((shot) => shot?.image_url || shot?.video_url) : [];
+    const completeVideos = outputs.filter((shot) => shot.video_url).length;
+    const queuedVideos = outputs.filter((shot) => shot.video_status && !shot.video_url).length;
     const shots = scriptFlowCountShots();
     const boards = Array.isArray(storyboardPlan?.boards) ? storyboardPlan.boards.length : 0;
     if (title) {
-        title.textContent = selected
+        title.textContent = completeVideos
+            ? completeVideos + " video clip" + (completeVideos === 1 ? "" : "s") + " complete."
+            : outputs.length
+                ? outputs.length + " start frame" + (outputs.length === 1 ? "" : "s") + (queuedVideos ? " queued for video." : " ready for video.")
+                : selected
             ? selected + " start frame" + (selected === 1 ? "" : "s") + " selected for video."
             : boards
                 ? "Storyboard ready for video export."
@@ -2380,14 +2423,83 @@ function updateScriptVideoHandoff() {
                     : "No video frames selected yet.";
     }
     if (copy) {
-        copy.textContent = selected
-            ? "Open the Videos tab to choose duration, resolution, aspect ratio, and generate LTX clips."
-            : boards
-                ? "Render storyboard panels, assemble them, then export the panel frames to Videos."
-                : shots
-                    ? "Render selected coverage shots first, then use those images as video start frames."
-                    : "Build a script package and storyboard before generating videos.";
+        copy.textContent = completeVideos
+            ? "Generated clips are shown below. The global Videos page is only a library view."
+            : outputs.length
+                ? "The pipeline created start frames and queued the individual video shots automatically."
+                : selected
+                    ? "The pipeline can use these start frames to generate individual LTX clips."
+                    : boards
+                        ? "Run the pipeline to render storyboard frames and queue individual videos."
+                        : shots
+                            ? "Run the pipeline to turn coverage into storyboard frames and videos."
+                            : "Enter a short prompt, then click Generate Videos.";
     }
+}
+
+function scriptPackageSceneStats(pkg) {
+    const acts = Array.isArray(pkg?.script?.acts) ? pkg.script.acts : [];
+    const scenes = acts.flatMap((act) => Array.isArray(act?.scenes) ? act.scenes : []);
+    const beats = scenes.flatMap((scene) => Array.isArray(scene?.beats) ? scene.beats : []);
+    return { scenes: scenes.length, beats: beats.length };
+}
+
+function updateCoverageSourceState() {
+    const sourceEl = document.getElementById("script-coverage-source");
+    if (!sourceEl) return;
+    const pkg = getScriptPackageFromEditor();
+    const btn = document.getElementById("generate-shots-btn");
+    if (!pkg) {
+        sourceEl.classList.remove("ready");
+        sourceEl.innerHTML =
+            '<strong>No locked package loaded.</strong>' +
+            'Build or load a script package before generating coverage.';
+        if (btn) btn.disabled = false;
+        return;
+    }
+    const stats = scriptPackageSceneStats(pkg);
+    const source = pkg.source || pkg.director_backend || "package";
+    const model = pkg.director_model ? " / " + pkg.director_model : "";
+    sourceEl.classList.add("ready");
+    sourceEl.innerHTML =
+        '<strong>Locked package ready for coverage.</strong>' +
+        escapeHtml(pkg.title || "Untitled") + " / " +
+        stats.scenes + " scene" + (stats.scenes === 1 ? "" : "s") + " / " +
+        stats.beats + " beat" + (stats.beats === 1 ? "" : "s") + " / " +
+        escapeHtml(String(source) + model) +
+        "<div style=\"margin-top:8px;\"><button class=\"btn btn-secondary\" type=\"button\" onclick=\"switchScriptFlowStep('package')\">Inspect Package</button></div>";
+    if (btn) btn.disabled = false;
+}
+
+function updateStoryboardSourceState() {
+    const sourceEl = document.getElementById("script-storyboard-source");
+    if (!sourceEl) return;
+    const pkg = getScriptPackageFromEditor();
+    const shotCount = scriptFlowCountShots();
+    const boardCount = Array.isArray(storyboardPlan?.boards) ? storyboardPlan.boards.length : 0;
+    if (boardCount) {
+        sourceEl.classList.add("ready");
+        sourceEl.innerHTML =
+            '<strong>Storyboard plan ready.</strong>' +
+            boardCount + " board" + (boardCount === 1 ? "" : "s") + " / " +
+            String(storyboardPlan?.panel_count || 0) + " panel" + (Number(storyboardPlan?.panel_count || 0) === 1 ? "" : "s") +
+            " / render model: " + escapeHtml(getStoryboardImageLabel());
+        return;
+    }
+    if (pkg || shotCount) {
+        sourceEl.classList.add("ready");
+        sourceEl.innerHTML =
+            '<strong>Storyboard source ready.</strong>' +
+            (pkg ? "Locked package loaded" : "") +
+            (pkg && shotCount ? " / " : "") +
+            (shotCount ? shotCount + " coverage shot" + (shotCount === 1 ? "" : "s") : "") +
+            ". Storyboard planning will run automatically after coverage.";
+        return;
+    }
+    sourceEl.classList.remove("ready");
+    sourceEl.innerHTML =
+        '<strong>No storyboard source yet.</strong>' +
+        'Build Pipeline from Brief; package and coverage will be created automatically first.';
 }
 
 function updateScriptFlowState() {
@@ -2396,6 +2508,8 @@ function updateScriptFlowState() {
     const shotCount = scriptFlowCountShots();
     const boardCount = Array.isArray(storyboardPlan?.boards) ? storyboardPlan.boards.length : 0;
     const selectedVideos = videoSelection?.size || 0;
+    const outputVideos = Array.isArray(scriptVideoShots) ? scriptVideoShots.filter((shot) => shot?.image_url || shot?.video_url).length : 0;
+    const completeVideos = Array.isArray(scriptVideoShots) ? scriptVideoShots.filter((shot) => shot?.video_url).length : 0;
     const projectCount = Array.isArray(scriptProjects) ? scriptProjects.length : 0;
     const jobStatus = activeScriptPipelineJobId ? (activeScriptPipelineStatus || "Active") : "Idle";
 
@@ -2404,7 +2518,7 @@ function updateScriptFlowState() {
     setScriptStepStatus("package", hasPackage ? "Package ready" : "Waiting");
     setScriptStepStatus("coverage", shotCount ? shotCount + " shot" + (shotCount === 1 ? "" : "s") : "Waiting");
     setScriptStepStatus("storyboard", boardCount ? boardCount + " board" + (boardCount === 1 ? "" : "s") : "Waiting");
-    setScriptStepStatus("videos", selectedVideos ? selectedVideos + " selected" : shotCount ? "Coverage ready" : "Waiting");
+    setScriptStepStatus("videos", completeVideos ? completeVideos + " clips" : outputVideos ? outputVideos + " queued" : selectedVideos ? selectedVideos + " selected" : shotCount ? "Coverage ready" : "Waiting");
     setScriptStepStatus("jobs", jobStatus);
 
     document.querySelectorAll(".script-flow-step[data-script-step]").forEach((el) => {
@@ -2416,11 +2530,13 @@ function updateScriptFlowState() {
             (step === "package" && hasPackage) ||
             (step === "coverage" && shotCount > 0) ||
             (step === "storyboard" && boardCount > 0) ||
-            (step === "videos" && selectedVideos > 0) ||
+            (step === "videos" && (selectedVideos > 0 || outputVideos > 0)) ||
             (step === "jobs" && !!activeScriptPipelineJobId)
         );
     });
     updateScriptVideoHandoff();
+    updateCoverageSourceState();
+    updateStoryboardSourceState();
 }
 
 function switchScriptFlowStep(step) {
@@ -2478,28 +2594,28 @@ function getStoryboardSourceText() {
 
 const STORYBOARD_STYLE_PRESETS = {
     comic: {
-        style: "classic American comic book style, bold ink lines, halftone dots, vibrant colors",
-        panels: 9,
+        style: "sharp cinematic comic-book production keyframes, bold ink lines, detailed faces, clean readable action",
+        panels: 4,
         target: "",
-        resolution: "3840x2160",
+        resolution: "1920x1080",
     },
     anime: {
-        style: "detailed anime style, clean line art, vibrant colors, dynamic angles",
-        panels: 9,
+        style: "sharp cinematic anime production keyframes, clean line art, detailed faces, vibrant color, dynamic angles",
+        panels: 4,
         target: "",
-        resolution: "3840x2160",
+        resolution: "1920x1080",
     },
     realistic: {
-        style: "photorealistic cinematic stills, 35mm lens, anamorphic bokeh, dramatic lighting",
-        panels: 9,
+        style: "sharp photorealistic cinematic production keyframes, 35mm lens, dramatic lighting, detailed subjects",
+        panels: 4,
         target: "",
-        resolution: "3840x2160",
+        resolution: "1920x1080",
     },
     four: {
-        style: "cinematic storyboard frames, clean readable compositions, highly consistent character design",
+        style: "sharp cinematic production keyframes, clean readable compositions, highly consistent character design",
         panels: 4,
         target: 4,
-        resolution: "2048x2048",
+        resolution: "1920x1080",
     },
 };
 
@@ -2547,6 +2663,7 @@ function renderScriptPackage(pkg) {
     if (!pkg) {
         [treatmentEl, continuityEl, editEl, scenesEl].forEach((el) => { if (el) el.innerHTML = '<div class="script-empty-mini">No package generated.</div>'; });
         if (jsonEl) jsonEl.value = "";
+        updateCoverageSourceState();
         return;
     }
 
@@ -2612,6 +2729,7 @@ function renderScriptPackage(pkg) {
     }
 
     if (jsonEl) jsonEl.value = JSON.stringify(pkg, null, 2);
+    updateCoverageSourceState();
 }
 
 function renderStoryboardPlan(plan) {
@@ -2619,6 +2737,7 @@ function renderStoryboardPlan(plan) {
     if (!target) return;
     if (!plan || !Array.isArray(plan.boards) || !plan.boards.length) {
         target.innerHTML = '<div class="script-empty-shot"><p>No storyboard generated yet.</p></div>';
+        updateStoryboardSourceState();
         return;
     }
     target.innerHTML = plan.boards.map((board) => {
@@ -2626,13 +2745,17 @@ function renderStoryboardPlan(plan) {
         return (
             '<article class="storyboard-board" data-board-id="' + escapeHtml(board.board_id || "") + '">' +
                 '<div class="storyboard-board-head">' +
-                    '<div><strong>' + escapeHtml(board.board_id || "Storyboard") + '</strong><span>' + escapeHtml(String(board.panel_count || panels.length)) + ' panel(s) / ' + escapeHtml(board.layout || "") + ' / ' + escapeHtml(board.resolution || "3840x2160") + '</span></div>' +
+                    '<div><strong>' + escapeHtml(board.board_id || "Storyboard") + '</strong><span>' + escapeHtml(String(board.panel_count || panels.length)) + ' frame(s) / ' + escapeHtml(board.layout || "") + ' / ' + escapeHtml(board.resolution || "1920x1080") + '</span></div>' +
                     '<div class="storyboard-copy-row">' +
-                        '<button class="btn btn-secondary" onclick="renderStoryboardBoard(' + Number(board.index || 1) + ')">Render Page</button>' +
-                        '<button class="btn btn-secondary" onclick="renderStoryboardPanels(' + Number(board.index || 1) + ')">Render Panels</button>' +
-                        '<button class="btn" onclick="assembleStoryboardPanels(' + Number(board.index || 1) + ')">Assemble</button>' +
-                        '<button class="btn" onclick="renderAssembleExportStoryboardPanels(' + Number(board.index || 1) + ')">Render + Export Frames</button>' +
+                        '<button class="btn script-primary-action" onclick="renderAssembleExportStoryboardPanels(' + Number(board.index || 1) + ')">Create Video Frames</button>' +
+                        '<button class="btn btn-secondary" onclick="toggleStoryboardAdvanced(' + Number(board.index || 1) + ')">Advanced</button>' +
                     '</div>' +
+                '</div>' +
+                '<div class="storyboard-advanced-actions" id="storyboard-advanced-' + Number(board.index || 1) + '" style="display:none;">' +
+                    '<button class="btn btn-secondary" onclick="renderStoryboardPanels(' + Number(board.index || 1) + ')">Render Frames Only</button>' +
+                    '<button class="btn btn-secondary" onclick="renderStoryboardBoard(' + Number(board.index || 1) + ')">Render Page Proof</button>' +
+                    '<button class="btn btn-secondary" onclick="assembleStoryboardPanels(' + Number(board.index || 1) + ')">Assemble Page Proof</button>' +
+                    '<button class="btn btn-secondary" onclick="copyStoryboardPrompt(' + Number(board.index || 1) + ')">Copy Prompt</button>' +
                 '</div>' +
                 '<div class="storyboard-panel-grid">' + panels.map((panel, idx) => (
                     '<div class="storyboard-panel">' +
@@ -2641,13 +2764,13 @@ function renderStoryboardPlan(plan) {
                     '</div>'
                 )).join("") + '</div>' +
                 '<textarea class="storyboard-prompt" readonly>' + escapeHtml(board.image_prompt || "") + '</textarea>' +
-                '<div class="storyboard-copy-row"><button class="btn btn-secondary" onclick="copyStoryboardPrompt(' + Number(board.index || 1) + ')">Copy FLUX Prompt</button></div>' +
                 '<div class="storyboard-panel-jobs" id="storyboard-panel-jobs-' + Number(board.index || 1) + '"></div>' +
                 '<div class="storyboard-render-result" id="storyboard-render-' + Number(board.index || 1) + '"></div>' +
             '</article>'
         );
     }).join("");
     plan.boards.forEach((board) => renderStoryboardPanelJobList(Number(board.index || 1)));
+    updateStoryboardSourceState();
 }
 
 async function copyStoryboardPrompt(boardIndex) {
@@ -2664,7 +2787,15 @@ async function copyStoryboardPrompt(boardIndex) {
     }
 }
 
-async function generateStoryboard() {
+function toggleStoryboardAdvanced(boardIndex) {
+    const el = document.getElementById("storyboard-advanced-" + Number(boardIndex));
+    if (!el) return;
+    el.style.display = el.style.display === "none" || !el.style.display ? "flex" : "none";
+    const board = el.closest(".storyboard-board");
+    if (board) board.classList.toggle("show-prompt", el.style.display === "flex");
+}
+
+async function generateStoryboard(options = {}) {
     refreshScriptDomRefs();
     const sourceText = getStoryboardSourceText();
     const sourcePackage = getStoryboardSourcePackage();
@@ -2687,13 +2818,13 @@ async function generateStoryboard() {
                 script: sourceText,
                 package: sourcePackage || null,
                 asset_vault_package_id: selectedStoryboardAssetVaultPackageId(),
-                panels_per_board: parseInt(scriptInputValue("storyboard-panels-per-board", "9"), 10) || 9,
+                panels_per_board: parseInt(scriptInputValue("storyboard-panels-per-board", "4"), 10) || 4,
                 target_panels: targetPanelsRaw ? parseInt(targetPanelsRaw, 10) : null,
-                resolution: scriptInputValue("storyboard-resolution", "3840x2160") || "3840x2160",
+                resolution: scriptInputValue("storyboard-resolution", "1920x1080") || "1920x1080",
                 title: scriptInputValue("script-title", ""),
                 style: scriptInputValue("storyboard-style", "cinematic"),
                 character_consistency: scriptInputValue("storyboard-character-consistency", ""),
-                negative_prompt: scriptInputValue("storyboard-negative-prompt", "blurry, deformed, extra limbs, text errors, inconsistent characters, merged panels"),
+                negative_prompt: scriptInputValue("storyboard-negative-prompt", "blurry, soft focus, smeared detail, low resolution, deformed, extra limbs, bad hands, text, captions, labels, panel numbers, page layout, grid, contact sheet, watermark, inconsistent characters, merged panels"),
                 reference_image_url: scriptInputValue("storyboard-reference-image", ""),
                 include_captions: !!document.getElementById("storyboard-include-captions")?.checked,
             }),
@@ -2708,6 +2839,9 @@ async function generateStoryboard() {
         switchScriptFlowStep("storyboard");
         const vaultName = data.asset_vault_package?.name ? " using " + data.asset_vault_package.name : "";
         setScriptStatus("Storyboard ready: " + data.board_count + " board image(s), " + data.panel_count + " panel(s)" + vaultName + ".", "Storyboard");
+        if (options.autoAdvance) {
+            setScriptStatus("Automatic planning complete. Storyboard is ready for frame rendering.", "Ready");
+        }
     } catch (e) {
         setScriptStatus("Storyboard failed: " + e.message, "");
         addLogEntry("error", "Storyboard failed: " + e.message);
@@ -2847,8 +2981,8 @@ async function renderStoryboardPanels(boardIndex) {
                 body: JSON.stringify({
                     ...modelSelection,
                     prompt: panel.single_panel_prompt || panel.visual_prompt || panel.caption || "",
-                    width_and_height: panel.width_and_height || board.panel_width_and_height || "1280x720",
-                    quality: "720p",
+                    width_and_height: panel.width_and_height || board.panel_width_and_height || "1920x1080",
+                    quality: "1080p",
                     title: (storyboardPlan?.title || "storyboard") + "_panel_" + String(idx + 1),
                     enhance_prompt: false,
                     wait_for_output: false,
@@ -2867,7 +3001,7 @@ async function renderStoryboardPanels(boardIndex) {
             };
             renderStoryboardPanelJobList(boardIndex);
         }
-        if (resultEl) resultEl.textContent = "Panel jobs submitted to " + modelLabel + ". Refresh until all panels show completed, then assemble.";
+        if (resultEl) resultEl.textContent = "Frame jobs submitted to " + modelLabel + ". They will appear here as each shot becomes ready.";
         return storyboardPanelJobs[String(boardIndex)] || [];
     } catch (e) {
         if (resultEl) resultEl.textContent = "Panel render failed: " + e.message;
@@ -3099,8 +3233,6 @@ async function renderAssembleExportStoryboardPanels(boardIndex) {
         if (resultEl) resultEl.textContent = "Auto workflow timed out before all panel renders completed. Refresh jobs and assemble manually.";
         return;
     }
-    const assembled = await assembleStoryboardPanels(boardIndex);
-    if (!assembled) return;
     await exportStoryboardVideoShots(boardIndex);
 }
 
@@ -3141,7 +3273,8 @@ async function renderStoryboardBoard(boardIndex) {
     }
 }
 
-async function developScriptPackage() {
+async function developScriptPackage(options = {}) {
+    const autoContinue = options.autoContinue !== false;
     refreshScriptDomRefs();
     const brief = ($scriptBrief?.value || "").trim();
     if (!brief) {
@@ -3153,7 +3286,7 @@ async function developScriptPackage() {
         btn.disabled = true;
         btn.textContent = "Developing...";
     }
-    setScriptStatus("Hermes is building treatment, script, continuity, and edit plan...", "Script");
+    setScriptStatus("Hermes is building the internal script package...", "Package");
     try {
         const resp = await fetch("/api/script/develop", {
             method: "POST",
@@ -3172,13 +3305,18 @@ async function developScriptPackage() {
         }
         scriptPackage = data.package;
         renderScriptPackage(scriptPackage);
-        switchScriptFlowStep("coverage");
         if (data.status === "fallback") {
             const reason = data.error ? ": " + data.error : "";
             setScriptStatus("Fallback package ready - model generation failed" + reason, "Fallback");
             addLogEntry("warning", "Script package used fallback" + reason);
         } else {
-            setScriptStatus("Script package ready. Review locks, then generate coverage.", "Locked");
+            setScriptStatus("Script package ready.", "Package");
+        }
+        if (autoContinue) {
+            await generateShotList({ autoStoryboard: true });
+        } else {
+            switchScriptFlowStep("coverage");
+            setScriptStatus("Package ready. Coverage can be built from the loaded package.", "Ready");
         }
     } catch (e) {
         setScriptStatus("Script package failed: " + e.message, "");
@@ -3186,7 +3324,7 @@ async function developScriptPackage() {
     } finally {
         if (btn) {
             btn.disabled = false;
-            btn.textContent = "Build Script";
+            btn.textContent = "Build Pipeline";
         }
     }
 }
@@ -3222,20 +3360,20 @@ async function uploadBrief() {
     }
 }
 
-async function generateShotList() {
+async function generateShotList(options = {}) {
     refreshScriptDomRefs();
+    switchScriptFlowStep("coverage");
+    updateCoverageSourceState();
     const brief = scriptPackageShotlistBrief();
     if (!brief) {
-        $scriptStatusText.textContent = "Develop a script package or enter a brief first";
+        setScriptStatus("Develop a script package or enter a brief first.", "");
         return;
     }
 
     const $btn = document.getElementById("generate-shots-btn");
     $btn.disabled = true;
     $btn.textContent = "Building...";
-        $scriptStatusText.textContent = scriptPackage ? "Director is converting locked script into coverage..." : "Director is analyzing brief...";
-        $scriptProgress.textContent = "";
-        switchScriptFlowStep("coverage");
+    setScriptStatus(scriptPackage ? "Director is converting the internal package into coverage..." : "Director is analyzing brief...", "Coverage");
 
     // Clear existing shots
     director_shots = {};
@@ -3286,12 +3424,17 @@ async function generateShotList() {
                 handleDirectorEvent(event);
             } catch (e) { /* skip */ }
         }
+        if (options.autoStoryboard && Object.keys(director_shots || {}).length) {
+            setScriptStatus("Coverage ready. Building storyboard plan automatically...", "Storyboard");
+            await generateStoryboard({ autoAdvance: true });
+        }
 
     } catch (e) {
-        $scriptStatusText.textContent = "Error: " + e.message;
+        setScriptStatus("Coverage failed: " + e.message, "");
     } finally {
         $btn.disabled = false;
         $btn.textContent = "Build Coverage";
+        updateCoverageSourceState();
     }
 }
 
@@ -3299,7 +3442,7 @@ function handleDirectorEvent(event) {
     refreshScriptDomRefs();
     switch (event.type) {
         case "status":
-            $scriptStatusText.textContent = event.text;
+            setScriptStatus(event.text, "Coverage");
             break;
 
         case "shot":
@@ -3307,17 +3450,17 @@ function handleDirectorEvent(event) {
             $shotList.style.display = "flex";
             director_shots[event.shot.id] = event.shot;
             renderShotCard(event.shot, event.index, event.total);
-            $scriptProgress.textContent = event.index + "/" + event.total;
+            setScriptStatus("Coverage shot " + event.index + " of " + event.total + " received.", event.index + "/" + event.total);
             break;
 
         case "done":
-            $scriptStatusText.textContent = event.text;
+            setScriptStatus(event.text, "Coverage ready");
             updateSendToSparkBtn();
             updateScriptFlowState();
             break;
 
         case "error":
-            $scriptStatusText.textContent = "Error: " + event.text;
+            setScriptStatus("Coverage error: " + event.text, "");
             break;
     }
 }
@@ -3468,6 +3611,7 @@ function toggleShotSelection() {
 function updateSendToSparkBtn() {
     refreshScriptDomRefs();
     const checked = document.querySelectorAll(".shot-checkbox:checked");
+    if (!$sendToSparkBtn) return;
     $sendToSparkBtn.disabled = checked.length === 0;
     $sendToSparkBtn.textContent = checked.length > 0
         ? "Send " + checked.length + " Shot(s) to Spark"
@@ -3529,6 +3673,7 @@ function clearShotList() {
     scriptPackage = null;
     storyboardPlan = null;
     storyboardPanelJobs = {};
+    scriptVideoShots = [];
     currentScriptProjectId = "";
     activeScriptPipelineJobId = "";
     activeScriptPipelineStatus = "";
@@ -3541,6 +3686,7 @@ function clearShotList() {
     $scriptProgress.textContent = "";
     renderScriptPackage(null);
     renderStoryboardPlan(null);
+    renderScriptVideoOutputs([]);
     updateSendToSparkBtn();
     switchScriptFlowStep("brief");
 }

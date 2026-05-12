@@ -1,9 +1,8 @@
-"""Local Higgsfield-like adapter backed by Forge/ComfyUI.
+"""Local creative adapter backed by Forge/ComfyUI.
 
-This is an interoperability shim, not a Higgsfield API client. It mirrors the
-publicly documented shape of Higgsfield-style creative MCP tools: submit async
-job sets, poll status, browse style/motion presets, and keep character
-reference records. Actual rendering is delegated to local ComfyUI workflows.
+This is an interoperability shim. It keeps the older endpoint contract for
+compatibility, but actual rendering is delegated to local Spark/ComfyUI
+workflows and visible output names should use Forge/Spark terminology.
 """
 
 from __future__ import annotations
@@ -259,6 +258,7 @@ class LocalHiggsfieldAdapter:
         image_reference_url: Optional[str] = None,
         wait_for_output: bool = False,
         workflow_id: str = "01_flux2_text_to_image",
+        output_label: Optional[str] = None,
     ) -> Dict[str, Any]:
         job_set_id = str(uuid.uuid4())
         width, height = _parse_size(width_and_height)
@@ -300,8 +300,9 @@ class LocalHiggsfieldAdapter:
             return job
 
         comfy = ComfyUIClient(self.comfy_url)
+        output_prefix = _safe_name(output_label or requested_workflow_id or "model", fallback="model")
         submit = await comfy.submit_prompt_for_shot(
-            shot_id=f"local_higgsfield_{job_set_id[:8]}",
+            shot_id=f"{output_prefix}_{job_set_id[:8]}",
             prompt=final_prompt,
             workflow_path=str(workflow),
             seed=seed,
@@ -391,8 +392,9 @@ class LocalHiggsfieldAdapter:
             return job
 
         comfy = ComfyUIClient(self.comfy_url)
+        output_prefix = _safe_name(model or "video_model", fallback="video_model")
         submit = await comfy.submit_prompt_for_shot(
-            shot_id=f"local_higgsfield_{job_set_id[:8]}",
+            shot_id=f"{output_prefix}_{job_set_id[:8]}",
             prompt=final_prompt,
             workflow_path=str(workflow),
             seed=seed,

@@ -1372,7 +1372,7 @@
         }
         .script-flow-guide {
             display: grid;
-            grid-template-columns: repeat(7, minmax(105px, 1fr));
+            grid-template-columns: repeat(6, minmax(115px, 1fr));
             gap: 8px;
             padding-top: 12px;
         }
@@ -1711,6 +1711,38 @@
             font-family: 'JetBrains Mono', monospace;
             font-size: 11px;
         }
+        .script-global-status {
+            margin-top: 12px;
+        }
+        .script-coverage-source {
+            margin: 12px;
+            padding: 10px 12px;
+            border: 1px solid rgba(112, 153, 255, 0.24);
+            border-radius: 6px;
+            background: rgba(9, 16, 28, 0.84);
+            color: #aeb9ca;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            line-height: 1.45;
+        }
+        .script-coverage-source.ready {
+            border-color: rgba(110, 231, 183, 0.30);
+            background: rgba(20, 83, 45, 0.16);
+            color: #b9fbcf;
+        }
+        .script-coverage-source strong {
+            display: block;
+            margin-bottom: 3px;
+            color: #e6efff;
+            font-size: 12px;
+        }
+        .script-coverage-source.ready strong {
+            color: #d5ffe2;
+        }
+        .script-storyboard-source {
+            grid-column: 1 / -1;
+            margin: 0 0 12px;
+        }
         .script-next-action {
             margin: 10px 12px 0;
             padding: 8px 10px;
@@ -1735,7 +1767,7 @@
         }
         .script-package-tabs {
             display: grid;
-            grid-template-columns: 1fr;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
             gap: 10px;
             padding: 12px;
             overflow: auto;
@@ -1893,6 +1925,41 @@
             cursor: not-allowed;
             filter: grayscale(0.5);
         }
+        .script-video-output-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 12px;
+            margin-top: 14px;
+        }
+        .script-video-output-card {
+            border: 1px solid rgba(112, 153, 255, 0.20);
+            border-radius: 6px;
+            background: rgba(7, 12, 22, 0.84);
+            overflow: hidden;
+        }
+        .script-video-output-card img,
+        .script-video-output-card video {
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            display: block;
+            object-fit: cover;
+            background: #05070b;
+        }
+        .script-video-output-card div {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 9px 10px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+        }
+        .script-video-output-card strong {
+            color: #e6efff;
+        }
+        .script-video-output-card span {
+            color: #9fb4ff;
+            text-transform: uppercase;
+        }
         .script-shot-controls input,
         .script-storyboard-controls input {
             width: 86px;
@@ -2038,8 +2105,21 @@
             gap: 8px;
             padding: 0 12px 10px;
         }
+        .storyboard-advanced-actions {
+            justify-content: flex-end;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 0 12px 12px;
+            border-bottom: 1px solid #202020;
+        }
         .storyboard-board-head .storyboard-copy-row {
             padding: 0;
+        }
+        .storyboard-board .storyboard-prompt {
+            display: none;
+        }
+        .storyboard-board.show-prompt .storyboard-prompt {
+            display: block;
         }
         .storyboard-panel-jobs {
             border-top: 1px solid #202020;
@@ -3751,7 +3831,7 @@
             overflow: visible;
         }
         #script-view .script-panel {
-            overflow: visible;
+            overflow: hidden;
             width: 100%;
             box-sizing: border-box;
         }
@@ -4249,11 +4329,14 @@ beach</textarea>
             <div class="script-flow-guide" aria-label="Script Studio workspace">
                 <button class="script-flow-step active" type="button" data-script-step="projects" onclick="switchScriptFlowStep('projects')"><span>00</span><div><strong>Projects</strong><em id="script-step-status-projects">Saved</em></div></button>
                 <button class="script-flow-step" type="button" data-script-step="brief" onclick="switchScriptFlowStep('brief')"><span>01</span><div><strong>Brief</strong><em id="script-step-status-brief">Ready</em></div></button>
-                <button class="script-flow-step" type="button" data-script-step="package" onclick="switchScriptFlowStep('package')"><span>02</span><div><strong>Package</strong><em id="script-step-status-package">Waiting</em></div></button>
-                <button class="script-flow-step" type="button" data-script-step="coverage" onclick="switchScriptFlowStep('coverage')"><span>03</span><div><strong>Coverage</strong><em id="script-step-status-coverage">Waiting</em></div></button>
-                <button class="script-flow-step" type="button" data-script-step="storyboard" onclick="switchScriptFlowStep('storyboard')"><span>04</span><div><strong>Storyboard</strong><em id="script-step-status-storyboard">Waiting</em></div></button>
-                <button class="script-flow-step" type="button" data-script-step="videos" onclick="switchScriptFlowStep('videos')"><span>05</span><div><strong>Videos</strong><em id="script-step-status-videos">Waiting</em></div></button>
-                <button class="script-flow-step" type="button" data-script-step="jobs" onclick="switchScriptFlowStep('jobs')"><span>06</span><div><strong>Jobs</strong><em id="script-step-status-jobs">Idle</em></div></button>
+                <button class="script-flow-step" type="button" data-script-step="coverage" onclick="switchScriptFlowStep('coverage')"><span>02</span><div><strong>Coverage</strong><em id="script-step-status-coverage">Waiting</em></div></button>
+                <button class="script-flow-step" type="button" data-script-step="storyboard" onclick="switchScriptFlowStep('storyboard')"><span>03</span><div><strong>Storyboard</strong><em id="script-step-status-storyboard">Waiting</em></div></button>
+                <button class="script-flow-step" type="button" data-script-step="videos" onclick="switchScriptFlowStep('videos')"><span>04</span><div><strong>Videos</strong><em id="script-step-status-videos">Waiting</em></div></button>
+                <button class="script-flow-step" type="button" data-script-step="jobs" onclick="switchScriptFlowStep('jobs')"><span>05</span><div><strong>Jobs</strong><em id="script-step-status-jobs">Idle</em></div></button>
+            </div>
+            <div id="script-status" class="script-status-line script-global-status">
+                <span id="script-status-text">Ready</span>
+                <span id="script-progress"></span>
             </div>
 
             <div class="script-flow">
@@ -4275,7 +4358,7 @@ beach</textarea>
                                 <p>Save, resume, and run script to storyboard to video shots.</p>
                             </div>
                         </div>
-                        <div class="script-pipeline-grid">
+                        <div class="script-pipeline-grid script-pipeline-advanced" style="display:none;">
                             <div class="script-inline-field">
                                 <label for="script-project-id">Project ID</label>
                                 <input type="text" id="script-project-id" placeholder="Auto">
@@ -4301,7 +4384,7 @@ beach</textarea>
                                 <span><input type="checkbox" id="script-pipeline-wait-video" checked> collect completed clips</span>
                             </label>
                             <button class="btn btn-secondary" type="button" onclick="saveScriptProject()">Save Script</button>
-                            <button class="btn script-primary-action" type="button" id="run-script-pipeline-btn" onclick="runScriptPipeline()">Run Pipeline</button>
+                            <button class="btn script-primary-action" type="button" id="run-script-pipeline-btn" onclick="runScriptPipeline()">Generate Videos</button>
                         </div>
                         <div id="script-pipeline-status" class="script-next-action">No pipeline job running.</div>
                         <div id="script-pipeline-log" class="script-pipeline-log">
@@ -4340,13 +4423,10 @@ beach</textarea>
                             <span>Upload .md/.txt/.pdf</span>
                             <input type="file" id="brief-file-input" accept=".md,.txt,.pdf" onchange="uploadBrief()">
                         </label>
-                        <button class="btn script-primary-action" id="develop-script-btn" onclick="developScriptPackage()">Build Script</button>
+                        <button class="btn script-primary-action" id="develop-script-btn" onclick="runScriptPipeline()">Generate Videos</button>
+                        <button class="btn btn-secondary" type="button" onclick="developScriptPackage({autoContinue:false})">Package Only</button>
                     </div>
-                    <div class="script-next-action"><strong>Next:</strong> Build Script creates the locked treatment, continuity, and edit plan.</div>
-                    <div id="script-status" class="script-status-line">
-                        <span id="script-status-text">Ready</span>
-                        <span id="script-progress"></span>
-                    </div>
+                    <div class="script-next-action"><strong>Default:</strong> Generate Videos turns the brief into a script package, coverage, storyboard start frames, and individual video clips.</div>
                 </section>
 
                 <section class="script-panel script-package-panel script-step-panel" data-script-step-panel="package">
@@ -4371,7 +4451,7 @@ beach</textarea>
                     <div class="script-next-action"><strong>Next:</strong> Review the locked package, then Build Coverage below.</div>
                 </section>
 
-                <section class="script-panel script-scenes-panel script-step-panel" data-script-step-panel="package">
+                <section class="script-panel script-scenes-panel script-step-panel" data-script-step-panel="package_debug">
                     <div class="script-panel-head">
                         <span>02B</span>
                         <h3>Scenes and Beats</h3>
@@ -4379,7 +4459,7 @@ beach</textarea>
                     <div id="script-scenes-output" class="script-scenes-output"><div class="script-empty-mini">Generate the package to see scene structure.</div></div>
                 </section>
 
-                <section class="script-panel script-json-panel script-step-panel" data-script-step-panel="package">
+                <section class="script-panel script-json-panel script-step-panel" data-script-step-panel="package_debug">
                     <div class="script-panel-head">
                         <span>02C</span>
                         <h3>Package JSON</h3>
@@ -4397,6 +4477,10 @@ beach</textarea>
                         </div>
                     </div>
                     <div class="script-control-surface">
+                        <div id="script-coverage-source" class="script-coverage-source">
+                            <strong>No locked package loaded.</strong>
+                            Build or load a script package before generating coverage.
+                        </div>
                         <div class="script-control-grid">
                             <div class="script-inline-field">
                                 <label for="script-target-shots">Shot Count</label>
@@ -4425,17 +4509,21 @@ beach</textarea>
                     </div>
                     <div class="script-control-surface">
                         <div class="script-control-grid storyboard-grid">
+                            <div id="script-storyboard-source" class="script-coverage-source script-storyboard-source">
+                                <strong>No storyboard plan yet.</strong>
+                                It will be built automatically after coverage, or by the pipeline runner.
+                            </div>
                             <div class="script-inline-field">
                                 <label for="storyboard-target-panels">Panels</label>
                                 <input type="number" id="storyboard-target-panels" min="1" max="60" placeholder="Auto">
                             </div>
                             <div class="script-inline-field">
                                 <label for="storyboard-panels-per-board">Per Board</label>
-                                <input type="number" id="storyboard-panels-per-board" min="1" max="9" value="9">
+                                <input type="number" id="storyboard-panels-per-board" min="1" max="9" value="4">
                             </div>
                             <div class="script-inline-field">
                                 <label for="storyboard-resolution">Resolution</label>
-                                <input type="text" id="storyboard-resolution" value="3840x2160">
+                                <input type="text" id="storyboard-resolution" value="1920x1080">
                             </div>
                             <div class="script-inline-field">
                                 <label for="storyboard-image-model">Render Model</label>
@@ -4478,7 +4566,7 @@ beach</textarea>
                             <input type="text" id="storyboard-reference-image" placeholder="/media-assets/... optional character sheet">
                         </label>
                         <label>Negative Prompt
-                            <input type="text" id="storyboard-negative-prompt" value="blurry, deformed, extra limbs, text errors, inconsistent characters, merged panels">
+                            <input type="text" id="storyboard-negative-prompt" value="blurry, soft focus, smeared detail, low resolution, deformed, extra limbs, bad hands, text, captions, labels, panel numbers, page layout, grid, contact sheet, watermark, inconsistent characters, merged panels">
                         </label>
                         <label class="storyboard-checkbox">Captions
                             <span><input type="checkbox" id="storyboard-include-captions"> render caption text</span>
@@ -4508,9 +4596,11 @@ beach</textarea>
                             </div>
                             <div class="script-video-actions">
                                 <button class="btn btn-secondary" type="button" onclick="switchScriptFlowStep('storyboard')">Back to Storyboard</button>
-                                <button class="btn" id="send-to-spark-btn" onclick="sendToSpark()" disabled>Open Selected in Videos</button>
-                                <button class="btn script-primary-action" type="button" onclick="switchPage('spark-view')">Open Videos</button>
+                                <button class="btn script-primary-action" type="button" onclick="runScriptPipeline()">Generate Videos</button>
                             </div>
+                        </div>
+                        <div id="script-video-output-list" class="script-video-output-list">
+                            <div class="script-empty-shot"><p>No generated start frames or videos yet.</p></div>
                         </div>
                     </div>
                 </section>

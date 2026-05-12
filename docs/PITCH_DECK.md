@@ -16,11 +16,11 @@
 
 ## 2. THE MODEL STACK (10 seconds)
 
-**Visual:** Clean cards animate in — Kimi 2.6, FLUX2 Dev, Z-Image Turbo, LTX 2.3, WAN 2.2.
+**Visual:** Clean cards animate in — Kimi latest / local LM Studio Director, FLUX2 Dev, Z-Image Turbo, LTX 2.3, WAN 2.2.
 
-**Narration:** *"Kimi 2.6 directs. FLUX2 renders quality. Z-Image iterates fast. LTX and WAN handle video. You write the brief. We build the campaign."*
+**Narration:** *"Kimi or a local LM Studio director plans. FLUX2 renders quality. Z-Image iterates fast. LTX and WAN handle video. You write the brief. We build the campaign."*
 
-**On-screen text:** Kimi 2.6 · FLUX2 · Z-Image · LTX · WAN
+**On-screen text:** Director · FLUX2 · Z-Image · LTX · WAN
 
 ---
 
@@ -48,11 +48,11 @@
 
 ## 5. THE PROJECT (15 seconds)
 
-**Visual:** Dashboard. Cursor types: *"Sienna Nomad — outdoor lifestyle, earth tones."* Clicks generate. Instagram carousel appears (12 posts). Then a TikTok concept. Then a TV commercial storyboard.
+**Visual:** Dashboard. Cursor types: *"Sienna Nomad — outdoor lifestyle, earth tones."* Clicks generate. Instagram carousel appears (12 posts). Then Script Studio: cursor types a one-line story prompt, clicks **Generate Videos**, and the job log moves through package, coverage, storyboard, frames, and videos. Start frames and clips appear inside Script Studio.
 
-**Narration:** *"Feed Forge a brief. It writes the campaign. Generates every asset. And Hermes ensures every post, every frame, every shot stays perfectly consistent."*
+**Narration:** *"Feed Forge a brief. It writes the campaign. And Script Studio now turns one short prompt into script, storyboard, start frames, and individual video shots in one click."*
 
-**On-screen text:** 12 posts · 3 formats · 1 brand identity
+**On-screen text:** 12 posts · Script to video · One job runner
 
 ---
 
@@ -81,12 +81,12 @@
 ### Main Track ($15k) — Creativity, Usefulness, Presentation
 
 - **Creativity:** No other submission shows an agent learning brand DNA and applying it across Instagram, TikTok, and TV commercials
-- **Usefulness:** Real pain point for social media managers, brand designers, and indie filmmakers
+- **Usefulness:** Real pain point for social media managers, brand designers, and indie filmmakers: one brief can become campaign stills or a shot-by-shot video package
 - **Presentation:** Opens with beautiful output, ends with a visceral "AI learns" moment
 
-### Kimi Track ($5k + credits) — Prove Kimi Usage
+### Kimi / Director Track — Prove Model Usage
 
-- **Models tab** shows Kimi 2.6 / NVIDIA NIM selected
+- **Settings** shows NVIDIA/Kimi Director or local LM Studio Director selected
 - **Live API call** shows Kimi generating the campaign plan in real time
-- **Narration explicitly mentions** "Kimi 2.6 via NVIDIA NIM"
+- **Narration explicitly mentions** "Kimi via NVIDIA NIM" when NVIDIA is active, or "local LM Studio Director" when local mode is active
 - **Tweet tags** @Kimi_Moonshot alongside @NousResearch

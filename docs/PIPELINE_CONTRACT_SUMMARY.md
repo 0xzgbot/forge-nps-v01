@@ -10,6 +10,22 @@
 7. Vision audit stamps pass/fail.
 8. Failed shots can be re-audited or remediated into linked retries.
 
+## Script Studio Runtime Flow
+
+Script Studio is also canonical. It is job-based and persists progress into saved script projects.
+
+1. `POST /api/script/pipeline/start`
+2. Script package is created or loaded.
+3. Coverage is generated from the locked package.
+4. Storyboard plan is generated.
+5. Individual storyboard start frames are rendered at 1080p.
+6. Frames are exported as `storyboard_start_frame` shot records.
+7. Only `storyboard_start_frame` records are queued for image-to-video.
+8. `GET /api/script/pipeline/jobs/{job_id}` returns logs and the current saved project.
+9. Script Studio Videos displays `project.video_shots` start frames and clips directly.
+
+Manual page proofs are not part of the default contract. They are advanced storyboard artifacts only.
+
 ## Canonical Event Stream Types
 - `profile`
 - `pipeline_timing`
@@ -57,6 +73,15 @@ The run button is considered wired when the stream reaches at least:
   - `prompt_id`
   - `seed`
   - `image_path` and/or `image_url`
+- Script/video provenance:
+  - `source` = `storyboard_start_frame`
+  - `start_frame_url`
+  - `video_prompt`
+  - `video_status`
+  - `video_prompt_id`
+  - `video_url` when complete
+  - `storyboard_board_id`
+  - `storyboard_panel_index`
 - Audit provenance:
   - `audit_model`
   - `audit_status`

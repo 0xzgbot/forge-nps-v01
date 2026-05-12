@@ -56,6 +56,11 @@ Forge NPS is built around one non-negotiable idea: AI production needs an agency
 
 The current dashboard refresh is documented in [docs/CHANGELOG.md](docs/CHANGELOG.md). Highlights include:
 
+- **Script Studio is now a one-click script-to-video pipeline**: paste a short brief, click **Generate Videos**, and Forge runs script package creation, coverage, storyboard planning, 1080p start-frame rendering, and individual image-to-video jobs from a single job runner.
+- Script Studio's Videos step now shows generated start frames and completed clips directly instead of sending users to the global Videos page to finish the workflow manually.
+- Storyboard rendering defaults to individual high-resolution production keyframes, not multi-panel page proofs. Page proofs remain an advanced diagnostic/export option.
+- Storyboard image providers are configurable in Settings: local Spark/ComfyUI (`Flux2.Dev`, `Flux2 Klein`, `Z-Image`, `Z-Image Turbo`) plus optional OpenAI image generation and Gemini/Nano Banana when API keys are set.
+- New local storyboard output filenames use the actual selected model prefix, such as `flux2_dev_...`, `flux2_klein_...`, or `z_image_...`, instead of the old compatibility adapter label.
 - Main generation controls now use **Prompt** and **Generate Images** terminology.
 - The prompt box is larger, blue-toned, and paired with a simplified toolbar.
 - **Turbo** is in the same model pill as **Flux2.Dev** and only works when Flux2.Dev is enabled.
@@ -145,6 +150,8 @@ Full catalog: [docs/SKILLS_INDEX.md](docs/SKILLS_INDEX.md)
 
 ## Canonical Pipeline
 
+Campaign image generation:
+
 ```mermaid
 flowchart LR
     A["Campaign brief"] --> B["Hermes intake"]
@@ -159,15 +166,33 @@ flowchart LR
     J --> E
 ```
 
+Script Studio video generation:
+
+```mermaid
+flowchart LR
+    A["Short prompt / brief"] --> B["Generate Videos"]
+    B --> C["Locked script package"]
+    C --> D["Coverage shot list"]
+    D --> E["Storyboard plan"]
+    E --> F["Individual 1080p start frames"]
+    F --> G["LTX image-to-video jobs"]
+    G --> H["Start frames and clips in Script Studio"]
+```
+
 ## Canonical API Path
 
 1. `POST /api/hermes/run-campaign`
 2. `GET /api/shots`
 3. `GET /api/hermes/idea-board`
-4. `POST /api/script/develop`
-5. `POST /api/audit/reprocess`
-6. `POST /api/audit/remediate`
-7. `GET /api/memory/health`
+4. `POST /api/script/pipeline/start`
+5. `GET /api/script/pipeline/jobs/{job_id}`
+6. `GET /api/script/storyboard/image-models`
+7. `POST /api/script/storyboard/render-image`
+8. `POST /api/script/storyboard/export-video-shots`
+9. `POST /api/script/develop`
+10. `POST /api/audit/reprocess`
+11. `POST /api/audit/remediate`
+12. `GET /api/memory/health`
 
 Legacy dispatch and render routes are intentionally disabled and return `410 legacy_disabled`; see [docs/PIPELINE_CONTRACT_SUMMARY.md](docs/PIPELINE_CONTRACT_SUMMARY.md).
 
@@ -202,8 +227,9 @@ Minimum environment/config values:
 ```bash
 KIMI_API_KEY=your_api_key_here
 NIM_ENDPOINT=https://integrate.api.nvidia.com/v1/chat/completions
-KIMI_INSTRUCT_MODEL=moonshotai/kimi-k2.6
-KIMI_THINKING_MODEL=moonshotai/kimi-k2.6
+KIMI_INSTRUCT_MODEL=~moonshotai/kimi-latest
+KIMI_THINKING_MODEL=~moonshotai/kimi-latest
+USE_LOCAL_DIRECTOR=false
 
 LMSTUDIO_HOST=http://localhost:1234
 LMSTUDIO_PORT=1234
@@ -212,6 +238,12 @@ LMSTUDIO_VISION_MODEL=qwen3.6-35b-a3b@q6_k
 
 COMFYUI_PRIMARY=http://localhost:8188
 FORGE_MEDIA_ROOT=~/Desktop/FORGE_NPS_MEDIA
+
+STORYBOARD_IMAGE_PROVIDER=spark:flux2_dev
+OPENAI_IMAGE_MODEL=gpt-image-2
+GEMINI_IMAGE_MODEL=gemini-2.5-flash-image
+# OPENAI_API_KEY=optional_openai_key_for_storyboards
+# GEMINI_API_KEY=optional_google_ai_studio_key_for_nano_banana_storyboards
 ```
 
 `data/config.json` can override `.env` because the Settings page persists there. It is intentionally ignored by git. Use [data/config.example.json](data/config.example.json) as the tracked reference shape, and keep real local IPs/API keys only in `.env` or local `data/config.json`.

@@ -852,13 +852,13 @@ class ScriptStoryboardRequest(BaseModel):
     script: str = ""
     package: Optional[Dict[str, Any]] = None
     asset_vault_package_id: str = ""
-    panels_per_board: int = 9
+    panels_per_board: int = 4
     target_panels: Optional[int] = None
-    resolution: str = "3840x2160"
+    resolution: str = "1920x1080"
     title: str = ""
     style: str = "cinematic"
     character_consistency: str = ""
-    negative_prompt: str = "blurry, deformed, extra limbs, text errors, inconsistent characters, merged panels"
+    negative_prompt: str = "blurry, soft focus, smeared detail, low resolution, deformed, extra limbs, bad hands, text, captions, labels, panel numbers, page layout, grid, contact sheet, watermark, inconsistent characters, merged panels"
     reference_image_url: str = ""
     include_captions: bool = False
 
@@ -903,12 +903,12 @@ class ScriptPipelineStartRequest(BaseModel):
     runtime_seconds: int = 60
     target_scenes: int = 4
     target_shots: Optional[int] = None
-    storyboard_panels_per_board: int = 9
+    storyboard_panels_per_board: int = 4
     storyboard_target_panels: Optional[int] = None
-    storyboard_resolution: str = "3840x2160"
+    storyboard_resolution: str = "1920x1080"
     storyboard_style: str = "cinematic"
     storyboard_character_consistency: str = ""
-    storyboard_negative_prompt: str = "blurry, deformed, extra limbs, text errors, inconsistent characters, merged panels"
+    storyboard_negative_prompt: str = "blurry, soft focus, smeared detail, low resolution, deformed, extra limbs, bad hands, text, captions, labels, panel numbers, page layout, grid, contact sheet, watermark, inconsistent characters, merged panels"
     storyboard_reference_image_url: str = ""
     storyboard_include_captions: bool = False
     storyboard_image_provider: str = "spark"
@@ -935,8 +935,8 @@ class StoryboardImageGenerateRequest(BaseModel):
     provider: str = "spark"
     model: str = ""
     spark_model: str = "flux2_dev"
-    width_and_height: str = "1280x720"
-    quality: str = "720p"
+    width_and_height: str = "1920x1080"
+    quality: str = "1080p"
     title: str = "storyboard"
     image_reference_url: str = ""
     enhance_prompt: bool = False
@@ -2903,9 +2903,12 @@ def _storyboard_layout_dimensions(panel_count: int) -> tuple[int, int, str]:
 
 def _storyboard_panel_render_size(resolution: str, columns: int, rows: int) -> str:
     width, height = _parse_storyboard_resolution(resolution)
-    panel_w = max(512, int(round(width / max(1, columns))))
-    panel_h = max(512, int(round(height / max(1, rows))))
-    return f"{panel_w}x{panel_h}"
+    aspect = width / max(1, height)
+    if aspect >= 1.2:
+        return "1920x1080"
+    if aspect <= 0.85:
+        return "1080x1920"
+    return "1536x1536"
 
 
 def _single_storyboard_panel_prompt(
@@ -2927,7 +2930,8 @@ def _single_storyboard_panel_prompt(
         else "No text, no captions, no dialogue, no titles, no panel number."
     )
     prompt = (
-        f"Single storyboard panel only, not a grid, for board {board_idx} panel {local_idx} of '{title}'. "
+        f"Single high-resolution cinematic production keyframe for board {board_idx} shot {local_idx} of '{title}'. "
+        "This is an image-to-video start frame, not a storyboard page, not a contact sheet, not a grid. "
         f"Style: {style}. "
         f"Scene action: {panel.get('visual_prompt', '')} "
         f"Setting: {panel.get('location', '')}. Camera: {panel.get('camera', '')}. "
@@ -2935,8 +2939,9 @@ def _single_storyboard_panel_prompt(
         f"Mood: {panel.get('mood', 'narrative progression')}. "
         f"Characters: {character_text}. Character consistency: {character_consistency}. "
         f"Continuity: {panel.get('continuity', '')}. {text_clause} "
-        "Make one clean cinematic frame with readable blocking, sharp focal priority, consistent wardrobe, consistent face, "
-        "film storyboard composition, tactile material texture, natural skin or surface imperfections, no border, no page layout, no watermark."
+        "Make one clean cinematic frame with readable blocking, crisp subject edges, sharp eyes, clear hands, detailed textures, "
+        "controlled depth of field, consistent wardrobe, consistent face, cinematic composition, tactile material detail, "
+        "natural skin or surface imperfections, no border, no panel frame, no page layout, no watermark."
         + reference_note
     )
     if panel.get("asset_vault_context"):
@@ -3217,6 +3222,15 @@ def _script_project_shots(campaign_id: str) -> List[Dict[str, Any]]:
     ]
 
 
+def _script_video_shots(campaign_id: str) -> List[Dict[str, Any]]:
+    return [
+        dict(shot)
+        for shot in _SHOTS_STORE
+        if str(shot.get("campaign_id") or "") == campaign_id
+        and str(shot.get("source") or "") == "storyboard_start_frame"
+    ]
+
+
 def _pipeline_job_path(project_id: str) -> Path:
     return _script_project_dir(project_id) / "pipeline_job.json"
 
@@ -3407,8 +3421,8 @@ async def _run_script_pipeline_job(job_id: str, req: ScriptPipelineStartRequest)
                     model=req.storyboard_image_model,
                     spark_model=req.storyboard_spark_model,
                     prompt=str(panel.get("single_panel_prompt") or panel.get("visual_prompt") or panel.get("caption") or ""),
-                    width_and_height=str(panel.get("width_and_height") or board.get("panel_width_and_height") or "1280x720"),
-                    quality="720p",
+                    width_and_height=str(panel.get("width_and_height") or board.get("panel_width_and_height") or "1920x1080"),
+                    quality="1080p",
                     title=f"{script_id}_board_{board_index}_panel_{idx}",
                     enhance_prompt=False,
                     wait_for_output=True,
@@ -3472,7 +3486,7 @@ async def _run_script_pipeline_job(job_id: str, req: ScriptPipelineStartRequest)
             all_video_shots.extend(export.get("shots", []) if isinstance(export.get("shots"), list) else [])
         project = _save_script_project_payload({
             "script_id": script_id,
-            "video_shots": _script_project_shots(campaign_id) or all_video_shots,
+            "video_shots": _script_video_shots(campaign_id) or all_video_shots,
             "status": "video_shots_ready",
             "active_job_id": job_id,
         })
@@ -3490,7 +3504,7 @@ async def _run_script_pipeline_job(job_id: str, req: ScriptPipelineStartRequest)
                 resolve_image_path=_resolve_image_path,
                 workflow_file_for_id=_workflow_file_for_id,
             )
-            shot_ids = [str(s.get("id") or "") for s in _script_project_shots(campaign_id) if s.get("id")]
+            shot_ids = [str(s.get("id") or "") for s in _script_video_shots(campaign_id) if s.get("id")]
             _pipeline_log(job, "videos", f"Queueing {len(shot_ids)} image-to-video job(s)")
             result = await service.process(
                 shot_ids=shot_ids,
@@ -3538,7 +3552,7 @@ async def _run_script_pipeline_job(job_id: str, req: ScriptPipelineStartRequest)
             job["video_jobs"] = video_jobs
             _save_script_project_payload({
                 "script_id": script_id,
-                "video_shots": _script_project_shots(campaign_id),
+                "video_shots": _script_video_shots(campaign_id),
                 "status": "video_queued",
                 "active_job_id": job_id,
             })
@@ -3570,7 +3584,7 @@ async def _run_script_pipeline_job(job_id: str, req: ScriptPipelineStartRequest)
                     job["video_jobs"] = video_jobs
                     _save_script_project_payload({
                         "script_id": script_id,
-                        "video_shots": _script_project_shots(campaign_id),
+                        "video_shots": _script_video_shots(campaign_id),
                         "status": "video_rendering" if running else "video_complete",
                         "active_job_id": job_id,
                     })
@@ -3581,7 +3595,7 @@ async def _run_script_pipeline_job(job_id: str, req: ScriptPipelineStartRequest)
 
         _save_script_project_payload({
             "script_id": script_id,
-            "video_shots": _script_project_shots(campaign_id),
+            "video_shots": _script_video_shots(campaign_id),
             "status": "complete",
             "active_job_id": job_id,
         })
@@ -3622,7 +3636,7 @@ def _build_storyboard_boards(req: ScriptStoryboardRequest) -> Dict[str, Any]:
     boards = []
     total_boards = (len(panels) + panels_per_board - 1) // panels_per_board
     style = (req.style or "").strip()
-    resolution = (req.resolution or "3840x2160").strip() or "3840x2160"
+    resolution = (req.resolution or "1920x1080").strip() or "1920x1080"
     character_consistency = (req.character_consistency or "").strip()
     if not character_consistency and package:
         chars = package.get("continuity", {}).get("characters", []) if isinstance(package.get("continuity"), dict) else []
@@ -4456,7 +4470,7 @@ class LocalHiggsfieldImageRequest(BaseModel):
     prompt: str
     width_and_height: str = "1696x960"
     enhance_prompt: bool = False
-    quality: str = "720p"
+    quality: str = "1080p"
     batch_size: int = 1
     style_id: Optional[str] = None
     style_strength: float = 1.0
@@ -4686,6 +4700,7 @@ async def _generate_storyboard_image(req: StoryboardImageGenerateRequest) -> Dic
             image_reference_url=req.image_reference_url,
             wait_for_output=req.wait_for_output,
             workflow_id=workflow_id,
+            output_label=spark_key,
         )
         payload["provider"] = "spark"
         payload["model"] = spark_key
@@ -4885,6 +4900,7 @@ async def api_local_higgsfield_generate_image(req: LocalHiggsfieldImageRequest):
         custom_reference_strength=req.custom_reference_strength,
         image_reference_url=req.image_reference_url,
         wait_for_output=req.wait_for_output,
+        output_label="flux2_dev",
     )
 
 
