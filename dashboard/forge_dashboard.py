@@ -3440,7 +3440,8 @@ async def _run_script_pipeline_job(job_id: str, req: ScriptPipelineStartRequest)
             return
 
         panel_jobs: Dict[str, Any] = {}
-        _pipeline_log(job, "frames", "Rendering storyboard panel start frames")
+        _pipeline_log(job, "frames", "Queueing storyboard panel start frames")
+        adapter = _make_local_higgsfield_adapter()
         for board in storyboard_plan.get("boards", []) if isinstance(storyboard_plan.get("boards"), list) else []:
             if not isinstance(board, dict):
                 continue
@@ -3459,7 +3460,7 @@ async def _run_script_pipeline_job(job_id: str, req: ScriptPipelineStartRequest)
                     quality="1080p",
                     title=f"{script_id}_board_{board_index}_panel_{idx}",
                     enhance_prompt=False,
-                    wait_for_output=True,
+                    wait_for_output=False,
                     image_reference_url=str(board.get("reference_image_url") or ""),
                 ))
                 url = _storyboard_payload_url(payload)
@@ -3479,7 +3480,45 @@ async def _run_script_pipeline_job(job_id: str, req: ScriptPipelineStartRequest)
                     "status": "frames_rendering",
                     "active_job_id": job_id,
                 })
-                _pipeline_log(job, "frames", f"Rendered/submitted board {board_index} panel {idx}", url=url)
+                _pipeline_log(job, "frames", f"Queued board {board_index} panel {idx}", url=url)
+
+        pending = [
+            (board_idx, item)
+            for board_idx, items in panel_jobs.items()
+            for item in items
+            if not item.get("url") and item.get("job_set_id")
+        ]
+        deadline = time.time() + max(300, min(int(req.video_wait_seconds or 1800), 7200))
+        completed_keys: set[str] = set()
+        while pending and time.time() < deadline:
+            remaining = []
+            for board_idx, item in pending:
+                try:
+                    status_payload = await adapter.get_job_status(str(item.get("job_set_id") or ""))
+                except Exception as exc:
+                    item["status"] = "error"
+                    item["error"] = str(exc)[:300]
+                    continue
+                item["status"] = status_payload.get("status", item.get("status", "queued"))
+                item["raw"] = status_payload
+                url = _storyboard_payload_url(status_payload)
+                if url:
+                    item["url"] = url
+                    key = f"{board_idx}:{item.get('index')}"
+                    if key not in completed_keys:
+                        completed_keys.add(key)
+                        _pipeline_log(job, "frames", f"Rendered board {board_idx} panel {item.get('index')}", url=url)
+                else:
+                    remaining.append((board_idx, item))
+            _save_script_project_payload({
+                "script_id": script_id,
+                "storyboard_panel_jobs": panel_jobs,
+                "status": "frames_rendering",
+                "active_job_id": job_id,
+            })
+            pending = remaining
+            if pending:
+                await asyncio.sleep(5)
         missing = [
             f"{board_idx}:{item.get('index')}"
             for board_idx, items in panel_jobs.items()
