@@ -420,6 +420,7 @@ class HermesAuditService:
                     retry_record["identity_status"] = "pass" if passed else "fail"
                     retry_record["identity_score"] = score
                     retry_record["identity_fail_reasons"] = [] if passed else detected_notes[:4]
+                transition_shot(retry_record, "audited_pass" if passed else "audited_fail")
                 transition_shot(retry_record, "final_pass" if passed else "final_fail")
                 self._persist_media_shot_metadata(retry_record)
                 audit_extra = self._audit_event_extra(retry_record, score)

@@ -13,6 +13,7 @@ import re
 import random
 import shutil
 import zipfile
+import hashlib
 from pathlib import Path
 import httpx
 from PIL import Image, ImageDraw, ImageFont, ImageOps
@@ -2510,6 +2511,64 @@ def _extract_json_response(text: str) -> Dict[str, Any]:
     return parsed
 
 
+def _script_package_fingerprint(
+    *,
+    title: str = "",
+    brief: str = "",
+    tone: str = "",
+    runtime_seconds: int = 60,
+    target_scenes: int = 4,
+    hook_first_dialogue: bool = True,
+) -> str:
+    payload = {
+        "title": str(title or "").strip(),
+        "brief": str(brief or "").strip(),
+        "tone": str(tone or "").strip(),
+        "runtime_seconds": int(runtime_seconds or 60),
+        "target_scenes": int(target_scenes or 4),
+        "hook_first_dialogue": bool(hook_first_dialogue),
+    }
+    raw = json.dumps(payload, ensure_ascii=True, sort_keys=True)
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+
+def _script_request_fingerprint(req: ScriptDevelopRequest | ScriptPipelineStartRequest) -> str:
+    return _script_package_fingerprint(
+        title=req.title,
+        brief=req.brief,
+        tone=req.tone,
+        runtime_seconds=req.runtime_seconds,
+        target_scenes=req.target_scenes,
+        hook_first_dialogue=req.hook_first_dialogue,
+    )
+
+
+def _annotate_script_package(package: Dict[str, Any], req: ScriptDevelopRequest | ScriptPipelineStartRequest) -> Dict[str, Any]:
+    package["forge_request"] = {
+        "fingerprint": _script_request_fingerprint(req),
+        "title": str(req.title or "").strip(),
+        "brief_hash": hashlib.sha256(str(req.brief or "").strip().encode("utf-8")).hexdigest(),
+        "tone": str(req.tone or "").strip(),
+        "runtime_seconds": int(req.runtime_seconds or 60),
+        "target_scenes": int(req.target_scenes or 4),
+        "hook_first_dialogue": bool(req.hook_first_dialogue),
+    }
+    return package
+
+
+def _script_package_matches_request(package: Optional[Dict[str, Any]], req: ScriptPipelineStartRequest) -> bool:
+    if not isinstance(package, dict) or not package:
+        return False
+    request_meta = package.get("forge_request") if isinstance(package.get("forge_request"), dict) else {}
+    fingerprint = str(request_meta.get("fingerprint") or "")
+    if fingerprint:
+        return fingerprint == _script_request_fingerprint(req)
+    package_brief = str(package.get("brief") or "").strip()
+    if package_brief:
+        return package_brief == str(req.brief or "").strip()
+    return True
+
+
 def _fallback_script_package(req: ScriptDevelopRequest) -> Dict[str, Any]:
     brief = (req.brief or "").strip()
     title = (req.title or "").strip() or "Untitled Forge Film"
@@ -2573,7 +2632,7 @@ def _fallback_script_package(req: ScriptDevelopRequest) -> Dict[str, Any]:
         "wardrobe": "single locked outfit unless a scene explicitly changes it",
         "performance": "clear readable emotional progression across scenes",
     })
-    return {
+    package = {
         "title": title,
         "source": "fallback",
         "brief": brief,
@@ -2610,6 +2669,7 @@ def _fallback_script_package(req: ScriptDevelopRequest) -> Dict[str, Any]:
             "transition_strategy": "motivated hard cuts, match cuts on motion or object state, no decorative transitions without narrative purpose",
         },
     }
+    return _annotate_script_package(package, req)
 
 
 def _package_from_shotlist_brief(brief: str) -> Optional[Dict[str, Any]]:
@@ -3303,6 +3363,36 @@ def _storyboard_payload_url(payload: Dict[str, Any]) -> str:
     return ""
 
 
+def _paired_storyboard_panels_and_urls(
+    board: Dict[str, Any],
+    panel_jobs: Dict[str, Any],
+    board_index: str,
+) -> tuple[List[Dict[str, Any]], List[str], List[str]]:
+    panels = board.get("panels") if isinstance(board.get("panels"), list) else []
+    jobs = panel_jobs.get(board_index, []) if isinstance(panel_jobs.get(board_index), list) else []
+    paired_panels: List[Dict[str, Any]] = []
+    urls: List[str] = []
+    missing: List[str] = []
+    indexed_jobs = {
+        int(item.get("index") or 0): item
+        for item in jobs
+        if isinstance(item, dict) and int(item.get("index") or 0) > 0
+    }
+    for idx, panel in enumerate(panels, start=1):
+        job_item = indexed_jobs.get(idx)
+        if job_item is None and idx - 1 < len(jobs) and isinstance(jobs[idx - 1], dict):
+            job_item = jobs[idx - 1]
+        if job_item is None:
+            job_item = {}
+        url = str(job_item.get("url") or "").strip() if isinstance(job_item, dict) else ""
+        if url:
+            paired_panels.append(panel if isinstance(panel, dict) else {})
+            urls.append(url)
+        else:
+            missing.append(f"{board_index}:{idx}")
+    return paired_panels, urls, missing
+
+
 def _script_project_shots(campaign_id: str) -> List[Dict[str, Any]]:
     return [
         dict(shot)
@@ -3339,23 +3429,17 @@ def _rebuild_script_video_shots_from_storyboard_frames(script_id: str, storyboar
     for board in boards:
         if not isinstance(board, dict):
             continue
-        panels = board.get("panels") if isinstance(board.get("panels"), list) else []
         board_index = str(int(board.get("index") or 1))
-        jobs = panel_jobs.get(board_index, []) if isinstance(panel_jobs.get(board_index), list) else []
-        urls = [
-            str(item.get("url") or "")
-            for item in jobs
-            if isinstance(item, dict) and str(item.get("url") or "").strip()
-        ]
+        panels = board.get("panels") if isinstance(board.get("panels"), list) else []
+        paired_panels, urls, _missing = _paired_storyboard_panels_and_urls(board, panel_jobs, board_index)
         if not panels or not urls:
             sequence_offset += len(panels)
             continue
-        paired_count = min(len(panels), len(urls))
-        board_for_export = {**board, "panels": panels[:paired_count]}
+        board_for_export = {**board, "panels": paired_panels}
         try:
             export = _export_storyboard_video_shots(ScriptStoryboardVideoExportRequest(
                 board=board_for_export,
-                panel_image_urls=urls[:paired_count],
+                panel_image_urls=urls,
                 title=str(storyboard.get("title") or board.get("title") or "Storyboard"),
                 campaign_id=campaign_id,
                 duration_seconds=5,
@@ -3785,11 +3869,35 @@ async def _run_script_pipeline_job(job_id: str, req: ScriptPipelineStartRequest)
             if not item.get("url")
         ]
         if missing:
-            raise RuntimeError("missing storyboard frame outputs: " + ", ".join(missing[:12]))
+            _pipeline_log(
+                job,
+                "frames",
+                "Missing storyboard frame outputs; continuing with completed frames: " + ", ".join(missing[:12]),
+                level="warning",
+            )
+            for _board_idx, items in panel_jobs.items():
+                for item in items:
+                    if isinstance(item, dict) and not item.get("url"):
+                        item["status"] = item.get("status") or "error"
+                        item["error"] = item.get("error") or "Frame did not complete before the wait deadline. Rerun the pipeline to retry this panel."
+            partial_status = "frames_partial" if any(
+                item.get("url")
+                for items in panel_jobs.values()
+                for item in (items if isinstance(items, list) else [])
+                if isinstance(item, dict)
+            ) else "frames_error"
+            if partial_status == "frames_error":
+                raise RuntimeError("no storyboard frame outputs completed: " + ", ".join(missing[:12]))
+            _save_script_project_payload({
+                "script_id": script_id,
+                "storyboard_panel_jobs": panel_jobs,
+                "status": partial_status,
+                "active_job_id": job_id,
+            })
         project = _save_script_project_payload({
             "script_id": script_id,
             "storyboard_panel_jobs": panel_jobs,
-            "status": "frames_ready",
+            "status": "frames_partial" if missing else "frames_ready",
             "active_job_id": job_id,
         })
 
@@ -3808,9 +3916,15 @@ async def _run_script_pipeline_job(job_id: str, req: ScriptPipelineStartRequest)
                 continue
             board_index = str(int(board.get("index") or 1))
             panels = board.get("panels") if isinstance(board.get("panels"), list) else []
-            urls = [str(item.get("url") or "") for item in panel_jobs.get(board_index, []) if item.get("url")]
+            paired_panels, urls, board_missing = _paired_storyboard_panels_and_urls(board, panel_jobs, board_index)
+            if board_missing:
+                _pipeline_log(job, "videos", f"Skipping {len(board_missing)} missing panel(s) on board {board_index}", level="warning")
+            if not paired_panels or not urls:
+                sequence_offset += len(panels)
+                continue
+            board_for_export = {**board, "panels": paired_panels}
             export = _export_storyboard_video_shots(ScriptStoryboardVideoExportRequest(
-                board=board,
+                board=board_for_export,
                 panel_image_urls=urls,
                 title=req.title or str(storyboard_plan.get("title") or "Storyboard"),
                 campaign_id=campaign_id,
@@ -4189,7 +4303,7 @@ async def _request_script_package(req: ScriptDevelopRequest) -> Dict[str, Any]:
         package["source"] = "lmstudio_director" if director.backend == "lmstudio" else "director_api"
         package["director_backend"] = director.backend
         package["director_model"] = director.model_name
-        return package
+        return _annotate_script_package(package, req)
 
 
 def _script_shot_from_director_plan(shot: Dict[str, Any], campaign_id: str) -> Dict[str, Any]:
@@ -4362,6 +4476,12 @@ async def api_script_pipeline_start(req: ScriptPipelineStartRequest):
             req.target_scenes = int(existing.get("target_scenes") or 4)
         if not req.hook_first_dialogue and "hook_first_dialogue" in existing:
             req.hook_first_dialogue = bool(existing.get("hook_first_dialogue"))
+        if existing_package and not _script_package_matches_request(existing_package, req):
+            existing_package = None
+            existing_coverage = []
+            existing_storyboard = None
+            existing_panel_jobs = {}
+            existing_video_shots = []
     except HTTPException:
         pass
     project = _save_script_project_payload({
@@ -4449,21 +4569,25 @@ async def api_script_storyboard_image_models():
     default_provider = str(cfg.get("STORYBOARD_IMAGE_PROVIDER", "") or os.getenv("STORYBOARD_IMAGE_PROVIDER", "") or "spark:flux2_dev")
     if default_provider == "spark":
         default_provider = "spark:flux2_dev"
+    spark_items: List[Dict[str, Any]] = []
+    for key, meta in STORYBOARD_SPARK_MODELS.items():
+        workflow_exists = bool(_workflow_file_for_id(meta["workflow_id"]))
+        missing_assets = await _workflow_missing_comfy_assets(meta["workflow_id"]) if workflow_exists else []
+        spark_items.append({
+            "id": f"spark:{key}",
+            "provider": "spark",
+            "model": key,
+            "label": meta["label"],
+            "workflow_id": meta["workflow_id"],
+            "available": workflow_exists and not missing_assets,
+            "local": True,
+            "missing_assets": missing_assets,
+            "message": "workflow installed" if workflow_exists and not missing_assets else "workflow missing required Comfy model assets",
+        })
     return {
         "status": "ok",
         "default": default_provider,
-        "models": [
-            {
-                "id": f"spark:{key}",
-                "provider": "spark",
-                "model": key,
-                "label": meta["label"],
-                "workflow_id": meta["workflow_id"],
-                "available": bool(_workflow_file_for_id(meta["workflow_id"])),
-                "local": True,
-            }
-            for key, meta in STORYBOARD_SPARK_MODELS.items()
-        ] + [
+        "models": spark_items + [
             {
                 "id": "openai",
                 "provider": "openai",
@@ -4489,15 +4613,18 @@ async def api_script_storyboard_provider_health():
     cfg = get_raw_config()
     openai_key_set = bool(os.getenv("OPENAI_API_KEY", "") or str(cfg.get("OPENAI_API_KEY", "") or ""))
     gemini_key_set = bool(os.getenv("GEMINI_API_KEY", "") or str(cfg.get("GEMINI_API_KEY", "") or ""))
-    spark_models = [
-        {
+    spark_models = []
+    for key, meta in STORYBOARD_SPARK_MODELS.items():
+        workflow_exists = bool(_workflow_file_for_id(meta["workflow_id"]))
+        missing_assets = await _workflow_missing_comfy_assets(meta["workflow_id"]) if workflow_exists else []
+        spark_models.append({
             "id": f"spark:{key}",
             "label": meta["label"],
             "workflow_id": meta["workflow_id"],
-            "available": bool(_workflow_file_for_id(meta["workflow_id"])),
-        }
-        for key, meta in STORYBOARD_SPARK_MODELS.items()
-    ]
+            "available": workflow_exists and not missing_assets,
+            "workflow_exists": workflow_exists,
+            "missing_assets": missing_assets,
+        })
     return {
         "status": "ok",
         "default": str(cfg.get("STORYBOARD_IMAGE_PROVIDER", "") or os.getenv("STORYBOARD_IMAGE_PROVIDER", "") or "spark:flux2_dev"),
@@ -4900,6 +5027,134 @@ def _workflow_file_for_id(workflow_id: str) -> Optional[Path]:
     return None
 
 
+_COMFY_OBJECT_INFO_CACHE: Dict[str, Any] = {"host": "", "ts": 0.0, "data": None}
+_COMFY_ASSET_INPUTS = {
+    "ckpt_name",
+    "clip_name",
+    "clip_name1",
+    "clip_name2",
+    "clip_name3",
+    "unet_name",
+    "vae_name",
+    "control_net_name",
+    "lora_name",
+}
+_COMFY_WIDGET_ASSET_INPUTS = {
+    "CheckpointLoaderSimple": ["ckpt_name"],
+    "CLIPLoader": ["clip_name"],
+    "UNETLoader": ["unet_name"],
+    "VAELoader": ["vae_name"],
+    "LoraLoader": ["lora_name"],
+    "ControlNetLoader": ["control_net_name"],
+}
+
+
+def _workflow_iter_ui_nodes(payload: Any):
+    if not isinstance(payload, dict):
+        return
+    nodes = payload.get("nodes")
+    if isinstance(nodes, list):
+        for node in nodes:
+            if isinstance(node, dict):
+                yield node
+    definitions = payload.get("definitions") if isinstance(payload.get("definitions"), dict) else {}
+    subgraphs = definitions.get("subgraphs") if isinstance(definitions.get("subgraphs"), list) else []
+    for subgraph in subgraphs:
+        if not isinstance(subgraph, dict):
+            continue
+        for node in subgraph.get("nodes", []) if isinstance(subgraph.get("nodes"), list) else []:
+            if isinstance(node, dict):
+                yield node
+
+
+def _workflow_required_asset_inputs(workflow_id: str) -> List[Dict[str, str]]:
+    path = _workflow_file_for_id(workflow_id)
+    if not path:
+        return []
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return []
+    required: List[Dict[str, str]] = []
+    api_nodes = payload.values() if isinstance(payload, dict) else []
+    for node in api_nodes:
+        if not isinstance(node, dict):
+            continue
+        class_type = str(node.get("class_type") or "")
+        inputs = node.get("inputs") if isinstance(node.get("inputs"), dict) else {}
+        for input_name, value in inputs.items():
+            if input_name not in _COMFY_ASSET_INPUTS or not isinstance(value, str) or not value.strip():
+                continue
+            required.append({
+                "class_type": class_type,
+                "input_name": input_name,
+                "value": value.strip(),
+            })
+    for node in _workflow_iter_ui_nodes(payload):
+        class_type = str(node.get("type") or node.get("class_type") or "")
+        widget_names = _COMFY_WIDGET_ASSET_INPUTS.get(class_type, [])
+        widget_values = node.get("widgets_values") if isinstance(node.get("widgets_values"), list) else []
+        for idx, input_name in enumerate(widget_names):
+            if idx >= len(widget_values):
+                continue
+            value = widget_values[idx]
+            if not isinstance(value, str) or not value.strip():
+                continue
+            required.append({
+                "class_type": class_type,
+                "input_name": input_name,
+                "value": value.strip(),
+            })
+    return required
+
+
+async def _comfy_object_info_cached() -> Optional[Dict[str, Any]]:
+    host = _resolve_comfy_primary()
+    now = time.time()
+    if (
+        _COMFY_OBJECT_INFO_CACHE.get("host") == host
+        and _COMFY_OBJECT_INFO_CACHE.get("data") is not None
+        and now - float(_COMFY_OBJECT_INFO_CACHE.get("ts") or 0) < 60
+    ):
+        return _COMFY_OBJECT_INFO_CACHE.get("data")
+    try:
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            resp = await client.get(f"{host}/object_info")
+            resp.raise_for_status()
+            data = resp.json()
+    except Exception:
+        return None
+    _COMFY_OBJECT_INFO_CACHE.update({"host": host, "ts": now, "data": data})
+    return data if isinstance(data, dict) else None
+
+
+def _comfy_allowed_values(object_info: Dict[str, Any], class_type: str, input_name: str) -> List[str]:
+    class_info = object_info.get(class_type) if isinstance(object_info, dict) else None
+    if not isinstance(class_info, dict):
+        return []
+    inputs = class_info.get("input") if isinstance(class_info.get("input"), dict) else {}
+    required = inputs.get("required") if isinstance(inputs.get("required"), dict) else {}
+    spec = required.get(input_name)
+    if isinstance(spec, list) and spec and isinstance(spec[0], list):
+        return [str(v) for v in spec[0]]
+    return []
+
+
+async def _workflow_missing_comfy_assets(workflow_id: str) -> List[Dict[str, str]]:
+    required = _workflow_required_asset_inputs(workflow_id)
+    if not required:
+        return []
+    object_info = await _comfy_object_info_cached()
+    if not object_info:
+        return []
+    missing: List[Dict[str, str]] = []
+    for item in required:
+        allowed = _comfy_allowed_values(object_info, item["class_type"], item["input_name"])
+        if allowed and item["value"] not in allowed:
+            missing.append(item)
+    return missing
+
+
 def _resolve_comfy_primary() -> str:
     cfg = get_raw_config()
     host = (
@@ -5042,6 +5297,10 @@ async def _generate_storyboard_image(req: StoryboardImageGenerateRequest) -> Dic
         workflow_id = spark_model["workflow_id"]
         if not _workflow_file_for_id(workflow_id):
             raise HTTPException(status_code=404, detail=f"Storyboard Spark workflow not found: {workflow_id}")
+        missing_assets = await _workflow_missing_comfy_assets(workflow_id)
+        if missing_assets:
+            names = ", ".join(f"{m['input_name']}={m['value']}" for m in missing_assets[:8])
+            raise HTTPException(status_code=409, detail=f"Storyboard Spark model is not installed on the active Comfy host: {names}")
         prompt, _ = apply_model_prompt_standard(
             prompt,
             workflow_id=workflow_id,

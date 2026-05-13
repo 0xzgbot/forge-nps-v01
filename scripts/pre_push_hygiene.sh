@@ -81,6 +81,25 @@ if [[ -n "$ip_matches" ]]; then
   warn "private/local IP address references need review before pushing public changes"
 fi
 
+info "Running local dashboard smoke suite when Forge is listening on 127.0.0.1:7000"
+
+if python3 - <<'PY'
+import socket
+sock = socket.socket()
+sock.settimeout(0.25)
+try:
+    sock.connect(("127.0.0.1", 7000))
+except OSError:
+    raise SystemExit(1)
+finally:
+    sock.close()
+PY
+then
+  python3 "$ROOT/scripts/smoke_forge.py" --base-url http://127.0.0.1:7000
+else
+  warn "dashboard not listening on 127.0.0.1:7000; skipped scripts/smoke_forge.py"
+fi
+
 if (( failures > 0 )); then
   printf '[FAIL] Hygiene check found %d blocking issue(s) and %d warning(s).\n' "$failures" "$warnings" >&2
   exit 1

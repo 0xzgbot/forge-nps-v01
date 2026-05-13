@@ -1,5 +1,27 @@
 # Changelog
 
+## 2026-05-13 - Goal validation pass, batch queueing, and demo-readiness report
+
+- Added [DEMO_READINESS_REPORT.md](DEMO_READINESS_REPORT.md) with live validation results for the full polish/testing goal.
+- Verified the current runtime stack with LM Studio Director, Spark/Comfy health, media reindexing, and Script Studio persistence.
+- Confirmed `flux2_dev` and `flux2_klein` as available local storyboard models.
+- Confirmed `z_image` and `z_image_turbo` are unavailable after their model files were removed; local storyboard provider preflight now reports exact missing files instead of failing later in the render.
+- Changed campaign image rendering so compiled jobs are prepared first, then submitted to ComfyUI as one grouped queue before polling results.
+- Added cancellation-aware render failure wording so cancelled pending jobs are not reported as timeouts.
+- Fixed retry audit state transitions so remediation renders can move from retry audit into final pass/fail without `invalid_transition` errors.
+- Verified a one-click Script Studio run from short prompt to script package, coverage, Flux2.Dev storyboard start frames, and two LTX image-to-video clips.
+- Verified generated Script Studio clips contain H.264 video and AAC audio streams with `ffprobe`.
+- Verified Asset Vault package data is injected into Script Studio storyboard prompts.
+- Added `scripts/smoke_forge.py` for repeatable dashboard/API smoke checks.
+- Updated `scripts/pre_push_hygiene.sh` to run the smoke suite when the local dashboard is already active.
+- Expanded the stability checklist with full demo rehearsal steps, smoke-suite commands, storyboard/video visibility checks, and ffprobe verification.
+- Validation completed:
+  - `python3 -m pytest tests -q` -> `83 passed`
+  - `python3 -m pytest tests/test_full_pipeline.py tests/test_script_studio_persistence.py tests/test_resilience.py -q` -> `9 passed`
+  - `python3 scripts/smoke_forge.py --base-url http://127.0.0.1:7000` -> passed
+  - `node --check dashboard/static/js/app.js` -> passed
+  - Python compile checks for changed backend files -> passed
+
 ## 2026-05-12 - One-click Script Studio video, Asset Vault handoff, and storyboard provider cleanup
 
 - Added a job-based Script Studio pipeline for **Generate Videos** from a short brief.

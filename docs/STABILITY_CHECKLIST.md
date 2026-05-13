@@ -33,6 +33,12 @@ Run before each demo pass.
 ## 5) Canonical API Health
 - `GET /api/shots` returns `shots`, `count`, `active_campaign_id`.
 - `GET /api/memory/health` returns health counts JSON.
+- Run the repeatable smoke suite while the dashboard is active:
+  - `python3 scripts/smoke_forge.py --base-url http://127.0.0.1:7000`
+- For live render validation, opt in explicitly:
+  - `python3 scripts/smoke_forge.py --base-url http://127.0.0.1:7000 --live-script`
+  - `python3 scripts/smoke_forge.py --base-url http://127.0.0.1:7000 --live-campaign`
+- `scripts/pre_push_hygiene.sh` runs the smoke suite automatically when Forge is already listening on `127.0.0.1:7000`.
 
 ## 6) Campaign Stream Smoke
 - Run one short campaign.
@@ -58,6 +64,7 @@ Run before each demo pass.
 - Confirm the Script Studio Videos step shows generated start frames or completed clips.
 - Confirm local storyboard file prefixes use the selected model name, not a generic backend label.
 - Confirm `/api/script/pipeline/jobs/<job_id>` returns `project.video_shots`.
+- If one storyboard frame times out, the job must keep completed frames and mark only the missing frame for retry. A completed job must not leave Script Studio with an empty Storyboard or Videos panel.
 
 ## 8) Audit and Retry Smoke
 - Select at least one shot and run `POST /api/audit/reprocess`.
@@ -72,3 +79,14 @@ Run before each demo pass.
   - `/api/inject-prompt`
   - `/api/render`
   - `/api/render/audit`
+- The smoke suite verifies each route returns `410 legacy_disabled`.
+
+## 10) Full Demo Rehearsal
+- Run a 5-image campaign.
+- Run a 12-image carousel campaign.
+- Run a 20-image larger campaign.
+- Run a TikTok/vertical campaign.
+- Run one Script Studio prompt through script, coverage, storyboard frames, and individual video clips.
+- Create or reuse one Asset Vault package, attach it to Script Studio, and confirm the prompt text includes the package locks.
+- Use `ffprobe` on completed Script Studio clips to verify video duration, codec, and whether an audio stream is present.
+- Save artifact paths, campaign IDs, script IDs, job IDs, and limitations in the demo report before pushing.
