@@ -806,6 +806,34 @@ class ComfyUIClient:
             for idx, slot in enumerate(load_image_slots):
                 slot["image"] = uploaded_names[idx] if idx < len(uploaded_names) else uploaded_names[0]
 
+        if target_width or target_height:
+            # Some WebUI/subgraph exports route dimensions through PrimitiveInt
+            # nodes instead of storing them directly on the latent/scheduler node.
+            # Rewrite those upstream primitives so workflows like Flux2 Klein do
+            # not silently fall back to their baked-in square defaults.
+            for node in nodes.values():
+                if not isinstance(node, dict):
+                    continue
+                inputs = node.get("inputs")
+                if not isinstance(inputs, dict):
+                    continue
+                for key, current in list(inputs.items()):
+                    if not isinstance(current, list) or not current:
+                        continue
+                    lower_key = str(key).lower()
+                    if target_width and (lower_key == "width" or lower_key.endswith(".width")):
+                        primitive = nodes.get(str(current[0]))
+                        if isinstance(primitive, dict):
+                            primitive_inputs = primitive.setdefault("inputs", {})
+                            if isinstance(primitive_inputs, dict):
+                                primitive_inputs["value"] = target_width
+                    elif target_height and (lower_key == "height" or lower_key.endswith(".height")):
+                        primitive = nodes.get(str(current[0]))
+                        if isinstance(primitive, dict):
+                            primitive_inputs = primitive.setdefault("inputs", {})
+                            if isinstance(primitive_inputs, dict):
+                                primitive_inputs["value"] = target_height
+
         submit_result = await self.submit_prompt(nodes)
         if not submit_result.get("ok"):
             return {

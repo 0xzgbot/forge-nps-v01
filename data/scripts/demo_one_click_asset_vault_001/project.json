@@ -1,0 +1,17 @@
+{
+  "script_id": "demo_one_click_asset_vault_001",
+  "title": "The Lamp That Answered",
+  "brief": "A maker notices their matte-black desk lamp flickering in a pattern that seems to answer questions. Hook the viewer immediately with one line of dialogue, then reveal the lamp is responding to hidden vibrations from a prototype under the desk.",
+  "tone": "sharp cinematic commercial short, suspenseful but warm, practical workshop realism",
+  "runtime_seconds": 24,
+  "target_scenes": 2,
+  "status": "complete",
+  "created_at": "2026-05-13T01:23:35.772715Z",
+  "updated_at": "2026-05-13T01:39:15.158306Z",
+  "has_package": true,
+  "coverage_count": 2,
+  "storyboard_count": 2,
+  "video_shot_count": 2,
+  "video_complete_count": 2,
+  "active_job_id": "scriptjob_309cdf180583"
+}

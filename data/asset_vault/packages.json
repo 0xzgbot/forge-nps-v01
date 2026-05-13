@@ -1,0 +1,53 @@
+[
+  {
+    "id": "demo_asset_vault_sienna_desk_lamp",
+    "name": "Demo Asset Vault - Sienna Desk Lamp",
+    "description": "Continuity package for the one-click Script Studio demo.",
+    "kind": "package",
+    "element_type": "product",
+    "asset_type": "product",
+    "character_ids": [
+      "avery_coleman"
+    ],
+    "character_refs": [
+      {
+        "id": "avery_coleman",
+        "role": "maker protagonist",
+        "notes": "Use approved Avery Coleman identity and wardrobe as the human continuity anchor."
+      }
+    ],
+    "references": [
+      {
+        "id": "product_matte_black_desk_lamp_0",
+        "type": "product",
+        "name": "Matte-black desk lamp",
+        "url": "",
+        "prompt": "matte-black articulating desk lamp, brass dimmer knob, warm cone of light, clean product silhouette",
+        "notes": ""
+      },
+      {
+        "id": "style_teal_amber_workshop_grade_1",
+        "type": "style",
+        "name": "Teal amber workshop grade",
+        "url": "",
+        "prompt": "teal shadows, amber practical highlights, crisp modern workshop, premium commercial finish",
+        "notes": ""
+      }
+    ],
+    "tags": [
+      "demo",
+      "continuity",
+      "script-studio"
+    ],
+    "notes": "Use this package to keep product, setting, palette, and character continuity consistent through storyboard and video shots.",
+    "brand_rules": "Premium matte-black desk lamp brand; clean product silhouette; no logo drift; restrained warm highlights.",
+    "style_rules": "Cinematic practical lighting, sharp 1080p production frames, clean modern workshop, consistent teal and amber accent palette.",
+    "logo_notes": "Use a small circular mark only when visible; no invented readable text.",
+    "font_notes": "No typography in storyboard frames unless explicitly requested.",
+    "prop_notes": "Hero prop is a matte-black articulating desk lamp with a brass dimmer knob and warm cone of light.",
+    "location_notes": "Modern maker workshop with walnut desk, brushed steel tools, black acoustic panels, and soft background practicals.",
+    "status": "production",
+    "created_at": "2026-05-13T01:23:04.189185Z",
+    "updated_at": "2026-05-13T01:23:04.189158Z"
+  }
+]

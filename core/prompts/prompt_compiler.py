@@ -281,6 +281,23 @@ def _render_standard_clause(standard: Dict[str, Any]) -> str:
     return f"standard {name}: " + "; ".join(concise)
 
 
+def _truncate_preserving_enforcement(prompt: str, max_chars: int) -> Tuple[str, bool]:
+    text = _safe_text(prompt)
+    if max_chars <= 0 or len(text) <= max_chars:
+        return text, False
+    marker = ". Prompt standard enforcement: "
+    if marker not in text:
+        return text[:max_chars].rstrip(", "), True
+    head, enforcement = text.split(marker, 1)
+    suffix = marker + enforcement
+    if len(suffix) >= max_chars:
+        # Keep the enforcement block because it carries the model-safety and role-fidelity locks.
+        return suffix[:max_chars].rstrip(", "), True
+    head_budget = max_chars - len(suffix) - 1
+    trimmed_head = head[:max(0, head_budget)].rstrip(", .")
+    return f"{trimmed_head}{suffix}".strip(), True
+
+
 def compile_prompt_artifact(
     raw_concept: str,
     workflow_id: str,
@@ -415,8 +432,8 @@ def compile_prompt_artifact(
         if standard_skill and standard_skill not in skills_used:
             skills_used.append(standard_skill)
     max_chars = int(profile.get("max_prompt_chars", 1200) or 1200)
-    if len(compiled) > max_chars:
-        compiled = compiled[:max_chars].rstrip(", ")
+    compiled, was_truncated = _truncate_preserving_enforcement(compiled, max_chars)
+    if was_truncated:
         warnings.append("compiled_prompt_truncated")
 
     return {

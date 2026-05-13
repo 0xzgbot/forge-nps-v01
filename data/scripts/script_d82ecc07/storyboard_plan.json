@@ -1,0 +1,270 @@
+{
+  "status": "ok",
+  "title": "Untitled Script",
+  "resolution": "1920x1080",
+  "panels_per_board": 4,
+  "panel_count": 11,
+  "board_count": 3,
+  "asset_vault_package": null,
+  "boards": [
+    {
+      "board_id": "STORYBOARD_01",
+      "index": 1,
+      "total_boards": 3,
+      "resolution": "1920x1080",
+      "panels_per_board": 4,
+      "panel_count": 4,
+      "layout": "2x2",
+      "layout_columns": 2,
+      "layout_rows": 2,
+      "panels": [
+        {
+          "panel_id": "PANEL_001",
+          "scene_id": "SC_001",
+          "beat_id": "SC_001_B01",
+          "caption": "Pip brushes through tall grass, stops abruptly. A faceted crystal rests on a flat stone, pulsing with warm amber light.",
+          "characters": [
+            "Pip"
+          ],
+          "location": "Sunlit Meadow Clearing",
+          "camera": "filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle",
+          "lighting": "Late Afternoon",
+          "mood": "Curiosity to Intrigue",
+          "text": "Pip brushes through tall grass, stops abruptly. A faceted crystal rests on a flat stone, pulsing with warm amber light.",
+          "continuity": "{\"wardrobe\": \"Soft blue-tinted fur, slightly dusted with pollen\", \"props\": [\"Luma-Crystal (amber phase)\"], \"screen_direction\": \"Left to Right\"}",
+          "visual_prompt": "Pip brushes through tall grass, stops abruptly. A faceted crystal rests on a flat stone, pulsing with warm amber light.. Scene SC_001: The Discovery. Location: Sunlit Meadow Clearing; time/light: Late Afternoon. Characters: Pip. Continuity: {\"wardrobe\": \"Soft blue-tinted fur, slightly dusted with pollen\", \"props\": [\"Luma-Crystal (amber phase)\"], \"screen_direction\": \"Left to Right\"}.",
+          "single_panel_prompt": "Single high-resolution cinematic production keyframe for board 1 shot 1 of 'Untitled Script'. This is an image-to-video start frame, not a storyboard page, not a contact sheet, not a grid. Style: cinematic. Scene action: Pip brushes through tall grass, stops abruptly. A faceted crystal rests on a flat stone, pulsing with warm amber light.. Scene SC_001: The Discovery. Location: Sunlit Meadow Clearing; time/light: Late Afternoon. Characters: Pip. Continuity: {\"wardrobe\": \"Soft blue-tinted fur, slightly dusted with pollen\", \"props\": [\"Luma-Crystal (amber phase)\"], \"screen_direction\": \"Left to Right\"}. Setting: Sunlit Meadow Clearing. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: Late Afternoon. Mood: Curiosity to Intrigue. Characters: Pip. Character consistency: Pip: Compact build, blue-tinted fur, expressive ears that flatten during conflict and perk during resolution.; Pop: Slightly taller build, orange-tinted fur, steady gaze that breaks into surprise during the illusion reveal.. Continuity: {\"wardrobe\": \"Soft blue-tinted fur, slightly dusted with pollen\", \"props\": [\"Luma-Crystal (amber phase)\"], \"screen_direction\": \"Left to Right\"}. No text, no captions, no dialogue, no titles, no panel number. Make one clean cinematic frame with readable blocking, crisp subject edges, sharp eyes, clear hands, detailed textures, controlled depth of field, consistent wardrobe, consistent face, cinematic composition, tactile material detail, natural skin or surface imperfections, no border, no panel frame, no page layout, no watermark. Negative prompt: blurry, soft focus, smeared detail, low resolution, deformed, extra limbs, bad hands, text, captions, labels, panel numbers, page layout, grid, contact sheet, watermark, inconsistent characters, merged panels.",
+          "width_and_height": "1920x1080"
+        },
+        {
+          "panel_id": "PANEL_002",
+          "scene_id": "SC_002",
+          "beat_id": "SC_002_B01",
+          "caption": "Pop enters frame from right, eyes widen. The crystal now reads as cool violet in Pop's sightline.",
+          "characters": [
+            "Pip",
+            "Pop"
+          ],
+          "location": "Sunlit Meadow Clearing",
+          "camera": "filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle",
+          "lighting": "Late Afternoon",
+          "mood": "Intrigue to Confusion",
+          "text": "Pop: Wait... that\u2019s not what I thought it was.",
+          "continuity": "{\"wardrobe\": \"Warm orange-tinted fur, clean edges\", \"props\": [\"Luma-Crystal (violet phase)\"], \"screen_direction\": \"Right to Left\"}",
+          "visual_prompt": "Pop enters frame from right, eyes widen. The crystal now reads as cool violet in Pop's sightline.. Scene SC_002: The Arrival. Location: Sunlit Meadow Clearing; time/light: Late Afternoon. Characters: Pip, Pop. Continuity: {\"wardrobe\": \"Warm orange-tinted fur, clean edges\", \"props\": [\"Luma-Crystal (violet phase)\"], \"screen_direction\": \"Right to Left\"}.",
+          "single_panel_prompt": "Single high-resolution cinematic production keyframe for board 1 shot 2 of 'Untitled Script'. This is an image-to-video start frame, not a storyboard page, not a contact sheet, not a grid. Style: cinematic. Scene action: Pop enters frame from right, eyes widen. The crystal now reads as cool violet in Pop's sightline.. Scene SC_002: The Arrival. Location: Sunlit Meadow Clearing; time/light: Late Afternoon. Characters: Pip, Pop. Continuity: {\"wardrobe\": \"Warm orange-tinted fur, clean edges\", \"props\": [\"Luma-Crystal (violet phase)\"], \"screen_direction\": \"Right to Left\"}. Setting: Sunlit Meadow Clearing. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: Late Afternoon. Mood: Intrigue to Confusion. Characters: Pip, Pop. Character consistency: Pip: Compact build, blue-tinted fur, expressive ears that flatten during conflict and perk during resolution.; Pop: Slightly taller build, orange-tinted fur, steady gaze that breaks into surprise during the illusion reveal.. Continuity: {\"wardrobe\": \"Warm orange-tinted fur, clean edges\", \"props\": [\"Luma-Crystal (violet phase)\"], \"screen_direction\": \"Right to Left\"}. No text, no captions, no dialogue, no titles, no panel number. Make one clean cinematic frame with readable blocking, crisp subject edges, sharp eyes, clear hands, detailed textures, controlled depth of field, consistent wardrobe, consistent face, cinematic composition, tactile material detail, natural skin or surface imperfections, no border, no panel frame, no page layout, no watermark. Negative prompt: blurry, soft focus, smeared detail, low resolution, deformed, extra limbs, bad hands, text, captions, labels, panel numbers, page layout, grid, contact sheet, watermark, inconsistent characters, merged panels.",
+          "width_and_height": "1920x1080"
+        },
+        {
+          "panel_id": "PANEL_003",
+          "scene_id": "SC_003",
+          "beat_id": "SC_003_B01",
+          "caption": "Pip steps between Pop and the crystal, shielding it.",
+          "characters": [
+            "Pip"
+          ],
+          "location": "Sunlit Meadow Clearing",
+          "camera": "filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle",
+          "lighting": "Late Afternoon",
+          "mood": "Confusion to Defensive",
+          "text": "Pip: It\u2019s a Sun-Stone. I found it first.",
+          "continuity": "{\"wardrobe\": \"Soft blue-tinted fur\", \"props\": [\"Luma-Crystal (amber phase)\"], \"screen_direction\": \"Center Frame\"}",
+          "visual_prompt": "Pip steps between Pop and the crystal, shielding it.. Scene SC_003: First Friction. Location: Sunlit Meadow Clearing; time/light: Late Afternoon. Characters: Pip. Continuity: {\"wardrobe\": \"Soft blue-tinted fur\", \"props\": [\"Luma-Crystal (amber phase)\"], \"screen_direction\": \"Center Frame\"}.",
+          "single_panel_prompt": "Single high-resolution cinematic production keyframe for board 1 shot 3 of 'Untitled Script'. This is an image-to-video start frame, not a storyboard page, not a contact sheet, not a grid. Style: cinematic. Scene action: Pip steps between Pop and the crystal, shielding it.. Scene SC_003: First Friction. Location: Sunlit Meadow Clearing; time/light: Late Afternoon. Characters: Pip. Continuity: {\"wardrobe\": \"Soft blue-tinted fur\", \"props\": [\"Luma-Crystal (amber phase)\"], \"screen_direction\": \"Center Frame\"}. Setting: Sunlit Meadow Clearing. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: Late Afternoon. Mood: Confusion to Defensive. Characters: Pip. Character consistency: Pip: Compact build, blue-tinted fur, expressive ears that flatten during conflict and perk during resolution.; Pop: Slightly taller build, orange-tinted fur, steady gaze that breaks into surprise during the illusion reveal.. Continuity: {\"wardrobe\": \"Soft blue-tinted fur\", \"props\": [\"Luma-Crystal (amber phase)\"], \"screen_direction\": \"Center Frame\"}. No text, no captions, no dialogue, no titles, no panel number. Make one clean cinematic frame with readable blocking, crisp subject edges, sharp eyes, clear hands, detailed textures, controlled depth of field, consistent wardrobe, consistent face, cinematic composition, tactile material detail, natural skin or surface imperfections, no border, no panel frame, no page layout, no watermark. Negative prompt: blurry, soft focus, smeared detail, low resolution, deformed, extra limbs, bad hands, text, captions, labels, panel numbers, page layout, grid, contact sheet, watermark, inconsistent characters, merged panels.",
+          "width_and_height": "1920x1080"
+        },
+        {
+          "panel_id": "PANEL_004",
+          "scene_id": "SC_003",
+          "beat_id": "SC_003_B02",
+          "caption": "Pop circles left, crystal shifts to magenta.",
+          "characters": [
+            "Pop"
+          ],
+          "location": "Sunlit Meadow Clearing",
+          "camera": "filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle",
+          "lighting": "Late Afternoon",
+          "mood": "Confusion to Defensive",
+          "text": "Pop: That\u2019s a Moon-Shard. You\u2019re misreading it.",
+          "continuity": "{\"wardrobe\": \"Warm orange-tinted fur\", \"props\": [\"Luma-Crystal (magenta phase)\"], \"screen_direction\": \"Left to Center\"}",
+          "visual_prompt": "Pop circles left, crystal shifts to magenta.. Scene SC_003: First Friction. Location: Sunlit Meadow Clearing; time/light: Late Afternoon. Characters: Pop. Continuity: {\"wardrobe\": \"Warm orange-tinted fur\", \"props\": [\"Luma-Crystal (magenta phase)\"], \"screen_direction\": \"Left to Center\"}.",
+          "single_panel_prompt": "Single high-resolution cinematic production keyframe for board 1 shot 4 of 'Untitled Script'. This is an image-to-video start frame, not a storyboard page, not a contact sheet, not a grid. Style: cinematic. Scene action: Pop circles left, crystal shifts to magenta.. Scene SC_003: First Friction. Location: Sunlit Meadow Clearing; time/light: Late Afternoon. Characters: Pop. Continuity: {\"wardrobe\": \"Warm orange-tinted fur\", \"props\": [\"Luma-Crystal (magenta phase)\"], \"screen_direction\": \"Left to Center\"}. Setting: Sunlit Meadow Clearing. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: Late Afternoon. Mood: Confusion to Defensive. Characters: Pop. Character consistency: Pip: Compact build, blue-tinted fur, expressive ears that flatten during conflict and perk during resolution.; Pop: Slightly taller build, orange-tinted fur, steady gaze that breaks into surprise during the illusion reveal.. Continuity: {\"wardrobe\": \"Warm orange-tinted fur\", \"props\": [\"Luma-Crystal (magenta phase)\"], \"screen_direction\": \"Left to Center\"}. No text, no captions, no dialogue, no titles, no panel number. Make one clean cinematic frame with readable blocking, crisp subject edges, sharp eyes, clear hands, detailed textures, controlled depth of field, consistent wardrobe, consistent face, cinematic composition, tactile material detail, natural skin or surface imperfections, no border, no panel frame, no page layout, no watermark. Negative prompt: blurry, soft focus, smeared detail, low resolution, deformed, extra limbs, bad hands, text, captions, labels, panel numbers, page layout, grid, contact sheet, watermark, inconsistent characters, merged panels.",
+          "width_and_height": "1920x1080"
+        }
+      ],
+      "image_prompt": "A professional 4-panel storyboard page in cinematic style, arranged in a clean 2x2 grid layout at 1920x1080 with white borders and subtle drop shadows between panels. Each panel is numbered only with a small plain numeral in the top-left corner. Do not render captions, dialogue, titles, paragraphs, or any text except the panel numbers. This is board 1 of 3 for 'Untitled Script'.\n\nPanel 1: Pip brushes through tall grass, stops abruptly. A faceted crystal rests on a flat stone, pulsing with warm amber light.. Scene SC_001: The Discovery. Location: Sunlit Meadow Clearing; time/light: Late Afternoon. Characters: Pip. Continuity: {\"wardrobe\": \"Soft blue-tinted fur, slightly dusted with pollen\", \"props\": [\"Luma-Crystal (amber phase)\"], \"screen_direction\": \"Left to Right\"}. Setting: Sunlit Meadow Clearing. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: Late Afternoon. Mood: Curiosity to Intrigue. Character consistency: Pip; Pip: Compact build, blue-tinted fur, expressive ears that flatten during conflict and perk during resolution.; Pop: Slightly taller build, orange-tinted fur, steady gaze that breaks into surprise during the illusion reveal.. Continuity: {\"wardrobe\": \"Soft blue-tinted fur, slightly dusted with pollen\", \"props\": [\"Luma-Crystal (amber phase)\"], \"screen_direction\": \"Left to Right\"}. Asset Vault: . No caption text inside this panel.\n\nPanel 2: Pop enters frame from right, eyes widen. The crystal now reads as cool violet in Pop's sightline.. Scene SC_002: The Arrival. Location: Sunlit Meadow Clearing; time/light: Late Afternoon. Characters: Pip, Pop. Continuity: {\"wardrobe\": \"Warm orange-tinted fur, clean edges\", \"props\": [\"Luma-Crystal (violet phase)\"], \"screen_direction\": \"Right to Left\"}. Setting: Sunlit Meadow Clearing. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: Late Afternoon. Mood: Intrigue to Confusion. Character consistency: Pip, Pop; Pip: Compact build, blue-tinted fur, expressive ears that flatten during conflict and perk during resolution.; Pop: Slightly taller build, orange-tinted fur, steady gaze that breaks into surprise during the illusion reveal.. Continuity: {\"wardrobe\": \"Warm orange-tinted fur, clean edges\", \"props\": [\"Luma-Crystal (violet phase)\"], \"screen_direction\": \"Right to Left\"}. Asset Vault: . No caption text inside this panel.\n\nPanel 3: Pip steps between Pop and the crystal, shielding it.. Scene SC_003: First Friction. Location: Sunlit Meadow Clearing; time/light: Late Afternoon. Characters: Pip. Continuity: {\"wardrobe\": \"Soft blue-tinted fur\", \"props\": [\"Luma-Crystal (amber phase)\"], \"screen_direction\": \"Center Frame\"}. Setting: Sunlit Meadow Clearing. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: Late Afternoon. Mood: Confusion to Defensive. Character consistency: Pip; Pip: Compact build, blue-tinted fur, expressive ears that flatten during conflict and perk during resolution.; Pop: Slightly taller build, orange-tinted fur, steady gaze that breaks into surprise during the illusion reveal.. Continuity: {\"wardrobe\": \"Soft blue-tinted fur\", \"props\": [\"Luma-Crystal (amber phase)\"], \"screen_direction\": \"Center Frame\"}. Asset Vault: . No caption text inside this panel.\n\nPanel 4: Pop circles left, crystal shifts to magenta.. Scene SC_003: First Friction. Location: Sunlit Meadow Clearing; time/light: Late Afternoon. Characters: Pop. Continuity: {\"wardrobe\": \"Warm orange-tinted fur\", \"props\": [\"Luma-Crystal (magenta phase)\"], \"screen_direction\": \"Left to Center\"}. Setting: Sunlit Meadow Clearing. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: Late Afternoon. Mood: Confusion to Defensive. Character consistency: Pop; Pip: Compact build, blue-tinted fur, expressive ears that flatten during conflict and perk during resolution.; Pop: Slightly taller build, orange-tinted fur, steady gaze that breaks into surprise during the illusion reveal.. Continuity: {\"wardrobe\": \"Warm orange-tinted fur\", \"props\": [\"Luma-Crystal (magenta phase)\"], \"screen_direction\": \"Left to Center\"}. Asset Vault: . No caption text inside this panel.\n\nOverall style: consistent character design across all panels, repeated wardrobe and facial details, consistent age, skin tone, hair, clothing, and build, source-based lighting, sharp focal priority, clean readable compositions, visible skin and fabric texture, film grain, no watermark, no malformed text, no fake captions.\n\nNegative prompt: blurry, soft focus, smeared detail, low resolution, deformed, extra limbs, bad hands, text, captions, labels, panel numbers, page layout, grid, contact sheet, watermark, inconsistent characters, merged panels.",
+      "negative_prompt": "blurry, soft focus, smeared detail, low resolution, deformed, extra limbs, bad hands, text, captions, labels, panel numbers, page layout, grid, contact sheet, watermark, inconsistent characters, merged panels",
+      "reference_image_url": "",
+      "width_and_height": "1920x1080",
+      "panel_width_and_height": "1920x1080"
+    },
+    {
+      "board_id": "STORYBOARD_02",
+      "index": 2,
+      "total_boards": 3,
+      "resolution": "1920x1080",
+      "panels_per_board": 4,
+      "panel_count": 4,
+      "layout": "2x2",
+      "layout_columns": 2,
+      "layout_rows": 2,
+      "panels": [
+        {
+          "panel_id": "PANEL_005",
+          "scene_id": "SC_004",
+          "beat_id": "SC_004_B01",
+          "caption": "Both step forward, paws raised. The crystal flashes red at Pip, green at Pop.",
+          "characters": [
+            "Pip",
+            "Pop"
+          ],
+          "location": "Sunlit Meadow Clearing",
+          "camera": "filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle",
+          "lighting": "Late Afternoon",
+          "mood": "Defensive to Hostile",
+          "text": "Pip: Back off! It\u2019s mine!",
+          "continuity": "{\"wardrobe\": \"Blue & orange fur ruffled by tension\", \"props\": [\"Luma-Crystal (split-color phase)\"], \"screen_direction\": \"Push In\"}",
+          "visual_prompt": "Both step forward, paws raised. The crystal flashes red at Pip, green at Pop.. Scene SC_004: The Standoff. Location: Sunlit Meadow Clearing; time/light: Late Afternoon. Characters: Pip, Pop. Continuity: {\"wardrobe\": \"Blue & orange fur ruffled by tension\", \"props\": [\"Luma-Crystal (split-color phase)\"], \"screen_direction\": \"Push In\"}.",
+          "single_panel_prompt": "Single high-resolution cinematic production keyframe for board 2 shot 1 of 'Untitled Script'. This is an image-to-video start frame, not a storyboard page, not a contact sheet, not a grid. Style: cinematic. Scene action: Both step forward, paws raised. The crystal flashes red at Pip, green at Pop.. Scene SC_004: The Standoff. Location: Sunlit Meadow Clearing; time/light: Late Afternoon. Characters: Pip, Pop. Continuity: {\"wardrobe\": \"Blue & orange fur ruffled by tension\", \"props\": [\"Luma-Crystal (split-color phase)\"], \"screen_direction\": \"Push In\"}. Setting: Sunlit Meadow Clearing. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: Late Afternoon. Mood: Defensive to Hostile. Characters: Pip, Pop. Character consistency: Pip: Compact build, blue-tinted fur, expressive ears that flatten during conflict and perk during resolution.; Pop: Slightly taller build, orange-tinted fur, steady gaze that breaks into surprise during the illusion reveal.. Continuity: {\"wardrobe\": \"Blue & orange fur ruffled by tension\", \"props\": [\"Luma-Crystal (split-color phase)\"], \"screen_direction\": \"Push In\"}. No text, no captions, no dialogue, no titles, no panel number. Make one clean cinematic frame with readable blocking, crisp subject edges, sharp eyes, clear hands, detailed textures, controlled depth of field, consistent wardrobe, consistent face, cinematic composition, tactile material detail, natural skin or surface imperfections, no border, no panel frame, no page layout, no watermark. Negative prompt: blurry, soft focus, smeared detail, low resolution, deformed, extra limbs, bad hands, text, captions, labels, panel numbers, page layout, grid, contact sheet, watermark, inconsistent characters, merged panels.",
+          "width_and_height": "1920x1080"
+        },
+        {
+          "panel_id": "PANEL_006",
+          "scene_id": "SC_005",
+          "beat_id": "SC_005_B01",
+          "caption": "Extreme close-ups alternate. Ears flatten, tails twitch. They argue over ownership and truth.",
+          "characters": [
+            "Pip",
+            "Pop"
+          ],
+          "location": "Sunlit Meadow Clearing",
+          "camera": "filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle",
+          "lighting": "Late Afternoon",
+          "mood": "Hostile to Frustrated",
+          "text": "Pop: You\u2019re blind to what\u2019s right in front of you!",
+          "continuity": "{\"wardrobe\": \"Detailed fur texture visible\", \"props\": [], \"screen_direction\": \"Static\"}",
+          "visual_prompt": "Extreme close-ups alternate. Ears flatten, tails twitch. They argue over ownership and truth.. Scene SC_005: Peak Disagreement. Location: Sunlit Meadow Clearing; time/light: Late Afternoon. Characters: Pip, Pop. Continuity: {\"wardrobe\": \"Detailed fur texture visible\", \"props\": [], \"screen_direction\": \"Static\"}.",
+          "single_panel_prompt": "Single high-resolution cinematic production keyframe for board 2 shot 2 of 'Untitled Script'. This is an image-to-video start frame, not a storyboard page, not a contact sheet, not a grid. Style: cinematic. Scene action: Extreme close-ups alternate. Ears flatten, tails twitch. They argue over ownership and truth.. Scene SC_005: Peak Disagreement. Location: Sunlit Meadow Clearing; time/light: Late Afternoon. Characters: Pip, Pop. Continuity: {\"wardrobe\": \"Detailed fur texture visible\", \"props\": [], \"screen_direction\": \"Static\"}. Setting: Sunlit Meadow Clearing. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: Late Afternoon. Mood: Hostile to Frustrated. Characters: Pip, Pop. Character consistency: Pip: Compact build, blue-tinted fur, expressive ears that flatten during conflict and perk during resolution.; Pop: Slightly taller build, orange-tinted fur, steady gaze that breaks into surprise during the illusion reveal.. Continuity: {\"wardrobe\": \"Detailed fur texture visible\", \"props\": [], \"screen_direction\": \"Static\"}. No text, no captions, no dialogue, no titles, no panel number. Make one clean cinematic frame with readable blocking, crisp subject edges, sharp eyes, clear hands, detailed textures, controlled depth of field, consistent wardrobe, consistent face, cinematic composition, tactile material detail, natural skin or surface imperfections, no border, no panel frame, no page layout, no watermark. Negative prompt: blurry, soft focus, smeared detail, low resolution, deformed, extra limbs, bad hands, text, captions, labels, panel numbers, page layout, grid, contact sheet, watermark, inconsistent characters, merged panels.",
+          "width_and_height": "1920x1080"
+        },
+        {
+          "panel_id": "PANEL_007",
+          "scene_id": "SC_006",
+          "beat_id": "SC_006_B01",
+          "caption": "Pop stumbles back slightly. A sunbeam catches a hidden internal mirror in the crystal, casting a sharp white flare across both faces.",
+          "characters": [
+            "Pip",
+            "Pop"
+          ],
+          "location": "Sunlit Meadow Clearing",
+          "camera": "filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle",
+          "lighting": "Late Afternoon",
+          "mood": "Frustrated to Uncertain",
+          "text": "Pop stumbles back slightly. A sunbeam catches a hidden internal mirror in the crystal, casting a sharp white flare ac...",
+          "continuity": "{\"wardrobe\": \"Silhouetted by flare\", \"props\": [\"Luma-Crystal (white flare phase)\"], \"screen_direction\": \"Pull Back\"}",
+          "visual_prompt": "Pop stumbles back slightly. A sunbeam catches a hidden internal mirror in the crystal, casting a sharp white flare across both faces.. Scene SC_006: The Shift. Location: Sunlit Meadow Clearing; time/light: Late Afternoon. Characters: Pip, Pop. Continuity: {\"wardrobe\": \"Silhouetted by flare\", \"props\": [\"Luma-Crystal (white flare phase)\"], \"screen_direction\": \"Pull Back\"}.",
+          "single_panel_prompt": "Single high-resolution cinematic production keyframe for board 2 shot 3 of 'Untitled Script'. This is an image-to-video start frame, not a storyboard page, not a contact sheet, not a grid. Style: cinematic. Scene action: Pop stumbles back slightly. A sunbeam catches a hidden internal mirror in the crystal, casting a sharp white flare across both faces.. Scene SC_006: The Shift. Location: Sunlit Meadow Clearing; time/light: Late Afternoon. Characters: Pip, Pop. Continuity: {\"wardrobe\": \"Silhouetted by flare\", \"props\": [\"Luma-Crystal (white flare phase)\"], \"screen_direction\": \"Pull Back\"}. Setting: Sunlit Meadow Clearing. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: Late Afternoon. Mood: Frustrated to Uncertain. Characters: Pip, Pop. Character consistency: Pip: Compact build, blue-tinted fur, expressive ears that flatten during conflict and perk during resolution.; Pop: Slightly taller build, orange-tinted fur, steady gaze that breaks into surprise during the illusion reveal.. Continuity: {\"wardrobe\": \"Silhouetted by flare\", \"props\": [\"Luma-Crystal (white flare phase)\"], \"screen_direction\": \"Pull Back\"}. No text, no captions, no dialogue, no titles, no panel number. Make one clean cinematic frame with readable blocking, crisp subject edges, sharp eyes, clear hands, detailed textures, controlled depth of field, consistent wardrobe, consistent face, cinematic composition, tactile material detail, natural skin or surface imperfections, no border, no panel frame, no page layout, no watermark. Negative prompt: blurry, soft focus, smeared detail, low resolution, deformed, extra limbs, bad hands, text, captions, labels, panel numbers, page layout, grid, contact sheet, watermark, inconsistent characters, merged panels.",
+          "width_and_height": "1920x1080"
+        },
+        {
+          "panel_id": "PANEL_008",
+          "scene_id": "SC_007",
+          "beat_id": "SC_007_B01",
+          "caption": "The flare fades. The crystal now shows a neutral, unified glow. Both lower their paws.",
+          "characters": [
+            "Pip"
+          ],
+          "location": "Sunlit Meadow Clearing",
+          "camera": "filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle",
+          "lighting": "Late Afternoon",
+          "mood": "Uncertain to Realization",
+          "text": "Pip: ...It\u2019s just one piece.",
+          "continuity": "{\"wardrobe\": \"Relaxed posture\", \"props\": [\"Luma-Crystal (neutral phase)\"], \"screen_direction\": \"Center Frame\"}",
+          "visual_prompt": "The flare fades. The crystal now shows a neutral, unified glow. Both lower their paws.. Scene SC_007: The Break. Location: Sunlit Meadow Clearing; time/light: Late Afternoon. Characters: Pip. Continuity: {\"wardrobe\": \"Relaxed posture\", \"props\": [\"Luma-Crystal (neutral phase)\"], \"screen_direction\": \"Center Frame\"}.",
+          "single_panel_prompt": "Single high-resolution cinematic production keyframe for board 2 shot 4 of 'Untitled Script'. This is an image-to-video start frame, not a storyboard page, not a contact sheet, not a grid. Style: cinematic. Scene action: The flare fades. The crystal now shows a neutral, unified glow. Both lower their paws.. Scene SC_007: The Break. Location: Sunlit Meadow Clearing; time/light: Late Afternoon. Characters: Pip. Continuity: {\"wardrobe\": \"Relaxed posture\", \"props\": [\"Luma-Crystal (neutral phase)\"], \"screen_direction\": \"Center Frame\"}. Setting: Sunlit Meadow Clearing. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: Late Afternoon. Mood: Uncertain to Realization. Characters: Pip. Character consistency: Pip: Compact build, blue-tinted fur, expressive ears that flatten during conflict and perk during resolution.; Pop: Slightly taller build, orange-tinted fur, steady gaze that breaks into surprise during the illusion reveal.. Continuity: {\"wardrobe\": \"Relaxed posture\", \"props\": [\"Luma-Crystal (neutral phase)\"], \"screen_direction\": \"Center Frame\"}. No text, no captions, no dialogue, no titles, no panel number. Make one clean cinematic frame with readable blocking, crisp subject edges, sharp eyes, clear hands, detailed textures, controlled depth of field, consistent wardrobe, consistent face, cinematic composition, tactile material detail, natural skin or surface imperfections, no border, no panel frame, no page layout, no watermark. Negative prompt: blurry, soft focus, smeared detail, low resolution, deformed, extra limbs, bad hands, text, captions, labels, panel numbers, page layout, grid, contact sheet, watermark, inconsistent characters, merged panels.",
+          "width_and_height": "1920x1080"
+        }
+      ],
+      "image_prompt": "A professional 4-panel storyboard page in cinematic style, arranged in a clean 2x2 grid layout at 1920x1080 with white borders and subtle drop shadows between panels. Each panel is numbered only with a small plain numeral in the top-left corner. Do not render captions, dialogue, titles, paragraphs, or any text except the panel numbers. This is board 2 of 3 for 'Untitled Script'.\n\nPanel 1: Both step forward, paws raised. The crystal flashes red at Pip, green at Pop.. Scene SC_004: The Standoff. Location: Sunlit Meadow Clearing; time/light: Late Afternoon. Characters: Pip, Pop. Continuity: {\"wardrobe\": \"Blue & orange fur ruffled by tension\", \"props\": [\"Luma-Crystal (split-color phase)\"], \"screen_direction\": \"Push In\"}. Setting: Sunlit Meadow Clearing. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: Late Afternoon. Mood: Defensive to Hostile. Character consistency: Pip, Pop; Pip: Compact build, blue-tinted fur, expressive ears that flatten during conflict and perk during resolution.; Pop: Slightly taller build, orange-tinted fur, steady gaze that breaks into surprise during the illusion reveal.. Continuity: {\"wardrobe\": \"Blue & orange fur ruffled by tension\", \"props\": [\"Luma-Crystal (split-color phase)\"], \"screen_direction\": \"Push In\"}. Asset Vault: . No caption text inside this panel.\n\nPanel 2: Extreme close-ups alternate. Ears flatten, tails twitch. They argue over ownership and truth.. Scene SC_005: Peak Disagreement. Location: Sunlit Meadow Clearing; time/light: Late Afternoon. Characters: Pip, Pop. Continuity: {\"wardrobe\": \"Detailed fur texture visible\", \"props\": [], \"screen_direction\": \"Static\"}. Setting: Sunlit Meadow Clearing. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: Late Afternoon. Mood: Hostile to Frustrated. Character consistency: Pip, Pop; Pip: Compact build, blue-tinted fur, expressive ears that flatten during conflict and perk during resolution.; Pop: Slightly taller build, orange-tinted fur, steady gaze that breaks into surprise during the illusion reveal.. Continuity: {\"wardrobe\": \"Detailed fur texture visible\", \"props\": [], \"screen_direction\": \"Static\"}. Asset Vault: . No caption text inside this panel.\n\nPanel 3: Pop stumbles back slightly. A sunbeam catches a hidden internal mirror in the crystal, casting a sharp white flare across both faces.. Scene SC_006: The Shift. Location: Sunlit Meadow Clearing; time/light: Late Afternoon. Characters: Pip, Pop. Continuity: {\"wardrobe\": \"Silhouetted by flare\", \"props\": [\"Luma-Crystal (white flare phase)\"], \"screen_direction\": \"Pull Back\"}. Setting: Sunlit Meadow Clearing. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: Late Afternoon. Mood: Frustrated to Uncertain. Character consistency: Pip, Pop; Pip: Compact build, blue-tinted fur, expressive ears that flatten during conflict and perk during resolution.; Pop: Slightly taller build, orange-tinted fur, steady gaze that breaks into surprise during the illusion reveal.. Continuity: {\"wardrobe\": \"Silhouetted by flare\", \"props\": [\"Luma-Crystal (white flare phase)\"], \"screen_direction\": \"Pull Back\"}. Asset Vault: . No caption text inside this panel.\n\nPanel 4: The flare fades. The crystal now shows a neutral, unified glow. Both lower their paws.. Scene SC_007: The Break. Location: Sunlit Meadow Clearing; time/light: Late Afternoon. Characters: Pip. Continuity: {\"wardrobe\": \"Relaxed posture\", \"props\": [\"Luma-Crystal (neutral phase)\"], \"screen_direction\": \"Center Frame\"}. Setting: Sunlit Meadow Clearing. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: Late Afternoon. Mood: Uncertain to Realization. Character consistency: Pip; Pip: Compact build, blue-tinted fur, expressive ears that flatten during conflict and perk during resolution.; Pop: Slightly taller build, orange-tinted fur, steady gaze that breaks into surprise during the illusion reveal.. Continuity: {\"wardrobe\": \"Relaxed posture\", \"props\": [\"Luma-Crystal (neutral phase)\"], \"screen_direction\": \"Center Frame\"}. Asset Vault: . No caption text inside this panel.\n\nOverall style: consistent character design across all panels, repeated wardrobe and facial details, consistent age, skin tone, hair, clothing, and build, source-based lighting, sharp focal priority, clean readable compositions, visible skin and fabric texture, film grain, no watermark, no malformed text, no fake captions.\n\nNegative prompt: blurry, soft focus, smeared detail, low resolution, deformed, extra limbs, bad hands, text, captions, labels, panel numbers, page layout, grid, contact sheet, watermark, inconsistent characters, merged panels.",
+      "negative_prompt": "blurry, soft focus, smeared detail, low resolution, deformed, extra limbs, bad hands, text, captions, labels, panel numbers, page layout, grid, contact sheet, watermark, inconsistent characters, merged panels",
+      "reference_image_url": "",
+      "width_and_height": "1920x1080",
+      "panel_width_and_height": "1920x1080"
+    },
+    {
+      "board_id": "STORYBOARD_03",
+      "index": 3,
+      "total_boards": 3,
+      "resolution": "1920x1080",
+      "panels_per_board": 4,
+      "panel_count": 3,
+      "layout": "2x2",
+      "layout_columns": 2,
+      "layout_rows": 2,
+      "panels": [
+        {
+          "panel_id": "PANEL_009",
+          "scene_id": "SC_008",
+          "beat_id": "SC_008_B01",
+          "caption": "They step closer together, tilting heads. The crystal refracts into a soft rainbow halo.",
+          "characters": [
+            "Pip",
+            "Pop"
+          ],
+          "location": "Sunlit Meadow Clearing",
+          "camera": "filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle",
+          "lighting": "Late Afternoon",
+          "mood": "Realization to Wonder",
+          "text": "Pop: It changes with how we look at it.",
+          "continuity": "{\"wardrobe\": \"Fur aligned, calm\", \"props\": [\"Luma-Crystal (rainbow halo phase)\"], \"screen_direction\": \"Slow Push In\"}",
+          "visual_prompt": "They step closer together, tilting heads. The crystal refracts into a soft rainbow halo.. Scene SC_008: Joint Examination. Location: Sunlit Meadow Clearing; time/light: Late Afternoon. Characters: Pip, Pop. Continuity: {\"wardrobe\": \"Fur aligned, calm\", \"props\": [\"Luma-Crystal (rainbow halo phase)\"], \"screen_direction\": \"Slow Push In\"}.",
+          "single_panel_prompt": "Single high-resolution cinematic production keyframe for board 3 shot 1 of 'Untitled Script'. This is an image-to-video start frame, not a storyboard page, not a contact sheet, not a grid. Style: cinematic. Scene action: They step closer together, tilting heads. The crystal refracts into a soft rainbow halo.. Scene SC_008: Joint Examination. Location: Sunlit Meadow Clearing; time/light: Late Afternoon. Characters: Pip, Pop. Continuity: {\"wardrobe\": \"Fur aligned, calm\", \"props\": [\"Luma-Crystal (rainbow halo phase)\"], \"screen_direction\": \"Slow Push In\"}. Setting: Sunlit Meadow Clearing. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: Late Afternoon. Mood: Realization to Wonder. Characters: Pip, Pop. Character consistency: Pip: Compact build, blue-tinted fur, expressive ears that flatten during conflict and perk during resolution.; Pop: Slightly taller build, orange-tinted fur, steady gaze that breaks into surprise during the illusion reveal.. Continuity: {\"wardrobe\": \"Fur aligned, calm\", \"props\": [\"Luma-Crystal (rainbow halo phase)\"], \"screen_direction\": \"Slow Push In\"}. No text, no captions, no dialogue, no titles, no panel number. Make one clean cinematic frame with readable blocking, crisp subject edges, sharp eyes, clear hands, detailed textures, controlled depth of field, consistent wardrobe, consistent face, cinematic composition, tactile material detail, natural skin or surface imperfections, no border, no panel frame, no page layout, no watermark. Negative prompt: blurry, soft focus, smeared detail, low resolution, deformed, extra limbs, bad hands, text, captions, labels, panel numbers, page layout, grid, contact sheet, watermark, inconsistent characters, merged panels.",
+          "width_and_height": "1920x1080"
+        },
+        {
+          "panel_id": "PANEL_010",
+          "scene_id": "SC_008",
+          "beat_id": "SC_008_B02",
+          "caption": "Pip gently nudges Pop\u2019s shoulder. Shared smile.",
+          "characters": [
+            "Pip",
+            "Pop"
+          ],
+          "location": "Sunlit Meadow Clearing",
+          "camera": "filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle",
+          "lighting": "Late Afternoon",
+          "mood": "Realization to Wonder",
+          "text": "Pip: We were fighting a shadow.",
+          "continuity": "{\"wardrobe\": \"Matching relaxed stance\", \"props\": [], \"screen_direction\": \"Static\"}",
+          "visual_prompt": "Pip gently nudges Pop\u2019s shoulder. Shared smile.. Scene SC_008: Joint Examination. Location: Sunlit Meadow Clearing; time/light: Late Afternoon. Characters: Pip, Pop. Continuity: {\"wardrobe\": \"Matching relaxed stance\", \"props\": [], \"screen_direction\": \"Static\"}.",
+          "single_panel_prompt": "Single high-resolution cinematic production keyframe for board 3 shot 2 of 'Untitled Script'. This is an image-to-video start frame, not a storyboard page, not a contact sheet, not a grid. Style: cinematic. Scene action: Pip gently nudges Pop\u2019s shoulder. Shared smile.. Scene SC_008: Joint Examination. Location: Sunlit Meadow Clearing; time/light: Late Afternoon. Characters: Pip, Pop. Continuity: {\"wardrobe\": \"Matching relaxed stance\", \"props\": [], \"screen_direction\": \"Static\"}. Setting: Sunlit Meadow Clearing. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: Late Afternoon. Mood: Realization to Wonder. Characters: Pip, Pop. Character consistency: Pip: Compact build, blue-tinted fur, expressive ears that flatten during conflict and perk during resolution.; Pop: Slightly taller build, orange-tinted fur, steady gaze that breaks into surprise during the illusion reveal.. Continuity: {\"wardrobe\": \"Matching relaxed stance\", \"props\": [], \"screen_direction\": \"Static\"}. No text, no captions, no dialogue, no titles, no panel number. Make one clean cinematic frame with readable blocking, crisp subject edges, sharp eyes, clear hands, detailed textures, controlled depth of field, consistent wardrobe, consistent face, cinematic composition, tactile material detail, natural skin or surface imperfections, no border, no panel frame, no page layout, no watermark. Negative prompt: blurry, soft focus, smeared detail, low resolution, deformed, extra limbs, bad hands, text, captions, labels, panel numbers, page layout, grid, contact sheet, watermark, inconsistent characters, merged panels.",
+          "width_and_height": "1920x1080"
+        },
+        {
+          "panel_id": "PANEL_011",
+          "scene_id": "SC_009",
+          "beat_id": "SC_009_B01",
+          "caption": "Wide shot. They sit side-by-side watching the crystal pulse gently as golden hour light washes over them.",
+          "characters": [
+            "Pip",
+            "Pop"
+          ],
+          "location": "Sunlit Meadow Clearing",
+          "camera": "filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle",
+          "lighting": "Late Afternoon",
+          "mood": "Wonder to Contentment",
+          "text": "Wide shot. They sit side-by-side watching the crystal pulse gently as golden hour light washes over them.",
+          "continuity": "{\"wardrobe\": \"Warm backlight glow\", \"props\": [\"Luma-Crystal (steady pulse)\"], \"screen_direction\": \"Static Wide\"}",
+          "visual_prompt": "Wide shot. They sit side-by-side watching the crystal pulse gently as golden hour light washes over them.. Scene SC_009: Shared Light. Location: Sunlit Meadow Clearing; time/light: Late Afternoon. Characters: Pip, Pop. Continuity: {\"wardrobe\": \"Warm backlight glow\", \"props\": [\"Luma-Crystal (steady pulse)\"], \"screen_direction\": \"Static Wide\"}.",
+          "single_panel_prompt": "Single high-resolution cinematic production keyframe for board 3 shot 3 of 'Untitled Script'. This is an image-to-video start frame, not a storyboard page, not a contact sheet, not a grid. Style: cinematic. Scene action: Wide shot. They sit side-by-side watching the crystal pulse gently as golden hour light washes over them.. Scene SC_009: Shared Light. Location: Sunlit Meadow Clearing; time/light: Late Afternoon. Characters: Pip, Pop. Continuity: {\"wardrobe\": \"Warm backlight glow\", \"props\": [\"Luma-Crystal (steady pulse)\"], \"screen_direction\": \"Static Wide\"}. Setting: Sunlit Meadow Clearing. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: Late Afternoon. Mood: Wonder to Contentment. Characters: Pip, Pop. Character consistency: Pip: Compact build, blue-tinted fur, expressive ears that flatten during conflict and perk during resolution.; Pop: Slightly taller build, orange-tinted fur, steady gaze that breaks into surprise during the illusion reveal.. Continuity: {\"wardrobe\": \"Warm backlight glow\", \"props\": [\"Luma-Crystal (steady pulse)\"], \"screen_direction\": \"Static Wide\"}. No text, no captions, no dialogue, no titles, no panel number. Make one clean cinematic frame with readable blocking, crisp subject edges, sharp eyes, clear hands, detailed textures, controlled depth of field, consistent wardrobe, consistent face, cinematic composition, tactile material detail, natural skin or surface imperfections, no border, no panel frame, no page layout, no watermark. Negative prompt: blurry, soft focus, smeared detail, low resolution, deformed, extra limbs, bad hands, text, captions, labels, panel numbers, page layout, grid, contact sheet, watermark, inconsistent characters, merged panels.",
+          "width_and_height": "1920x1080"
+        }
+      ],
+      "image_prompt": "A professional 3-panel storyboard page in cinematic style, arranged in a clean 2x2 grid layout at 1920x1080 with white borders and subtle drop shadows between panels. Each panel is numbered only with a small plain numeral in the top-left corner. Do not render captions, dialogue, titles, paragraphs, or any text except the panel numbers. This is board 3 of 3 for 'Untitled Script'.\n\nPanel 1: They step closer together, tilting heads. The crystal refracts into a soft rainbow halo.. Scene SC_008: Joint Examination. Location: Sunlit Meadow Clearing; time/light: Late Afternoon. Characters: Pip, Pop. Continuity: {\"wardrobe\": \"Fur aligned, calm\", \"props\": [\"Luma-Crystal (rainbow halo phase)\"], \"screen_direction\": \"Slow Push In\"}. Setting: Sunlit Meadow Clearing. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: Late Afternoon. Mood: Realization to Wonder. Character consistency: Pip, Pop; Pip: Compact build, blue-tinted fur, expressive ears that flatten during conflict and perk during resolution.; Pop: Slightly taller build, orange-tinted fur, steady gaze that breaks into surprise during the illusion reveal.. Continuity: {\"wardrobe\": \"Fur aligned, calm\", \"props\": [\"Luma-Crystal (rainbow halo phase)\"], \"screen_direction\": \"Slow Push In\"}. Asset Vault: . No caption text inside this panel.\n\nPanel 2: Pip gently nudges Pop\u2019s shoulder. Shared smile.. Scene SC_008: Joint Examination. Location: Sunlit Meadow Clearing; time/light: Late Afternoon. Characters: Pip, Pop. Continuity: {\"wardrobe\": \"Matching relaxed stance\", \"props\": [], \"screen_direction\": \"Static\"}. Setting: Sunlit Meadow Clearing. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: Late Afternoon. Mood: Realization to Wonder. Character consistency: Pip, Pop; Pip: Compact build, blue-tinted fur, expressive ears that flatten during conflict and perk during resolution.; Pop: Slightly taller build, orange-tinted fur, steady gaze that breaks into surprise during the illusion reveal.. Continuity: {\"wardrobe\": \"Matching relaxed stance\", \"props\": [], \"screen_direction\": \"Static\"}. Asset Vault: . No caption text inside this panel.\n\nPanel 3: Wide shot. They sit side-by-side watching the crystal pulse gently as golden hour light washes over them.. Scene SC_009: Shared Light. Location: Sunlit Meadow Clearing; time/light: Late Afternoon. Characters: Pip, Pop. Continuity: {\"wardrobe\": \"Warm backlight glow\", \"props\": [\"Luma-Crystal (steady pulse)\"], \"screen_direction\": \"Static Wide\"}. Setting: Sunlit Meadow Clearing. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: Late Afternoon. Mood: Wonder to Contentment. Character consistency: Pip, Pop; Pip: Compact build, blue-tinted fur, expressive ears that flatten during conflict and perk during resolution.; Pop: Slightly taller build, orange-tinted fur, steady gaze that breaks into surprise during the illusion reveal.. Continuity: {\"wardrobe\": \"Warm backlight glow\", \"props\": [\"Luma-Crystal (steady pulse)\"], \"screen_direction\": \"Static Wide\"}. Asset Vault: . No caption text inside this panel.\nLeave 1 unused panel slot(s) as clean black empty frames with white borders.\n\nOverall style: consistent character design across all panels, repeated wardrobe and facial details, consistent age, skin tone, hair, clothing, and build, source-based lighting, sharp focal priority, clean readable compositions, visible skin and fabric texture, film grain, no watermark, no malformed text, no fake captions.\n\nNegative prompt: blurry, soft focus, smeared detail, low resolution, deformed, extra limbs, bad hands, text, captions, labels, panel numbers, page layout, grid, contact sheet, watermark, inconsistent characters, merged panels.",
+      "negative_prompt": "blurry, soft focus, smeared detail, low resolution, deformed, extra limbs, bad hands, text, captions, labels, panel numbers, page layout, grid, contact sheet, watermark, inconsistent characters, merged panels",
+      "reference_image_url": "",
+      "width_and_height": "1920x1080",
+      "panel_width_and_height": "1920x1080"
+    }
+  ]
+}

@@ -1,0 +1,114 @@
+[
+  {
+    "id": "script_script_d82ecc07__SC_001_SC_001_B01_SH_001",
+    "shot_id": "SC_001_SC_001_B01_SH_001",
+    "source": "script_director",
+    "campaign_id": "script_script_d82ecc07",
+    "n": 1,
+    "sequence": 1,
+    "intent": "image",
+    "status": "ready",
+    "description": "wide establishing shot for SC_001/SC_001_B01: Pip brushes through tall grass, stops abruptly. A faceted crystal rests on a flat stone, pulsing with warm amber light.. Location: Sunlit Meadow Clearing. Time/light: Late Afternoon. Continuity: wardrobe Soft blue-tinted fur, slightly dusted with pollen; props Luma-Crystal (amber phase); screen direction Left to Right. Edit role: ESTABLISH; purpose: orient geography and lighting; transition should motivate the next beat. Camera: wide establishing shot. Lighting: Late Afternoon. Constraints: Preserve scene continuity, wardrobe, prop state, screen direction, and edit role",
+    "prompt": "wide establishing shot for SC_001/SC_001_B01: Pip brushes through tall grass, stops abruptly. A faceted crystal rests on a flat stone, pulsing with warm amber light.. Location: Sunlit Meadow Clearing. Time/light: Late Afternoon. Continuity: wardrobe Soft blue-tinted fur, slightly dusted with pollen; props Luma-Crystal (amber phase); screen direction Left to Right. Edit role: ESTABLISH; purpose: orient geography and lighting; transition should motivate the next beat. Camera: wide establishing shot. Lighting: Late Afternoon. Constraints: Preserve scene continuity, wardrobe, prop state, screen direction, and edit role",
+    "characters": [
+      "Pip"
+    ],
+    "mood": "ESTABLISH: orient geography and lighting",
+    "environment": "Sunlit Meadow Clearing",
+    "camera_direction": "wide establishing shot",
+    "lighting_direction": "Late Afternoon",
+    "rationale": "Fallback coverage generated from locked script package after Director API failure.",
+    "constraints": "Preserve scene continuity, wardrobe, prop state, screen direction, and edit role.",
+    "seed": 111122
+  },
+  {
+    "id": "script_script_d82ecc07__SC_002_SC_002_B01_SH_002",
+    "shot_id": "SC_002_SC_002_B01_SH_002",
+    "source": "script_director",
+    "campaign_id": "script_script_d82ecc07",
+    "n": 2,
+    "sequence": 2,
+    "intent": "image",
+    "status": "ready",
+    "description": "locked master shot for SC_002/SC_002_B01: Pop enters frame from right, eyes widen. The crystal now reads as cool violet in Pop's sightline.. Location: Sunlit Meadow Clearing. Time/light: Late Afternoon. Continuity: wardrobe Warm orange-tinted fur, clean edges; props Luma-Crystal (violet phase); screen direction Right to Left. Edit role: MASTER; purpose: preserve blocking and screen direction; transition should motivate the next beat. Camera: locked master shot. Lighting: Late Afternoon. Constraints: Preserve scene continuity, wardrobe, prop state, screen direction, and edit role",
+    "prompt": "locked master shot for SC_002/SC_002_B01: Pop enters frame from right, eyes widen. The crystal now reads as cool violet in Pop's sightline.. Location: Sunlit Meadow Clearing. Time/light: Late Afternoon. Continuity: wardrobe Warm orange-tinted fur, clean edges; props Luma-Crystal (violet phase); screen direction Right to Left. Edit role: MASTER; purpose: preserve blocking and screen direction; transition should motivate the next beat. Camera: locked master shot. Lighting: Late Afternoon. Constraints: Preserve scene continuity, wardrobe, prop state, screen direction, and edit role",
+    "characters": [
+      "Pip",
+      "Pop"
+    ],
+    "mood": "MASTER: preserve blocking and screen direction",
+    "environment": "Sunlit Meadow Clearing",
+    "camera_direction": "locked master shot",
+    "lighting_direction": "Late Afternoon",
+    "rationale": "Fallback coverage generated from locked script package after Director API failure.",
+    "constraints": "Preserve scene continuity, wardrobe, prop state, screen direction, and edit role.",
+    "seed": 553925
+  },
+  {
+    "id": "script_script_d82ecc07__SC_003_SC_003_B01_SH_003",
+    "shot_id": "SC_003_SC_003_B01_SH_003",
+    "source": "script_director",
+    "campaign_id": "script_script_d82ecc07",
+    "n": 3,
+    "sequence": 3,
+    "intent": "image",
+    "status": "ready",
+    "description": "insert detail for SC_003/SC_003_B01: Pip steps between Pop and the crystal, shielding it.. Location: Sunlit Meadow Clearing. Time/light: Late Afternoon. Continuity: wardrobe Soft blue-tinted fur; props Luma-Crystal (amber phase); screen direction Center Frame. Edit role: DETAIL; purpose: anchor prop, hand, or environment state; transition should motivate the next beat. Camera: insert detail. Lighting: Late Afternoon. Constraints: Preserve scene continuity, wardrobe, prop state, screen direction, and edit role",
+    "prompt": "insert detail for SC_003/SC_003_B01: Pip steps between Pop and the crystal, shielding it.. Location: Sunlit Meadow Clearing. Time/light: Late Afternoon. Continuity: wardrobe Soft blue-tinted fur; props Luma-Crystal (amber phase); screen direction Center Frame. Edit role: DETAIL; purpose: anchor prop, hand, or environment state; transition should motivate the next beat. Camera: insert detail. Lighting: Late Afternoon. Constraints: Preserve scene continuity, wardrobe, prop state, screen direction, and edit role",
+    "characters": [
+      "Pip"
+    ],
+    "mood": "DETAIL: anchor prop, hand, or environment state",
+    "environment": "Sunlit Meadow Clearing",
+    "camera_direction": "insert detail",
+    "lighting_direction": "Late Afternoon",
+    "rationale": "Fallback coverage generated from locked script package after Director API failure.",
+    "constraints": "Preserve scene continuity, wardrobe, prop state, screen direction, and edit role.",
+    "seed": 181649
+  },
+  {
+    "id": "script_script_d82ecc07__SC_003_SC_003_B02_SH_004",
+    "shot_id": "SC_003_SC_003_B02_SH_004",
+    "source": "script_director",
+    "campaign_id": "script_script_d82ecc07",
+    "n": 4,
+    "sequence": 4,
+    "intent": "image",
+    "status": "ready",
+    "description": "close reaction shot for SC_003/SC_003_B02: Pop circles left, crystal shifts to magenta.. Location: Sunlit Meadow Clearing. Time/light: Late Afternoon. Continuity: wardrobe Warm orange-tinted fur; props Luma-Crystal (magenta phase); screen direction Left to Center. Edit role: REACTION; purpose: make the emotional turn readable; transition should motivate the next beat. Camera: close reaction shot. Lighting: Late Afternoon. Constraints: Preserve scene continuity, wardrobe, prop state, screen direction, and edit role",
+    "prompt": "close reaction shot for SC_003/SC_003_B02: Pop circles left, crystal shifts to magenta.. Location: Sunlit Meadow Clearing. Time/light: Late Afternoon. Continuity: wardrobe Warm orange-tinted fur; props Luma-Crystal (magenta phase); screen direction Left to Center. Edit role: REACTION; purpose: make the emotional turn readable; transition should motivate the next beat. Camera: close reaction shot. Lighting: Late Afternoon. Constraints: Preserve scene continuity, wardrobe, prop state, screen direction, and edit role",
+    "characters": [
+      "Pop"
+    ],
+    "mood": "REACTION: make the emotional turn readable",
+    "environment": "Sunlit Meadow Clearing",
+    "camera_direction": "close reaction shot",
+    "lighting_direction": "Late Afternoon",
+    "rationale": "Fallback coverage generated from locked script package after Director API failure.",
+    "constraints": "Preserve scene continuity, wardrobe, prop state, screen direction, and edit role.",
+    "seed": 190604
+  },
+  {
+    "id": "script_script_d82ecc07__SC_004_SC_004_B01_SH_005",
+    "shot_id": "SC_004_SC_004_B01_SH_005",
+    "source": "script_director",
+    "campaign_id": "script_script_d82ecc07",
+    "n": 5,
+    "sequence": 5,
+    "intent": "image",
+    "status": "ready",
+    "description": "transition plate for SC_004/SC_004_B01: Both step forward, paws raised. The crystal flashes red at Pip, green at Pop.. Location: Sunlit Meadow Clearing. Time/light: Late Afternoon. Continuity: wardrobe Blue & orange fur ruffled by tension; props Luma-Crystal (split-color phase); screen direction Push In. Edit role: TRANSITION; purpose: bridge into the next beat; transition should motivate the next beat. Camera: transition plate. Lighting: Late Afternoon. Constraints: Preserve scene continuity, wardrobe, prop state, screen direction, and edit role",
+    "prompt": "transition plate for SC_004/SC_004_B01: Both step forward, paws raised. The crystal flashes red at Pip, green at Pop.. Location: Sunlit Meadow Clearing. Time/light: Late Afternoon. Continuity: wardrobe Blue & orange fur ruffled by tension; props Luma-Crystal (split-color phase); screen direction Push In. Edit role: TRANSITION; purpose: bridge into the next beat; transition should motivate the next beat. Camera: transition plate. Lighting: Late Afternoon. Constraints: Preserve scene continuity, wardrobe, prop state, screen direction, and edit role",
+    "characters": [
+      "Pip",
+      "Pop"
+    ],
+    "mood": "TRANSITION: bridge into the next beat",
+    "environment": "Sunlit Meadow Clearing",
+    "camera_direction": "transition plate",
+    "lighting_direction": "Late Afternoon",
+    "rationale": "Fallback coverage generated from locked script package after Director API failure.",
+    "constraints": "Preserve scene continuity, wardrobe, prop state, screen direction, and edit role.",
+    "seed": 373653
+  }
+]

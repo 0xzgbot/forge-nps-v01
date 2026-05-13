@@ -1,0 +1,331 @@
+{
+  "title": "Untitled Script",
+  "treatment": {
+    "logline": "Two fluffy companions fiercely debate a mysterious glowing artifact\u2019s true nature, only to realize their conflict stems from a clever play of light and perspective.",
+    "synopsis": "In a sun-dappled meadow, Pip discovers a pulsating crystalline object that shifts hue depending on the viewer's angle. When Pop arrives, they interpret the shifting colors as entirely different objects, sparking a heated disagreement over its identity and value. As they circle the artifact, their conflicting viewpoints escalate into a physical standoff until a subtle shift in sunlight reveals a hidden reflective facet causing the refraction illusion. The tension dissolves into shared wonder as they recognize the object's true form, ending with a quiet moment of reconciliation under the same light.",
+    "visual_language": "High-key natural lighting with practical lens flares and controlled refraction effects. Soft focus backgrounds to isolate character expressions. Camera angles shift dynamically to mirror subjective perspectives during conflict, resolving to stable, symmetrical wide shots for clarity and emotional release.",
+    "runtime_seconds": 80
+  },
+  "script": {
+    "acts": [
+      {
+        "act_id": "ACT_01",
+        "function": "Discovery & Misinterpretation",
+        "scenes": [
+          {
+            "scene_id": "SC_001",
+            "title": "The Discovery",
+            "duration_sec": 8,
+            "location": "Sunlit Meadow Clearing",
+            "time_of_day": "Late Afternoon",
+            "emotional_turn": "Curiosity to Intrigue",
+            "beats": [
+              {
+                "beat_id": "SC_001_B01",
+                "action": "Pip brushes through tall grass, stops abruptly. A faceted crystal rests on a flat stone, pulsing with warm amber light.",
+                "dialogue": "",
+                "characters": [
+                  "Pip"
+                ],
+                "continuity": {
+                  "wardrobe": "Soft blue-tinted fur, slightly dusted with pollen",
+                  "props": [
+                    "Luma-Crystal (amber phase)"
+                  ],
+                  "screen_direction": "Left to Right"
+                }
+              }
+            ]
+          },
+          {
+            "scene_id": "SC_002",
+            "title": "The Arrival",
+            "duration_sec": 9,
+            "location": "Sunlit Meadow Clearing",
+            "time_of_day": "Late Afternoon",
+            "emotional_turn": "Intrigue to Confusion",
+            "beats": [
+              {
+                "beat_id": "SC_002_B01",
+                "action": "Pop enters frame from right, eyes widen. The crystal now reads as cool violet in Pop's sightline.",
+                "dialogue": "Pop: Wait... that\u2019s not what I thought it was.",
+                "characters": [
+                  "Pip",
+                  "Pop"
+                ],
+                "continuity": {
+                  "wardrobe": "Warm orange-tinted fur, clean edges",
+                  "props": [
+                    "Luma-Crystal (violet phase)"
+                  ],
+                  "screen_direction": "Right to Left"
+                }
+              }
+            ]
+          },
+          {
+            "scene_id": "SC_003",
+            "title": "First Friction",
+            "duration_sec": 10,
+            "location": "Sunlit Meadow Clearing",
+            "time_of_day": "Late Afternoon",
+            "emotional_turn": "Confusion to Defensive",
+            "beats": [
+              {
+                "beat_id": "SC_003_B01",
+                "action": "Pip steps between Pop and the crystal, shielding it.",
+                "dialogue": "Pip: It\u2019s a Sun-Stone. I found it first.",
+                "characters": [
+                  "Pip"
+                ],
+                "continuity": {
+                  "wardrobe": "Soft blue-tinted fur",
+                  "props": [
+                    "Luma-Crystal (amber phase)"
+                  ],
+                  "screen_direction": "Center Frame"
+                }
+              },
+              {
+                "beat_id": "SC_003_B02",
+                "action": "Pop circles left, crystal shifts to magenta.",
+                "dialogue": "Pop: That\u2019s a Moon-Shard. You\u2019re misreading it.",
+                "characters": [
+                  "Pop"
+                ],
+                "continuity": {
+                  "wardrobe": "Warm orange-tinted fur",
+                  "props": [
+                    "Luma-Crystal (magenta phase)"
+                  ],
+                  "screen_direction": "Left to Center"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "act_id": "ACT_02",
+        "function": "Escalation & Friction",
+        "scenes": [
+          {
+            "scene_id": "SC_004",
+            "title": "The Standoff",
+            "duration_sec": 9,
+            "location": "Sunlit Meadow Clearing",
+            "time_of_day": "Late Afternoon",
+            "emotional_turn": "Defensive to Hostile",
+            "beats": [
+              {
+                "beat_id": "SC_004_B01",
+                "action": "Both step forward, paws raised. The crystal flashes red at Pip, green at Pop.",
+                "dialogue": "Pip: Back off! It\u2019s mine!",
+                "characters": [
+                  "Pip",
+                  "Pop"
+                ],
+                "continuity": {
+                  "wardrobe": "Blue & orange fur ruffled by tension",
+                  "props": [
+                    "Luma-Crystal (split-color phase)"
+                  ],
+                  "screen_direction": "Push In"
+                }
+              }
+            ]
+          },
+          {
+            "scene_id": "SC_005",
+            "title": "Peak Disagreement",
+            "duration_sec": 8,
+            "location": "Sunlit Meadow Clearing",
+            "time_of_day": "Late Afternoon",
+            "emotional_turn": "Hostile to Frustrated",
+            "beats": [
+              {
+                "beat_id": "SC_005_B01",
+                "action": "Extreme close-ups alternate. Ears flatten, tails twitch. They argue over ownership and truth.",
+                "dialogue": "Pop: You\u2019re blind to what\u2019s right in front of you!",
+                "characters": [
+                  "Pip",
+                  "Pop"
+                ],
+                "continuity": {
+                  "wardrobe": "Detailed fur texture visible",
+                  "props": [],
+                  "screen_direction": "Static"
+                }
+              }
+            ]
+          },
+          {
+            "scene_id": "SC_006",
+            "title": "The Shift",
+            "duration_sec": 10,
+            "location": "Sunlit Meadow Clearing",
+            "time_of_day": "Late Afternoon",
+            "emotional_turn": "Frustrated to Uncertain",
+            "beats": [
+              {
+                "beat_id": "SC_006_B01",
+                "action": "Pop stumbles back slightly. A sunbeam catches a hidden internal mirror in the crystal, casting a sharp white flare across both faces.",
+                "dialogue": "",
+                "characters": [
+                  "Pip",
+                  "Pop"
+                ],
+                "continuity": {
+                  "wardrobe": "Silhouetted by flare",
+                  "props": [
+                    "Luma-Crystal (white flare phase)"
+                  ],
+                  "screen_direction": "Pull Back"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "act_id": "ACT_03",
+        "function": "Revelation & Harmony",
+        "scenes": [
+          {
+            "scene_id": "SC_007",
+            "title": "The Break",
+            "duration_sec": 9,
+            "location": "Sunlit Meadow Clearing",
+            "time_of_day": "Late Afternoon",
+            "emotional_turn": "Uncertain to Realization",
+            "beats": [
+              {
+                "beat_id": "SC_007_B01",
+                "action": "The flare fades. The crystal now shows a neutral, unified glow. Both lower their paws.",
+                "dialogue": "Pip: ...It\u2019s just one piece.",
+                "characters": [
+                  "Pip"
+                ],
+                "continuity": {
+                  "wardrobe": "Relaxed posture",
+                  "props": [
+                    "Luma-Crystal (neutral phase)"
+                  ],
+                  "screen_direction": "Center Frame"
+                }
+              }
+            ]
+          },
+          {
+            "scene_id": "SC_008",
+            "title": "Joint Examination",
+            "duration_sec": 10,
+            "location": "Sunlit Meadow Clearing",
+            "time_of_day": "Late Afternoon",
+            "emotional_turn": "Realization to Wonder",
+            "beats": [
+              {
+                "beat_id": "SC_008_B01",
+                "action": "They step closer together, tilting heads. The crystal refracts into a soft rainbow halo.",
+                "dialogue": "Pop: It changes with how we look at it.",
+                "characters": [
+                  "Pip",
+                  "Pop"
+                ],
+                "continuity": {
+                  "wardrobe": "Fur aligned, calm",
+                  "props": [
+                    "Luma-Crystal (rainbow halo phase)"
+                  ],
+                  "screen_direction": "Slow Push In"
+                }
+              },
+              {
+                "beat_id": "SC_008_B02",
+                "action": "Pip gently nudges Pop\u2019s shoulder. Shared smile.",
+                "dialogue": "Pip: We were fighting a shadow.",
+                "characters": [
+                  "Pip",
+                  "Pop"
+                ],
+                "continuity": {
+                  "wardrobe": "Matching relaxed stance",
+                  "props": [],
+                  "screen_direction": "Static"
+                }
+              }
+            ]
+          },
+          {
+            "scene_id": "SC_009",
+            "title": "Shared Light",
+            "duration_sec": 7,
+            "location": "Sunlit Meadow Clearing",
+            "time_of_day": "Late Afternoon",
+            "emotional_turn": "Wonder to Contentment",
+            "beats": [
+              {
+                "beat_id": "SC_009_B01",
+                "action": "Wide shot. They sit side-by-side watching the crystal pulse gently as golden hour light washes over them.",
+                "dialogue": "",
+                "characters": [
+                  "Pip",
+                  "Pop"
+                ],
+                "continuity": {
+                  "wardrobe": "Warm backlight glow",
+                  "props": [
+                    "Luma-Crystal (steady pulse)"
+                  ],
+                  "screen_direction": "Static Wide"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "continuity": {
+    "characters": [
+      {
+        "name": "Pip",
+        "visual_lock": "Compact build, blue-tinted fur, expressive ears that flatten during conflict and perk during resolution.",
+        "wardrobe": "Natural fur texture, subtle pollen dust in early scenes, clean by final shot.",
+        "performance": "Guarded initially, physically protective, softens into curiosity and reconciliation."
+      },
+      {
+        "name": "Pop",
+        "visual_lock": "Slightly taller build, orange-tinted fur, steady gaze that breaks into surprise during the illusion reveal.",
+        "wardrobe": "Natural fur texture, clean throughout, slight wind displacement during standoff.",
+        "performance": "Assertive and opinionated, escalates to frustration, pivots quickly to shared wonder."
+      }
+    ],
+    "locations": [
+      {
+        "name": "Sunlit Meadow Clearing",
+        "visual_lock": "Flat grassy plane with a central smooth stone pedestal. Dappled overhead canopy creates shifting light pools. Consistent horizon line and background foliage placement."
+      }
+    ],
+    "props": [
+      {
+        "name": "Luma-Crystal",
+        "state": "Faceted glass prism with an internal angled mirror. Changes perceived color via viewer angle and sunlight refraction. Maintains physical dimensions; only illumination shifts."
+      }
+    ],
+    "motifs": [
+      "Shifting light and color perception",
+      "Circular character movement around central object",
+      "Mirrored reflections in eyes/prop surfaces",
+      "Shared spatial proximity as emotional barometer"
+    ]
+  },
+  "edit_plan": {
+    "pacing": "Staccato to fluid. Rapid intercutting during SC_003-SC_005 (1-2 sec per shot) to amplify tension, transitioning to held medium/wide shots in SC_007-SC_009 (4-6 sec+) for emotional clarity and resolution.",
+    "audio_strategy": "Diegetic nature ambience opens track. Tense, rhythmic percussion and low strings underscore disagreement. Dialogue remains sparse; vocalizations and prop rustles carry weight. At SC_006 flare, audio dips to silence for 1 beat, then swells into warm harmonic chords and natural wind as illusion breaks.",
+    "transition_strategy": "Match cuts on crystal orientation and light flares during circle movement. Whips pan follow character repositioning in SC_003-SC_004. Hard cut at SC_006-B01 flare peak for impact, then dissolve into stable framing. Final fade out on wide shot."
+  },
+  "source": "lmstudio_director",
+  "director_backend": "lmstudio",
+  "director_model": "qwen3.6-35b-a3b@q6_k"
+}

@@ -1,0 +1,46 @@
+[
+  {
+    "id": "script_demo_one_click_asset_vault_001__SHOT_001",
+    "shot_id": "SHOT_001",
+    "source": "script_director",
+    "campaign_id": "script_demo_one_click_asset_vault_001",
+    "n": 1,
+    "sequence": 1,
+    "intent": "image",
+    "status": "ready",
+    "description": "Extreme close-up on MAKER'S eyes reflecting matte-black desk lamp stuttering; slow push-in to hands hovering then pressing flat against workbench wood. Lamp strobe syncs to pulse beneath grain. Cool blue shadows contrast with warm amber key light pool from lamp. Shallow depth of field prioritizes eyes, fingers, and light interaction over wide exposition. Camera: Static tight frame eye-level on eyes (SC_001_B01), slow push-in on hands and lamp base (SC_001_B02), cut to medium close-up tilting down following hand sliding flat against wood (SC_001_B03). Hard cuts within beat sequence; pacing 2-4-3 seconds builds tension. Match cut intent at end on light pulse. Lighting: High-contrast practical lighting. Cool blue shadows dominate background; warm amber key light pools from matte-black lamp on subject's face and hands. Light transitions from stuttering flicker to steady sync as hand makes contact with surface. Constraints: MAKER wears charcoal knit sweater, sleeves pushed to elbows, faint grease smudge on left knuckle. Props: matte-black desk lamp (flickering dot-dash pattern), blueprint paper. Audio cue: Sharp electrical click, half-second dead silence before dialogue 'You just answered.' tight/wireless mic; wood scrape foley merges with rhythmic mechanical thrum as hand contacts surface",
+    "prompt": "Extreme close-up on MAKER'S eyes reflecting matte-black desk lamp stuttering; slow push-in to hands hovering then pressing flat against workbench wood. Lamp strobe syncs to pulse beneath grain. Cool blue shadows contrast with warm amber key light pool from lamp. Shallow depth of field prioritizes eyes, fingers, and light interaction over wide exposition. Camera: Static tight frame eye-level on eyes (SC_001_B01), slow push-in on hands and lamp base (SC_001_B02), cut to medium close-up tilting down following hand sliding flat against wood (SC_001_B03). Hard cuts within beat sequence; pacing 2-4-3 seconds builds tension. Match cut intent at end on light pulse. Lighting: High-contrast practical lighting. Cool blue shadows dominate background; warm amber key light pools from matte-black lamp on subject's face and hands. Light transitions from stuttering flicker to steady sync as hand makes contact with surface. Constraints: MAKER wears charcoal knit sweater, sleeves pushed to elbows, faint grease smudge on left knuckle. Props: matte-black desk lamp (flickering dot-dash pattern), blueprint paper. Audio cue: Sharp electrical click, half-second dead silence before dialogue 'You just answered.' tight/wireless mic; wood scrape foley merges with rhythmic mechanical thrum as hand contacts surface",
+    "characters": [
+      "MAKER"
+    ],
+    "mood": "Hook viewer with immediate suspicion and dialogue, transitioning to tactile realization as the lamp's flicker syncs with a hidden vibration beneath the workbench.",
+    "environment": "Maker's workbench, late night; cluttered but organized table with exposed wiring, drafting tools, cool overhead spill contrasting with lamp pool.",
+    "camera_direction": "Static tight frame eye-level on eyes (SC_001_B01), slow push-in on hands and lamp base (SC_001_B02), cut to medium close-up tilting down following hand sliding flat against wood (SC_001_B03). Hard cuts within beat sequence; pacing 2-4-3 seconds builds tension. Match cut intent at end on light pulse.",
+    "lighting_direction": "High-contrast practical lighting. Cool blue shadows dominate background; warm amber key light pools from matte-black lamp on subject's face and hands. Light transitions from stuttering flicker to steady sync as hand makes contact with surface.",
+    "rationale": "Covers SC_001 beats B01-B03. Establishes the hook dialogue 'You just answered' and emotional turn from paranoia to grounded focus through tactile confirmation. Camera movements mimic human curiosity; cuts land on action peaks and light transitions per edit plan.",
+    "constraints": "MAKER wears charcoal knit sweater, sleeves pushed to elbows, faint grease smudge on left knuckle. Props: matte-black desk lamp (flickering dot-dash pattern), blueprint paper. Audio cue: Sharp electrical click, half-second dead silence before dialogue 'You just answered.' tight/wireless mic; wood scrape foley merges with rhythmic mechanical thrum as hand contacts surface.",
+    "seed": 150251
+  },
+  {
+    "id": "script_demo_one_click_asset_vault_001__SHOT_002",
+    "shot_id": "SHOT_002",
+    "source": "script_director",
+    "campaign_id": "script_demo_one_click_asset_vault_001",
+    "n": 2,
+    "sequence": 2,
+    "intent": "image",
+    "status": "ready",
+    "description": "Camera slips under desk lip to reveal brushed-metal prototype housing vibrating visibly on rubber mat; cut to static medium shot of maker's fingers resting lightly on casing while lamp casts long unwavering shadows across scattered tools. Lamp glow stabilizes from flicker to warm steady light. Shallow depth of field focuses on hand/prototype interaction and light transition. Camera: Low angle tracking shot sliding under desk lip to reveal prototype (SC_002_B04), hard cut match from SC_001 light pulse. Static medium shot with shallow depth of field focusing on hand/lamp glow transition (SC_002_B05). Pacing 5-4 seconds releases tension. Lighting: Mechanical hum visual via visible vibration; ambient workshop noise fades. Lamp stabilizes to warm steady glow, casting long unwavering shadows. Cool blue spill recedes, replaced by warm amber focus emphasizing physical reality over mystery. Constraints: MAKER posture drops from defensive to open, shoulders relax completely. Wardrobe continuity: charcoal knit sweater, sleeves pushed to elbows. Props: prototype housing (brushed aluminum casing mounted on rubber mat, vibrating at 40Hz), lamp cord trailing down. Audio cue: Mechanical hum softens to smooth resonant drone; ambient noise fades entirely; faint metallic ping as fingertips contact; dialogue 'Steady now.' dry/close-mic'd calm/warm delivery",
+    "prompt": "Camera slips under desk lip to reveal brushed-metal prototype housing vibrating visibly on rubber mat; cut to static medium shot of maker's fingers resting lightly on casing while lamp casts long unwavering shadows across scattered tools. Lamp glow stabilizes from flicker to warm steady light. Shallow depth of field focuses on hand/prototype interaction and light transition. Camera: Low angle tracking shot sliding under desk lip to reveal prototype (SC_002_B04), hard cut match from SC_001 light pulse. Static medium shot with shallow depth of field focusing on hand/lamp glow transition (SC_002_B05). Pacing 5-4 seconds releases tension. Lighting: Mechanical hum visual via visible vibration; ambient workshop noise fades. Lamp stabilizes to warm steady glow, casting long unwavering shadows. Cool blue spill recedes, replaced by warm amber focus emphasizing physical reality over mystery. Constraints: MAKER posture drops from defensive to open, shoulders relax completely. Wardrobe continuity: charcoal knit sweater, sleeves pushed to elbows. Props: prototype housing (brushed aluminum casing mounted on rubber mat, vibrating at 40Hz), lamp cord trailing down. Audio cue: Mechanical hum softens to smooth resonant drone; ambient noise fades entirely; faint metallic ping as fingertips contact; dialogue 'Steady now.' dry/close-mic'd calm/warm delivery",
+    "characters": [
+      "MAKER"
+    ],
+    "mood": "Reveal the hidden prototype causing the sync and resolve tension into quiet warmth as machine and lamp lock into steady rhythm.",
+    "environment": "Under workbench edge; brushed aluminum prototype housing mounted on rubber mat, lamp cord trailing down.",
+    "camera_direction": "Low angle tracking shot sliding under desk lip to reveal prototype (SC_002_B04), hard cut match from SC_001 light pulse. Static medium shot with shallow depth of field focusing on hand/lamp glow transition (SC_002_B05). Pacing 5-4 seconds releases tension.",
+    "lighting_direction": "Mechanical hum visual via visible vibration; ambient workshop noise fades. Lamp stabilizes to warm steady glow, casting long unwavering shadows. Cool blue spill recedes, replaced by warm amber focus emphasizing physical reality over mystery.",
+    "rationale": "Covers SC_002 beats B04-B05. Delivers the reveal of the prototype and emotional resolution 'Steady now'. Match cut on light pulse connects to Shot 1. Hard cuts maintain commercial urgency while preserving emotional continuity; camera movement mimics tactile discovery.",
+    "constraints": "MAKER posture drops from defensive to open, shoulders relax completely. Wardrobe continuity: charcoal knit sweater, sleeves pushed to elbows. Props: prototype housing (brushed aluminum casing mounted on rubber mat, vibrating at 40Hz), lamp cord trailing down. Audio cue: Mechanical hum softens to smooth resonant drone; ambient noise fades entirely; faint metallic ping as fingertips contact; dialogue 'Steady now.' dry/close-mic'd calm/warm delivery.",
+    "seed": 829455
+  }
+]

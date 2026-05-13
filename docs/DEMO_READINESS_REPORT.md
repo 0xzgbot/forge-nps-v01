@@ -21,7 +21,7 @@ Local Spark storyboard providers were checked against the live ComfyUI model inv
 - OpenAI image generation: not live-tested because no API key was configured
 - Nano Banana / Gemini image generation: not live-tested because no API key was configured
 
-The UI/backend now report unavailable local models before render submission instead of silently sending a broken workflow. Historical files may still live under the old `local_higgsfield` folder path, but new visible output filenames use the selected model prefix such as `flux2_dev_...` or `flux2_klein_...`.
+The UI/backend now report unavailable local models before render submission instead of silently sending a broken workflow. Historical files may still live under the old `local_spark_media` folder path, but new visible output filenames use the selected model prefix such as `flux2_dev_...` or `flux2_klein_...`.
 
 ## Script Studio One-Click Run
 
@@ -38,8 +38,8 @@ The UI/backend now report unavailable local models before render submission inst
 
 Generated start frames:
 
-- `~/Desktop/FORGE_NPS_MEDIA/local_higgsfield/results/08397414-15b4-47a5-8642-902f9e844e66/flux2_dev_08397414_00001_.png`
-- `~/Desktop/FORGE_NPS_MEDIA/local_higgsfield/results/2bbd0a51-c319-424e-bf20-8b6ddded57b1/flux2_dev_2bbd0a51_00001_.png`
+- `~/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/08397414-15b4-47a5-8642-902f9e844e66/flux2_dev_08397414_00001_.png`
+- `~/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/2bbd0a51-c319-424e-bf20-8b6ddded57b1/flux2_dev_2bbd0a51_00001_.png`
 
 Generated video clips:
 

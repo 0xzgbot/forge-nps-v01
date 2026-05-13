@@ -1,0 +1,361 @@
+{
+  "job_id": "scriptjob_309cdf180583",
+  "script_id": "demo_one_click_asset_vault_001",
+  "status": "complete",
+  "phase": "complete",
+  "created_at": "2026-05-13T01:23:35.779306Z",
+  "updated_at": "2026-05-13T01:39:15.172696Z",
+  "request": {
+    "script_id": "demo_one_click_asset_vault_001",
+    "title": "The Lamp That Answered",
+    "brief": "A maker notices their matte-black desk lamp flickering in a pattern that seems to answer questions. Hook the viewer immediately with one line of dialogue, then reveal the lamp is responding to hidden vibrations from a prototype under the desk.",
+    "tone": "sharp cinematic commercial short, suspenseful but warm, practical workshop realism",
+    "runtime_seconds": 24,
+    "target_scenes": 2,
+    "target_shots": 2,
+    "hook_first_dialogue": true,
+    "storyboard_panels_per_board": 2,
+    "storyboard_target_panels": 2,
+    "storyboard_resolution": "1920x1080",
+    "storyboard_style": "cinematic product-storyboard, sharp production start frames, no contact sheet",
+    "storyboard_character_consistency": "",
+    "storyboard_negative_prompt": "blurry, soft focus, smeared detail, low resolution, deformed, extra limbs, bad hands, text, captions, labels, panel numbers, page layout, grid, contact sheet, watermark, inconsistent characters, merged panels",
+    "storyboard_reference_image_url": "",
+    "storyboard_include_captions": false,
+    "storyboard_image_provider": "spark",
+    "storyboard_image_model": "",
+    "storyboard_spark_model": "flux2_dev",
+    "asset_vault_package_id": "demo_asset_vault_sienna_desk_lamp",
+    "video_workflow_id": "04_ltx2.3_image_to_video",
+    "video_duration": 4,
+    "video_fps": 24,
+    "video_resolution": "540p",
+    "video_aspect_ratio": "16:9",
+    "run_video": true,
+    "wait_for_videos": true,
+    "video_wait_seconds": 21600,
+    "stop_after": "videos"
+  },
+  "logs": [
+    {
+      "timestamp": "2026-05-13T01:23:35.788254Z",
+      "phase": "project",
+      "level": "info",
+      "message": "Pipeline started"
+    },
+    {
+      "timestamp": "2026-05-13T01:23:35.796023Z",
+      "phase": "script",
+      "level": "info",
+      "message": "Generating locked script package"
+    },
+    {
+      "timestamp": "2026-05-13T01:25:20.319949Z",
+      "phase": "coverage",
+      "level": "info",
+      "message": "Generating coverage shot list"
+    },
+    {
+      "timestamp": "2026-05-13T01:26:25.703596Z",
+      "phase": "coverage",
+      "level": "info",
+      "message": "Coverage ready: 2 shot(s)"
+    },
+    {
+      "timestamp": "2026-05-13T01:26:25.704604Z",
+      "phase": "storyboard",
+      "level": "info",
+      "message": "Building storyboard plan"
+    },
+    {
+      "timestamp": "2026-05-13T01:26:25.711738Z",
+      "phase": "storyboard",
+      "level": "info",
+      "message": "Storyboard ready: 2 panel(s)"
+    },
+    {
+      "timestamp": "2026-05-13T01:26:25.712611Z",
+      "phase": "frames",
+      "level": "info",
+      "message": "Queueing storyboard panel start frames"
+    },
+    {
+      "timestamp": "2026-05-13T01:26:27.006722Z",
+      "phase": "frames",
+      "level": "info",
+      "message": "Queued board 1 panel 1",
+      "url": ""
+    },
+    {
+      "timestamp": "2026-05-13T01:26:28.571179Z",
+      "phase": "frames",
+      "level": "info",
+      "message": "Queued board 1 panel 2",
+      "url": ""
+    },
+    {
+      "timestamp": "2026-05-13T01:31:24.033768Z",
+      "phase": "frames",
+      "level": "info",
+      "message": "Rendered board 1 panel 1",
+      "url": "/media-assets/local_spark_media/results/08397414-15b4-47a5-8642-902f9e844e66/flux2_dev_08397414_00001_.png"
+    },
+    {
+      "timestamp": "2026-05-13T01:33:57.008069Z",
+      "phase": "frames",
+      "level": "info",
+      "message": "Rendered board 1 panel 2",
+      "url": "/media-assets/local_spark_media/results/2bbd0a51-c319-424e-bf20-8b6ddded57b1/flux2_dev_2bbd0a51_00001_.png"
+    },
+    {
+      "timestamp": "2026-05-13T01:33:57.016339Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Exporting storyboard frames as video shots"
+    },
+    {
+      "timestamp": "2026-05-13T01:33:57.021142Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Created 2 video shot record(s)"
+    },
+    {
+      "timestamp": "2026-05-13T01:33:57.022060Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Queueing 2 image-to-video job(s)"
+    },
+    {
+      "timestamp": "2026-05-13T01:33:58.800813Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Queued 2 ComfyUI video job(s)"
+    },
+    {
+      "timestamp": "2026-05-13T01:33:58.941436Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 0 complete, 2 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-13T01:34:09.025224Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 0 complete, 2 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-13T01:34:19.118432Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 0 complete, 2 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-13T01:34:29.330937Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 0 complete, 2 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-13T01:34:39.485386Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 0 complete, 2 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-13T01:34:49.584996Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 0 complete, 2 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-13T01:34:59.703955Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 0 complete, 2 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-13T01:35:09.782106Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 0 complete, 2 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-13T01:35:19.860948Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 0 complete, 2 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-13T01:35:29.951208Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 0 complete, 2 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-13T01:35:40.034864Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 0 complete, 2 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-13T01:35:50.130991Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 0 complete, 2 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-13T01:36:00.220631Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 0 complete, 2 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-13T01:36:10.300051Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 0 complete, 2 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-13T01:36:20.385432Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 0 complete, 2 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-13T01:36:30.484120Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 0 complete, 2 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-13T01:36:40.582464Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 0 complete, 2 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-13T01:36:50.835792Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 0 complete, 2 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-13T01:37:01.001595Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 0 complete, 2 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-13T01:37:11.181896Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 0 complete, 2 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-13T01:37:21.669521Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 1 complete, 1 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-13T01:37:31.917161Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 1 complete, 1 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-13T01:37:42.212918Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 1 complete, 1 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-13T01:37:52.475203Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 1 complete, 1 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-13T01:38:02.858783Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 1 complete, 1 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-13T01:38:13.111129Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 1 complete, 1 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-13T01:38:23.503804Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 1 complete, 1 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-13T01:38:33.897400Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 1 complete, 1 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-13T01:38:44.186778Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 1 complete, 1 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-13T01:38:54.419538Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 1 complete, 1 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-13T01:39:04.706919Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 1 complete, 1 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-13T01:39:15.157333Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 2 complete, 0 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-13T01:39:15.172670Z",
+      "phase": "complete",
+      "level": "info",
+      "message": "Pipeline complete"
+    }
+  ],
+  "coverage_count": 2,
+  "storyboard_count": 2,
+  "video_jobs": [
+    {
+      "shot_id": "script_demo_one_click_asset_vault_001__SB_001",
+      "prompt_id": "ef36e1bf-5ad4-4876-94bf-883dc49b56a0",
+      "campaign_id": "script_demo_one_click_asset_vault_001",
+      "workflow_id": "04_ltx2.3_image_to_video",
+      "seed": 3855302733,
+      "duration": 4,
+      "fps": 24,
+      "host": "http://localhost:8188",
+      "status": "complete",
+      "video_url": "/media-assets/videos/script_demo_one_click_asset_vault_001/script_demo_one_click_asset_vault_001__SB_001__video_00001_.mp4"
+    },
+    {
+      "shot_id": "script_demo_one_click_asset_vault_001__SB_002",
+      "prompt_id": "5acf30e3-7630-49ec-93b0-f8fc9e744804",
+      "campaign_id": "script_demo_one_click_asset_vault_001",
+      "workflow_id": "04_ltx2.3_image_to_video",
+      "seed": 3963276803,
+      "duration": 4,
+      "fps": 24,
+      "host": "http://localhost:8188",
+      "status": "complete"
+    }
+  ],
+  "error": ""
+}

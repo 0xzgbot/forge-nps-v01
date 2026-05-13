@@ -1,0 +1,179 @@
+{
+  "title": "The Lamp That Answered",
+  "treatment": {
+    "logline": "A maker\u2019s suspicion turns to quiet awe when a flickering desk lamp reveals it is syncing with a hidden prototype vibration beneath the workbench.",
+    "synopsis": "In a dim, tool-lined workshop, a maker watches a matte-black lamp stutter in an impossible rhythm. After a sharp hook of dialogue, they test the surface, realizing the light isn\u2019t malfunctioning\u2014it\u2019s mirroring the mechanical pulse of a concealed prototype. The tension dissolves into warm focus as the machine and lamp lock into steady sync.",
+    "visual_language": "High-contrast practical lighting with shallow depth of field. Cool blue shadows give way to warm amber key light. Camera movements are deliberate, tactile pushes and low-angle slips that mimic human curiosity. Frame composition prioritizes hands, eyes, and light interaction over wide exposition.",
+    "runtime_seconds": 24
+  },
+  "script": {
+    "acts": [
+      {
+        "act_id": "ACT_01",
+        "function": "Hook, suspicion, physical realization, warm resolution",
+        "scenes": [
+          {
+            "scene_id": "SC_001",
+            "title": "The Flicker",
+            "duration_sec": 15,
+            "location": "Maker\u2019s workbench",
+            "time_of_day": "Late night",
+            "emotional_turn": "Paranoia to grounded focus",
+            "beats": [
+              {
+                "beat_id": "SC_001_B01",
+                "action": "Extreme close-up on MAKER\u2019S eyes reflecting a matte-black desk lamp. The light stutters once against their pupils.",
+                "dialogue": "You just answered.",
+                "audio_cue": "Sharp electrical click, then half-second dead silence before dialogue cuts in tight.",
+                "performance": "Eyes widen slightly, voice drops to a compressed whisper, immediate suspicion snapping into hyper-focus.",
+                "characters": [
+                  "MAKER"
+                ],
+                "continuity": {
+                  "wardrobe": "Charcoal knit sweater, sleeves pushed to elbows",
+                  "props": [
+                    "matte-black desk lamp",
+                    "blueprint paper"
+                  ],
+                  "screen_direction": "Static tight frame, eye-level"
+                }
+              },
+              {
+                "beat_id": "SC_001_B02",
+                "action": "Maker\u2019s hand hovers over the workbench surface. The lamp flickers twice in quick succession.",
+                "dialogue": "",
+                "audio_cue": "Low-frequency room tone builds, subtle metallic resonance underlies the flicker sounds; sharp inhale through nose.",
+                "performance": "Breath holds, shoulders tense forward, fingers twitch without touching anything, waiting for confirmation.",
+                "characters": [
+                  "MAKER"
+                ],
+                "continuity": {
+                  "wardrobe": "Charcoal knit sweater, sleeves pushed to elbows",
+                  "props": [
+                    "workbench surface",
+                    "lamp base"
+                  ],
+                  "screen_direction": "Slow push-in on hands and lamp base"
+                }
+              },
+              {
+                "beat_id": "SC_001_B03",
+                "action": "Maker slides palm flat against the wood. The lamp\u2019s strobe syncs to a hidden pulse beneath the grain.",
+                "dialogue": "It\u2019s the vibration...",
+                "audio_cue": "Dry wood scrape foley merges with a rhythmic, mechanical thrum; dialogue delivered on exhale.",
+                "performance": "Jaw unclenches, exhale sharp through nose, voice carries sudden relief mixed with awe as suspicion breaks.",
+                "characters": [
+                  "MAKER"
+                ],
+                "continuity": {
+                  "wardrobe": "Charcoal knit sweater, sleeves pushed to elbows",
+                  "props": [
+                    "workbench top",
+                    "lamp"
+                  ],
+                  "screen_direction": "Cut to medium close-up, camera tilts down following hand"
+                }
+              }
+            ]
+          },
+          {
+            "scene_id": "SC_002",
+            "title": "The Sync",
+            "duration_sec": 9,
+            "location": "Under workbench edge",
+            "time_of_day": "Late night",
+            "emotional_turn": "Tension to quiet warmth",
+            "beats": [
+              {
+                "beat_id": "SC_002_B04",
+                "action": "Camera slips under the desk lip. Reveals a brushed-metal prototype housing vibrating visibly against a rubber mat. The lamp above stabilizes into a warm, steady glow.",
+                "dialogue": "",
+                "audio_cue": "Mechanical hum softens to a smooth, resonant drone; ambient workshop noise fades out entirely.",
+                "performance": "Maker\u2019s posture drops from defensive to open, shoulders relax completely as the reveal lands physically and emotionally.",
+                "characters": [
+                  "MAKER"
+                ],
+                "continuity": {
+                  "wardrobe": "Charcoal knit sweater, sleeves pushed to elbows",
+                  "props": [
+                    "prototype housing",
+                    "rubber mat",
+                    "lamp cord trailing down"
+                  ],
+                  "screen_direction": "Low angle tracking shot sliding under desk lip"
+                }
+              },
+              {
+                "beat_id": "SC_002_B05",
+                "action": "Maker\u2019s fingers rest lightly on the prototype casing. The light casts long, unwavering shadows across scattered tools.",
+                "dialogue": "Steady now.",
+                "audio_cue": "Deep breath out, faint metallic ping as fingertips make contact; drone holds steady under dialogue.",
+                "performance": "Voice is calm, grounded, carrying quiet triumph and warmth; delivery feels like a lullaby to the machine.",
+                "characters": [
+                  "MAKER"
+                ],
+                "continuity": {
+                  "wardrobe": "Charcoal knit sweater, sleeves pushed to elbows",
+                  "props": [
+                    "prototype",
+                    "workbench edge",
+                    "lamp"
+                  ],
+                  "screen_direction": "Static medium shot, shallow depth of field focusing on hand/lamp glow transition"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "continuity": {
+    "characters": [
+      {
+        "name": "MAKER",
+        "visual_lock": "30s, lean build, focused gaze, faint grease smudge on left knuckle",
+        "wardrobe": "Charcoal knit sweater, sleeves pushed to elbows, dark work trousers",
+        "performance": "Economical movement, tactile interaction with objects, vocal delivery shifts from compressed suspicion to grounded warmth"
+      }
+    ],
+    "locations": [
+      {
+        "name": "Maker\u2019s workbench",
+        "visual_lock": "Cluttered but organized workshop table, exposed wiring, drafting tools, cool overhead spill contrasting with lamp pool"
+      }
+    ],
+    "props": [
+      {
+        "name": "Matte-black desk lamp",
+        "state": "Flickers in dot-dash pattern during SC_001, stabilizes to steady warm glow in SC_002"
+      },
+      {
+        "name": "Prototype housing",
+        "state": "Brushed aluminum casing mounted on rubber mat, vibrating at 40Hz under desk surface"
+      }
+    ],
+    "motifs": [
+      "Light as communication",
+      "Tactile confirmation over visual assumption",
+      "Rhythmic sync between machine and human breath"
+    ]
+  },
+  "edit_plan": {
+    "pacing": "2-4-3 seconds for SC_001 beats to build tension, then 5-4 seconds for SC_002 beats to release into warmth. Cuts land on action peaks and light transitions.",
+    "audio_strategy": "Diegetic-first design: electrical clicks, wood foley, and mechanical thrum drive the narrative. Strategic silence after B01 hook amplifies curiosity. Drone fades out by B04 to emphasize physical reality over mystery. Dialogue sits dry and close-mic\u2019d for intimacy.",
+    "transition_strategy": "Match cut on light pulse from SC_001_B03 lamp sync to SC_002_B04 prototype vibration reveal. No dissolves or wipes; hard cuts maintain commercial urgency while preserving emotional continuity."
+  },
+  "source": "lmstudio_director",
+  "director_backend": "lmstudio",
+  "director_model": "qwen3.6-35b-a3b@q6_k",
+  "forge_request": {
+    "fingerprint": "8d6c8a0738d3fbe689724dceccd5c936b1db5cc91c08ae993915e701318d5920",
+    "title": "The Lamp That Answered",
+    "brief_hash": "76785c6334f644ed2f0770b5504bd61575b3265d787fed02fcf8219620bd24c7",
+    "tone": "sharp cinematic commercial short, suspenseful but warm, practical workshop realism",
+    "runtime_seconds": 24,
+    "target_scenes": 2,
+    "hook_first_dialogue": true
+  }
+}

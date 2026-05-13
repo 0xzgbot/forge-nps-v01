@@ -1,4 +1,4 @@
-from core.hermes.pipeline.director_service import KimiDirectorService
+from core.hermes.pipeline.director_service import KimiDirectorService, _multi_person_cast_directive
 
 
 def test_requested_shot_count_reads_explicit_image_count():
@@ -22,3 +22,15 @@ def test_fallback_people_plan_assigns_distinct_cast():
     assert "Mara Ellis" in shots[0]["visual_brief"]
     assert "Dante Brooks" in shots[1]["visual_brief"]
     assert "preserve distinct cast identity" in shots[0]["constraints"]
+
+
+def test_fitness_multi_person_directive_avoids_generic_body_type_variation():
+    directive = _multi_person_cast_directive("20 portraits of female fitness instructors", 20).lower()
+    assert "batch subject rule" in directive
+    assert "do not add subject-trait" in directive
+    assert "unless the brief explicitly asks" in directive
+    assert "body-type" in directive
+    assert "demographic" not in directive
+    assert "deliberate variety" not in directive
+    assert "generic body-type diversification" not in directive
+    assert "body type, styling" not in directive

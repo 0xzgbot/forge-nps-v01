@@ -1,0 +1,117 @@
+[
+  {
+    "id": "script_script_0c51df95__SC_001_SC_001_B01_SH_001",
+    "shot_id": "SC_001_SC_001_B01_SH_001",
+    "source": "script_director",
+    "campaign_id": "script_script_0c51df95",
+    "n": 1,
+    "sequence": 1,
+    "intent": "image",
+    "status": "ready",
+    "description": "wide establishing shot for SC_001/SC_001_B01: MOSS slams a padded hand over the brass device. FINN lunges into frame, blocking the light.. Location: RUINED OBSERVATORY. Time/light: MIDNIGHT. Continuity: wardrobe MOSS: Worn leather satchel strap. FINN: Frayed blue scarf.; props BRASS ASTROLABE; screen direction Over-the-shoulder push-in on device, shallow depth of field isolates hands.. Edit role: ESTABLISH; purpose: orient geography and lighting; transition should motivate the next beat. Camera: wide establishing shot. Lighting: MIDNIGHT. Constraints: Preserve scene continuity, wardrobe, prop state, screen direction, and edit role",
+    "prompt": "wide establishing shot for SC_001/SC_001_B01: MOSS slams a padded hand over the brass device. FINN lunges into frame, blocking the light.. Location: RUINED OBSERVATORY. Time/light: MIDNIGHT. Continuity: wardrobe MOSS: Worn leather satchel strap. FINN: Frayed blue scarf.; props BRASS ASTROLABE; screen direction Over-the-shoulder push-in on device, shallow depth of field isolates hands.. Edit role: ESTABLISH; purpose: orient geography and lighting; transition should motivate the next beat. Camera: wide establishing shot. Lighting: MIDNIGHT. Constraints: Preserve scene continuity, wardrobe, prop state, screen direction, and edit role",
+    "characters": [
+      "MOSS",
+      "FINN"
+    ],
+    "mood": "ESTABLISH: orient geography and lighting",
+    "environment": "RUINED OBSERVATORY",
+    "camera_direction": "wide establishing shot",
+    "lighting_direction": "MIDNIGHT",
+    "rationale": "Fallback coverage generated from locked script package after Director API failure.",
+    "constraints": "Preserve scene continuity, wardrobe, prop state, screen direction, and edit role.",
+    "seed": 785520
+  },
+  {
+    "id": "script_script_0c51df95__SC_001_SC_001_B02_SH_002",
+    "shot_id": "SC_001_SC_001_B02_SH_002",
+    "source": "script_director",
+    "campaign_id": "script_script_0c51df95",
+    "n": 2,
+    "sequence": 2,
+    "intent": "image",
+    "status": "ready",
+    "description": "locked master shot for SC_001/SC_001_B02: FINN snatches the base, tilting it toward a moonbeam.. Location: RUINED OBSERVATORY. Time/light: MIDNIGHT. Continuity: wardrobe MOSS: Worn leather satchel strap. FINN: Frayed blue scarf.; props BRASS ASTROLABE; screen direction Two-shot, split lighting. Left side cool, right side warm.. Edit role: MASTER; purpose: preserve blocking and screen direction; transition should motivate the next beat. Camera: locked master shot. Lighting: MIDNIGHT. Constraints: Preserve scene continuity, wardrobe, prop state, screen direction, and edit role",
+    "prompt": "locked master shot for SC_001/SC_001_B02: FINN snatches the base, tilting it toward a moonbeam.. Location: RUINED OBSERVATORY. Time/light: MIDNIGHT. Continuity: wardrobe MOSS: Worn leather satchel strap. FINN: Frayed blue scarf.; props BRASS ASTROLABE; screen direction Two-shot, split lighting. Left side cool, right side warm.. Edit role: MASTER; purpose: preserve blocking and screen direction; transition should motivate the next beat. Camera: locked master shot. Lighting: MIDNIGHT. Constraints: Preserve scene continuity, wardrobe, prop state, screen direction, and edit role",
+    "characters": [
+      "MOSS",
+      "FINN"
+    ],
+    "mood": "MASTER: preserve blocking and screen direction",
+    "environment": "RUINED OBSERVATORY",
+    "camera_direction": "locked master shot",
+    "lighting_direction": "MIDNIGHT",
+    "rationale": "Fallback coverage generated from locked script package after Director API failure.",
+    "constraints": "Preserve scene continuity, wardrobe, prop state, screen direction, and edit role.",
+    "seed": 152560
+  },
+  {
+    "id": "script_script_0c51df95__SC_001_SC_001_B03_SH_003",
+    "shot_id": "SC_001_SC_001_B03_SH_003",
+    "source": "script_director",
+    "campaign_id": "script_script_0c51df95",
+    "n": 3,
+    "sequence": 3,
+    "intent": "image",
+    "status": "ready",
+    "description": "insert detail for SC_001/SC_001_B03: MOSS yanks the device back, stepping into deep foreground.. Location: RUINED OBSERVATORY. Time/light: MIDNIGHT. Continuity: wardrobe MOSS: Worn leather satchel strap. FINN: Frayed blue scarf.; props BRASS ASTROLABE; screen direction Low angle, device dominates frame center.. Edit role: DETAIL; purpose: anchor prop, hand, or environment state; transition should motivate the next beat. Camera: insert detail. Lighting: MIDNIGHT. Constraints: Preserve scene continuity, wardrobe, prop state, screen direction, and edit role",
+    "prompt": "insert detail for SC_001/SC_001_B03: MOSS yanks the device back, stepping into deep foreground.. Location: RUINED OBSERVATORY. Time/light: MIDNIGHT. Continuity: wardrobe MOSS: Worn leather satchel strap. FINN: Frayed blue scarf.; props BRASS ASTROLABE; screen direction Low angle, device dominates frame center.. Edit role: DETAIL; purpose: anchor prop, hand, or environment state; transition should motivate the next beat. Camera: insert detail. Lighting: MIDNIGHT. Constraints: Preserve scene continuity, wardrobe, prop state, screen direction, and edit role",
+    "characters": [
+      "MOSS",
+      "FINN"
+    ],
+    "mood": "DETAIL: anchor prop, hand, or environment state",
+    "environment": "RUINED OBSERVATORY",
+    "camera_direction": "insert detail",
+    "lighting_direction": "MIDNIGHT",
+    "rationale": "Fallback coverage generated from locked script package after Director API failure.",
+    "constraints": "Preserve scene continuity, wardrobe, prop state, screen direction, and edit role.",
+    "seed": 740030
+  },
+  {
+    "id": "script_script_0c51df95__SC_002_SC_002_B01_SH_004",
+    "shot_id": "SC_002_SC_002_B01_SH_004",
+    "source": "script_director",
+    "campaign_id": "script_script_0c51df95",
+    "n": 4,
+    "sequence": 4,
+    "intent": "image",
+    "status": "ready",
+    "description": "close reaction shot for SC_002/SC_002_B01: Silence. They stare at each other. Moss\u2019s ear twitches.. Location: RUINED OBSERVATORY. Time/light: MIDNIGHT. Continuity: wardrobe MOSS: Worn leather satchel strap. FINN: Frayed blue scarf.; props BRASS ASTROLABE; screen direction Extreme close-up on eyes, rack focus between them.. Edit role: REACTION; purpose: make the emotional turn readable; transition should motivate the next beat. Camera: close reaction shot. Lighting: MIDNIGHT. Constraints: Preserve scene continuity, wardrobe, prop state, screen direction, and edit role",
+    "prompt": "close reaction shot for SC_002/SC_002_B01: Silence. They stare at each other. Moss\u2019s ear twitches.. Location: RUINED OBSERVATORY. Time/light: MIDNIGHT. Continuity: wardrobe MOSS: Worn leather satchel strap. FINN: Frayed blue scarf.; props BRASS ASTROLABE; screen direction Extreme close-up on eyes, rack focus between them.. Edit role: REACTION; purpose: make the emotional turn readable; transition should motivate the next beat. Camera: close reaction shot. Lighting: MIDNIGHT. Constraints: Preserve scene continuity, wardrobe, prop state, screen direction, and edit role",
+    "characters": [
+      "MOSS",
+      "FINN"
+    ],
+    "mood": "REACTION: make the emotional turn readable",
+    "environment": "RUINED OBSERVATORY",
+    "camera_direction": "close reaction shot",
+    "lighting_direction": "MIDNIGHT",
+    "rationale": "Fallback coverage generated from locked script package after Director API failure.",
+    "constraints": "Preserve scene continuity, wardrobe, prop state, screen direction, and edit role.",
+    "seed": 315700
+  },
+  {
+    "id": "script_script_0c51df95__SC_002_SC_002_B02_SH_005",
+    "shot_id": "SC_002_SC_002_B02_SH_005",
+    "source": "script_director",
+    "campaign_id": "script_script_0c51df95",
+    "n": 5,
+    "sequence": 5,
+    "intent": "image",
+    "status": "ready",
+    "description": "transition plate for SC_002/SC_002_B02: FINN points a claw at the glass dome.. Location: RUINED OBSERVATORY. Time/light: MIDNIGHT. Continuity: wardrobe MOSS: Worn leather satchel strap. FINN: Frayed blue scarf.; props BRASS ASTROLABE; screen direction Profile shot, moonlight backlighting FINN\u2019s silhouette.. Edit role: TRANSITION; purpose: bridge into the next beat; transition should motivate the next beat. Camera: transition plate. Lighting: MIDNIGHT. Constraints: Preserve scene continuity, wardrobe, prop state, screen direction, and edit role",
+    "prompt": "transition plate for SC_002/SC_002_B02: FINN points a claw at the glass dome.. Location: RUINED OBSERVATORY. Time/light: MIDNIGHT. Continuity: wardrobe MOSS: Worn leather satchel strap. FINN: Frayed blue scarf.; props BRASS ASTROLABE; screen direction Profile shot, moonlight backlighting FINN\u2019s silhouette.. Edit role: TRANSITION; purpose: bridge into the next beat; transition should motivate the next beat. Camera: transition plate. Lighting: MIDNIGHT. Constraints: Preserve scene continuity, wardrobe, prop state, screen direction, and edit role",
+    "characters": [
+      "MOSS",
+      "FINN"
+    ],
+    "mood": "TRANSITION: bridge into the next beat",
+    "environment": "RUINED OBSERVATORY",
+    "camera_direction": "transition plate",
+    "lighting_direction": "MIDNIGHT",
+    "rationale": "Fallback coverage generated from locked script package after Director API failure.",
+    "constraints": "Preserve scene continuity, wardrobe, prop state, screen direction, and edit role.",
+    "seed": 759727
+  }
+]
