@@ -244,6 +244,21 @@ In the Settings panel:
 
 ## Smoke Tests
 
+Repeatable API smoke suite:
+
+```bash
+python3 scripts/smoke_forge.py --base-url http://127.0.0.1:7000
+```
+
+The default suite checks stats, config, Hermes chat, storyboard model discovery, memory health, media reindex, config persistence, saved Script Studio project persistence, and disabled legacy routes. Live render checks are opt-in because they consume Spark queue time:
+
+```bash
+python3 scripts/smoke_forge.py --base-url http://127.0.0.1:7000 --live-script
+python3 scripts/smoke_forge.py --base-url http://127.0.0.1:7000 --live-campaign
+```
+
+`scripts/pre_push_hygiene.sh` runs the default smoke suite automatically when Forge is already listening on `127.0.0.1:7000`.
+
 Stats:
 
 ```bash

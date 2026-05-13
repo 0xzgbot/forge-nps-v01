@@ -214,7 +214,7 @@ const $dashboardLeftPane = document.getElementById("dashboard-left-pane");
 window.addEventListener("DOMContentLoaded", () => {
     setDefaultVideoWorkflow();
     initVideoQuickOptions();
-    switchScriptFlowStep("projects");
+    switchScriptFlowStep("brief");
     const scriptBriefEl = document.getElementById("script-brief");
     if (scriptBriefEl) scriptBriefEl.addEventListener("input", updateScriptFlowState);
     const scriptPackageEl = document.getElementById("script-package-json");
@@ -2077,7 +2077,8 @@ let $scriptProgress = document.getElementById("script-progress");
 let $shotList = document.getElementById("shot-list");
 let $shotListPlaceholder = document.getElementById("shot-list-placeholder");
 let $sendToSparkBtn = document.getElementById("send-to-spark-btn");
-let currentScriptFlowStep = "projects";
+let currentScriptFlowStep = "brief";
+let loadedScriptProjectFingerprint = "";
 
 let characterMap = {}; // id -> name for linking
 
@@ -2202,6 +2203,7 @@ function applyLoadedScriptProject(project) {
     if (typeof loadVideoLibrary === "function" && scriptVideoShots.length) loadVideoLibrary();
     renderScriptProjectList();
     updateScriptFlowState();
+    loadedScriptProjectFingerprint = scriptProjectInputFingerprint();
     setScriptStatus("Loaded script project: " + (project.title || currentScriptProjectId), project.status || "");
 }
 
@@ -2240,6 +2242,37 @@ async function saveScriptProject(status) {
         setScriptStatus("Save failed: " + (e?.message || e), "");
         return null;
     }
+}
+
+function scriptProjectInputFingerprint() {
+    return JSON.stringify({
+        title: scriptInputValue("script-title", ""),
+        brief: ($scriptBrief?.value || "").trim(),
+        tone: scriptInputValue("script-tone", ""),
+        runtime_seconds: parseInt(scriptInputValue("script-runtime", "60"), 10) || 60,
+        target_scenes: parseInt(scriptInputValue("script-scenes", "4"), 10) || 4,
+        hook_first_dialogue: !!document.getElementById("script-hook-first-dialogue")?.checked,
+    });
+}
+
+function invalidateScriptDerivedArtifacts(reason) {
+    scriptPackage = null;
+    storyboardPlan = null;
+    storyboardPanelJobs = {};
+    scriptVideoShots = [];
+    director_shots = {};
+    videoSelection.clear();
+    const jsonEl = document.getElementById("script-package-json");
+    if (jsonEl) jsonEl.value = "";
+    renderScriptPackage(null);
+    renderStoryboardPlan(null);
+    renderScriptVideoOutputs([]);
+    if ($shotList && $shotListPlaceholder) {
+        $shotList.innerHTML = "";
+        $shotList.style.display = "none";
+        $shotListPlaceholder.style.display = "block";
+    }
+    if (reason) setScriptStatus(reason, "");
 }
 
 function renderScriptPipelineJob(job) {
@@ -2322,7 +2355,13 @@ function renderScriptVideoOutputs(shots) {
     if (!target) return;
     const items = (Array.isArray(shots) ? shots : []).filter((shot) => shot && (shot.image_url || shot.video_url));
     if (!items.length) {
-        target.innerHTML = '<div class="script-empty-shot"><p>No generated start frames or videos yet.</p></div>';
+        const frameJobs = Object.values(storyboardPanelJobs || {}).flat().filter(Boolean);
+        const readyFrames = frameJobs.filter((job) => job.url).length;
+        const expectedFrames = frameJobs.length || Number(storyboardPlan?.panel_count || 0);
+        const message = expectedFrames
+            ? "No video-ready shot records yet. Start frames ready: " + readyFrames + " / " + expectedFrames + ". Press Generate Videos to resume the full pipeline."
+            : "No generated start frames or videos yet. Enter a brief and press Generate Videos.";
+        target.innerHTML = '<div class="script-empty-shot"><p>' + escapeHtml(message) + '</p></div>';
         return;
     }
     target.innerHTML = '<div class="script-video-output-grid">' + items.map((shot, idx) => {
@@ -2387,6 +2426,9 @@ async function runScriptPipeline() {
     const imageSelection = getStoryboardImageSelection();
     const videoOptions = syncVideoQuickOptions();
     try {
+        if (currentScriptProjectId && loadedScriptProjectFingerprint && scriptProjectInputFingerprint() !== loadedScriptProjectFingerprint) {
+            invalidateScriptDerivedArtifacts("Brief changed. Rebuilding script, coverage, storyboard, and videos from the new prompt.");
+        }
         switchScriptFlowStep("jobs");
         const saved = await saveScriptProject("queued");
         const targetPanelsRaw = scriptInputValue("storyboard-target-panels", "");
@@ -2472,12 +2514,12 @@ function updateScriptVideoHandoff() {
             : outputs.length
                 ? outputs.length + " start frame" + (outputs.length === 1 ? "" : "s") + (queuedVideos ? " queued for video." : " ready for video.")
                 : selected
-            ? selected + " start frame" + (selected === 1 ? "" : "s") + " selected for video."
-            : boards
-                ? "Storyboard ready for video export."
-                : shots
-                    ? shots + " coverage shot" + (shots === 1 ? "" : "s") + " ready."
-                    : "No video frames selected yet.";
+                    ? selected + " start frame" + (selected === 1 ? "" : "s") + " selected for video."
+                    : boards
+                        ? "Storyboard ready; videos still need start-frame records."
+                        : shots
+                            ? shots + " coverage shot" + (shots === 1 ? "" : "s") + " ready."
+                            : "No video frames selected yet.";
     }
     if (copy) {
         copy.textContent = completeVideos
@@ -2487,7 +2529,7 @@ function updateScriptVideoHandoff() {
                 : selected
                     ? "The pipeline can use these start frames to generate individual LTX clips."
                     : boards
-                        ? "Run the pipeline to render storyboard frames and queue individual videos."
+                        ? "Press Generate Videos to render missing start frames, export shot records, and queue individual clips."
                         : shots
                             ? "Run the pipeline to turn coverage into storyboard frames and videos."
                             : "Enter a short prompt, then click Generate Videos.";
@@ -3739,6 +3781,7 @@ function clearShotList() {
     currentScriptProjectId = "";
     activeScriptPipelineJobId = "";
     activeScriptPipelineStatus = "";
+    loadedScriptProjectFingerprint = "";
     const projectIdEl = document.getElementById("script-project-id");
     if (projectIdEl) projectIdEl.value = "";
     $shotList.innerHTML = "";

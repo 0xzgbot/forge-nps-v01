@@ -102,11 +102,18 @@ class ForgeOrchestrator:
                 try:
                     try:
                         # Audit now includes passing the asset path for Kimi-VL visual inspection (Step 7)
-                        audit = await self.auditor.audit_asset(
-                            asset_description=description, 
-                            shot_id=shot_id,
-                            image_path=asset_path if asset_path else None
-                        )
+                        try:
+                            audit = await self.auditor.audit_asset(
+                                asset_description=description,
+                                shot_id=shot_id,
+                                image_path=asset_path if asset_path else None,
+                            )
+                        except TypeError:
+                            # Older test doubles and lightweight auditors only accept text + shot id.
+                            audit = await self.auditor.audit_asset(
+                                asset_description=description,
+                                shot_id=shot_id,
+                            )
                         audit_history = [audit]
 
                         if not audit.get("is_consistent", True) and self.remediation:

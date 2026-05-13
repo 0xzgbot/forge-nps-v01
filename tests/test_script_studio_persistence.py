@@ -73,3 +73,64 @@ def test_repair_script_video_urls_maps_legacy_duplicate_board_outputs(tmp_path, 
         "script_script_test__SB_002__video_00002_.mp4",
     ]
     assert [shot["video_prompt_id"] for shot in video_shots] == ["p1", "p2", "p3", "p4"]
+
+
+def test_script_package_fingerprint_invalidates_changed_brief():
+    req = dashboard.ScriptPipelineStartRequest(
+        title="Test",
+        brief="first idea",
+        runtime_seconds=60,
+        target_scenes=4,
+        hook_first_dialogue=True,
+    )
+    package = dashboard._annotate_script_package({"title": "Test"}, req)
+
+    assert dashboard._script_package_matches_request(package, req) is True
+
+    changed = dashboard.ScriptPipelineStartRequest(
+        title="Test",
+        brief="second idea",
+        runtime_seconds=60,
+        target_scenes=4,
+        hook_first_dialogue=True,
+    )
+    assert dashboard._script_package_matches_request(package, changed) is False
+
+
+def test_load_script_project_rebuilds_video_shots_from_completed_frames(tmp_path, monkeypatch):
+    monkeypatch.setattr(dashboard, "SCRIPT_PROJECTS_DIR", tmp_path)
+    dashboard._SHOTS_STORE[:] = []
+    root = tmp_path / "script_done"
+    root.mkdir(parents=True)
+    dashboard._write_json_atomic(root / "project.json", {
+        "script_id": "script_done",
+        "title": "Script Done",
+        "brief": "brief",
+        "status": "frames_ready",
+        "has_package": True,
+    })
+    dashboard._write_json_atomic(root / "storyboard_plan.json", {
+        "title": "Script Done",
+        "panel_count": 2,
+        "boards": [{
+            "index": 1,
+            "board_id": "STORYBOARD_01",
+            "panels": [
+                {"panel_id": "PANEL_001", "caption": "first", "dialogue": "Hero: Start now."},
+                {"panel_id": "PANEL_002", "caption": "second", "audio_prompt": "soft hit"},
+            ],
+        }],
+    })
+    dashboard._write_json_atomic(root / "storyboard_panel_jobs.json", {
+        "1": [
+            {"url": "/media-assets/images/one.png"},
+            {"url": "/media-assets/images/two.png"},
+        ],
+    })
+    dashboard._write_json_atomic(root / "video_shots.json", [])
+
+    project = dashboard._load_script_project("script_done")
+
+    assert len(project["video_shots"]) == 2
+    assert project["video_shots"][0]["image_url"] == "/media-assets/images/one.png"
+    assert "Exact dialogue" in project["video_shots"][0]["video_prompt"]

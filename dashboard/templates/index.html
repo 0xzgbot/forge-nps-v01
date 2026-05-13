@@ -1372,7 +1372,7 @@
         }
         .script-flow-guide {
             display: grid;
-            grid-template-columns: repeat(6, minmax(115px, 1fr));
+            grid-template-columns: repeat(4, minmax(135px, 1fr));
             gap: 8px;
             padding-top: 12px;
         }
@@ -1594,7 +1594,7 @@
         }
         .script-brief-panel .script-action-row {
             display: grid;
-            grid-template-columns: minmax(260px, 1fr) minmax(180px, max-content) minmax(160px, max-content);
+            grid-template-columns: minmax(180px, 1fr) minmax(180px, max-content);
             align-items: end;
             gap: 12px;
             justify-content: stretch;
@@ -1684,6 +1684,24 @@
         }
         .script-primary-action {
             min-width: 190px;
+        }
+        .script-upload-details {
+            border: 1px solid rgba(112, 153, 255, 0.18);
+            border-radius: 6px;
+            background: rgba(8, 12, 20, 0.58);
+            padding: 10px 12px;
+        }
+        .script-upload-details summary {
+            cursor: pointer;
+            color: #9fb2ff;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+        .script-upload-details .script-upload {
+            margin-top: 10px;
         }
         .script-control-surface {
             display: flex;
@@ -4037,7 +4055,7 @@
     </div>
 
     <!-- Main Content Area -->
-    <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;">
+    <div style="flex:1;display:flex;flex-direction:column;overflow:auto;min-width:0;">
         <!-- Dashboard View -->
         <div id="main" class="page-view active dashboard-view" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
             <!-- Brief -->
@@ -4386,13 +4404,13 @@ beach</textarea>
                 </div>
                 <div class="script-header-actions">
                     <button class="btn btn-secondary" onclick="clearShotList()">Reset</button>
+                    <button class="btn btn-secondary" onclick="switchScriptFlowStep('projects')">Projects</button>
                     <button class="btn btn-secondary" onclick="switchScriptFlowStep('jobs')">Progress</button>
                     <button class="btn btn-secondary" onclick="switchScriptFlowStep('videos')">Videos</button>
                 </div>
             </div>
             <div class="script-flow-guide" aria-label="Script Studio workspace">
-                <button class="script-flow-step active" type="button" data-script-step="projects" onclick="switchScriptFlowStep('projects')"><span>00</span><div><strong>Projects</strong><em id="script-step-status-projects">Saved</em></div></button>
-                <button class="script-flow-step" type="button" data-script-step="brief" onclick="switchScriptFlowStep('brief')"><span>01</span><div><strong>Brief</strong><em id="script-step-status-brief">Ready</em></div></button>
+                <button class="script-flow-step active" type="button" data-script-step="brief" onclick="switchScriptFlowStep('brief')"><span>01</span><div><strong>Brief</strong><em id="script-step-status-brief">Ready</em></div></button>
                 <button class="script-flow-step" type="button" data-script-step="jobs" onclick="switchScriptFlowStep('jobs')"><span>02</span><div><strong>Progress</strong><em id="script-step-status-jobs">Idle</em></div></button>
                 <button class="script-flow-step" type="button" data-script-step="storyboard" onclick="switchScriptFlowStep('storyboard')"><span>03</span><div><strong>Storyboard</strong><em id="script-step-status-storyboard">Waiting</em></div></button>
                 <button class="script-flow-step" type="button" data-script-step="videos" onclick="switchScriptFlowStep('videos')"><span>04</span><div><strong>Videos</strong><em id="script-step-status-videos">Waiting</em></div></button>
@@ -4403,7 +4421,7 @@ beach</textarea>
             </div>
 
             <div class="script-flow">
-                <section class="script-panel script-project-panel script-step-panel active" data-script-step-panel="projects">
+                <section class="script-panel script-project-panel script-step-panel" data-script-step-panel="projects">
                         <div class="script-panel-head">
                             <span>00</span>
                             <h3>Saved Scripts</h3>
@@ -4454,7 +4472,7 @@ beach</textarea>
                             <div class="script-empty-mini">Pipeline logs appear here.</div>
                         </div>
                 </section>
-                <section class="script-panel script-brief-panel script-step-panel" data-script-step-panel="brief">
+                <section class="script-panel script-brief-panel script-step-panel active" data-script-step-panel="brief">
                     <div class="script-panel-head">
                         <span>01</span>
                         <h3>Brief</h3>
@@ -4485,12 +4503,15 @@ beach</textarea>
                         <label class="storyboard-checkbox">Hook Dialogue
                             <span><input type="checkbox" id="script-hook-first-dialogue" checked> add immediate viewer hook</span>
                         </label>
+                        <button class="btn script-primary-action" id="develop-script-btn" onclick="runScriptPipeline()">Generate Videos</button>
+                    </div>
+                    <details class="script-upload-details">
+                        <summary>Upload brief file</summary>
                         <label class="script-upload">
                             <span>Upload .md/.txt/.pdf</span>
                             <input type="file" id="brief-file-input" accept=".md,.txt,.pdf" onchange="uploadBrief()">
                         </label>
-                        <button class="btn script-primary-action" id="develop-script-btn" onclick="runScriptPipeline()">Generate Videos</button>
-                    </div>
+                    </details>
                     <div class="script-next-action"><strong>Output:</strong> Generate Videos writes the script, builds storyboard start frames, and queues individual LTX clips automatically.</div>
                 </section>
 

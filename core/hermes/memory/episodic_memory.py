@@ -36,7 +36,7 @@ class EpisodicMemory:
         self.embedder = embedder or HybridEmbedder()
         self._embedding_cache: Dict[str, np.ndarray] = {}
 
-    def record(self, event: Dict[str, Any]) -> str:
+    def record(self, event: Dict[str, Any], source: Optional[str] = None) -> str:
         """
         Append an event to the episodic log.
         Returns the assigned event_id.
@@ -47,6 +47,8 @@ class EpisodicMemory:
             "timestamp": datetime.now().isoformat(),
             **event,
         }
+        if source is not None:
+            entry["source"] = source
         with open(self.log_path, "a", encoding="utf-8") as f:
             f.write(json.dumps(entry, ensure_ascii=False) + "\n")
         return event_id
@@ -115,6 +117,48 @@ class EpisodicMemory:
 
         scored.sort(key=lambda x: x[0], reverse=True)
         return [evt for _, evt in scored[:top_k]]
+
+    def query_pre_prompt(
+        self,
+        concept: str,
+        kernel_id: Optional[str] = None,
+        top_k: int = 3,
+    ) -> List[Dict[str, Any]]:
+        """Retrieve successful prior outcomes before writing a new prompt."""
+        events = self.query_similar(
+            concept=concept,
+            kernel_id=kernel_id,
+            top_k=max(top_k * 3, top_k),
+            min_similarity=0.0,
+        )
+        successful = [
+            evt for evt in events
+            if bool(evt.get("success", False))
+            or str(evt.get("event_type", "")).lower() in {"outcome", "final_outcome", "render_result"}
+        ]
+        return successful[:top_k]
+
+    def query_post_failure(
+        self,
+        concept: str,
+        error_category: Optional[str] = None,
+        kernel_id: Optional[str] = None,
+        top_k: int = 3,
+    ) -> List[Dict[str, Any]]:
+        """Retrieve successful fixes after a known failure category."""
+        events = self.query_similar(
+            concept=concept,
+            error_category=error_category,
+            kernel_id=kernel_id,
+            top_k=max(top_k * 4, top_k),
+            min_similarity=0.0,
+        )
+        fixes = [
+            evt for evt in events
+            if str(evt.get("fix_applied") or "").strip().lower() not in {"", "none", "null"}
+            or bool(evt.get("success", False))
+        ]
+        return fixes[:top_k]
 
     def get_recent(self, n: int = 10) -> List[Dict[str, Any]]:
         """Return the n most recent events."""

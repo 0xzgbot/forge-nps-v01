@@ -795,6 +795,8 @@ class HermesCampaignService:
         rendered_count = 0
         source = "fallback" if use_fallback else "campaign"
         pending_render_jobs: List[Dict[str, Any]] = []
+        deferred_render_submissions: List[Dict[str, Any]] = []
+        defer_render_submit = os.getenv("FORGE_DEFER_CAMPAIGN_RENDER_SUBMIT", "true").lower() != "false"
 
         for i, shot in enumerate(kimi_shots, start=1):
             if self.is_cancelled():
@@ -949,6 +951,27 @@ class HermesCampaignService:
                     transition_shot(shot_record, "final_fail")
                     yield {"type": "error", "shot_id": effective_shot["shot_id"], "text": f"Workflow not found: {workflow_id}"}
                     self.record_event("render_result", shot_id=record_id, campaign_id=campaign_id, workflow_id=workflow_id, source=source, success=False, extra={"reason": "workflow_missing"})
+                    continue
+
+                if defer_render_submit:
+                    deferred_render_submissions.append({
+                        "record_id": record_id,
+                        "shot_record": shot_record,
+                        "shot_id": effective_shot["shot_id"],
+                        "workflow_id": workflow_id,
+                        "workflow_path": str(wf),
+                        "prompt": artifact.get("compiled_prompt", ""),
+                        "platform_skill": platform_skill,
+                    })
+                    yield {
+                        "type": "spark",
+                        "campaign_id": campaign_id,
+                        "id": record_id,
+                        "shot_id": effective_shot["shot_id"],
+                        "status": "compiled_pending_batch",
+                        "image_url": "",
+                        "text": f"Prepared {effective_shot['shot_id']} ({workflow_id}) for batch ComfyUI queue",
+                    }
                     continue
 
                 yield {"type": "spark", "shot_id": effective_shot["shot_id"], "text": f"Dispatching {effective_shot['shot_id']} to ComfyUI..."}
@@ -1171,12 +1194,107 @@ class HermesCampaignService:
                             except Exception as e:
                                 yield {"type": "error", "shot_id": effective_shot["shot_id"], "text": f"Auto-remediation exception for {effective_shot['shot_id']}: {self._exc_reason(e)}"}
 
+        if deferred_render_submissions:
+            yield {"type": "spark", "text": f"Batch submitting {len(deferred_render_submissions)} compiled image render(s) to ComfyUI..."}
+        for item in deferred_render_submissions:
+            if self.is_cancelled():
+                yield {"type": "error", "text": "Campaign cancelled before batch render submission finished."}
+                break
+            shot_record = item["shot_record"]
+            record_id = str(item.get("record_id") or shot_record.get("id") or "")
+            shot_id = str(item.get("shot_id") or shot_record.get("shot_id") or record_id)
+            workflow_id = str(item.get("workflow_id") or shot_record.get("workflow_id") or "")
+            platform_item = item.get("platform_skill") if isinstance(item.get("platform_skill"), dict) else {}
+
+            yield {"type": "spark", "shot_id": shot_id, "text": f"Dispatching {shot_id} to ComfyUI batch..."}
+            transition_shot(shot_record, "queued")
+            self.record_event("render_attempt", shot_id=record_id, campaign_id=campaign_id, workflow_id=workflow_id, source=source)
+            try:
+                submit = await comfy.submit_prompt_for_shot(
+                    shot_id=record_id,
+                    prompt=str(item.get("prompt") or ""),
+                    workflow_path=str(item.get("workflow_path") or ""),
+                    seed=int(shot_record["seed"]),
+                    output_dir=str(self.media_images / campaign_id),
+                    width=(platform_item.get("constraints") or {}).get("width") if platform_item.get("active") else None,
+                    height=(platform_item.get("constraints") or {}).get("height") if platform_item.get("active") else None,
+                    wait_for_output=False,
+                )
+            except Exception as e:
+                transition_shot(shot_record, "final_fail")
+                msg = f"submit_exception:{e}"
+                yield {"type": "error", "shot_id": shot_id, "text": f"ComfyUI submission failed for {shot_id}: {msg}"}
+                self.record_event("render_result", shot_id=record_id, campaign_id=campaign_id, workflow_id=workflow_id, source=source, success=False, extra={"reason": msg})
+                continue
+            if submit.get("status") != "success":
+                transition_shot(shot_record, "final_fail")
+                msg = submit.get("error", "ComfyUI submission failed")
+                yield {"type": "error", "shot_id": shot_id, "text": f"ComfyUI submission failed for {shot_id}: {msg}"}
+                self.record_event("render_result", shot_id=record_id, campaign_id=campaign_id, workflow_id=workflow_id, source=source, success=False, extra={"reason": msg})
+                continue
+
+            if isinstance(submit.get("lora"), dict):
+                shot_record["lora"] = submit["lora"]
+                if submit["lora"].get("requested"):
+                    lora_state = "applied" if submit["lora"].get("applied") else submit["lora"].get("reason", "not applied")
+                    yield {
+                        "type": "compiler",
+                        "shot_id": shot_id,
+                        "workflow_id": workflow_id,
+                        "text": f"LoRA preset {submit['lora'].get('requested')}: {lora_state}",
+                    }
+
+            prompt_id = submit.get("prompt_id", "")
+            saved = submit.get("saved_files", [])
+            image_path = saved[0] if saved else ""
+            shot_record["prompt_id"] = prompt_id
+            if not image_path:
+                pending_render_jobs.append({
+                    "record_id": record_id,
+                    "shot_record": shot_record,
+                    "shot_id": shot_id,
+                    "workflow_id": workflow_id,
+                    "prompt_id": prompt_id,
+                    "output_dir": str(self.media_images / campaign_id),
+                })
+                yield {
+                    "type": "spark",
+                    "campaign_id": campaign_id,
+                    "id": record_id,
+                    "shot_id": shot_id,
+                    "status": "queued",
+                    "prompt_id": prompt_id,
+                    "image_url": "",
+                    "text": f"Queued {shot_id} ({workflow_id})",
+                }
+                self.record_event("render_queued", shot_id=record_id, campaign_id=campaign_id, workflow_id=workflow_id, source=source, success=True, extra={"prompt_id": prompt_id})
+                continue
+
+            rendered_count += 1
+            transition_shot(shot_record, "rendered")
+            self._attach_rendered_image(shot_record, image_path)
+            yield {
+                "type": "spark",
+                "campaign_id": campaign_id,
+                "id": record_id,
+                "shot_id": shot_id,
+                "status": "rendered",
+                "prompt_id": prompt_id,
+                "image_url": shot_record.get("image_url", ""),
+                "text": f"Rendered and stored {shot_id} ({workflow_id})",
+            }
+            self.record_event("render_result", shot_id=record_id, campaign_id=campaign_id, workflow_id=workflow_id, source=source, success=True, extra={"prompt_id": prompt_id})
+            async for audit_event in self._audit_completed_shot(shot_record):
+                yield audit_event
+
         if pending_render_jobs:
             yield {"type": "spark", "text": f"Polling {len(pending_render_jobs)} queued ComfyUI image render(s)..."}
         render_deadline = time.time() + max(21600, int(os.getenv("FORGE_RENDER_BATCH_WAIT_SEC", "21600") or "21600"))
+        cancelled_while_polling = False
         while pending_render_jobs and time.time() < render_deadline:
             if self.is_cancelled():
                 yield {"type": "error", "text": "Campaign cancelled while waiting for queued renders."}
+                cancelled_while_polling = True
                 break
             remaining: List[Dict[str, Any]] = []
             for pending in pending_render_jobs:
@@ -1221,7 +1339,13 @@ class HermesCampaignService:
                 workflow_id = str(pending.get("workflow_id") or shot_record.get("workflow_id") or "")
                 shot_id = str(pending.get("shot_id") or shot_record.get("shot_id") or record_id)
                 transition_shot(shot_record, "final_fail")
-                yield {"type": "error", "shot_id": shot_id, "text": f"Render timed out before image output was available for {shot_id}."}
-                self.record_event("render_result", shot_id=record_id, campaign_id=campaign_id, workflow_id=workflow_id, source=source, success=False, extra={"reason": "render_batch_timeout"})
+                reason = "render_cancelled" if cancelled_while_polling else "render_batch_timeout"
+                text = (
+                    f"Render cancelled before image output was available for {shot_id}."
+                    if cancelled_while_polling
+                    else f"Render timed out before image output was available for {shot_id}."
+                )
+                yield {"type": "error", "shot_id": shot_id, "text": text}
+                self.record_event("render_result", shot_id=record_id, campaign_id=campaign_id, workflow_id=workflow_id, source=source, success=False, extra={"reason": reason})
 
         yield {"type": "done", "text": f"Campaign complete. {rendered_count} shots processed."}
