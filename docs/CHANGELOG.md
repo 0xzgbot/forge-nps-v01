@@ -41,11 +41,11 @@
 - Changed storyboard prompts to explicitly request image-to-video start frames with no text, captions, labels, grids, contact sheets, or page layouts.
 - Page render / assemble actions remain available only as advanced proof actions.
 - Local Spark storyboard output filenames now use the selected model prefix, for example `flux2_dev_...`, `flux2_klein_...`, `z_image_...`, or `z_image_turbo_...`.
-- The previous `local_higgsfield_...` visible filename prefix is retained only on old files already rendered before this update.
+- The previous `local_spark_media_...` visible filename prefix is retained only on old files already rendered before this update.
 - Added/updated validation for this batch:
   - `node --check dashboard/static/js/app.js`
-  - `python3 -m py_compile dashboard/forge_dashboard.py core/affiliate/local_higgsfield.py`
-  - `python3 -m pytest tests/test_local_higgsfield_adapter.py -q`
+  - `python3 -m py_compile dashboard/forge_dashboard.py core/affiliate/local_spark_media.py`
+  - `python3 -m pytest tests/test_local_spark_media_adapter.py -q`
 
 ## 2026-05-09 - Video controls, image-count clarity, and push hygiene
 

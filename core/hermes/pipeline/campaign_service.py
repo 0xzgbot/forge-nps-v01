@@ -214,6 +214,70 @@ class HermesCampaignService:
             # Non-fatal metadata write.
             return
 
+    def _write_queued_render_record(
+        self,
+        *,
+        campaign_id: str,
+        shot_record: Dict[str, Any],
+        prompt_id: str,
+        status: str = "queued",
+    ) -> None:
+        """Persist Comfy prompt IDs immediately so queued work survives restarts."""
+        if not campaign_id or not prompt_id:
+            return
+        try:
+            folder = self.media_images / campaign_id
+            folder.mkdir(parents=True, exist_ok=True)
+            path = folder / "_queued_renders.json"
+            try:
+                payload = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+                if not isinstance(payload, dict):
+                    payload = {}
+            except Exception:
+                payload = {}
+            record_id = str(shot_record.get("id") or shot_record.get("shot_id") or prompt_id)
+            existing = payload.get(record_id)
+            if not isinstance(existing, dict):
+                existing = {}
+            fields = [
+                "id",
+                "campaign_id",
+                "shot_id",
+                "sequence",
+                "workflow_id",
+                "state",
+                "status",
+                "seed",
+                "prompt",
+                "compiled_prompt",
+                "negative_prompt",
+                "raw_kimi_prompt",
+                "visual_brief",
+                "camera_direction",
+                "lighting_direction",
+                "video_prompt",
+                "video_prompt_source",
+                "platform_skill",
+                "platform_id",
+                "platform_constraints",
+                "source",
+            ]
+            for key in fields:
+                if key in shot_record:
+                    existing[key] = shot_record.get(key)
+            existing["id"] = record_id
+            existing["campaign_id"] = campaign_id
+            existing["prompt_id"] = prompt_id
+            existing["status"] = status
+            existing["state"] = "queued" if status == "queued" else status
+            existing["updated_at"] = self.now_iso()
+            payload[record_id] = existing
+            tmp = folder / "._queued_renders.json.tmp"
+            tmp.write_text(json.dumps(payload, ensure_ascii=True, indent=2), encoding="utf-8")
+            tmp.replace(path)
+        except Exception:
+            return
+
     def _campaign_exists(self, campaign_id: str) -> bool:
         if not campaign_id:
             return False
@@ -515,7 +579,7 @@ class HermesCampaignService:
             return int((time.perf_counter() - pipeline_t0) * 1000)
 
         director_backend = str(getattr(self.director, "backend", "") or "nvidia").strip().lower()
-        director_provider = "LM Studio" if director_backend == "lmstudio" else "Kimi"
+        director_provider = "LM Studio" if director_backend == "lmstudio" else "NVIDIA"
         director_profile_key = "profile_director_lmstudio" if director_backend == "lmstudio" else "profile_director_kimi"
         critic_profile_key = "profile_critic_lmstudio" if director_backend == "lmstudio" else "profile_critic_kimi"
         director_role = f"{director_provider} / Director Planner"
@@ -527,7 +591,7 @@ class HermesCampaignService:
         yield {"type": "profile", "profile_color_key": "profile_compiler_lmstudio", "text": "Hermes / Prompt Compiler online"}
         yield {"type": "profile", "profile_color_key": "profile_continuity_lmstudio", "text": "Hermes / Continuity Guard online"}
         yield {"type": "profile", "profile_color_key": "profile_remediation_lmstudio", "text": "Hermes / Remediation Reprompter online"}
-        yield {"type": "profile", "profile_color_key": "profile_audit_kimi", "text": "Kimi / Audit Judge online"}
+        yield {"type": "profile", "profile_color_key": "profile_audit_kimi", "text": "Vision / Audit Judge online"}
         if platform_skill.get("active"):
             yield {
                 "type": "platform_skill",
@@ -1017,6 +1081,12 @@ class HermesCampaignService:
                 image_path = saved[0] if saved else ""
                 shot_record["prompt_id"] = prompt_id
                 if not image_path:
+                    self._write_queued_render_record(
+                        campaign_id=campaign_id,
+                        shot_record=shot_record,
+                        prompt_id=str(prompt_id),
+                        status="queued",
+                    )
                     pending_render_jobs.append({
                         "record_id": record_id,
                         "shot_record": shot_record,
@@ -1042,6 +1112,12 @@ class HermesCampaignService:
                 transition_shot(shot_record, "rendered")
                 if image_path:
                     self._attach_rendered_image(shot_record, image_path)
+                    self._write_queued_render_record(
+                        campaign_id=campaign_id,
+                        shot_record=shot_record,
+                        prompt_id=str(prompt_id),
+                        status="rendered",
+                    )
                 yield {
                     "type": "spark",
                     "campaign_id": campaign_id,
@@ -1249,6 +1325,12 @@ class HermesCampaignService:
             image_path = saved[0] if saved else ""
             shot_record["prompt_id"] = prompt_id
             if not image_path:
+                self._write_queued_render_record(
+                    campaign_id=campaign_id,
+                    shot_record=shot_record,
+                    prompt_id=str(prompt_id),
+                    status="queued",
+                )
                 pending_render_jobs.append({
                     "record_id": record_id,
                     "shot_record": shot_record,
@@ -1273,6 +1355,12 @@ class HermesCampaignService:
             rendered_count += 1
             transition_shot(shot_record, "rendered")
             self._attach_rendered_image(shot_record, image_path)
+            self._write_queued_render_record(
+                campaign_id=campaign_id,
+                shot_record=shot_record,
+                prompt_id=str(prompt_id),
+                status="rendered",
+            )
             yield {
                 "type": "spark",
                 "campaign_id": campaign_id,
@@ -1316,6 +1404,12 @@ class HermesCampaignService:
                 rendered_count += 1
                 transition_shot(shot_record, "rendered")
                 self._attach_rendered_image(shot_record, image_path)
+                self._write_queued_render_record(
+                    campaign_id=campaign_id,
+                    shot_record=shot_record,
+                    prompt_id=str(prompt_id),
+                    status="rendered",
+                )
                 yield {
                     "type": "spark",
                     "campaign_id": campaign_id,

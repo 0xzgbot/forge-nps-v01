@@ -1,0 +1,17 @@
+{
+  "script_id": "script_d82ecc07",
+  "title": "Untitled Script",
+  "brief": "Two fluffy companions clash over a mysterious glowing object, only to discover their intense disagreement was built on a simple optical illusion.",
+  "tone": "",
+  "runtime_seconds": 80,
+  "target_scenes": 9,
+  "status": "frames_rendering",
+  "created_at": "2026-05-12T20:36:53.104242Z",
+  "updated_at": "2026-05-12T21:10:05.220323Z",
+  "has_package": true,
+  "coverage_count": 5,
+  "storyboard_count": 11,
+  "video_shot_count": 0,
+  "video_complete_count": 0,
+  "active_job_id": "scriptjob_5e44d91746f2"
+}

@@ -1,0 +1,184 @@
+{
+  "job_id": "scriptjob_5e44d91746f2",
+  "script_id": "script_d82ecc07",
+  "status": "running",
+  "phase": "frames",
+  "created_at": "2026-05-12T21:00:41.527705Z",
+  "updated_at": "2026-05-12T21:08:41.977049Z",
+  "request": {
+    "script_id": "script_d82ecc07",
+    "title": "Untitled Script",
+    "brief": "Two fluffy companions clash over a mysterious glowing object, only to discover their intense disagreement was built on a simple optical illusion.",
+    "tone": "",
+    "runtime_seconds": 80,
+    "target_scenes": 9,
+    "target_shots": null,
+    "storyboard_panels_per_board": 4,
+    "storyboard_target_panels": null,
+    "storyboard_resolution": "1920x1080",
+    "storyboard_style": "cinematic",
+    "storyboard_character_consistency": "",
+    "storyboard_negative_prompt": "blurry, soft focus, smeared detail, low resolution, deformed, extra limbs, bad hands, text, captions, labels, panel numbers, page layout, grid, contact sheet, watermark, inconsistent characters, merged panels",
+    "storyboard_reference_image_url": "",
+    "storyboard_include_captions": false,
+    "storyboard_image_provider": "spark",
+    "storyboard_image_model": "",
+    "storyboard_spark_model": "flux2_dev",
+    "asset_vault_package_id": "",
+    "video_workflow_id": "04_ltx2.3_image_to_video",
+    "video_duration": 5,
+    "video_fps": 24,
+    "video_resolution": "540p",
+    "video_aspect_ratio": "16:9",
+    "run_video": true,
+    "wait_for_videos": true,
+    "video_wait_seconds": 1800,
+    "stop_after": "videos"
+  },
+  "logs": [
+    {
+      "timestamp": "2026-05-12T21:00:41.576224Z",
+      "phase": "project",
+      "level": "info",
+      "message": "Pipeline started"
+    },
+    {
+      "timestamp": "2026-05-12T21:00:41.586634Z",
+      "phase": "script",
+      "level": "info",
+      "message": "Using saved script package"
+    },
+    {
+      "timestamp": "2026-05-12T21:00:41.588112Z",
+      "phase": "coverage",
+      "level": "info",
+      "message": "Generating coverage shot list"
+    },
+    {
+      "timestamp": "2026-05-12T21:02:50.901288Z",
+      "phase": "coverage",
+      "level": "info",
+      "message": "Coverage ready: 5 shot(s)"
+    },
+    {
+      "timestamp": "2026-05-12T21:02:50.909358Z",
+      "phase": "storyboard",
+      "level": "info",
+      "message": "Building storyboard plan"
+    },
+    {
+      "timestamp": "2026-05-12T21:02:50.967173Z",
+      "phase": "storyboard",
+      "level": "info",
+      "message": "Storyboard ready: 11 panel(s)"
+    },
+    {
+      "timestamp": "2026-05-12T21:02:50.970375Z",
+      "phase": "frames",
+      "level": "info",
+      "message": "Queueing storyboard panel start frames"
+    },
+    {
+      "timestamp": "2026-05-12T21:02:51.812141Z",
+      "phase": "frames",
+      "level": "info",
+      "message": "Queued board 1 panel 1",
+      "url": ""
+    },
+    {
+      "timestamp": "2026-05-12T21:02:52.853383Z",
+      "phase": "frames",
+      "level": "info",
+      "message": "Queued board 1 panel 2",
+      "url": ""
+    },
+    {
+      "timestamp": "2026-05-12T21:02:53.812671Z",
+      "phase": "frames",
+      "level": "info",
+      "message": "Queued board 1 panel 3",
+      "url": ""
+    },
+    {
+      "timestamp": "2026-05-12T21:02:54.472946Z",
+      "phase": "frames",
+      "level": "info",
+      "message": "Queued board 1 panel 4",
+      "url": ""
+    },
+    {
+      "timestamp": "2026-05-12T21:02:55.579275Z",
+      "phase": "frames",
+      "level": "info",
+      "message": "Queued board 2 panel 1",
+      "url": ""
+    },
+    {
+      "timestamp": "2026-05-12T21:02:57.045801Z",
+      "phase": "frames",
+      "level": "info",
+      "message": "Queued board 2 panel 2",
+      "url": ""
+    },
+    {
+      "timestamp": "2026-05-12T21:02:57.717048Z",
+      "phase": "frames",
+      "level": "info",
+      "message": "Queued board 2 panel 3",
+      "url": ""
+    },
+    {
+      "timestamp": "2026-05-12T21:02:58.627311Z",
+      "phase": "frames",
+      "level": "info",
+      "message": "Queued board 2 panel 4",
+      "url": ""
+    },
+    {
+      "timestamp": "2026-05-12T21:02:59.644016Z",
+      "phase": "frames",
+      "level": "info",
+      "message": "Queued board 3 panel 1",
+      "url": ""
+    },
+    {
+      "timestamp": "2026-05-12T21:03:00.672567Z",
+      "phase": "frames",
+      "level": "info",
+      "message": "Queued board 3 panel 2",
+      "url": ""
+    },
+    {
+      "timestamp": "2026-05-12T21:03:02.392583Z",
+      "phase": "frames",
+      "level": "info",
+      "message": "Queued board 3 panel 3",
+      "url": ""
+    },
+    {
+      "timestamp": "2026-05-12T21:04:49.819309Z",
+      "phase": "frames",
+      "level": "info",
+      "message": "Rendered board 1 panel 1",
+      "url": "/media-assets/local_spark_media/results/52392068-1381-4a80-a775-986daec40f63/flux2_dev_52392068_00001_.png"
+    },
+    {
+      "timestamp": "2026-05-12T21:06:50.613771Z",
+      "phase": "frames",
+      "level": "info",
+      "message": "Rendered board 1 panel 2",
+      "url": "/media-assets/local_spark_media/results/9db34a1f-0b62-4830-9fcc-f4361b53eb7b/flux2_dev_9db34a1f_00001_.png"
+    },
+    {
+      "timestamp": "2026-05-12T21:08:41.977020Z",
+      "phase": "frames",
+      "level": "info",
+      "message": "Rendered board 1 panel 3",
+      "url": "/media-assets/local_spark_media/results/11e5b772-bad4-4508-8f83-6c17294ded4b/flux2_dev_11e5b772_00001_.png"
+    }
+  ],
+  "coverage_count": 5,
+  "storyboard_count": 11,
+  "video_jobs": [],
+  "error": ""
+}

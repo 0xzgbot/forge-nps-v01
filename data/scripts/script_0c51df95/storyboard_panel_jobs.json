@@ -1,0 +1,728 @@
+{
+  "1": [
+    {
+      "index": 1,
+      "status": "completed",
+      "job_set_id": "a2d8d37b-1456-464e-9e1c-de4ca99bdcc5",
+      "provider": "spark",
+      "model": "flux2_dev",
+      "url": "/media-assets/local_spark_media/results/a2d8d37b-1456-464e-9e1c-de4ca99bdcc5/flux2_dev_a2d8d37b_00001_.png",
+      "raw": {
+        "id": "a2d8d37b-1456-464e-9e1c-de4ca99bdcc5",
+        "type": "text2image_local",
+        "created_at": "2026-05-12T22:27:48.913918+00:00",
+        "updated_at": "2026-05-12T22:30:10.046012+00:00",
+        "status": "completed",
+        "local_backend": "forge_comfyui",
+        "comfy_url": "http://100.80.184.21:8188",
+        "local_output_dir": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/a2d8d37b-1456-464e-9e1c-de4ca99bdcc5",
+        "jobs": [
+          {
+            "id": "96b6a069-c03f-434d-acfc-c009fc95c947",
+            "prompt_id": "96b6a069-c03f-434d-acfc-c009fc95c947",
+            "job_set_type": "text2image_local",
+            "status": "completed",
+            "results": {
+              "raw": {
+                "type": "image_url",
+                "url": "/media-assets/local_spark_media/results/a2d8d37b-1456-464e-9e1c-de4ca99bdcc5/flux2_dev_a2d8d37b_00001_.png",
+                "local_path": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/a2d8d37b-1456-464e-9e1c-de4ca99bdcc5/flux2_dev_a2d8d37b_00001_.png"
+              },
+              "min": {
+                "type": "image_url",
+                "url": "/media-assets/local_spark_media/results/a2d8d37b-1456-464e-9e1c-de4ca99bdcc5/flux2_dev_a2d8d37b_00001_.png",
+                "local_path": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/a2d8d37b-1456-464e-9e1c-de4ca99bdcc5/flux2_dev_a2d8d37b_00001_.png"
+              },
+              "all": [
+                {
+                  "type": "image_url",
+                  "url": "/media-assets/local_spark_media/results/a2d8d37b-1456-464e-9e1c-de4ca99bdcc5/flux2_dev_a2d8d37b_00001_.png",
+                  "local_path": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/a2d8d37b-1456-464e-9e1c-de4ca99bdcc5/flux2_dev_a2d8d37b_00001_.png"
+                }
+              ]
+            },
+            "error": ""
+          }
+        ],
+        "input_params": {
+          "prompt": "Single high-resolution cinematic production keyframe for board 1 shot 1 of 'Untitled Script'. This is an image-to-video start frame, not a storyboard page, not a contact sheet, not a grid. Style: cinematic. Scene action: MOSS slams a padded hand over the brass device. FINN lunges into frame, blocking the light.. Scene SC_001: The Snap. Location: RUINED OBSERVATORY; time/light: MIDNIGHT. Characters: MOSS, FINN. Continuity: {\"wardrobe\": \"MOSS: Worn leather satchel strap. FINN: Frayed blue scarf.\", \"props\": [\"BRASS ASTROLABE\"], \"screen_direction\": \"Over-the-shoulder push-in on device, shallow depth of field isolates hands.\"}. Setting: RUINED OBSERVATORY. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: MIDNIGHT. Mood: Curiosity to Immediate Conflict. Characters: MOSS, FINN. Character consistency: MOSS: Round, moss-green fur with bioluminescent vein patterns. Large expressive eyes.; FINN: Tall, copper-orange scales, sharp pointed ears, angular jawline.; WREN: Sleek charcoal plumage, calm posture, glowing amber eyes, tall silhouette.. Continuity: {\"wardrobe\": \"MOSS: Worn leather satchel strap. FINN: Frayed blue scarf.\", \"props\": [\"BRASS ASTROLABE\"], \"screen_direction\": \"Over-the-shoulder push-in on device, shallow depth of field isolates hands.\"}. No text, no captions, no dialogue, no titles, no panel number. Make one clean cinematic frame with readable blocking, crisp subject edges, sharp eyes, clear hands, detailed textures, controlled depth of field, consistent wardrobe, consistent face, cinematic composition, tactile material detail, natural skin or surface imperfections, no border, no panel frame, no page layout, no watermark. Prompt standard enforcement: material specificity: visible skin pores, fine flyaway hairs, fabric weave, scuffed surfaces, dust and fingerprints where physically plausible; lighting source: motivated real light source with direction, color temperature, catchlights, practical reflections, grounded shadows; casting variation: each person has a distinct face shape, age bracket, hairstyle, body type, skin tone, wardrobe silhouette, posture, and expression; no duplicated template faces.",
+          "final_prompt": "Single high-resolution cinematic production keyframe for board 1 shot 1 of 'Untitled Script'. This is an image-to-video start frame, not a storyboard page, not a contact sheet, not a grid. Style: cinematic. Scene action: MOSS slams a padded hand over the brass device. FINN lunges into frame, blocking the light.. Scene SC_001: The Snap. Location: RUINED OBSERVATORY; time/light: MIDNIGHT. Characters: MOSS, FINN. Continuity: {\"wardrobe\": \"MOSS: Worn leather satchel strap. FINN: Frayed blue scarf.\", \"props\": [\"BRASS ASTROLABE\"], \"screen_direction\": \"Over-the-shoulder push-in on device, shallow depth of field isolates hands.\"}. Setting: RUINED OBSERVATORY. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: MIDNIGHT. Mood: Curiosity to Immediate Conflict. Characters: MOSS, FINN. Character consistency: MOSS: Round, moss-green fur with bioluminescent vein patterns. Large expressive eyes.; FINN: Tall, copper-orange scales, sharp pointed ears, angular jawline.; WREN: Sleek charcoal plumage, calm posture, glowing amber eyes, tall silhouette.. Continuity: {\"wardrobe\": \"MOSS: Worn leather satchel strap. FINN: Frayed blue scarf.\", \"props\": [\"BRASS ASTROLABE\"], \"screen_direction\": \"Over-the-shoulder push-in on device, shallow depth of field isolates hands.\"}. No text, no captions, no dialogue, no titles, no panel number. Make one clean cinematic frame with readable blocking, crisp subject edges, sharp eyes, clear hands, detailed textures, controlled depth of field, consistent wardrobe, consistent face, cinematic composition, tactile material detail, natural skin or surface imperfections, no border, no panel frame, no page layout, no watermark. Prompt standard enforcement: material specificity: visible skin pores, fine flyaway hairs, fabric weave, scuffed surfaces, dust and fingerprints where physically plausible; lighting source: motivated real light source with direction, color temperature, catchlights, practical reflections, grounded shadows; casting variation: each person has a distinct face shape, age bracket, hairstyle, body type, skin tone, wardrobe silhouette, posture, and expression; no duplicated template faces.",
+          "width_and_height": "1920x1080",
+          "quality": "1080p",
+          "batch_size": 1,
+          "workflow_id": "01_flux2_text_to_image",
+          "style_id": "",
+          "style_strength": 0.0,
+          "seed": 1335616875,
+          "custom_reference_id": "",
+          "image_reference_url": "",
+          "local_equivalence_note": "Local adapter maps local image request to Forge Flux/ComfyUI workflow."
+        }
+      }
+    },
+    {
+      "index": 2,
+      "status": "completed",
+      "job_set_id": "c51b4963-0712-4d2d-a367-816adcbb4d4d",
+      "provider": "spark",
+      "model": "flux2_dev",
+      "url": "/media-assets/local_spark_media/results/c51b4963-0712-4d2d-a367-816adcbb4d4d/flux2_dev_c51b4963_00001_.png",
+      "raw": {
+        "id": "c51b4963-0712-4d2d-a367-816adcbb4d4d",
+        "type": "text2image_local",
+        "created_at": "2026-05-12T22:27:49.563277+00:00",
+        "updated_at": "2026-05-12T22:32:27.687165+00:00",
+        "status": "completed",
+        "local_backend": "forge_comfyui",
+        "comfy_url": "http://100.80.184.21:8188",
+        "local_output_dir": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/c51b4963-0712-4d2d-a367-816adcbb4d4d",
+        "jobs": [
+          {
+            "id": "731eaa02-1b77-4366-8c6a-808566d44c6c",
+            "prompt_id": "731eaa02-1b77-4366-8c6a-808566d44c6c",
+            "job_set_type": "text2image_local",
+            "status": "completed",
+            "results": {
+              "raw": {
+                "type": "image_url",
+                "url": "/media-assets/local_spark_media/results/c51b4963-0712-4d2d-a367-816adcbb4d4d/flux2_dev_c51b4963_00001_.png",
+                "local_path": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/c51b4963-0712-4d2d-a367-816adcbb4d4d/flux2_dev_c51b4963_00001_.png"
+              },
+              "min": {
+                "type": "image_url",
+                "url": "/media-assets/local_spark_media/results/c51b4963-0712-4d2d-a367-816adcbb4d4d/flux2_dev_c51b4963_00001_.png",
+                "local_path": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/c51b4963-0712-4d2d-a367-816adcbb4d4d/flux2_dev_c51b4963_00001_.png"
+              },
+              "all": [
+                {
+                  "type": "image_url",
+                  "url": "/media-assets/local_spark_media/results/c51b4963-0712-4d2d-a367-816adcbb4d4d/flux2_dev_c51b4963_00001_.png",
+                  "local_path": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/c51b4963-0712-4d2d-a367-816adcbb4d4d/flux2_dev_c51b4963_00001_.png"
+                }
+              ]
+            },
+            "error": ""
+          }
+        ],
+        "input_params": {
+          "prompt": "Single high-resolution cinematic production keyframe for board 1 shot 2 of 'Untitled Script'. This is an image-to-video start frame, not a storyboard page, not a contact sheet, not a grid. Style: cinematic. Scene action: FINN snatches the base, tilting it toward a moonbeam.. Scene SC_001: The Snap. Location: RUINED OBSERVATORY; time/light: MIDNIGHT. Characters: MOSS, FINN. Continuity: {\"wardrobe\": \"MOSS: Worn leather satchel strap. FINN: Frayed blue scarf.\", \"props\": [\"BRASS ASTROLABE\"], \"screen_direction\": \"Two-shot, split lighting. Left side cool, right side warm.\"}. Setting: RUINED OBSERVATORY. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: MIDNIGHT. Mood: Curiosity to Immediate Conflict. Characters: MOSS, FINN. Character consistency: MOSS: Round, moss-green fur with bioluminescent vein patterns. Large expressive eyes.; FINN: Tall, copper-orange scales, sharp pointed ears, angular jawline.; WREN: Sleek charcoal plumage, calm posture, glowing amber eyes, tall silhouette.. Continuity: {\"wardrobe\": \"MOSS: Worn leather satchel strap. FINN: Frayed blue scarf.\", \"props\": [\"BRASS ASTROLABE\"], \"screen_direction\": \"Two-shot, split lighting. Left side cool, right side warm.\"}. No text, no captions, no dialogue, no titles, no panel number. Make one clean cinematic frame with readable blocking, crisp subject edges, sharp eyes, clear hands, detailed textures, controlled depth of field, consistent wardrobe, consistent face, cinematic composition, tactile material detail, natural skin or surface imperfections, no border, no panel frame, no page layout, no watermark. Prompt standard enforcement: material specificity: visible skin pores, fine flyaway hairs, fabric weave, scuffed surfaces, dust and fingerprints where physically plausible; lighting source: motivated real light source with direction, color temperature, catchlights, practical reflections, grounded shadows; casting variation: each person has a distinct face shape, age bracket, hairstyle, body type, skin tone, wardrobe silhouette, posture, and expression; no duplicated template faces.",
+          "final_prompt": "Single high-resolution cinematic production keyframe for board 1 shot 2 of 'Untitled Script'. This is an image-to-video start frame, not a storyboard page, not a contact sheet, not a grid. Style: cinematic. Scene action: FINN snatches the base, tilting it toward a moonbeam.. Scene SC_001: The Snap. Location: RUINED OBSERVATORY; time/light: MIDNIGHT. Characters: MOSS, FINN. Continuity: {\"wardrobe\": \"MOSS: Worn leather satchel strap. FINN: Frayed blue scarf.\", \"props\": [\"BRASS ASTROLABE\"], \"screen_direction\": \"Two-shot, split lighting. Left side cool, right side warm.\"}. Setting: RUINED OBSERVATORY. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: MIDNIGHT. Mood: Curiosity to Immediate Conflict. Characters: MOSS, FINN. Character consistency: MOSS: Round, moss-green fur with bioluminescent vein patterns. Large expressive eyes.; FINN: Tall, copper-orange scales, sharp pointed ears, angular jawline.; WREN: Sleek charcoal plumage, calm posture, glowing amber eyes, tall silhouette.. Continuity: {\"wardrobe\": \"MOSS: Worn leather satchel strap. FINN: Frayed blue scarf.\", \"props\": [\"BRASS ASTROLABE\"], \"screen_direction\": \"Two-shot, split lighting. Left side cool, right side warm.\"}. No text, no captions, no dialogue, no titles, no panel number. Make one clean cinematic frame with readable blocking, crisp subject edges, sharp eyes, clear hands, detailed textures, controlled depth of field, consistent wardrobe, consistent face, cinematic composition, tactile material detail, natural skin or surface imperfections, no border, no panel frame, no page layout, no watermark. Prompt standard enforcement: material specificity: visible skin pores, fine flyaway hairs, fabric weave, scuffed surfaces, dust and fingerprints where physically plausible; lighting source: motivated real light source with direction, color temperature, catchlights, practical reflections, grounded shadows; casting variation: each person has a distinct face shape, age bracket, hairstyle, body type, skin tone, wardrobe silhouette, posture, and expression; no duplicated template faces.",
+          "width_and_height": "1920x1080",
+          "quality": "1080p",
+          "batch_size": 1,
+          "workflow_id": "01_flux2_text_to_image",
+          "style_id": "",
+          "style_strength": 0.0,
+          "seed": 4284376031,
+          "custom_reference_id": "",
+          "image_reference_url": "",
+          "local_equivalence_note": "Local adapter maps local image request to Forge Flux/ComfyUI workflow."
+        }
+      }
+    },
+    {
+      "index": 3,
+      "status": "completed",
+      "job_set_id": "2095aef8-1fed-42bf-8ad7-9b83d043d878",
+      "provider": "spark",
+      "model": "flux2_dev",
+      "url": "/media-assets/local_spark_media/results/2095aef8-1fed-42bf-8ad7-9b83d043d878/flux2_dev_2095aef8_00001_.png",
+      "raw": {
+        "id": "2095aef8-1fed-42bf-8ad7-9b83d043d878",
+        "type": "text2image_local",
+        "created_at": "2026-05-12T22:27:50.166079+00:00",
+        "updated_at": "2026-05-12T22:34:41.355860+00:00",
+        "status": "completed",
+        "local_backend": "forge_comfyui",
+        "comfy_url": "http://100.80.184.21:8188",
+        "local_output_dir": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/2095aef8-1fed-42bf-8ad7-9b83d043d878",
+        "jobs": [
+          {
+            "id": "75f02fb2-8d31-4b92-920f-44e1a4eb1eb2",
+            "prompt_id": "75f02fb2-8d31-4b92-920f-44e1a4eb1eb2",
+            "job_set_type": "text2image_local",
+            "status": "completed",
+            "results": {
+              "raw": {
+                "type": "image_url",
+                "url": "/media-assets/local_spark_media/results/2095aef8-1fed-42bf-8ad7-9b83d043d878/flux2_dev_2095aef8_00001_.png",
+                "local_path": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/2095aef8-1fed-42bf-8ad7-9b83d043d878/flux2_dev_2095aef8_00001_.png"
+              },
+              "min": {
+                "type": "image_url",
+                "url": "/media-assets/local_spark_media/results/2095aef8-1fed-42bf-8ad7-9b83d043d878/flux2_dev_2095aef8_00001_.png",
+                "local_path": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/2095aef8-1fed-42bf-8ad7-9b83d043d878/flux2_dev_2095aef8_00001_.png"
+              },
+              "all": [
+                {
+                  "type": "image_url",
+                  "url": "/media-assets/local_spark_media/results/2095aef8-1fed-42bf-8ad7-9b83d043d878/flux2_dev_2095aef8_00001_.png",
+                  "local_path": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/2095aef8-1fed-42bf-8ad7-9b83d043d878/flux2_dev_2095aef8_00001_.png"
+                }
+              ]
+            },
+            "error": ""
+          }
+        ],
+        "input_params": {
+          "prompt": "Single high-resolution cinematic production keyframe for board 1 shot 3 of 'Untitled Script'. This is an image-to-video start frame, not a storyboard page, not a contact sheet, not a grid. Style: cinematic. Scene action: MOSS yanks the device back, stepping into deep foreground.. Scene SC_001: The Snap. Location: RUINED OBSERVATORY; time/light: MIDNIGHT. Characters: MOSS, FINN. Continuity: {\"wardrobe\": \"MOSS: Worn leather satchel strap. FINN: Frayed blue scarf.\", \"props\": [\"BRASS ASTROLABE\"], \"screen_direction\": \"Low angle, device dominates frame center.\"}. Setting: RUINED OBSERVATORY. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: MIDNIGHT. Mood: Curiosity to Immediate Conflict. Characters: MOSS, FINN. Character consistency: MOSS: Round, moss-green fur with bioluminescent vein patterns. Large expressive eyes.; FINN: Tall, copper-orange scales, sharp pointed ears, angular jawline.; WREN: Sleek charcoal plumage, calm posture, glowing amber eyes, tall silhouette.. Continuity: {\"wardrobe\": \"MOSS: Worn leather satchel strap. FINN: Frayed blue scarf.\", \"props\": [\"BRASS ASTROLABE\"], \"screen_direction\": \"Low angle, device dominates frame center.\"}. No text, no captions, no dialogue, no titles, no panel number. Make one clean cinematic frame with readable blocking, crisp subject edges, sharp eyes, clear hands, detailed textures, controlled depth of field, consistent wardrobe, consistent face, cinematic composition, tactile material detail, natural skin or surface imperfections, no border, no panel frame, no page layout, no watermark. Prompt standard enforcement: material specificity: visible skin pores, fine flyaway hairs, fabric weave, scuffed surfaces, dust and fingerprints where physically plausible; lighting source: motivated real light source with direction, color temperature, catchlights, practical reflections, grounded shadows; casting variation: each person has a distinct face shape, age bracket, hairstyle, body type, skin tone, wardrobe silhouette, posture, and expression; no duplicated template faces.",
+          "final_prompt": "Single high-resolution cinematic production keyframe for board 1 shot 3 of 'Untitled Script'. This is an image-to-video start frame, not a storyboard page, not a contact sheet, not a grid. Style: cinematic. Scene action: MOSS yanks the device back, stepping into deep foreground.. Scene SC_001: The Snap. Location: RUINED OBSERVATORY; time/light: MIDNIGHT. Characters: MOSS, FINN. Continuity: {\"wardrobe\": \"MOSS: Worn leather satchel strap. FINN: Frayed blue scarf.\", \"props\": [\"BRASS ASTROLABE\"], \"screen_direction\": \"Low angle, device dominates frame center.\"}. Setting: RUINED OBSERVATORY. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: MIDNIGHT. Mood: Curiosity to Immediate Conflict. Characters: MOSS, FINN. Character consistency: MOSS: Round, moss-green fur with bioluminescent vein patterns. Large expressive eyes.; FINN: Tall, copper-orange scales, sharp pointed ears, angular jawline.; WREN: Sleek charcoal plumage, calm posture, glowing amber eyes, tall silhouette.. Continuity: {\"wardrobe\": \"MOSS: Worn leather satchel strap. FINN: Frayed blue scarf.\", \"props\": [\"BRASS ASTROLABE\"], \"screen_direction\": \"Low angle, device dominates frame center.\"}. No text, no captions, no dialogue, no titles, no panel number. Make one clean cinematic frame with readable blocking, crisp subject edges, sharp eyes, clear hands, detailed textures, controlled depth of field, consistent wardrobe, consistent face, cinematic composition, tactile material detail, natural skin or surface imperfections, no border, no panel frame, no page layout, no watermark. Prompt standard enforcement: material specificity: visible skin pores, fine flyaway hairs, fabric weave, scuffed surfaces, dust and fingerprints where physically plausible; lighting source: motivated real light source with direction, color temperature, catchlights, practical reflections, grounded shadows; casting variation: each person has a distinct face shape, age bracket, hairstyle, body type, skin tone, wardrobe silhouette, posture, and expression; no duplicated template faces.",
+          "width_and_height": "1920x1080",
+          "quality": "1080p",
+          "batch_size": 1,
+          "workflow_id": "01_flux2_text_to_image",
+          "style_id": "",
+          "style_strength": 0.0,
+          "seed": 1717547914,
+          "custom_reference_id": "",
+          "image_reference_url": "",
+          "local_equivalence_note": "Local adapter maps local image request to Forge Flux/ComfyUI workflow."
+        }
+      }
+    },
+    {
+      "index": 4,
+      "status": "completed",
+      "job_set_id": "a1985d8c-1512-4003-9ef0-a12d779cb2e1",
+      "provider": "spark",
+      "model": "flux2_dev",
+      "url": "/media-assets/local_spark_media/results/a1985d8c-1512-4003-9ef0-a12d779cb2e1/flux2_dev_a1985d8c_00001_.png",
+      "raw": {
+        "id": "a1985d8c-1512-4003-9ef0-a12d779cb2e1",
+        "type": "text2image_local",
+        "created_at": "2026-05-12T22:27:50.817264+00:00",
+        "updated_at": "2026-05-12T22:36:52.830087+00:00",
+        "status": "completed",
+        "local_backend": "forge_comfyui",
+        "comfy_url": "http://100.80.184.21:8188",
+        "local_output_dir": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/a1985d8c-1512-4003-9ef0-a12d779cb2e1",
+        "jobs": [
+          {
+            "id": "78c6560d-0603-4a90-8072-22680a0ed18f",
+            "prompt_id": "78c6560d-0603-4a90-8072-22680a0ed18f",
+            "job_set_type": "text2image_local",
+            "status": "completed",
+            "results": {
+              "raw": {
+                "type": "image_url",
+                "url": "/media-assets/local_spark_media/results/a1985d8c-1512-4003-9ef0-a12d779cb2e1/flux2_dev_a1985d8c_00001_.png",
+                "local_path": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/a1985d8c-1512-4003-9ef0-a12d779cb2e1/flux2_dev_a1985d8c_00001_.png"
+              },
+              "min": {
+                "type": "image_url",
+                "url": "/media-assets/local_spark_media/results/a1985d8c-1512-4003-9ef0-a12d779cb2e1/flux2_dev_a1985d8c_00001_.png",
+                "local_path": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/a1985d8c-1512-4003-9ef0-a12d779cb2e1/flux2_dev_a1985d8c_00001_.png"
+              },
+              "all": [
+                {
+                  "type": "image_url",
+                  "url": "/media-assets/local_spark_media/results/a1985d8c-1512-4003-9ef0-a12d779cb2e1/flux2_dev_a1985d8c_00001_.png",
+                  "local_path": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/a1985d8c-1512-4003-9ef0-a12d779cb2e1/flux2_dev_a1985d8c_00001_.png"
+                }
+              ]
+            },
+            "error": ""
+          }
+        ],
+        "input_params": {
+          "prompt": "Single high-resolution cinematic production keyframe for board 1 shot 4 of 'Untitled Script'. This is an image-to-video start frame, not a storyboard page, not a contact sheet, not a grid. Style: cinematic. Scene action: Silence. They stare at each other. Moss\u2019s ear twitches.. Scene SC_002: The Drift. Location: RUINED OBSERVATORY; time/light: MIDNIGHT. Characters: MOSS, FINN. Continuity: {\"wardrobe\": \"MOSS: Worn leather satchel strap. FINN: Frayed blue scarf.\", \"props\": [\"BRASS ASTROLABE\"], \"screen_direction\": \"Extreme close-up on eyes, rack focus between them.\"}. Setting: RUINED OBSERVATORY. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: MIDNIGHT. Mood: Conflict to Frustration. Characters: MOSS, FINN. Character consistency: MOSS: Round, moss-green fur with bioluminescent vein patterns. Large expressive eyes.; FINN: Tall, copper-orange scales, sharp pointed ears, angular jawline.; WREN: Sleek charcoal plumage, calm posture, glowing amber eyes, tall silhouette.. Continuity: {\"wardrobe\": \"MOSS: Worn leather satchel strap. FINN: Frayed blue scarf.\", \"props\": [\"BRASS ASTROLABE\"], \"screen_direction\": \"Extreme close-up on eyes, rack focus between them.\"}. No text, no captions, no dialogue, no titles, no panel number. Make one clean cinematic frame with readable blocking, crisp subject edges, sharp eyes, clear hands, detailed textures, controlled depth of field, consistent wardrobe, consistent face, cinematic composition, tactile material detail, natural skin or surface imperfections, no border, no panel frame, no page layout, no watermark. Prompt standard enforcement: material specificity: visible skin pores, fine flyaway hairs, fabric weave, scuffed surfaces, dust and fingerprints where physically plausible; lighting source: motivated real light source with direction, color temperature, catchlights, practical reflections, grounded shadows; casting variation: each person has a distinct face shape, age bracket, hairstyle, body type, skin tone, wardrobe silhouette, posture, and expression; no duplicated template faces.",
+          "final_prompt": "Single high-resolution cinematic production keyframe for board 1 shot 4 of 'Untitled Script'. This is an image-to-video start frame, not a storyboard page, not a contact sheet, not a grid. Style: cinematic. Scene action: Silence. They stare at each other. Moss\u2019s ear twitches.. Scene SC_002: The Drift. Location: RUINED OBSERVATORY; time/light: MIDNIGHT. Characters: MOSS, FINN. Continuity: {\"wardrobe\": \"MOSS: Worn leather satchel strap. FINN: Frayed blue scarf.\", \"props\": [\"BRASS ASTROLABE\"], \"screen_direction\": \"Extreme close-up on eyes, rack focus between them.\"}. Setting: RUINED OBSERVATORY. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: MIDNIGHT. Mood: Conflict to Frustration. Characters: MOSS, FINN. Character consistency: MOSS: Round, moss-green fur with bioluminescent vein patterns. Large expressive eyes.; FINN: Tall, copper-orange scales, sharp pointed ears, angular jawline.; WREN: Sleek charcoal plumage, calm posture, glowing amber eyes, tall silhouette.. Continuity: {\"wardrobe\": \"MOSS: Worn leather satchel strap. FINN: Frayed blue scarf.\", \"props\": [\"BRASS ASTROLABE\"], \"screen_direction\": \"Extreme close-up on eyes, rack focus between them.\"}. No text, no captions, no dialogue, no titles, no panel number. Make one clean cinematic frame with readable blocking, crisp subject edges, sharp eyes, clear hands, detailed textures, controlled depth of field, consistent wardrobe, consistent face, cinematic composition, tactile material detail, natural skin or surface imperfections, no border, no panel frame, no page layout, no watermark. Prompt standard enforcement: material specificity: visible skin pores, fine flyaway hairs, fabric weave, scuffed surfaces, dust and fingerprints where physically plausible; lighting source: motivated real light source with direction, color temperature, catchlights, practical reflections, grounded shadows; casting variation: each person has a distinct face shape, age bracket, hairstyle, body type, skin tone, wardrobe silhouette, posture, and expression; no duplicated template faces.",
+          "width_and_height": "1920x1080",
+          "quality": "1080p",
+          "batch_size": 1,
+          "workflow_id": "01_flux2_text_to_image",
+          "style_id": "",
+          "style_strength": 0.0,
+          "seed": 1445616113,
+          "custom_reference_id": "",
+          "image_reference_url": "",
+          "local_equivalence_note": "Local adapter maps local image request to Forge Flux/ComfyUI workflow."
+        }
+      }
+    }
+  ],
+  "2": [
+    {
+      "index": 1,
+      "status": "completed",
+      "job_set_id": "fd563881-084c-4398-9c8d-4f564d801c43",
+      "provider": "spark",
+      "model": "flux2_dev",
+      "url": "/media-assets/local_spark_media/results/fd563881-084c-4398-9c8d-4f564d801c43/flux2_dev_fd563881_00001_.png",
+      "raw": {
+        "id": "fd563881-084c-4398-9c8d-4f564d801c43",
+        "type": "text2image_local",
+        "created_at": "2026-05-12T22:27:51.313568+00:00",
+        "updated_at": "2026-05-12T22:39:02.290255+00:00",
+        "status": "completed",
+        "local_backend": "forge_comfyui",
+        "comfy_url": "http://100.80.184.21:8188",
+        "local_output_dir": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/fd563881-084c-4398-9c8d-4f564d801c43",
+        "jobs": [
+          {
+            "id": "6906996d-4545-4c3f-8827-28782598c51b",
+            "prompt_id": "6906996d-4545-4c3f-8827-28782598c51b",
+            "job_set_type": "text2image_local",
+            "status": "completed",
+            "results": {
+              "raw": {
+                "type": "image_url",
+                "url": "/media-assets/local_spark_media/results/fd563881-084c-4398-9c8d-4f564d801c43/flux2_dev_fd563881_00001_.png",
+                "local_path": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/fd563881-084c-4398-9c8d-4f564d801c43/flux2_dev_fd563881_00001_.png"
+              },
+              "min": {
+                "type": "image_url",
+                "url": "/media-assets/local_spark_media/results/fd563881-084c-4398-9c8d-4f564d801c43/flux2_dev_fd563881_00001_.png",
+                "local_path": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/fd563881-084c-4398-9c8d-4f564d801c43/flux2_dev_fd563881_00001_.png"
+              },
+              "all": [
+                {
+                  "type": "image_url",
+                  "url": "/media-assets/local_spark_media/results/fd563881-084c-4398-9c8d-4f564d801c43/flux2_dev_fd563881_00001_.png",
+                  "local_path": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/fd563881-084c-4398-9c8d-4f564d801c43/flux2_dev_fd563881_00001_.png"
+                }
+              ]
+            },
+            "error": ""
+          }
+        ],
+        "input_params": {
+          "prompt": "Single high-resolution cinematic production keyframe for board 2 shot 1 of 'Untitled Script'. This is an image-to-video start frame, not a storyboard page, not a contact sheet, not a grid. Style: cinematic. Scene action: FINN points a claw at the glass dome.. Scene SC_002: The Drift. Location: RUINED OBSERVATORY; time/light: MIDNIGHT. Characters: MOSS, FINN. Continuity: {\"wardrobe\": \"MOSS: Worn leather satchel strap. FINN: Frayed blue scarf.\", \"props\": [\"BRASS ASTROLABE\"], \"screen_direction\": \"Profile shot, moonlight backlighting FINN\\u2019s silhouette.\"}. Setting: RUINED OBSERVATORY. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: MIDNIGHT. Mood: Conflict to Frustration. Characters: MOSS, FINN. Character consistency: MOSS: Round, moss-green fur with bioluminescent vein patterns. Large expressive eyes.; FINN: Tall, copper-orange scales, sharp pointed ears, angular jawline.; WREN: Sleek charcoal plumage, calm posture, glowing amber eyes, tall silhouette.. Continuity: {\"wardrobe\": \"MOSS: Worn leather satchel strap. FINN: Frayed blue scarf.\", \"props\": [\"BRASS ASTROLABE\"], \"screen_direction\": \"Profile shot, moonlight backlighting FINN\\u2019s silhouette.\"}. No text, no captions, no dialogue, no titles, no panel number. Make one clean cinematic frame with readable blocking, crisp subject edges, sharp eyes, clear hands, detailed textures, controlled depth of field, consistent wardrobe, consistent face, cinematic composition, tactile material detail, natural skin or surface imperfections, no border, no panel frame, no page layout, no watermark. Prompt standard enforcement: material specificity: visible skin pores, fine flyaway hairs, fabric weave, scuffed surfaces, dust and fingerprints where physically plausible; lighting source: motivated real light source with direction, color temperature, catchlights, practical reflections, grounded shadows; casting variation: each person has a distinct face shape, age bracket, hairstyle, body type, skin tone, wardrobe silhouette, posture, and expression; no duplicated template faces.",
+          "final_prompt": "Single high-resolution cinematic production keyframe for board 2 shot 1 of 'Untitled Script'. This is an image-to-video start frame, not a storyboard page, not a contact sheet, not a grid. Style: cinematic. Scene action: FINN points a claw at the glass dome.. Scene SC_002: The Drift. Location: RUINED OBSERVATORY; time/light: MIDNIGHT. Characters: MOSS, FINN. Continuity: {\"wardrobe\": \"MOSS: Worn leather satchel strap. FINN: Frayed blue scarf.\", \"props\": [\"BRASS ASTROLABE\"], \"screen_direction\": \"Profile shot, moonlight backlighting FINN\\u2019s silhouette.\"}. Setting: RUINED OBSERVATORY. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: MIDNIGHT. Mood: Conflict to Frustration. Characters: MOSS, FINN. Character consistency: MOSS: Round, moss-green fur with bioluminescent vein patterns. Large expressive eyes.; FINN: Tall, copper-orange scales, sharp pointed ears, angular jawline.; WREN: Sleek charcoal plumage, calm posture, glowing amber eyes, tall silhouette.. Continuity: {\"wardrobe\": \"MOSS: Worn leather satchel strap. FINN: Frayed blue scarf.\", \"props\": [\"BRASS ASTROLABE\"], \"screen_direction\": \"Profile shot, moonlight backlighting FINN\\u2019s silhouette.\"}. No text, no captions, no dialogue, no titles, no panel number. Make one clean cinematic frame with readable blocking, crisp subject edges, sharp eyes, clear hands, detailed textures, controlled depth of field, consistent wardrobe, consistent face, cinematic composition, tactile material detail, natural skin or surface imperfections, no border, no panel frame, no page layout, no watermark. Prompt standard enforcement: material specificity: visible skin pores, fine flyaway hairs, fabric weave, scuffed surfaces, dust and fingerprints where physically plausible; lighting source: motivated real light source with direction, color temperature, catchlights, practical reflections, grounded shadows; casting variation: each person has a distinct face shape, age bracket, hairstyle, body type, skin tone, wardrobe silhouette, posture, and expression; no duplicated template faces.",
+          "width_and_height": "1920x1080",
+          "quality": "1080p",
+          "batch_size": 1,
+          "workflow_id": "01_flux2_text_to_image",
+          "style_id": "",
+          "style_strength": 0.0,
+          "seed": 223854008,
+          "custom_reference_id": "",
+          "image_reference_url": "",
+          "local_equivalence_note": "Local adapter maps local image request to Forge Flux/ComfyUI workflow."
+        }
+      }
+    },
+    {
+      "index": 2,
+      "status": "completed",
+      "job_set_id": "141a292c-c604-44d4-bbca-78ba380fa795",
+      "provider": "spark",
+      "model": "flux2_dev",
+      "url": "/media-assets/local_spark_media/results/141a292c-c604-44d4-bbca-78ba380fa795/flux2_dev_141a292c_00001_.png",
+      "raw": {
+        "id": "141a292c-c604-44d4-bbca-78ba380fa795",
+        "type": "text2image_local",
+        "created_at": "2026-05-12T22:27:52.596856+00:00",
+        "updated_at": "2026-05-12T22:41:13.694480+00:00",
+        "status": "completed",
+        "local_backend": "forge_comfyui",
+        "comfy_url": "http://100.80.184.21:8188",
+        "local_output_dir": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/141a292c-c604-44d4-bbca-78ba380fa795",
+        "jobs": [
+          {
+            "id": "8504a3f6-db34-4f69-b1b9-0cc0c7a0c81b",
+            "prompt_id": "8504a3f6-db34-4f69-b1b9-0cc0c7a0c81b",
+            "job_set_type": "text2image_local",
+            "status": "completed",
+            "results": {
+              "raw": {
+                "type": "image_url",
+                "url": "/media-assets/local_spark_media/results/141a292c-c604-44d4-bbca-78ba380fa795/flux2_dev_141a292c_00001_.png",
+                "local_path": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/141a292c-c604-44d4-bbca-78ba380fa795/flux2_dev_141a292c_00001_.png"
+              },
+              "min": {
+                "type": "image_url",
+                "url": "/media-assets/local_spark_media/results/141a292c-c604-44d4-bbca-78ba380fa795/flux2_dev_141a292c_00001_.png",
+                "local_path": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/141a292c-c604-44d4-bbca-78ba380fa795/flux2_dev_141a292c_00001_.png"
+              },
+              "all": [
+                {
+                  "type": "image_url",
+                  "url": "/media-assets/local_spark_media/results/141a292c-c604-44d4-bbca-78ba380fa795/flux2_dev_141a292c_00001_.png",
+                  "local_path": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/141a292c-c604-44d4-bbca-78ba380fa795/flux2_dev_141a292c_00001_.png"
+                }
+              ]
+            },
+            "error": ""
+          }
+        ],
+        "input_params": {
+          "prompt": "Single high-resolution cinematic production keyframe for board 2 shot 2 of 'Untitled Script'. This is an image-to-video start frame, not a storyboard page, not a contact sheet, not a grid. Style: cinematic. Scene action: MOSS looks down. The device slips from both hands.. Scene SC_002: The Drift. Location: RUINED OBSERVATORY; time/light: MIDNIGHT. Characters: MOSS, FINN. Continuity: {\"wardrobe\": \"MOSS: Worn leather satchel strap. FINN: Frayed blue scarf.\", \"props\": [\"BRASS ASTROLABE\"], \"screen_direction\": \"High angle, device lands between them in deep focus.\"}. Setting: RUINED OBSERVATORY. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: MIDNIGHT. Mood: Conflict to Frustration. Characters: MOSS, FINN. Character consistency: MOSS: Round, moss-green fur with bioluminescent vein patterns. Large expressive eyes.; FINN: Tall, copper-orange scales, sharp pointed ears, angular jawline.; WREN: Sleek charcoal plumage, calm posture, glowing amber eyes, tall silhouette.. Continuity: {\"wardrobe\": \"MOSS: Worn leather satchel strap. FINN: Frayed blue scarf.\", \"props\": [\"BRASS ASTROLABE\"], \"screen_direction\": \"High angle, device lands between them in deep focus.\"}. No text, no captions, no dialogue, no titles, no panel number. Make one clean cinematic frame with readable blocking, crisp subject edges, sharp eyes, clear hands, detailed textures, controlled depth of field, consistent wardrobe, consistent face, cinematic composition, tactile material detail, natural skin or surface imperfections, no border, no panel frame, no page layout, no watermark. Prompt standard enforcement: material specificity: visible skin pores, fine flyaway hairs, fabric weave, scuffed surfaces, dust and fingerprints where physically plausible; lighting source: motivated real light source with direction, color temperature, catchlights, practical reflections, grounded shadows; casting variation: each person has a distinct face shape, age bracket, hairstyle, body type, skin tone, wardrobe silhouette, posture, and expression; no duplicated template faces.",
+          "final_prompt": "Single high-resolution cinematic production keyframe for board 2 shot 2 of 'Untitled Script'. This is an image-to-video start frame, not a storyboard page, not a contact sheet, not a grid. Style: cinematic. Scene action: MOSS looks down. The device slips from both hands.. Scene SC_002: The Drift. Location: RUINED OBSERVATORY; time/light: MIDNIGHT. Characters: MOSS, FINN. Continuity: {\"wardrobe\": \"MOSS: Worn leather satchel strap. FINN: Frayed blue scarf.\", \"props\": [\"BRASS ASTROLABE\"], \"screen_direction\": \"High angle, device lands between them in deep focus.\"}. Setting: RUINED OBSERVATORY. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: MIDNIGHT. Mood: Conflict to Frustration. Characters: MOSS, FINN. Character consistency: MOSS: Round, moss-green fur with bioluminescent vein patterns. Large expressive eyes.; FINN: Tall, copper-orange scales, sharp pointed ears, angular jawline.; WREN: Sleek charcoal plumage, calm posture, glowing amber eyes, tall silhouette.. Continuity: {\"wardrobe\": \"MOSS: Worn leather satchel strap. FINN: Frayed blue scarf.\", \"props\": [\"BRASS ASTROLABE\"], \"screen_direction\": \"High angle, device lands between them in deep focus.\"}. No text, no captions, no dialogue, no titles, no panel number. Make one clean cinematic frame with readable blocking, crisp subject edges, sharp eyes, clear hands, detailed textures, controlled depth of field, consistent wardrobe, consistent face, cinematic composition, tactile material detail, natural skin or surface imperfections, no border, no panel frame, no page layout, no watermark. Prompt standard enforcement: material specificity: visible skin pores, fine flyaway hairs, fabric weave, scuffed surfaces, dust and fingerprints where physically plausible; lighting source: motivated real light source with direction, color temperature, catchlights, practical reflections, grounded shadows; casting variation: each person has a distinct face shape, age bracket, hairstyle, body type, skin tone, wardrobe silhouette, posture, and expression; no duplicated template faces.",
+          "width_and_height": "1920x1080",
+          "quality": "1080p",
+          "batch_size": 1,
+          "workflow_id": "01_flux2_text_to_image",
+          "style_id": "",
+          "style_strength": 0.0,
+          "seed": 2693554409,
+          "custom_reference_id": "",
+          "image_reference_url": "",
+          "local_equivalence_note": "Local adapter maps local image request to Forge Flux/ComfyUI workflow."
+        }
+      }
+    },
+    {
+      "index": 3,
+      "status": "completed",
+      "job_set_id": "45c33ee8-6318-448b-9e3a-5bfe80b78e76",
+      "provider": "spark",
+      "model": "flux2_dev",
+      "url": "/media-assets/local_spark_media/results/45c33ee8-6318-448b-9e3a-5bfe80b78e76/flux2_dev_45c33ee8_00001_.png",
+      "raw": {
+        "id": "45c33ee8-6318-448b-9e3a-5bfe80b78e76",
+        "type": "text2image_local",
+        "created_at": "2026-05-12T22:27:53.286056+00:00",
+        "updated_at": "2026-05-12T22:43:28.276690+00:00",
+        "status": "completed",
+        "local_backend": "forge_comfyui",
+        "comfy_url": "http://100.80.184.21:8188",
+        "local_output_dir": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/45c33ee8-6318-448b-9e3a-5bfe80b78e76",
+        "jobs": [
+          {
+            "id": "4b45dd46-e757-4588-9ef9-c312044947ba",
+            "prompt_id": "4b45dd46-e757-4588-9ef9-c312044947ba",
+            "job_set_type": "text2image_local",
+            "status": "completed",
+            "results": {
+              "raw": {
+                "type": "image_url",
+                "url": "/media-assets/local_spark_media/results/45c33ee8-6318-448b-9e3a-5bfe80b78e76/flux2_dev_45c33ee8_00001_.png",
+                "local_path": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/45c33ee8-6318-448b-9e3a-5bfe80b78e76/flux2_dev_45c33ee8_00001_.png"
+              },
+              "min": {
+                "type": "image_url",
+                "url": "/media-assets/local_spark_media/results/45c33ee8-6318-448b-9e3a-5bfe80b78e76/flux2_dev_45c33ee8_00001_.png",
+                "local_path": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/45c33ee8-6318-448b-9e3a-5bfe80b78e76/flux2_dev_45c33ee8_00001_.png"
+              },
+              "all": [
+                {
+                  "type": "image_url",
+                  "url": "/media-assets/local_spark_media/results/45c33ee8-6318-448b-9e3a-5bfe80b78e76/flux2_dev_45c33ee8_00001_.png",
+                  "local_path": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/45c33ee8-6318-448b-9e3a-5bfe80b78e76/flux2_dev_45c33ee8_00001_.png"
+                }
+              ]
+            },
+            "error": ""
+          }
+        ],
+        "input_params": {
+          "prompt": "Single high-resolution cinematic production keyframe for board 2 shot 3 of 'Untitled Script'. This is an image-to-video start frame, not a storyboard page, not a contact sheet, not a grid. Style: cinematic. Scene action: Footsteps on stone. WREN steps into frame, backlit by a full moon.. Scene SC_003: The Flip. Location: RUINED OBSERVATORY; time/light: MIDNIGHT. Characters: MOSS, FINN, WREN. Continuity: {\"wardrobe\": \"WREN: Natural charcoal plumage, no costume. MOSS/FINN: Unchanged.\", \"props\": [\"BRASS ASTROLABE\"], \"screen_direction\": \"Wide shot, WREN centered in background archway.\"}. Setting: RUINED OBSERVATORY. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: MIDNIGHT. Mood: Frustration to Realization. Characters: MOSS, FINN, WREN. Character consistency: MOSS: Round, moss-green fur with bioluminescent vein patterns. Large expressive eyes.; FINN: Tall, copper-orange scales, sharp pointed ears, angular jawline.; WREN: Sleek charcoal plumage, calm posture, glowing amber eyes, tall silhouette.. Continuity: {\"wardrobe\": \"WREN: Natural charcoal plumage, no costume. MOSS/FINN: Unchanged.\", \"props\": [\"BRASS ASTROLABE\"], \"screen_direction\": \"Wide shot, WREN centered in background archway.\"}. No text, no captions, no dialogue, no titles, no panel number. Make one clean cinematic frame with readable blocking, crisp subject edges, sharp eyes, clear hands, detailed textures, controlled depth of field, consistent wardrobe, consistent face, cinematic composition, tactile material detail, natural skin or surface imperfections, no border, no panel frame, no page layout, no watermark. Prompt standard enforcement: material specificity: visible skin pores, fine flyaway hairs, fabric weave, scuffed surfaces, dust and fingerprints where physically plausible; lighting source: motivated real light source with direction, color temperature, catchlights, practical reflections, grounded shadows; casting variation: each person has a distinct face shape, age bracket, hairstyle, body type, skin tone, wardrobe silhouette, posture, and expression; no duplicated template faces.",
+          "final_prompt": "Single high-resolution cinematic production keyframe for board 2 shot 3 of 'Untitled Script'. This is an image-to-video start frame, not a storyboard page, not a contact sheet, not a grid. Style: cinematic. Scene action: Footsteps on stone. WREN steps into frame, backlit by a full moon.. Scene SC_003: The Flip. Location: RUINED OBSERVATORY; time/light: MIDNIGHT. Characters: MOSS, FINN, WREN. Continuity: {\"wardrobe\": \"WREN: Natural charcoal plumage, no costume. MOSS/FINN: Unchanged.\", \"props\": [\"BRASS ASTROLABE\"], \"screen_direction\": \"Wide shot, WREN centered in background archway.\"}. Setting: RUINED OBSERVATORY. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: MIDNIGHT. Mood: Frustration to Realization. Characters: MOSS, FINN, WREN. Character consistency: MOSS: Round, moss-green fur with bioluminescent vein patterns. Large expressive eyes.; FINN: Tall, copper-orange scales, sharp pointed ears, angular jawline.; WREN: Sleek charcoal plumage, calm posture, glowing amber eyes, tall silhouette.. Continuity: {\"wardrobe\": \"WREN: Natural charcoal plumage, no costume. MOSS/FINN: Unchanged.\", \"props\": [\"BRASS ASTROLABE\"], \"screen_direction\": \"Wide shot, WREN centered in background archway.\"}. No text, no captions, no dialogue, no titles, no panel number. Make one clean cinematic frame with readable blocking, crisp subject edges, sharp eyes, clear hands, detailed textures, controlled depth of field, consistent wardrobe, consistent face, cinematic composition, tactile material detail, natural skin or surface imperfections, no border, no panel frame, no page layout, no watermark. Prompt standard enforcement: material specificity: visible skin pores, fine flyaway hairs, fabric weave, scuffed surfaces, dust and fingerprints where physically plausible; lighting source: motivated real light source with direction, color temperature, catchlights, practical reflections, grounded shadows; casting variation: each person has a distinct face shape, age bracket, hairstyle, body type, skin tone, wardrobe silhouette, posture, and expression; no duplicated template faces.",
+          "width_and_height": "1920x1080",
+          "quality": "1080p",
+          "batch_size": 1,
+          "workflow_id": "01_flux2_text_to_image",
+          "style_id": "",
+          "style_strength": 0.0,
+          "seed": 3356797695,
+          "custom_reference_id": "",
+          "image_reference_url": "",
+          "local_equivalence_note": "Local adapter maps local image request to Forge Flux/ComfyUI workflow."
+        }
+      }
+    },
+    {
+      "index": 4,
+      "status": "completed",
+      "job_set_id": "63c2341d-918f-4879-8101-b81e991319ef",
+      "provider": "spark",
+      "model": "flux2_dev",
+      "url": "/media-assets/local_spark_media/results/63c2341d-918f-4879-8101-b81e991319ef/flux2_dev_63c2341d_00001_.png",
+      "raw": {
+        "id": "63c2341d-918f-4879-8101-b81e991319ef",
+        "type": "text2image_local",
+        "created_at": "2026-05-12T22:27:54.122582+00:00",
+        "updated_at": "2026-05-12T22:45:34.134638+00:00",
+        "status": "completed",
+        "local_backend": "forge_comfyui",
+        "comfy_url": "http://100.80.184.21:8188",
+        "local_output_dir": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/63c2341d-918f-4879-8101-b81e991319ef",
+        "jobs": [
+          {
+            "id": "35e48998-5a5a-4158-8580-eddff2e4c588",
+            "prompt_id": "35e48998-5a5a-4158-8580-eddff2e4c588",
+            "job_set_type": "text2image_local",
+            "status": "completed",
+            "results": {
+              "raw": {
+                "type": "image_url",
+                "url": "/media-assets/local_spark_media/results/63c2341d-918f-4879-8101-b81e991319ef/flux2_dev_63c2341d_00001_.png",
+                "local_path": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/63c2341d-918f-4879-8101-b81e991319ef/flux2_dev_63c2341d_00001_.png"
+              },
+              "min": {
+                "type": "image_url",
+                "url": "/media-assets/local_spark_media/results/63c2341d-918f-4879-8101-b81e991319ef/flux2_dev_63c2341d_00001_.png",
+                "local_path": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/63c2341d-918f-4879-8101-b81e991319ef/flux2_dev_63c2341d_00001_.png"
+              },
+              "all": [
+                {
+                  "type": "image_url",
+                  "url": "/media-assets/local_spark_media/results/63c2341d-918f-4879-8101-b81e991319ef/flux2_dev_63c2341d_00001_.png",
+                  "local_path": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/63c2341d-918f-4879-8101-b81e991319ef/flux2_dev_63c2341d_00001_.png"
+                }
+              ]
+            },
+            "error": ""
+          }
+        ],
+        "input_params": {
+          "prompt": "Single high-resolution cinematic production keyframe for board 2 shot 4 of 'Untitled Script'. This is an image-to-video start frame, not a storyboard page, not a contact sheet, not a grid. Style: cinematic. Scene action: WREN picks up the device, flips it over. The glass dome cracks open.. Scene SC_003: The Flip. Location: RUINED OBSERVATORY; time/light: MIDNIGHT. Characters: MOSS, FINN, WREN. Continuity: {\"wardrobe\": \"WREN: Natural charcoal plumage. MOSS/FINN: Unchanged.\", \"props\": [\"BRASS ASTROLABE\"], \"screen_direction\": \"Close-up on hands, shallow depth isolates the hollow interior.\"}. Setting: RUINED OBSERVATORY. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: MIDNIGHT. Mood: Frustration to Realization. Characters: MOSS, FINN, WREN. Character consistency: MOSS: Round, moss-green fur with bioluminescent vein patterns. Large expressive eyes.; FINN: Tall, copper-orange scales, sharp pointed ears, angular jawline.; WREN: Sleek charcoal plumage, calm posture, glowing amber eyes, tall silhouette.. Continuity: {\"wardrobe\": \"WREN: Natural charcoal plumage. MOSS/FINN: Unchanged.\", \"props\": [\"BRASS ASTROLABE\"], \"screen_direction\": \"Close-up on hands, shallow depth isolates the hollow interior.\"}. No text, no captions, no dialogue, no titles, no panel number. Make one clean cinematic frame with readable blocking, crisp subject edges, sharp eyes, clear hands, detailed textures, controlled depth of field, consistent wardrobe, consistent face, cinematic composition, tactile material detail, natural skin or surface imperfections, no border, no panel frame, no page layout, no watermark. Prompt standard enforcement: material specificity: visible skin pores, fine flyaway hairs, fabric weave, scuffed surfaces, dust and fingerprints where physically plausible; lighting source: motivated real light source with direction, color temperature, catchlights, practical reflections, grounded shadows; casting variation: each person has a distinct face shape, age bracket, hairstyle, body type, skin tone, wardrobe silhouette, posture, and expression; no duplicated template faces.",
+          "final_prompt": "Single high-resolution cinematic production keyframe for board 2 shot 4 of 'Untitled Script'. This is an image-to-video start frame, not a storyboard page, not a contact sheet, not a grid. Style: cinematic. Scene action: WREN picks up the device, flips it over. The glass dome cracks open.. Scene SC_003: The Flip. Location: RUINED OBSERVATORY; time/light: MIDNIGHT. Characters: MOSS, FINN, WREN. Continuity: {\"wardrobe\": \"WREN: Natural charcoal plumage. MOSS/FINN: Unchanged.\", \"props\": [\"BRASS ASTROLABE\"], \"screen_direction\": \"Close-up on hands, shallow depth isolates the hollow interior.\"}. Setting: RUINED OBSERVATORY. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: MIDNIGHT. Mood: Frustration to Realization. Characters: MOSS, FINN, WREN. Character consistency: MOSS: Round, moss-green fur with bioluminescent vein patterns. Large expressive eyes.; FINN: Tall, copper-orange scales, sharp pointed ears, angular jawline.; WREN: Sleek charcoal plumage, calm posture, glowing amber eyes, tall silhouette.. Continuity: {\"wardrobe\": \"WREN: Natural charcoal plumage. MOSS/FINN: Unchanged.\", \"props\": [\"BRASS ASTROLABE\"], \"screen_direction\": \"Close-up on hands, shallow depth isolates the hollow interior.\"}. No text, no captions, no dialogue, no titles, no panel number. Make one clean cinematic frame with readable blocking, crisp subject edges, sharp eyes, clear hands, detailed textures, controlled depth of field, consistent wardrobe, consistent face, cinematic composition, tactile material detail, natural skin or surface imperfections, no border, no panel frame, no page layout, no watermark. Prompt standard enforcement: material specificity: visible skin pores, fine flyaway hairs, fabric weave, scuffed surfaces, dust and fingerprints where physically plausible; lighting source: motivated real light source with direction, color temperature, catchlights, practical reflections, grounded shadows; casting variation: each person has a distinct face shape, age bracket, hairstyle, body type, skin tone, wardrobe silhouette, posture, and expression; no duplicated template faces.",
+          "width_and_height": "1920x1080",
+          "quality": "1080p",
+          "batch_size": 1,
+          "workflow_id": "01_flux2_text_to_image",
+          "style_id": "",
+          "style_strength": 0.0,
+          "seed": 3245809716,
+          "custom_reference_id": "",
+          "image_reference_url": "",
+          "local_equivalence_note": "Local adapter maps local image request to Forge Flux/ComfyUI workflow."
+        }
+      }
+    }
+  ],
+  "3": [
+    {
+      "index": 1,
+      "status": "completed",
+      "job_set_id": "cf15909b-f1d1-4a45-82e7-ed3f66819586",
+      "provider": "spark",
+      "model": "flux2_dev",
+      "url": "/media-assets/local_spark_media/results/cf15909b-f1d1-4a45-82e7-ed3f66819586/flux2_dev_cf15909b_00001_.png",
+      "raw": {
+        "id": "cf15909b-f1d1-4a45-82e7-ed3f66819586",
+        "type": "text2image_local",
+        "created_at": "2026-05-12T22:27:54.764491+00:00",
+        "updated_at": "2026-05-12T22:47:48.521512+00:00",
+        "status": "completed",
+        "local_backend": "forge_comfyui",
+        "comfy_url": "http://100.80.184.21:8188",
+        "local_output_dir": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/cf15909b-f1d1-4a45-82e7-ed3f66819586",
+        "jobs": [
+          {
+            "id": "355b75be-4bc2-47f6-a503-c64bbd974681",
+            "prompt_id": "355b75be-4bc2-47f6-a503-c64bbd974681",
+            "job_set_type": "text2image_local",
+            "status": "completed",
+            "results": {
+              "raw": {
+                "type": "image_url",
+                "url": "/media-assets/local_spark_media/results/cf15909b-f1d1-4a45-82e7-ed3f66819586/flux2_dev_cf15909b_00001_.png",
+                "local_path": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/cf15909b-f1d1-4a45-82e7-ed3f66819586/flux2_dev_cf15909b_00001_.png"
+              },
+              "min": {
+                "type": "image_url",
+                "url": "/media-assets/local_spark_media/results/cf15909b-f1d1-4a45-82e7-ed3f66819586/flux2_dev_cf15909b_00001_.png",
+                "local_path": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/cf15909b-f1d1-4a45-82e7-ed3f66819586/flux2_dev_cf15909b_00001_.png"
+              },
+              "all": [
+                {
+                  "type": "image_url",
+                  "url": "/media-assets/local_spark_media/results/cf15909b-f1d1-4a45-82e7-ed3f66819586/flux2_dev_cf15909b_00001_.png",
+                  "local_path": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/cf15909b-f1d1-4a45-82e7-ed3f66819586/flux2_dev_cf15909b_00001_.png"
+                }
+              ]
+            },
+            "error": ""
+          }
+        ],
+        "input_params": {
+          "prompt": "Single high-resolution cinematic production keyframe for board 3 shot 1 of 'Untitled Script'. This is an image-to-video start frame, not a storyboard page, not a contact sheet, not a grid. Style: cinematic. Scene action: WREN taps the empty brass base.. Scene SC_003: The Flip. Location: RUINED OBSERVATORY; time/light: MIDNIGHT. Characters: MOSS, FINN, WREN. Continuity: {\"wardrobe\": \"WREN: Natural charcoal plumage. MOSS/FINN: Unchanged.\", \"props\": [\"BRASS ASTROLABE\"], \"screen_direction\": \"Three-shot, lighting warms as moonbeam shifts.\"}. Setting: RUINED OBSERVATORY. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: MIDNIGHT. Mood: Frustration to Realization. Characters: MOSS, FINN, WREN. Character consistency: MOSS: Round, moss-green fur with bioluminescent vein patterns. Large expressive eyes.; FINN: Tall, copper-orange scales, sharp pointed ears, angular jawline.; WREN: Sleek charcoal plumage, calm posture, glowing amber eyes, tall silhouette.. Continuity: {\"wardrobe\": \"WREN: Natural charcoal plumage. MOSS/FINN: Unchanged.\", \"props\": [\"BRASS ASTROLABE\"], \"screen_direction\": \"Three-shot, lighting warms as moonbeam shifts.\"}. No text, no captions, no dialogue, no titles, no panel number. Make one clean cinematic frame with readable blocking, crisp subject edges, sharp eyes, clear hands, detailed textures, controlled depth of field, consistent wardrobe, consistent face, cinematic composition, tactile material detail, natural skin or surface imperfections, no border, no panel frame, no page layout, no watermark. Prompt standard enforcement: material specificity: visible skin pores, fine flyaway hairs, fabric weave, scuffed surfaces, dust and fingerprints where physically plausible; lighting source: motivated real light source with direction, color temperature, catchlights, practical reflections, grounded shadows; casting variation: each person has a distinct face shape, age bracket, hairstyle, body type, skin tone, wardrobe silhouette, posture, and expression; no duplicated template faces.",
+          "final_prompt": "Single high-resolution cinematic production keyframe for board 3 shot 1 of 'Untitled Script'. This is an image-to-video start frame, not a storyboard page, not a contact sheet, not a grid. Style: cinematic. Scene action: WREN taps the empty brass base.. Scene SC_003: The Flip. Location: RUINED OBSERVATORY; time/light: MIDNIGHT. Characters: MOSS, FINN, WREN. Continuity: {\"wardrobe\": \"WREN: Natural charcoal plumage. MOSS/FINN: Unchanged.\", \"props\": [\"BRASS ASTROLABE\"], \"screen_direction\": \"Three-shot, lighting warms as moonbeam shifts.\"}. Setting: RUINED OBSERVATORY. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: MIDNIGHT. Mood: Frustration to Realization. Characters: MOSS, FINN, WREN. Character consistency: MOSS: Round, moss-green fur with bioluminescent vein patterns. Large expressive eyes.; FINN: Tall, copper-orange scales, sharp pointed ears, angular jawline.; WREN: Sleek charcoal plumage, calm posture, glowing amber eyes, tall silhouette.. Continuity: {\"wardrobe\": \"WREN: Natural charcoal plumage. MOSS/FINN: Unchanged.\", \"props\": [\"BRASS ASTROLABE\"], \"screen_direction\": \"Three-shot, lighting warms as moonbeam shifts.\"}. No text, no captions, no dialogue, no titles, no panel number. Make one clean cinematic frame with readable blocking, crisp subject edges, sharp eyes, clear hands, detailed textures, controlled depth of field, consistent wardrobe, consistent face, cinematic composition, tactile material detail, natural skin or surface imperfections, no border, no panel frame, no page layout, no watermark. Prompt standard enforcement: material specificity: visible skin pores, fine flyaway hairs, fabric weave, scuffed surfaces, dust and fingerprints where physically plausible; lighting source: motivated real light source with direction, color temperature, catchlights, practical reflections, grounded shadows; casting variation: each person has a distinct face shape, age bracket, hairstyle, body type, skin tone, wardrobe silhouette, posture, and expression; no duplicated template faces.",
+          "width_and_height": "1920x1080",
+          "quality": "1080p",
+          "batch_size": 1,
+          "workflow_id": "01_flux2_text_to_image",
+          "style_id": "",
+          "style_strength": 0.0,
+          "seed": 3696622786,
+          "custom_reference_id": "",
+          "image_reference_url": "",
+          "local_equivalence_note": "Local adapter maps local image request to Forge Flux/ComfyUI workflow."
+        }
+      }
+    },
+    {
+      "index": 2,
+      "status": "completed",
+      "job_set_id": "6a981b7d-ed59-432b-b8e1-d516e865a40f",
+      "provider": "spark",
+      "model": "flux2_dev",
+      "url": "/media-assets/local_spark_media/results/6a981b7d-ed59-432b-b8e1-d516e865a40f/flux2_dev_6a981b7d_00001_.png",
+      "raw": {
+        "id": "6a981b7d-ed59-432b-b8e1-d516e865a40f",
+        "type": "text2image_local",
+        "created_at": "2026-05-12T22:27:55.392472+00:00",
+        "updated_at": "2026-05-12T22:49:50.223976+00:00",
+        "status": "completed",
+        "local_backend": "forge_comfyui",
+        "comfy_url": "http://100.80.184.21:8188",
+        "local_output_dir": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/6a981b7d-ed59-432b-b8e1-d516e865a40f",
+        "jobs": [
+          {
+            "id": "a5eb73a6-3de7-4c3b-bc37-fe23d621369f",
+            "prompt_id": "a5eb73a6-3de7-4c3b-bc37-fe23d621369f",
+            "job_set_type": "text2image_local",
+            "status": "completed",
+            "results": {
+              "raw": {
+                "type": "image_url",
+                "url": "/media-assets/local_spark_media/results/6a981b7d-ed59-432b-b8e1-d516e865a40f/flux2_dev_6a981b7d_00001_.png",
+                "local_path": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/6a981b7d-ed59-432b-b8e1-d516e865a40f/flux2_dev_6a981b7d_00001_.png"
+              },
+              "min": {
+                "type": "image_url",
+                "url": "/media-assets/local_spark_media/results/6a981b7d-ed59-432b-b8e1-d516e865a40f/flux2_dev_6a981b7d_00001_.png",
+                "local_path": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/6a981b7d-ed59-432b-b8e1-d516e865a40f/flux2_dev_6a981b7d_00001_.png"
+              },
+              "all": [
+                {
+                  "type": "image_url",
+                  "url": "/media-assets/local_spark_media/results/6a981b7d-ed59-432b-b8e1-d516e865a40f/flux2_dev_6a981b7d_00001_.png",
+                  "local_path": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/6a981b7d-ed59-432b-b8e1-d516e865a40f/flux2_dev_6a981b7d_00001_.png"
+                }
+              ]
+            },
+            "error": ""
+          }
+        ],
+        "input_params": {
+          "prompt": "Single high-resolution cinematic production keyframe for board 3 shot 2 of 'Untitled Script'. This is an image-to-video start frame, not a storyboard page, not a contact sheet, not a grid. Style: cinematic. Scene action: MOSS looks at FINN. FINN looks at MOSS. A snort escapes.. Scene SC_004: The Release. Location: RUINED OBSERVATORY; time/light: MIDNIGHT. Characters: MOSS, FINN. Continuity: {\"wardrobe\": \"MOSS/FINN: Unchanged.\", \"props\": [], \"screen_direction\": \"Medium two-shot, camera slowly orbits 180 degrees.\"}. Setting: RUINED OBSERVATORY. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: MIDNIGHT. Mood: Realization to Shared Joy. Characters: MOSS, FINN. Character consistency: MOSS: Round, moss-green fur with bioluminescent vein patterns. Large expressive eyes.; FINN: Tall, copper-orange scales, sharp pointed ears, angular jawline.; WREN: Sleek charcoal plumage, calm posture, glowing amber eyes, tall silhouette.. Continuity: {\"wardrobe\": \"MOSS/FINN: Unchanged.\", \"props\": [], \"screen_direction\": \"Medium two-shot, camera slowly orbits 180 degrees.\"}. No text, no captions, no dialogue, no titles, no panel number. Make one clean cinematic frame with readable blocking, crisp subject edges, sharp eyes, clear hands, detailed textures, controlled depth of field, consistent wardrobe, consistent face, cinematic composition, tactile material detail, natural skin or surface imperfections, no border, no panel frame, no page layout, no watermark. Prompt standard enforcement: material specificity: visible skin pores, fine flyaway hairs, fabric weave, scuffed surfaces, dust and fingerprints where physically plausible; lighting source: motivated real light source with direction, color temperature, catchlights, practical reflections, grounded shadows; casting variation: each person has a distinct face shape, age bracket, hairstyle, body type, skin tone, wardrobe silhouette, posture, and expression; no duplicated template faces.",
+          "final_prompt": "Single high-resolution cinematic production keyframe for board 3 shot 2 of 'Untitled Script'. This is an image-to-video start frame, not a storyboard page, not a contact sheet, not a grid. Style: cinematic. Scene action: MOSS looks at FINN. FINN looks at MOSS. A snort escapes.. Scene SC_004: The Release. Location: RUINED OBSERVATORY; time/light: MIDNIGHT. Characters: MOSS, FINN. Continuity: {\"wardrobe\": \"MOSS/FINN: Unchanged.\", \"props\": [], \"screen_direction\": \"Medium two-shot, camera slowly orbits 180 degrees.\"}. Setting: RUINED OBSERVATORY. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: MIDNIGHT. Mood: Realization to Shared Joy. Characters: MOSS, FINN. Character consistency: MOSS: Round, moss-green fur with bioluminescent vein patterns. Large expressive eyes.; FINN: Tall, copper-orange scales, sharp pointed ears, angular jawline.; WREN: Sleek charcoal plumage, calm posture, glowing amber eyes, tall silhouette.. Continuity: {\"wardrobe\": \"MOSS/FINN: Unchanged.\", \"props\": [], \"screen_direction\": \"Medium two-shot, camera slowly orbits 180 degrees.\"}. No text, no captions, no dialogue, no titles, no panel number. Make one clean cinematic frame with readable blocking, crisp subject edges, sharp eyes, clear hands, detailed textures, controlled depth of field, consistent wardrobe, consistent face, cinematic composition, tactile material detail, natural skin or surface imperfections, no border, no panel frame, no page layout, no watermark. Prompt standard enforcement: material specificity: visible skin pores, fine flyaway hairs, fabric weave, scuffed surfaces, dust and fingerprints where physically plausible; lighting source: motivated real light source with direction, color temperature, catchlights, practical reflections, grounded shadows; casting variation: each person has a distinct face shape, age bracket, hairstyle, body type, skin tone, wardrobe silhouette, posture, and expression; no duplicated template faces.",
+          "width_and_height": "1920x1080",
+          "quality": "1080p",
+          "batch_size": 1,
+          "workflow_id": "01_flux2_text_to_image",
+          "style_id": "",
+          "style_strength": 0.0,
+          "seed": 3267158651,
+          "custom_reference_id": "",
+          "image_reference_url": "",
+          "local_equivalence_note": "Local adapter maps local image request to Forge Flux/ComfyUI workflow."
+        }
+      }
+    },
+    {
+      "index": 3,
+      "status": "completed",
+      "job_set_id": "cecadfc9-eefe-41dc-ae53-407363d430a0",
+      "provider": "spark",
+      "model": "flux2_dev",
+      "url": "/media-assets/local_spark_media/results/cecadfc9-eefe-41dc-ae53-407363d430a0/flux2_dev_cecadfc9_00001_.png",
+      "raw": {
+        "id": "cecadfc9-eefe-41dc-ae53-407363d430a0",
+        "type": "text2image_local",
+        "created_at": "2026-05-12T22:27:56.635642+00:00",
+        "updated_at": "2026-05-12T22:51:50.122944+00:00",
+        "status": "completed",
+        "local_backend": "forge_comfyui",
+        "comfy_url": "http://100.80.184.21:8188",
+        "local_output_dir": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/cecadfc9-eefe-41dc-ae53-407363d430a0",
+        "jobs": [
+          {
+            "id": "db3bebaa-52e9-4797-8a22-bf4294ca6675",
+            "prompt_id": "db3bebaa-52e9-4797-8a22-bf4294ca6675",
+            "job_set_type": "text2image_local",
+            "status": "completed",
+            "results": {
+              "raw": {
+                "type": "image_url",
+                "url": "/media-assets/local_spark_media/results/cecadfc9-eefe-41dc-ae53-407363d430a0/flux2_dev_cecadfc9_00001_.png",
+                "local_path": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/cecadfc9-eefe-41dc-ae53-407363d430a0/flux2_dev_cecadfc9_00001_.png"
+              },
+              "min": {
+                "type": "image_url",
+                "url": "/media-assets/local_spark_media/results/cecadfc9-eefe-41dc-ae53-407363d430a0/flux2_dev_cecadfc9_00001_.png",
+                "local_path": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/cecadfc9-eefe-41dc-ae53-407363d430a0/flux2_dev_cecadfc9_00001_.png"
+              },
+              "all": [
+                {
+                  "type": "image_url",
+                  "url": "/media-assets/local_spark_media/results/cecadfc9-eefe-41dc-ae53-407363d430a0/flux2_dev_cecadfc9_00001_.png",
+                  "local_path": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/cecadfc9-eefe-41dc-ae53-407363d430a0/flux2_dev_cecadfc9_00001_.png"
+                }
+              ]
+            },
+            "error": ""
+          }
+        ],
+        "input_params": {
+          "prompt": "Single high-resolution cinematic production keyframe for board 3 shot 3 of 'Untitled Script'. This is an image-to-video start frame, not a storyboard page, not a contact sheet, not a grid. Style: cinematic. Scene action: FINN wipes an eye, gestures to the empty base.. Scene SC_004: The Release. Location: RUINED OBSERVATORY; time/light: MIDNIGHT. Characters: MOSS, FINN. Continuity: {\"wardrobe\": \"MOSS/FINN: Unchanged.\", \"props\": [], \"screen_direction\": \"Close-up on FINN, rack focus to MOSS\\u2019s reaction.\"}. Setting: RUINED OBSERVATORY. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: MIDNIGHT. Mood: Realization to Shared Joy. Characters: MOSS, FINN. Character consistency: MOSS: Round, moss-green fur with bioluminescent vein patterns. Large expressive eyes.; FINN: Tall, copper-orange scales, sharp pointed ears, angular jawline.; WREN: Sleek charcoal plumage, calm posture, glowing amber eyes, tall silhouette.. Continuity: {\"wardrobe\": \"MOSS/FINN: Unchanged.\", \"props\": [], \"screen_direction\": \"Close-up on FINN, rack focus to MOSS\\u2019s reaction.\"}. No text, no captions, no dialogue, no titles, no panel number. Make one clean cinematic frame with readable blocking, crisp subject edges, sharp eyes, clear hands, detailed textures, controlled depth of field, consistent wardrobe, consistent face, cinematic composition, tactile material detail, natural skin or surface imperfections, no border, no panel frame, no page layout, no watermark. Prompt standard enforcement: material specificity: visible skin pores, fine flyaway hairs, fabric weave, scuffed surfaces, dust and fingerprints where physically plausible; lighting source: motivated real light source with direction, color temperature, catchlights, practical reflections, grounded shadows; casting variation: each person has a distinct face shape, age bracket, hairstyle, body type, skin tone, wardrobe silhouette, posture, and expression; no duplicated template faces.",
+          "final_prompt": "Single high-resolution cinematic production keyframe for board 3 shot 3 of 'Untitled Script'. This is an image-to-video start frame, not a storyboard page, not a contact sheet, not a grid. Style: cinematic. Scene action: FINN wipes an eye, gestures to the empty base.. Scene SC_004: The Release. Location: RUINED OBSERVATORY; time/light: MIDNIGHT. Characters: MOSS, FINN. Continuity: {\"wardrobe\": \"MOSS/FINN: Unchanged.\", \"props\": [], \"screen_direction\": \"Close-up on FINN, rack focus to MOSS\\u2019s reaction.\"}. Setting: RUINED OBSERVATORY. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: MIDNIGHT. Mood: Realization to Shared Joy. Characters: MOSS, FINN. Character consistency: MOSS: Round, moss-green fur with bioluminescent vein patterns. Large expressive eyes.; FINN: Tall, copper-orange scales, sharp pointed ears, angular jawline.; WREN: Sleek charcoal plumage, calm posture, glowing amber eyes, tall silhouette.. Continuity: {\"wardrobe\": \"MOSS/FINN: Unchanged.\", \"props\": [], \"screen_direction\": \"Close-up on FINN, rack focus to MOSS\\u2019s reaction.\"}. No text, no captions, no dialogue, no titles, no panel number. Make one clean cinematic frame with readable blocking, crisp subject edges, sharp eyes, clear hands, detailed textures, controlled depth of field, consistent wardrobe, consistent face, cinematic composition, tactile material detail, natural skin or surface imperfections, no border, no panel frame, no page layout, no watermark. Prompt standard enforcement: material specificity: visible skin pores, fine flyaway hairs, fabric weave, scuffed surfaces, dust and fingerprints where physically plausible; lighting source: motivated real light source with direction, color temperature, catchlights, practical reflections, grounded shadows; casting variation: each person has a distinct face shape, age bracket, hairstyle, body type, skin tone, wardrobe silhouette, posture, and expression; no duplicated template faces.",
+          "width_and_height": "1920x1080",
+          "quality": "1080p",
+          "batch_size": 1,
+          "workflow_id": "01_flux2_text_to_image",
+          "style_id": "",
+          "style_strength": 0.0,
+          "seed": 987278394,
+          "custom_reference_id": "",
+          "image_reference_url": "",
+          "local_equivalence_note": "Local adapter maps local image request to Forge Flux/ComfyUI workflow."
+        }
+      }
+    },
+    {
+      "index": 4,
+      "status": "completed",
+      "job_set_id": "db7a0533-3ede-4a3b-9998-7baed82955c0",
+      "provider": "spark",
+      "model": "flux2_dev",
+      "url": "/media-assets/local_spark_media/results/db7a0533-3ede-4a3b-9998-7baed82955c0/flux2_dev_db7a0533_00001_.png",
+      "raw": {
+        "id": "db7a0533-3ede-4a3b-9998-7baed82955c0",
+        "type": "text2image_local",
+        "created_at": "2026-05-12T22:27:57.171079+00:00",
+        "updated_at": "2026-05-12T22:53:53.001547+00:00",
+        "status": "completed",
+        "local_backend": "forge_comfyui",
+        "comfy_url": "http://100.80.184.21:8188",
+        "local_output_dir": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/db7a0533-3ede-4a3b-9998-7baed82955c0",
+        "jobs": [
+          {
+            "id": "d7b30054-a643-4ebd-8078-ffafd81b897d",
+            "prompt_id": "d7b30054-a643-4ebd-8078-ffafd81b897d",
+            "job_set_type": "text2image_local",
+            "status": "completed",
+            "results": {
+              "raw": {
+                "type": "image_url",
+                "url": "/media-assets/local_spark_media/results/db7a0533-3ede-4a3b-9998-7baed82955c0/flux2_dev_db7a0533_00001_.png",
+                "local_path": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/db7a0533-3ede-4a3b-9998-7baed82955c0/flux2_dev_db7a0533_00001_.png"
+              },
+              "min": {
+                "type": "image_url",
+                "url": "/media-assets/local_spark_media/results/db7a0533-3ede-4a3b-9998-7baed82955c0/flux2_dev_db7a0533_00001_.png",
+                "local_path": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/db7a0533-3ede-4a3b-9998-7baed82955c0/flux2_dev_db7a0533_00001_.png"
+              },
+              "all": [
+                {
+                  "type": "image_url",
+                  "url": "/media-assets/local_spark_media/results/db7a0533-3ede-4a3b-9998-7baed82955c0/flux2_dev_db7a0533_00001_.png",
+                  "local_path": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/db7a0533-3ede-4a3b-9998-7baed82955c0/flux2_dev_db7a0533_00001_.png"
+                }
+              ]
+            },
+            "error": ""
+          }
+        ],
+        "input_params": {
+          "prompt": "Single high-resolution cinematic production keyframe for board 3 shot 4 of 'Untitled Script'. This is an image-to-video start frame, not a storyboard page, not a contact sheet, not a grid. Style: cinematic. Scene action: WREN taps the base twice. All three laugh as moonlight washes over them.. Scene SC_004: The Release. Location: RUINED OBSERVATORY; time/light: MIDNIGHT. Characters: MOSS, FINN, WREN. Continuity: {\"wardrobe\": \"All unchanged.\", \"props\": [\"BRASS ASTROLABE\"], \"screen_direction\": \"Wide shot, deep focus captures all three in warm amber light.\"}. Setting: RUINED OBSERVATORY. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: MIDNIGHT. Mood: Realization to Shared Joy. Characters: MOSS, FINN, WREN. Character consistency: MOSS: Round, moss-green fur with bioluminescent vein patterns. Large expressive eyes.; FINN: Tall, copper-orange scales, sharp pointed ears, angular jawline.; WREN: Sleek charcoal plumage, calm posture, glowing amber eyes, tall silhouette.. Continuity: {\"wardrobe\": \"All unchanged.\", \"props\": [\"BRASS ASTROLABE\"], \"screen_direction\": \"Wide shot, deep focus captures all three in warm amber light.\"}. No text, no captions, no dialogue, no titles, no panel number. Make one clean cinematic frame with readable blocking, crisp subject edges, sharp eyes, clear hands, detailed textures, controlled depth of field, consistent wardrobe, consistent face, cinematic composition, tactile material detail, natural skin or surface imperfections, no border, no panel frame, no page layout, no watermark. Prompt standard enforcement: material specificity: visible skin pores, fine flyaway hairs, fabric weave, scuffed surfaces, dust and fingerprints where physically plausible; lighting source: motivated real light source with direction, color temperature, catchlights, practical reflections, grounded shadows; casting variation: each person has a distinct face shape, age bracket, hairstyle, body type, skin tone, wardrobe silhouette, posture, and expression; no duplicated template faces.",
+          "final_prompt": "Single high-resolution cinematic production keyframe for board 3 shot 4 of 'Untitled Script'. This is an image-to-video start frame, not a storyboard page, not a contact sheet, not a grid. Style: cinematic. Scene action: WREN taps the base twice. All three laugh as moonlight washes over them.. Scene SC_004: The Release. Location: RUINED OBSERVATORY; time/light: MIDNIGHT. Characters: MOSS, FINN, WREN. Continuity: {\"wardrobe\": \"All unchanged.\", \"props\": [\"BRASS ASTROLABE\"], \"screen_direction\": \"Wide shot, deep focus captures all three in warm amber light.\"}. Setting: RUINED OBSERVATORY. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: MIDNIGHT. Mood: Realization to Shared Joy. Characters: MOSS, FINN, WREN. Character consistency: MOSS: Round, moss-green fur with bioluminescent vein patterns. Large expressive eyes.; FINN: Tall, copper-orange scales, sharp pointed ears, angular jawline.; WREN: Sleek charcoal plumage, calm posture, glowing amber eyes, tall silhouette.. Continuity: {\"wardrobe\": \"All unchanged.\", \"props\": [\"BRASS ASTROLABE\"], \"screen_direction\": \"Wide shot, deep focus captures all three in warm amber light.\"}. No text, no captions, no dialogue, no titles, no panel number. Make one clean cinematic frame with readable blocking, crisp subject edges, sharp eyes, clear hands, detailed textures, controlled depth of field, consistent wardrobe, consistent face, cinematic composition, tactile material detail, natural skin or surface imperfections, no border, no panel frame, no page layout, no watermark. Prompt standard enforcement: material specificity: visible skin pores, fine flyaway hairs, fabric weave, scuffed surfaces, dust and fingerprints where physically plausible; lighting source: motivated real light source with direction, color temperature, catchlights, practical reflections, grounded shadows; casting variation: each person has a distinct face shape, age bracket, hairstyle, body type, skin tone, wardrobe silhouette, posture, and expression; no duplicated template faces.",
+          "width_and_height": "1920x1080",
+          "quality": "1080p",
+          "batch_size": 1,
+          "workflow_id": "01_flux2_text_to_image",
+          "style_id": "",
+          "style_strength": 0.0,
+          "seed": 1688371475,
+          "custom_reference_id": "",
+          "image_reference_url": "",
+          "local_equivalence_note": "Local adapter maps local image request to Forge Flux/ComfyUI workflow."
+        }
+      }
+    }
+  ]
+}

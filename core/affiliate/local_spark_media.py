@@ -42,8 +42,8 @@ def _parse_size(value: str, default: tuple[int, int] = (1696, 960)) -> tuple[int
         return default
 
 
-class LocalHiggsfieldAdapter:
-    """Higgsfield-shaped local creative adapter.
+class LocalSparkMediaAdapter:
+    """Spark media local creative adapter.
 
     The adapter stores job-set manifests under the configured media root so
     dashboard calls and agent calls can poll the same results across restarts.
@@ -115,7 +115,7 @@ class LocalHiggsfieldAdapter:
         self.comfy_url = (comfy_url or "http://localhost:8188").rstrip("/")
         self.workflow_file_for_id = workflow_file_for_id
         self.resolve_image_path = resolve_image_path
-        self.root = media_root / "local_higgsfield"
+        self.root = media_root / "local_spark_media"
         self.jobs_dir = self.root / "jobs"
         self.results_dir = self.root / "results"
         self.characters_dir = self.root / "characters"
@@ -242,7 +242,7 @@ class LocalHiggsfieldAdapter:
             "input_params": input_params,
         }
 
-    async def generate_image_soul(
+    async def generate_image(
         self,
         *,
         prompt: str,
@@ -289,7 +289,7 @@ class LocalHiggsfieldAdapter:
         if not workflow:
             job = self._make_job_set(
                 job_set_id=job_set_id,
-                job_type="text2image_soul_local",
+                job_type="text2image_local",
                 prompt_id=None,
                 status="failed",
                 input_params={"prompt": prompt, "width_and_height": width_and_height},
@@ -315,7 +315,7 @@ class LocalHiggsfieldAdapter:
         status = "queued" if submit.get("queued") else ("completed" if submit.get("status") == "success" else "failed")
         job = self._make_job_set(
             job_set_id=job_set_id,
-            job_type="text2image_soul_local",
+            job_type="text2image_local",
             prompt_id=submit.get("prompt_id"),
             status=status,
             input_params={
@@ -330,7 +330,7 @@ class LocalHiggsfieldAdapter:
                 "seed": submit.get("seed", seed),
                 "custom_reference_id": custom_reference_id,
                 "image_reference_url": image_reference_url,
-                "local_equivalence_note": "Local adapter maps Soul-style request to Forge Flux/ComfyUI workflow.",
+                "local_equivalence_note": "Local adapter maps local image request to Forge Flux/ComfyUI workflow.",
             },
             local_output_dir=output_dir,
             error=str(submit.get("error") or ""),
@@ -340,12 +340,12 @@ class LocalHiggsfieldAdapter:
         self._write_json(self._job_path(job_set_id), job)
         return job
 
-    async def generate_video_dop(
+    async def generate_video(
         self,
         *,
         input_image_url: str,
         prompt: str,
-        model: str = "dop-turbo",
+        model: str = "ltx-i2v",
         seed: Optional[int] = None,
         motions: Optional[List[Dict[str, Any]]] = None,
         input_image_end_url: Optional[str] = None,
@@ -359,7 +359,7 @@ class LocalHiggsfieldAdapter:
         if not image_path:
             job = self._make_job_set(
                 job_set_id=job_set_id,
-                job_type="image2video_dop_local",
+                job_type="image2video_local",
                 prompt_id=None,
                 status="failed",
                 input_params={"input_image_url": input_image_url, "prompt": prompt},
@@ -381,7 +381,7 @@ class LocalHiggsfieldAdapter:
         if not workflow:
             job = self._make_job_set(
                 job_set_id=job_set_id,
-                job_type="image2video_dop_local",
+                job_type="image2video_local",
                 prompt_id=None,
                 status="failed",
                 input_params={"input_image_url": input_image_url, "prompt": prompt},
@@ -405,7 +405,7 @@ class LocalHiggsfieldAdapter:
         status = "queued" if submit.get("queued") else ("completed" if submit.get("status") == "success" else "failed")
         job = self._make_job_set(
             job_set_id=job_set_id,
-            job_type="image2video_dop_local",
+            job_type="image2video_local",
             prompt_id=submit.get("prompt_id"),
             status=status,
             input_params={
@@ -417,7 +417,7 @@ class LocalHiggsfieldAdapter:
                 "motions": motions or [],
                 "input_image_end_url": input_image_end_url,
                 "seed": submit.get("seed", seed),
-                "local_equivalence_note": "Local adapter maps DoP-style request to Forge LTX/ComfyUI workflow.",
+                "local_equivalence_note": "Local adapter maps local image-to-video request to Forge LTX/ComfyUI workflow.",
             },
             local_output_dir=output_dir,
             error=str(submit.get("error") or ""),
@@ -446,7 +446,7 @@ class LocalHiggsfieldAdapter:
             "thumbnail_url": self._media_url(Path(local_images[0])) if local_images else "",
             "local_equivalence_note": (
                 "Local character references are stored as reusable identity assets. "
-                "They are not Higgsfield Soul training jobs."
+                "They are not remote training jobs."
             ),
         }
         self._write_json(folder / "character.json", character)

@@ -30,6 +30,36 @@ let currentConfig = {};
 let currentPlatformSkill = { active: false, id: "", label: "No platform skill", constraints: {} };
 let platformDetectTimer = null;
 let targetCountManualOverride = false;
+const ADVANCED_MODE_KEY = "forge_advanced_mode";
+
+function isAdvancedMode() {
+    try {
+        return localStorage.getItem(ADVANCED_MODE_KEY) === "1";
+    } catch (_e) {
+        return false;
+    }
+}
+
+function setAdvancedMode(enabled) {
+    const on = !!enabled;
+    document.body.classList.toggle("advanced-mode", on);
+    try {
+        localStorage.setItem(ADVANCED_MODE_KEY, on ? "1" : "0");
+    } catch (_e) {}
+    const toggle = document.getElementById("advanced-mode-toggle");
+    if (toggle) toggle.checked = on;
+    const drawer = document.querySelector(".library-drawer");
+    if (drawer) {
+        if (on) drawer.setAttribute("open", "");
+        else drawer.removeAttribute("open");
+    }
+    const activeAdvancedPage = document.querySelector(".page-view.active.advanced-only");
+    if (!on && activeAdvancedPage) switchPage("dashboard-view");
+}
+
+function initAdvancedMode() {
+    setAdvancedMode(isAdvancedMode());
+}
 
 // Spark state
 let sparkRenderResults = {};
@@ -212,6 +242,7 @@ const $dashboardLeftPane = document.getElementById("dashboard-left-pane");
 // Init
 // ---------------------------------------------------------------------------
 window.addEventListener("DOMContentLoaded", () => {
+    initAdvancedMode();
     setDefaultVideoWorkflow();
     initVideoQuickOptions();
     switchScriptFlowStep("brief");
@@ -961,6 +992,9 @@ function switchPage(pageClass) {
     if (pageClass === "ideas-view") {
         loadIdeaBoard();
     }
+    if (pageClass === "products-view") {
+        renderProductsTab();
+    }
     if (pageClass === "identity-view") {
         loadIdentityTab();
     }
@@ -1072,7 +1106,7 @@ async function loadCampaignFolders() {
             row.appendChild(meta);
 
             const renameBtn = document.createElement("button");
-            renameBtn.className = "campaign-rename";
+            renameBtn.className = "campaign-rename advanced-only";
             renameBtn.textContent = "Rename";
             renameBtn.addEventListener("click", async (event) => {
                 event.stopPropagation();
@@ -1106,7 +1140,7 @@ async function loadCampaignFolders() {
             row.appendChild(renameBtn);
 
             const deleteBtn = document.createElement("button");
-            deleteBtn.className = "campaign-delete";
+            deleteBtn.className = "campaign-delete advanced-only";
             deleteBtn.textContent = "Delete";
             deleteBtn.addEventListener("click", async (event) => {
                 event.stopPropagation();
@@ -1369,7 +1403,7 @@ async function loadConfig() {
         document.getElementById("cfg-backend-mode").checked = backendMode === "remote";
         _updateBackendLabels(backendMode === "remote");
 
-        // AI Provider (Nous / Kimi / OpenRouter / NVIDIA)
+        // Cloud/local director provider settings.
         const kimi = currentConfig.kimi || {};
         const keyField = document.getElementById("cfg-kimi-api-key");
         keyField.value = "";
@@ -1686,7 +1720,7 @@ async function testStoryboardProviders() {
 }
 
 // ---------------------------------------------------------------------------
-// Settings: Test Kimi
+// Settings: Test Director
 // ---------------------------------------------------------------------------
 async function testProvider() {
     const $result = document.getElementById("kimi-test-result");
@@ -3126,7 +3160,7 @@ async function pollStoryboardPanelJobs(boardIndex) {
         if (!job.job_set_id || job.url) continue;
         if (job.provider && job.provider !== "spark") continue;
         try {
-            const resp = await fetch("/api/local-higgsfield/jobs/" + encodeURIComponent(job.job_set_id));
+            const resp = await fetch("/api/local-spark-media/jobs/" + encodeURIComponent(job.job_set_id));
             const data = await resp.json();
             if (!resp.ok) throw new Error(data.detail || data.error || "status failed");
             job.status = data.status || job.status || "queued";
@@ -3288,7 +3322,7 @@ async function pollStoryboardCharacterSheet() {
         return storyboardCharacterSheetJob;
     }
     try {
-        const resp = await fetch("/api/local-higgsfield/jobs/" + encodeURIComponent(storyboardCharacterSheetJob.job_set_id));
+        const resp = await fetch("/api/local-spark-media/jobs/" + encodeURIComponent(storyboardCharacterSheetJob.job_set_id));
         const data = await resp.json();
         if (!resp.ok) throw new Error(data.detail || data.error || "status failed");
         storyboardCharacterSheetJob.status = data.status || storyboardCharacterSheetJob.status;
@@ -3818,20 +3852,20 @@ function addLogEntry(type, text) {
 
     const tags = {
         user: "YOU",
-        kimi: "[KIMI \u270D]",
+        kimi: "[Director]",
         hermes: "[HERMES \uD83E\uDDE0]",
         spark: "[SPARK \u26A1]",
         memory: "[MEM \uD83D\uDCBE]",
         system: "[SYS]",
         error: "[ERR]",
-        profile_director_kimi: "[Kimi / Director Planner]",
+        profile_director_kimi: "[NVIDIA / Director Planner]",
         profile_director_lmstudio: "[LM Studio / Director Planner]",
-        profile_critic_kimi: "[Kimi / Coverage Critic]",
+        profile_critic_kimi: "[NVIDIA / Coverage Critic]",
         profile_critic_lmstudio: "[LM Studio / Coverage Critic]",
         profile_compiler_lmstudio: "[Hermes / Prompt Compiler]",
         profile_continuity_lmstudio: "[Hermes / Continuity Guard]",
         profile_remediation_lmstudio: "[Hermes / Remediation Reprompter]",
-        profile_audit_kimi: "[Kimi / Audit Judge]",
+        profile_audit_kimi: "[Vision / Audit Judge]",
     };
 
     row.innerHTML =
@@ -4952,7 +4986,7 @@ async function generateCharacterFromRoleWithKimi(role, status) {
     if (status) {
         status.classList.remove("kimi-success", "kimi-fallback");
         status.classList.add("kimi-generating");
-        status.textContent = "Asking Kimi to cast and prompt this role...";
+        status.textContent = "Asking Director to cast and prompt this role...";
     }
     const resp = await fetch("/api/characters/role-prompt", {
         method: "POST",
@@ -4965,7 +4999,7 @@ async function generateCharacterFromRoleWithKimi(role, status) {
     });
     const data = await resp.json().catch(() => ({}));
     if (!resp.ok || data.status !== "ok") {
-        throw new Error(data.detail || data.error || "Kimi prompt generation failed");
+        throw new Error(data.detail || data.error || "Director prompt generation failed");
     }
 
     const setValue = (id, value) => {
@@ -4989,7 +5023,7 @@ async function generateCharacterFromRoleWithKimi(role, status) {
     if (status) {
         status.classList.remove("kimi-generating", "kimi-fallback");
         status.classList.add("kimi-success");
-        status.textContent = "Kimi generated a role-aware character prompt. Review before sending to Spark.";
+        status.textContent = "Director generated a role-aware character prompt. Review before sending to Spark.";
     }
     return true;
 }
@@ -5241,11 +5275,11 @@ async function generateCharacterFromRoleForge() {
         if (await generateCharacterFromRoleWithKimi(role, status)) return;
     } catch (e) {
         kimiError = e?.message || String(e || "");
-        console.warn("Kimi character prompt unavailable; using local role logic.", e);
+        console.warn("Director character prompt unavailable; using local role logic.", e);
         if (status) {
             status.classList.remove("kimi-generating", "kimi-success");
             status.classList.add("kimi-fallback");
-            status.textContent = "Kimi unavailable; using local role-aware generator...";
+            status.textContent = "Director unavailable; using local role-aware generator...";
         }
     }
     const neutralNames = ["Alex", "Jordan", "Maya", "Noah", "Elena", "Marcus", "Priya", "Owen", "Nina", "Daniel", "Leah", "Victor"];
@@ -5290,7 +5324,7 @@ async function generateCharacterFromRoleForge() {
         if (kimiError) status.classList.add("kimi-fallback");
         else status.classList.remove("kimi-fallback");
         status.textContent = kimiError
-            ? "Kimi unavailable; generated from role locally. Review before sending to Spark."
+            ? "Director unavailable; generated from role locally. Review before sending to Spark."
             : "Character generated from role locally. Review before sending to Spark.";
     }
 }
@@ -6471,7 +6505,7 @@ async function generateVideoPromptsForSelected() {
                     videoShotsById[id].video_prompt_source = "vision_prompt_agent";
                 }
             });
-            $sparkStatusText.textContent = "Generated " + Object.keys(prompts).length + " video prompt(s). Review/edit, then click Process.";
+            $sparkStatusText.textContent = "Generated " + Object.keys(prompts).length + " video prompt(s). Review/edit, then click Generate Videos.";
             $sparkProgress.textContent = (saved ? (saved + " prompt(s) saved to selected media") : "Prompt ready") +
                 (streamErrors ? (" · " + streamErrors + " warning(s), fallback used where needed") : "");
             await loadVideoLibrary();
@@ -6485,7 +6519,7 @@ async function generateVideoPromptsForSelected() {
     } finally {
         if (btn) {
             btn.disabled = false;
-            btn.textContent = "Generate Prompt From Selected Images";
+            btn.textContent = "Build Prompt";
         }
     }
 }
@@ -6768,10 +6802,14 @@ async function loadMemoryTab() {
   if (cyEl) cyEl.innerHTML = "";
   try {
     const s = await fetch('/api/memory/stats').then(r => r.json());
-    document.getElementById('mg-events').textContent = s.events ?? '—';
-    document.getElementById('mg-insights').textContent = s.insights ?? '—';
-    document.getElementById('mg-sessions').textContent = s.sessions ?? '—';
-    document.getElementById('mg-rules').textContent = s.rules ?? '—';
+    const eventsEl = document.getElementById('mg-events');
+    const insightsEl = document.getElementById('mg-insights');
+    const sessionsEl = document.getElementById('mg-sessions');
+    const rulesEl = document.getElementById('mg-rules');
+    if (eventsEl) eventsEl.textContent = s.events ?? '—';
+    if (insightsEl) insightsEl.textContent = s.insights ?? '—';
+    if (sessionsEl) sessionsEl.textContent = s.sessions ?? '—';
+    if (rulesEl) rulesEl.textContent = s.rules ?? '—';
   } catch(e) {
     addLogEntry("error", "Memory stats failed: " + (e?.message || e));
   }
@@ -7446,20 +7484,9 @@ async function triggerConsolidate() {
 }
 
 // ---------------------------------------------------------------------------
-// Static Shell Router
+// Asset Vault shared state
 // ---------------------------------------------------------------------------
-const SHELL_VIEWS = {
-    home: { section: "Images", current: "Generation" },
-    characters: { section: "Characters", current: "DNA" },
-    script: { section: "Script", current: "Director" },
-    products: { section: "Asset Vault", current: "Packages" },
-    spark: { section: "Spark", current: "Queue" },
-    memory: { section: "Memory", current: "Graph" },
-    settings: { section: "Settings", current: "System" },
-};
-
 let shellState = {
-    view: "home",
     characters: [],
     selectedCharacterId: "",
     charactersRosterCollapsed: false,
@@ -7472,8 +7499,11 @@ let shellState = {
     variations: [],
 };
 
-function getShellView() {
-    return document.getElementById("view");
+function getShellView(scope) {
+    if (scope === "products") {
+        return document.getElementById("asset-vault-live-root");
+    }
+    return null;
 }
 
 function normalizeProducts(payload) {
@@ -7542,205 +7572,6 @@ function renderPortrait(char, size) {
     return '<div class="character-placeholder">' + escapeHtml(characterName(char).slice(0, 1).toUpperCase()) + "</div>";
 }
 
-function updateShellChrome(viewId) {
-    const meta = SHELL_VIEWS[viewId] || SHELL_VIEWS.home;
-    document.querySelectorAll(".rail-item[data-view]").forEach((item) => {
-        item.classList.toggle("active", item.dataset.view === viewId);
-    });
-    const section = document.getElementById("crumbSection");
-    const current = document.getElementById("crumbCurrent");
-    if (section) section.textContent = meta.section;
-    if (current) current.textContent = meta.current;
-}
-
-function navigate(viewId) {
-    if (!getShellView()) return;
-    const target = SHELL_VIEWS[viewId] ? viewId : "home";
-    shellState.view = target;
-    if (window.location.hash !== "#/" + target) {
-        history.pushState(null, "", "#/" + target);
-    }
-    updateShellChrome(target);
-    if (target === "characters") {
-        renderCharactersTab();
-        return;
-    }
-    if (target === "script") {
-        renderScriptTab();
-        return;
-    }
-    if (target === "products") {
-        renderProductsTab();
-        return;
-    }
-    if (target === "settings") {
-        renderSettingsTab();
-        configDirty = {};
-        loadConfig();
-        return;
-    }
-    renderShellPlaceholder(target);
-}
-
-window.navigate = navigate;
-
-window.addEventListener("popstate", () => {
-    const fromHash = (window.location.hash || "#/home").replace(/^#\/?/, "") || "home";
-    shellState.view = SHELL_VIEWS[fromHash] ? fromHash : "home";
-    updateShellChrome(shellState.view);
-    if (shellState.view === "characters") renderCharactersTab();
-    else if (shellState.view === "script") renderScriptTab();
-    else if (shellState.view === "products") renderProductsTab();
-    else if (shellState.view === "settings") {
-        renderSettingsTab();
-        configDirty = {};
-        loadConfig();
-    }
-    else renderShellPlaceholder(shellState.view);
-});
-
-window.addEventListener("hashchange", () => {
-    const fromHash = (window.location.hash || "#/home").replace(/^#\/?/, "") || "home";
-    const target = SHELL_VIEWS[fromHash] ? fromHash : "home";
-    if (target !== shellState.view) navigate(target);
-});
-
-window.addEventListener("DOMContentLoaded", () => {
-    const initial = (window.location.hash || "#/home").replace(/^#\/?/, "") || "home";
-    navigate(SHELL_VIEWS[initial] ? initial : "home");
-});
-
-function renderShellPlaceholder(viewId) {
-    const view = getShellView();
-    if (!view) return;
-    if (viewId === "home") {
-        view.innerHTML =
-            '<div class="view-inner">' +
-                '<div class="view-header">' +
-                    '<div><div class="eyebrow">Command Center</div><h1>Forge NPS</h1><p class="sub">Campaign control, character identity, render queue, and memory audit workspace.</p></div>' +
-                    '<div class="actions"><button class="btn btn-primary" onclick="navigate(\'characters\')">Characters</button></div>' +
-                '</div>' +
-                '<div class="hero-grid">' +
-                    '<div class="panel stat"><span class="stat-label">Shots</span><span class="stat-value" id="stat-shots">0</span><span class="stat-sub">In store</span></div>' +
-                    '<div class="panel stat"><span class="stat-label">Sessions</span><span class="stat-value" id="stat-sessions">0</span><span class="stat-sub">Chat memory</span></div>' +
-                    '<div class="panel stat"><span class="stat-label">RAM</span><span class="stat-value" id="stat-ram">0%</span><span class="stat-sub">Host usage</span></div>' +
-                    '<div class="panel stat"><span class="stat-label">Queue</span><span class="stat-value" id="home-queue">0</span><span class="stat-sub">Active media</span></div>' +
-                '</div>' +
-                '<div class="home-body">' +
-                    '<section class="panel"><div class="panel-header"><div class="title">Characters</div><div class="meta" id="home-character-count">loading</div></div><div class="panel-body"><div class="char-list-inline" id="char-list"></div></div></section>' +
-                    '<section class="panel"><div class="panel-header"><div class="title">Quick Actions</div></div><div class="panel-body quick-actions">' +
-                        '<button class="quick-action" onclick="navigate(\'characters\')"><span class="title">Character DNA</span><span class="desc">Manage characters and traits</span></button>' +
-                        '<button class="quick-action" onclick="navigate(\'script\')"><span class="title">Script Director</span><span class="desc">Plan, edit, and select shots</span></button>' +
-                        '<button class="quick-action" onclick="navigate(\'products\')"><span class="title">Asset Vault</span><span class="desc">Manage product, brand, and reference packages</span></button>' +
-                        '<button class="quick-action" onclick="navigate(\'spark\')"><span class="title">Spark Queue</span><span class="desc">Review render work</span></button>' +
-                    '</div></section>' +
-                '</div>' +
-            '</div>';
-        loadStats();
-        refreshCharacterSummary();
-        return;
-    }
-    const meta = SHELL_VIEWS[viewId] || SHELL_VIEWS.home;
-    view.innerHTML =
-        '<div class="view-inner">' +
-            '<div class="view-header"><div><div class="eyebrow">' + escapeHtml(meta.section) + '</div><h1>' + escapeHtml(meta.section) + '</h1><p class="sub">This workspace is wired into the shell; the next production panel can mount here without changing navigation.</p></div></div>' +
-            '<section class="panel"><div class="panel-body"><span class="t-meta">No static panel is mounted for this tab yet.</span></div></section>' +
-        '</div>';
-}
-
-function renderScriptTab() {
-    const view = getShellView();
-    if (!view) return;
-    view.innerHTML = `
-        <div class="view-inner script-shell">
-            <div class="view-header">
-                <div>
-                    <div class="eyebrow">Director</div>
-                    <h1>Script</h1>
-                    <p class="sub">Develop a locked script package, then convert it into scene-aware coverage for Spark.</p>
-                </div>
-                <div class="actions">
-                    <button class="btn" onclick="clearShotList()">Reset</button>
-                    <button class="btn btn-primary" id="send-to-spark-btn" onclick="sendToSpark()" disabled>Send Selected to Spark</button>
-                </div>
-            </div>
-
-            <div class="script-workspace">
-                <section class="panel script-brief-panel">
-                    <div class="panel-header">
-                        <div class="title">01 Brief</div>
-                        <div class="meta" id="script-progress"></div>
-                    </div>
-                    <div class="panel-body script-brief-body">
-                        <div class="form-inline">
-                            <label class="form-row"><span>Title</span><input class="input" type="text" id="script-title" placeholder="Campaign or film title"></label>
-                            <label class="form-row"><span>Tone</span><input class="input" type="text" id="script-tone" placeholder="restrained sci-fi thriller"></label>
-                            <label class="form-row small"><span>Runtime</span><input class="input" type="number" id="script-runtime" value="60" min="15" max="720"></label>
-                            <label class="form-row small"><span>Scenes</span><input class="input" type="number" id="script-scenes" value="4" min="1" max="12"></label>
-                        </div>
-                        <textarea id="script-brief" class="textarea script-brief-input" placeholder="Paste the campaign prompt, script, or brand brief..." rows="9"></textarea>
-                        <div class="script-controls">
-                            <label class="script-file-control">
-                                <span class="t-label">Upload</span>
-                                <input class="input" type="file" id="brief-file-input" accept=".md,.txt,.pdf" onchange="uploadBrief()">
-                            </label>
-                            <button class="btn btn-primary" id="develop-script-btn" onclick="developScriptPackage()">Develop Script Package</button>
-                        </div>
-                        <div id="script-status" class="script-status-line">
-                            <span id="script-status-text">Ready</span>
-                        </div>
-                    </div>
-                </section>
-
-                <section class="panel script-package-panel">
-                    <div class="panel-header"><div class="title">02 Locked Package</div><div class="meta">Treatment / continuity / edit</div></div>
-                    <div class="panel-body script-package-tabs">
-                        <div class="script-package-box"><h4>Treatment</h4><div id="script-treatment-output" class="script-output"><div class="script-empty-mini">No treatment yet.</div></div></div>
-                        <div class="script-package-box"><h4>Continuity</h4><div id="script-continuity-output" class="script-output"><div class="script-empty-mini">No continuity locks yet.</div></div></div>
-                        <div class="script-package-box"><h4>Edit Plan</h4><div id="script-edit-output" class="script-output"><div class="script-empty-mini">No edit plan yet.</div></div></div>
-                    </div>
-                </section>
-
-                <section class="panel script-scenes-panel">
-                    <div class="panel-header"><div class="title">03 Scenes and Beats</div><div class="meta">Structured script</div></div>
-                    <div class="panel-body"><div id="script-scenes-output" class="script-scenes-output"><div class="script-empty-mini">Generate the package to see scene structure.</div></div></div>
-                </section>
-
-                <section class="panel script-json-panel">
-                    <div class="panel-header"><div class="title">04 Package JSON</div><div class="meta">Editable lockfile</div></div>
-                    <textarea id="script-package-json" class="textarea" spellcheck="false" placeholder="The locked script package appears here. You can edit it before generating coverage."></textarea>
-                </section>
-
-                <section class="panel script-chat-panel">
-                    <div class="script-chat-header">
-                        <span>Hermes Notes</span>
-                        <span id="script-chat-status">Ready</span>
-                    </div>
-                    <div id="script-chat-log" class="script-chat-log"></div>
-                    <div class="script-chat-input-row">
-                        <input class="input" type="text" id="script-chat-input" placeholder="Message Hermes..." onkeydown="if(event.key==='Enter')sendScriptChat()">
-                        <button class="btn" id="script-chat-send-btn" onclick="sendScriptChat()">Send</button>
-                    </div>
-                </section>
-
-                <section class="panel script-shot-panel">
-                    <div class="panel-header">
-                        <div class="title">05 Coverage Shotlist</div>
-                        <div class="meta"><input class="input" type="number" id="script-target-shots" min="1" max="120" placeholder="auto" style="width:90px;"><button class="btn btn-primary" id="generate-shots-btn" onclick="generateShotList()">Generate Coverage Shotlist</button></div>
-                    </div>
-                    <div class="panel-body script-shot-body">
-                        <div id="shot-list-placeholder" class="script-empty">
-                            <p>Generate a script package, then convert it into coverage.</p>
-                        </div>
-                        <div id="shot-list" class="shot-list" style="display:none;"></div>
-                    </div>
-                </section>
-            </div>
-        </div>`;
-    refreshScriptDomRefs();
-    updateSendToSparkBtn();
-}
-
 async function fetchProducts() {
     return fetchAssetVaultPackages();
 }
@@ -7754,7 +7585,7 @@ async function fetchProductBanks() {
 }
 
 async function renderProductsTab() {
-    const view = getShellView();
+    const view = getShellView("products");
     if (!view) return;
     view.innerHTML =
         '<div class="view-inner">' +
@@ -7806,15 +7637,15 @@ function renderProductsContent() {
                                 '<label class="field"><span class="t-label">Package Name</span><input class="input" id="product-name-input" value="' + escapeHtml(initialName) + '" placeholder="Aurora Launch Kit"></label>' +
                                 '<div class="form-inline">' +
                                     '<label class="form-row"><span>Package Type</span><select class="select" id="asset-vault-type">' + renderAssetVaultTypeOptions(selectedType) + '</select></label>' +
-                                    '<label class="form-row"><span>Status</span><select class="select" id="asset-vault-status">' + renderAssetVaultStatusOptions(selectedStatus) + '</select></label>' +
+                                    '<label class="form-row advanced-only"><span>Status</span><select class="select" id="asset-vault-status">' + renderAssetVaultStatusOptions(selectedStatus) + '</select></label>' +
                                 '</div>' +
                                 '<label class="field"><span class="t-label">Description</span><textarea class="textarea" id="product-description-input" rows="6" placeholder="Describe the product, brand rules, style, references, and continuity needs.">' + escapeHtml(initialDescription) + '</textarea></label>' +
-                                '<label class="field"><span class="t-label">Tags</span><input class="input" id="asset-vault-tags" value="' + escapeHtml((selected?.tags || []).join(", ")) + '" placeholder="hero product, launch, continuity"></label>' +
-                                '<label class="product-check"><input type="checkbox" id="product-seed-lock" checked> Deterministic package seed</label>' +
+                                '<label class="field advanced-only"><span class="t-label">Tags</span><input class="input" id="asset-vault-tags" value="' + escapeHtml((selected?.tags || []).join(", ")) + '" placeholder="hero product, launch, continuity"></label>' +
+                                '<label class="product-check advanced-only"><input type="checkbox" id="product-seed-lock" checked> Deterministic package seed</label>' +
                                 '<div class="product-recipe-actions">' +
                                     '<button class="btn btn-primary" type="button" onclick="saveAssetVaultPackage()">Save Package</button>' +
-                                    '<button class="btn" type="button" onclick="duplicateAssetVaultPackage()">Duplicate</button>' +
-                                    '<button class="btn btn-secondary" type="button" onclick="deleteAssetVaultPackage()">Delete</button>' +
+                                    '<button class="btn advanced-only" type="button" onclick="duplicateAssetVaultPackage()">Duplicate</button>' +
+                                    '<button class="btn btn-secondary advanced-only" type="button" onclick="deleteAssetVaultPackage()">Delete</button>' +
                                 '</div>' +
                             '</div>' +
                         '</div>' +
@@ -7823,12 +7654,12 @@ function renderProductsContent() {
                         '<div class="panel-header"><div class="title">Linked Characters</div><div class="meta">' + linkedCharacters.length + '</div></div>' +
                         '<div class="panel-body product-bank-grid">' + renderAssetVaultCharacterControls(selected) + '</div>' +
                     '</section>' +
-                    '<section class="panel product-banks-card">' +
+                    '<section class="panel product-banks-card advanced-only">' +
                         '<div class="panel-header"><div class="title">Variation Banks</div><div class="meta">' + Object.keys(shellState.productBanks).length + ' banks</div></div>' +
                         '<div class="panel-body product-bank-grid">' + renderProductBankControls() + '</div>' +
                     '</section>' +
                 '</div>' +
-                '<section class="panel product-recipe-card">' +
+                '<section class="panel product-recipe-card advanced-only">' +
                     '<div class="panel-header"><div class="title">Production Rules</div><div class="meta">prompt locks</div></div>' +
                     '<div class="panel-body asset-vault-rule-grid">' +
                         renderAssetVaultRuleField("brand_rules", "Brand Rules", selected?.brand_rules || "") +
@@ -7844,14 +7675,14 @@ function renderProductsContent() {
                     '<div class="panel-header"><div class="title">Package Assets</div><div class="meta">' + (Array.isArray(selected?.references) ? selected.references.length : 0) + ' refs</div></div>' +
                     '<div class="panel-body">' + renderAssetVaultReferenceEditor(selected) + '</div>' +
                 '</section>' +
-                '<section class="panel product-recipe-card">' +
+                '<section class="panel product-recipe-card advanced-only">' +
                     '<div class="panel-header"><div class="title">Prompt Recipe</div><div class="meta" id="product-recipe-meta">not built</div></div>' +
                     '<div class="panel-body">' +
                         '<textarea class="textarea product-prompt-output" id="product-prompt-output" readonly placeholder="Build a prompt to preview the compiled recipe."></textarea>' +
                         '<div class="product-recipe-actions"><button class="btn btn-primary" onclick="buildProductRecipe()">Build Prompt</button><button class="btn" onclick="copyProductPrompt()">Copy Prompt</button><span class="t-meta" id="product-copy-status"></span></div>' +
                     '</div>' +
                 '</section>' +
-                '<section class="panel product-gallery-card">' +
+                '<section class="panel product-gallery-card advanced-only">' +
                     '<div class="panel-header"><div class="title">Package Variation Gallery</div><div class="meta">renders</div></div>' +
                     '<div class="panel-body product-gallery-empty">No package renders loaded.</div>' +
                 '</section>' +
@@ -7908,7 +7739,7 @@ function renderAssetVaultReferenceEditor(selected) {
     const rows = refs.map((ref, index) => renderAssetVaultReferenceRow(ref, index)).join("");
     return (
         '<div class="asset-vault-reference-editor">' +
-            '<div class="asset-reference-row">' +
+            '<div class="asset-reference-upload-row">' +
                 '<select class="select" id="asset-vault-upload-type">' + renderAssetVaultReferenceTypeOptions("reference") + '</select>' +
                 '<input class="input" id="asset-vault-upload-name" placeholder="Uploaded asset name">' +
                 '<input class="input" type="file" id="asset-vault-upload-file" accept="image/*,.ttf,.otf,.woff,.woff2,.pdf">' +
@@ -7952,13 +7783,17 @@ function removeAssetVaultReferenceRow(button) {
 }
 
 function collectAssetVaultReferences() {
-    return Array.from(document.querySelectorAll(".asset-reference-row")).map((row, index) => ({
+    return Array.from(document.querySelectorAll("#asset-vault-reference-rows .asset-reference-row")).map((row, index) => ({
         id: "ref_" + String(index + 1),
         type: row.querySelector(".asset-reference-type")?.value || "reference",
-        name: row.querySelector(".asset-reference-name")?.value.trim() || "Reference " + String(index + 1),
+        name: row.querySelector(".asset-reference-name")?.value.trim() || "",
         url: row.querySelector(".asset-reference-url")?.value.trim() || "",
         prompt: row.querySelector(".asset-reference-prompt")?.value.trim() || "",
-    })).filter((ref) => ref.name || ref.url || ref.prompt);
+    })).filter((ref) => ref.name || ref.url || ref.prompt).map((ref, index) => ({
+        ...ref,
+        id: "ref_" + String(index + 1),
+        name: ref.name || "Reference " + String(index + 1),
+    }));
 }
 
 function selectedAssetVaultPackage() {
@@ -8273,14 +8108,14 @@ function renderSettingsTab() {
                             <label class="form-row"><span>Host</span><input class="input" type="text" id="cfg-lmstudio-host" placeholder="http://localhost" onchange="markDirty('models.hermes_3.host')"></label>
                             <label class="form-row small"><span>Port</span><input class="input" type="number" id="cfg-lmstudio-port" placeholder="1234" onchange="markDirty('models.hermes_3.port')"></label>
                             <label class="form-row"><span>Chat Model</span><input class="input" type="text" id="cfg-lmstudio-model" placeholder="qwen3.6-35b-a3b" onchange="markDirty('models.hermes_3.model_name')"></label>
-                            <label class="form-row"><span>Vision Model</span><input class="input" type="text" id="cfg-visual-model" placeholder="qwen3.6-35b-a3b" onchange="markDirty('models.kimi_vl.model_name')"></label>
-                            <label class="form-row settings-span-2"><span>Vision Endpoint</span><input class="input" type="text" id="cfg-vision-endpoint-api1" placeholder="http://localhost:1234/v1" onchange="markDirty('models.kimi_vl.endpoint_api1')"></label>
+                            <label class="form-row advanced-only"><span>Vision Model</span><input class="input" type="text" id="cfg-visual-model" placeholder="qwen3.6-35b-a3b" onchange="markDirty('models.kimi_vl.model_name')"></label>
+                            <label class="form-row settings-span-2 advanced-only"><span>Vision Endpoint</span><input class="input" type="text" id="cfg-vision-endpoint-api1" placeholder="http://localhost:1234/v1" onchange="markDirty('models.kimi_vl.endpoint_api1')"></label>
                         </div>
                         <div class="card-actions">
                             <button class="btn" onclick="testLMStudio()">Test & Detect</button>
-                            <button class="btn" onclick="loadLMStudioModel()">Load Model</button>
-                            <button class="btn" onclick="testVision()">Test Vision</button>
-                            <button class="btn btn-primary" onclick="reloadHermesVision()">Reload Hermes/Vision</button>
+                            <button class="btn advanced-only" onclick="loadLMStudioModel()">Load Model</button>
+                            <button class="btn advanced-only" onclick="testVision()">Test Vision</button>
+                            <button class="btn btn-primary advanced-only" onclick="reloadHermesVision()">Reload Hermes/Vision</button>
                         </div>
                         <div class="settings-result-grid">
                             <div id="lmstudio-test-result" class="test-result"></div>
@@ -8307,14 +8142,14 @@ function renderSettingsTab() {
                         </div>
                         <div class="settings-form-grid settings-form-grid-single">
                             <label class="form-row"><span>API Key</span><input class="input" type="password" id="cfg-kimi-api-key" placeholder="Bearer token..." onchange="markDirty('kimi.api_key')"></label>
-                            <label class="form-row"><span>Provider Endpoint</span><input class="input" type="text" id="cfg-kimi-endpoint" placeholder="https://integrate.api.nvidia.com/v1/chat/completions" onchange="markDirty('kimi.endpoint')"></label>
-                            <label class="form-row"><span>Director Model</span><input class="input" type="text" id="cfg-director-model" placeholder="moonshotai/kimi-k2.6" onchange="markDirty('models.director_kimi.model_name')"></label>
-                            <label class="form-row"><span>Director Endpoint</span><input class="input" type="text" id="cfg-director-endpoint-api1" placeholder="https://integrate.api.nvidia.com/v1/chat/completions" onchange="markDirty('models.director_kimi.endpoint_api1')"></label>
+                            <label class="form-row advanced-only"><span>Provider Endpoint</span><input class="input" type="text" id="cfg-kimi-endpoint" placeholder="https://integrate.api.nvidia.com/v1/chat/completions" onchange="markDirty('kimi.endpoint')"></label>
+                            <label class="form-row advanced-only"><span>Director Model</span><input class="input" type="text" id="cfg-director-model" placeholder="provider/model-name" onchange="markDirty('models.director_kimi.model_name')"></label>
+                            <label class="form-row advanced-only"><span>Director Endpoint</span><input class="input" type="text" id="cfg-director-endpoint-api1" placeholder="https://integrate.api.nvidia.com/v1/chat/completions" onchange="markDirty('models.director_kimi.endpoint_api1')"></label>
                         </div>
 	                        <div class="card-actions">
-	                            <button class="btn" onclick="testProvider()">Test Provider</button>
+	                            <button class="btn advanced-only" onclick="testProvider()">Test Provider</button>
 	                            <button class="btn" onclick="testDirector()">Test Director</button>
-	                            <button class="btn" onclick="testDirectorSelfCheck()">Test Self-Check</button>
+	                            <button class="btn advanced-only" onclick="testDirectorSelfCheck()">Test Self-Check</button>
 	                        </div>
 	                        <div class="settings-result-grid">
 	                            <div id="kimi-test-result" class="test-result"></div>
@@ -8329,9 +8164,9 @@ function renderSettingsTab() {
                     <div class="panel-body">
                         <p class="card-desc">Spark and ComfyUI endpoints used by image and video generation.</p>
                         <div class="settings-form-grid settings-form-grid-single">
-                            <label class="form-row"><span>Spark Primary WebSocket</span><input class="input" type="text" id="cfg-spark-primary" placeholder="ws://localhost:8000" onchange="markDirty('spark.primary')"></label>
+                            <label class="form-row advanced-only"><span>Spark Primary WebSocket</span><input class="input" type="text" id="cfg-spark-primary" placeholder="ws://localhost:8000" onchange="markDirty('spark.primary')"></label>
                             <label class="form-row"><span>ComfyUI Primary</span><input class="input" type="text" id="cfg-comfyui-primary" placeholder="http://localhost:8188" onchange="markDirty('comfyui.primary')"></label>
-                            <label class="form-row"><span>ComfyUI Secondary</span><input class="input" type="text" id="cfg-comfyui-secondary" placeholder="http://localhost:8189" onchange="markDirty('comfyui.secondary')"></label>
+                            <label class="form-row advanced-only"><span>ComfyUI Secondary</span><input class="input" type="text" id="cfg-comfyui-secondary" placeholder="http://localhost:8189" onchange="markDirty('comfyui.secondary')"></label>
                         </div>
                         <div class="card-actions"><button class="btn" onclick="testComfyUIAll()">Test Render Workers</button></div>
                         <div class="server-status-row" id="comfyui-server-status">
@@ -8350,16 +8185,16 @@ function renderSettingsTab() {
                         <div class="settings-form-grid settings-form-grid-single">
                             <label class="form-row"><span>Default Storyboard Model</span><select class="select" id="cfg-storyboard-provider" onchange="markDirty('storyboard_images.default_provider')"><option value="spark:flux2_dev">Spark / Flux2.Dev</option><option value="spark:flux2_klein">Spark / Flux2 Klein</option><option value="spark:z_image">Spark / Z-Image</option><option value="spark:z_image_turbo">Spark / Z-Image Turbo</option><option value="openai">OpenAI Image</option><option value="gemini">Nano Banana</option></select></label>
                             <label class="form-row"><span>OpenAI API Key</span><input class="input" type="password" id="cfg-openai-api-key" placeholder="OpenAI API key..." onchange="markDirty('storyboard_images.openai_api_key')"></label>
-                            <label class="form-row"><span>OpenAI Image Model</span><input class="input" type="text" id="cfg-openai-image-model" placeholder="gpt-image-2" onchange="markDirty('storyboard_images.openai_model')"></label>
+                            <label class="form-row advanced-only"><span>OpenAI Image Model</span><input class="input" type="text" id="cfg-openai-image-model" placeholder="gpt-image-2" onchange="markDirty('storyboard_images.openai_model')"></label>
 	                            <label class="form-row"><span>Gemini API Key</span><input class="input" type="password" id="cfg-gemini-api-key" placeholder="Google AI Studio key..." onchange="markDirty('storyboard_images.gemini_api_key')"></label>
-	                            <label class="form-row"><span>Nano Banana Model</span><input class="input" type="text" id="cfg-gemini-image-model" placeholder="gemini-2.5-flash-image" onchange="markDirty('storyboard_images.gemini_model')"></label>
+	                            <label class="form-row advanced-only"><span>Nano Banana Model</span><input class="input" type="text" id="cfg-gemini-image-model" placeholder="gemini-2.5-flash-image" onchange="markDirty('storyboard_images.gemini_model')"></label>
 	                        </div>
 	                        <div class="card-actions"><button class="btn" onclick="testStoryboardProviders()">Check Storyboard Providers</button></div>
 	                        <div id="storyboard-provider-test-result" class="test-result"></div>
 	                    </div>
 	                </section>
 
-                <section class="panel settings-panel settings-card-wide bank-editor-card">
+                <section class="panel settings-panel settings-card-wide bank-editor-card advanced-only">
                     <div class="panel-header"><div class="title"><span class="settings-step">5</span> Bank Editor</div><div class="meta">prompt variation banks</div></div>
                     <div class="panel-body">
                         <p class="card-desc">Default prompt bank entries used by character variation templates.</p>

@@ -48,7 +48,7 @@ from .memory_api import (
 from .api.prompt_builder import load_banks, build_recipe, generate_random_recipe, save_banks
 from .api.spark_monitor import monitor as spark_monitor
 from core.dispatch.comfy_client import ComfyUIClient
-from core.affiliate.local_higgsfield import LocalHiggsfieldAdapter
+from core.affiliate.local_spark_media import LocalSparkMediaAdapter
 from core.hermes.pipeline import HermesCampaignService, CampaignRequest, HermesAuditService, HermesVideoService
 from core.hermes.pipeline.director_service import KimiDirectorService
 from core.prompts.prompt_standards import apply_model_prompt_standard
@@ -199,6 +199,11 @@ class ComfyRecoverHistoryRequest(BaseModel):
     campaign_id: str = ""
     host: str = ""
     limit: int = 250
+
+
+class ComfyRecoverQueueRequest(BaseModel):
+    campaign_id: str = ""
+    host: str = ""
 
 
 @app.post("/api/renders/audit-batch")
@@ -438,13 +443,13 @@ async def api_renders():
                     "status": meta.get("status", "ready"),
                 })
     
-    # Scan Sienna Nomad legacy renders
+    # Scan legacy bundled renders
     sienna_dir = repo_root / "dashboard" / "static" / "renders" / "sienna"
     if sienna_dir.exists():
         for f in sorted(sienna_dir.iterdir()):
             if f.suffix.lower() in (".png", ".jpg", ".jpeg", ".webp"):
                 sidecar = f.with_suffix(f.suffix + ".json")
-                meta = {"score": 0, "status": "unaudited", "prompt": f"Sienna Nomad — {f.stem}"}
+                meta = {"score": 0, "status": "unaudited", "prompt": f"Imported legacy render — {f.stem}"}
                 if sidecar.exists():
                     try:
                         with open(sidecar, "r", encoding="utf-8") as mf:
@@ -453,7 +458,7 @@ async def api_renders():
                         pass
                 results.append({
                     "src": f"/static/renders/sienna/{f.name}",
-                    "prompt": meta.get("prompt", f"Sienna Nomad — {f.stem}"),
+                    "prompt": meta.get("prompt", f"Imported legacy render — {f.stem}"),
                     "score": meta.get("score", 0),
                     "status": meta.get("status", "unaudited"),
                 })
@@ -947,6 +952,14 @@ class StoryboardImageGenerateRequest(BaseModel):
     image_reference_url: str = ""
     enhance_prompt: bool = False
     wait_for_output: bool = False
+
+
+class AssetVaultFrameVerifyRequest(BaseModel):
+    image_url: str
+    package_id: str = ""
+    package: Optional[Dict[str, Any]] = None
+    prompt: str = ""
+    panel: Optional[Dict[str, Any]] = None
 
 
 STORYBOARD_SPARK_MODELS: Dict[str, Dict[str, str]] = {
@@ -1586,6 +1599,58 @@ def _reindex_shots_from_storage() -> Dict[str, Any]:
                         record[key] = stored_metadata[key]
             rebuilt.append(record)
 
+    # Rehydrate queued Comfy jobs that have a prompt_id but no downloaded output yet.
+    # This prevents the UI from losing live Spark work after a dashboard restart.
+    if MEDIA_IMAGES.exists():
+        for manifest in sorted(MEDIA_IMAGES.glob("*/_queued_renders.json")):
+            campaign_id = manifest.parent.name
+            try:
+                queued_payload = json.loads(manifest.read_text(encoding="utf-8"))
+            except Exception:
+                queued_payload = {}
+            if not isinstance(queued_payload, dict):
+                continue
+            for record_id, item in queued_payload.items():
+                if not isinstance(item, dict):
+                    continue
+                rid = str(item.get("id") or record_id or "").strip()
+                if not rid or rid in seen_ids:
+                    continue
+                prompt_id = str(item.get("prompt_id") or "").strip()
+                if not prompt_id:
+                    continue
+                status = str(item.get("status") or "queued").strip() or "queued"
+                record = {
+                    "id": rid,
+                    "campaign_id": str(item.get("campaign_id") or campaign_id),
+                    "shot_id": str(item.get("shot_id") or rid),
+                    "sequence": item.get("sequence") or 0,
+                    "workflow_id": str(item.get("workflow_id") or ""),
+                    "status": status,
+                    "state": str(item.get("state") or status),
+                    "seed": item.get("seed"),
+                    "prompt": str(item.get("prompt") or ""),
+                    "compiled_prompt": str(item.get("compiled_prompt") or item.get("prompt") or ""),
+                    "negative_prompt": str(item.get("negative_prompt") or ""),
+                    "raw_kimi_prompt": str(item.get("raw_kimi_prompt") or ""),
+                    "visual_brief": str(item.get("visual_brief") or ""),
+                    "camera_direction": str(item.get("camera_direction") or ""),
+                    "lighting_direction": str(item.get("lighting_direction") or ""),
+                    "video_prompt": str(item.get("video_prompt") or ""),
+                    "video_prompt_source": str(item.get("video_prompt_source") or ""),
+                    "platform_skill": item.get("platform_skill") if isinstance(item.get("platform_skill"), dict) else {},
+                    "platform_id": str(item.get("platform_id") or ""),
+                    "platform_constraints": item.get("platform_constraints") if isinstance(item.get("platform_constraints"), dict) else {},
+                    "source": str(item.get("source") or "queued_manifest"),
+                    "prompt_id": prompt_id,
+                    "image_path": "",
+                    "image_url": "",
+                    "created_at": str(item.get("created_at") or item.get("updated_at") or _now_iso()),
+                    "updated_at": str(item.get("updated_at") or _now_iso()),
+                }
+                seen_ids.add(rid)
+                rebuilt.append(record)
+
     # Preserve any existing non-media script shots, but prioritize media records.
     non_media = [s for s in _SHOTS_STORE if not s.get("image_url") and not s.get("video_url")]
     _SHOTS_STORE.clear()
@@ -1746,6 +1811,123 @@ async def api_recover_comfy_history(req: ComfyRecoverHistoryRequest):
         "inspected": inspected,
         "recovered_count": len(recovered),
         "skipped_existing": skipped_existing,
+        "recovered": recovered,
+        "reindex": reindex,
+    }
+
+
+@app.post("/api/comfy/recover-queue")
+async def api_recover_comfy_queue(req: ComfyRecoverQueueRequest):
+    cfg = get_raw_config()
+    host = (
+        req.host.strip()
+        or os.getenv("COMFYUI_PRIMARY", "")
+        or str(cfg.get("COMFYUI_PRIMARY", ""))
+    ).rstrip("/")
+    if not host:
+        raise HTTPException(status_code=400, detail="COMFYUI_PRIMARY is not configured")
+
+    target_campaign = _safe_campaign_name(req.campaign_id) if req.campaign_id else ""
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        resp = await client.get(f"{host}/queue")
+    if resp.status_code != 200:
+        raise HTTPException(status_code=502, detail=f"Comfy queue failed: HTTP {resp.status_code}")
+    queue_payload = resp.json()
+    if not isinstance(queue_payload, dict):
+        raise HTTPException(status_code=502, detail="Comfy queue response was not an object")
+
+    def _node_inputs(prompt: Dict[str, Any]) -> List[Dict[str, Any]]:
+        inputs: List[Dict[str, Any]] = []
+        for node in prompt.values():
+            if not isinstance(node, dict):
+                continue
+            node_inputs = node.get("inputs")
+            if isinstance(node_inputs, dict):
+                inputs.append(node_inputs)
+        return inputs
+
+    def _queued_record_from_prompt(prompt_id: str, prompt: Dict[str, Any], queue_state: str) -> Optional[Dict[str, Any]]:
+        inputs = _node_inputs(prompt)
+        prefixes = [str(inp.get("filename_prefix") or "").strip() for inp in inputs if str(inp.get("filename_prefix") or "").strip()]
+        prefix = prefixes[0] if prefixes else ""
+        if not prefix or "__SHOT_" not in prefix:
+            return None
+        parts = prefix.split("__")
+        campaign = _safe_campaign_name(parts[0]) if parts else ""
+        if target_campaign and campaign != target_campaign:
+            return None
+        shot_id = next((p for p in parts if p.startswith("SHOT_")), prefix)
+        workflow_id = ""
+        for idx, part in enumerate(parts):
+            if part.startswith("SHOT_") and idx + 1 < len(parts):
+                workflow_id = parts[idx + 1]
+                break
+        prompt_text = next((str(inp.get("text") or "").strip() for inp in inputs if str(inp.get("text") or "").strip()), "")
+        seed = None
+        for inp in inputs:
+            for key in ("seed", "noise_seed"):
+                if key in inp:
+                    seed = inp.get(key)
+                    break
+            if seed is not None:
+                break
+        sequence = 0
+        m = re.search(r"SHOT_(\d+)", shot_id)
+        if m:
+            sequence = int(m.group(1))
+        return {
+            "id": prefix,
+            "campaign_id": campaign,
+            "shot_id": shot_id,
+            "sequence": sequence,
+            "workflow_id": workflow_id,
+            "status": queue_state,
+            "state": queue_state,
+            "seed": seed,
+            "prompt_id": prompt_id,
+            "prompt": prompt_text,
+            "compiled_prompt": prompt_text,
+            "source": "comfy_queue_recovered",
+            "updated_at": _now_iso(),
+        }
+
+    recovered: List[Dict[str, Any]] = []
+    for queue_key, queue_state in (("queue_running", "running"), ("queue_pending", "queued")):
+        for entry in queue_payload.get(queue_key, []) if isinstance(queue_payload.get(queue_key), list) else []:
+            if not isinstance(entry, list) or len(entry) < 3:
+                continue
+            prompt_id = str(entry[1] or "").strip()
+            prompt = entry[2] if isinstance(entry[2], dict) else {}
+            record = _queued_record_from_prompt(prompt_id, prompt, queue_state)
+            if not record:
+                continue
+            campaign_id = str(record.get("campaign_id") or "")
+            folder = MEDIA_IMAGES / campaign_id
+            folder.mkdir(parents=True, exist_ok=True)
+            manifest_path = folder / "_queued_renders.json"
+            try:
+                manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.exists() else {}
+                if not isinstance(manifest, dict):
+                    manifest = {}
+            except Exception:
+                manifest = {}
+            manifest[str(record["id"])] = record
+            tmp = folder / "._queued_renders.json.tmp"
+            tmp.write_text(json.dumps(manifest, ensure_ascii=True, indent=2), encoding="utf-8")
+            tmp.replace(manifest_path)
+            recovered.append(record)
+            if campaign_id and campaign_id not in _CAMPAIGNS:
+                _CAMPAIGNS[campaign_id] = {
+                    "brief": _brief_from_campaign_manifest(campaign_id),
+                    "started_at": "",
+                }
+
+    reindex = _reindex_shots_from_storage()
+    return {
+        "status": "ok",
+        "host": host,
+        "campaign_id": target_campaign,
+        "recovered_count": len(recovered),
         "recovered": recovered,
         "reindex": reindex,
     }
@@ -2857,6 +3039,83 @@ def _apply_asset_vault_to_panels(panels: List[Dict[str, Any]], package: Optional
     return panels
 
 
+async def _verify_asset_vault_frame(
+    *,
+    image_url: str,
+    package: Optional[Dict[str, Any]],
+    prompt: str = "",
+    panel: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    context = _asset_vault_prompt_context(package)
+    summary = str(context.get("summary") or "").strip()
+    if not summary:
+        return {"status": "skipped", "passed": True, "reason": "no_asset_vault_package"}
+    image_path = _resolve_image_path(image_url)
+    if not image_path or not image_path.exists():
+        return {"status": "error", "passed": False, "reason": "image_not_found", "image_url": image_url}
+
+    cfg = get_raw_config()
+    try:
+        active = str(cfg.get("KIMI_VISUAL_ENDPOINT_ACTIVE", "api1") or "api1").strip().lower()
+        api1 = str(cfg.get("KIMI_VISUAL_ENDPOINT_API1", "") or "").strip()
+        api2 = str(cfg.get("KIMI_VISUAL_ENDPOINT_API2", "") or "").strip()
+        endpoint = api2 if active == "api2" and api2 else api1
+        if not endpoint:
+            endpoint = str(cfg.get("NIM_ENDPOINT", "") or "").strip()
+        api_key = str(cfg.get("KIMI_API_KEY", "") or os.getenv("KIMI_API_KEY", "")).strip()
+        model = str(cfg.get("KIMI_VISUAL_MODEL", "") or cfg.get("LMSTUDIO_VISION_MODEL", "") or "").strip()
+        if not endpoint:
+            raise RuntimeError("missing_visual_endpoint")
+        if endpoint.startswith("https://") and not api_key:
+            raise RuntimeError("missing_visual_api_key")
+        if not model:
+            raise RuntimeError("missing_visual_model")
+
+        panel_text = _short_text(json.dumps(panel or {}, ensure_ascii=True), 1200)
+        user_prompt = (
+            "Return ONLY compact JSON. Verify whether this generated storyboard start frame visibly follows the Asset Vault package. "
+            f"Asset Vault package lock: {summary}. "
+            f"Storyboard/panel prompt: {_short_text(prompt, 1600)}. "
+            f"Panel metadata: {panel_text}. "
+            "Score only visible evidence. Fail if the required product, logo/label placement, linked character identity, prop, location, or style lock is missing or contradicted. "
+            "Do not give credit for text that is only in the prompt but not visible in the image. "
+            "Schema: {\"score\":0-100,\"passed\":true/false,\"confidence\":0-1,"
+            "\"visible_matches\":[\"string\"],\"missing_or_wrong\":[\"string\"],\"notes\":\"short\"}."
+        )
+        result = await _run_vision_audit_pass(
+            endpoint=endpoint,
+            api_key=api_key,
+            model=model,
+            image_path=str(image_path),
+            system_prompt="You are an Asset Vault visual verifier for AI storyboard frames. Return JSON only.",
+            user_prompt=user_prompt,
+            task_description="asset_vault_frame_verification",
+        )
+        score = _safe_float(result.get("score", result.get("overall_score", 0)), 0.0)
+        confidence = _safe_float(result.get("confidence", 0), 0.0)
+        missing = result.get("missing_or_wrong") if isinstance(result.get("missing_or_wrong"), list) else []
+        passed = bool(result.get("passed", score >= 80 and not missing)) and score >= 75
+        return {
+            "status": "complete",
+            "passed": passed,
+            "score": round(score, 1),
+            "confidence": round(confidence, 3),
+            "model": model,
+            "visible_matches": result.get("visible_matches") if isinstance(result.get("visible_matches"), list) else [],
+            "missing_or_wrong": missing,
+            "notes": str(result.get("notes") or result.get("feedback") or "")[:500],
+            "raw": result,
+        }
+    except Exception as exc:
+        return {
+            "status": "error",
+            "passed": False,
+            "score": 0,
+            "confidence": 0,
+            "reason": str(exc)[:500],
+        }
+
+
 def _storyboard_panels_from_package(package: Dict[str, Any], target_panels: Optional[int]) -> List[Dict[str, Any]]:
     panels: List[Dict[str, Any]] = []
     acts = package.get("script", {}).get("acts", [])
@@ -3782,7 +4041,7 @@ async def _run_script_pipeline_job(job_id: str, req: ScriptPipelineStartRequest)
 
         panel_jobs: Dict[str, Any] = {}
         _pipeline_log(job, "frames", "Queueing storyboard panel start frames")
-        adapter = _make_local_higgsfield_adapter()
+        adapter = _make_local_spark_media_adapter()
         for board in storyboard_plan.get("boards", []) if isinstance(storyboard_plan.get("boards"), list) else []:
             if not isinstance(board, dict):
                 continue
@@ -3807,6 +4066,9 @@ async def _run_script_pipeline_job(job_id: str, req: ScriptPipelineStartRequest)
                 url = _storyboard_payload_url(payload)
                 item = {
                     "index": idx,
+                    "panel_id": str(panel.get("panel_id") or ""),
+                    "prompt": str(panel.get("single_panel_prompt") or panel.get("visual_prompt") or panel.get("caption") or ""),
+                    "caption": str(panel.get("caption") or ""),
                     "status": payload.get("status", "queued"),
                     "job_set_id": payload.get("job_set_id") or payload.get("id") or "",
                     "provider": payload.get("provider") or req.storyboard_image_provider,
@@ -3814,6 +4076,13 @@ async def _run_script_pipeline_job(job_id: str, req: ScriptPipelineStartRequest)
                     "url": url,
                     "raw": payload,
                 }
+                if url and asset_vault_package:
+                    item["asset_vault_verification"] = await _verify_asset_vault_frame(
+                        image_url=url,
+                        package=asset_vault_package,
+                        prompt=item["prompt"],
+                        panel=panel,
+                    )
                 panel_jobs[board_index].append(item)
                 _save_script_project_payload({
                     "script_id": script_id,
@@ -3850,6 +4119,26 @@ async def _run_script_pipeline_job(job_id: str, req: ScriptPipelineStartRequest)
                     key = f"{board_idx}:{item.get('index')}"
                     if key not in completed_keys:
                         completed_keys.add(key)
+                        if asset_vault_package:
+                            item["asset_vault_verification"] = await _verify_asset_vault_frame(
+                                image_url=url,
+                                package=asset_vault_package,
+                                prompt=str(item.get("prompt") or ""),
+                                panel={
+                                    "panel_id": item.get("panel_id"),
+                                    "caption": item.get("caption"),
+                                    "index": item.get("index"),
+                                },
+                            )
+                            verification = item.get("asset_vault_verification") if isinstance(item.get("asset_vault_verification"), dict) else {}
+                            if verification.get("passed") is False:
+                                _pipeline_log(
+                                    job,
+                                    "asset_vault",
+                                    f"Asset Vault verification failed for board {board_idx} panel {item.get('index')}: {verification.get('notes') or verification.get('reason') or 'missing package evidence'}",
+                                    level="warning",
+                                    url=url,
+                                )
                         _pipeline_log(job, "frames", f"Rendered board {board_idx} panel {item.get('index')}", url=url)
                 else:
                     remaining.append((board_idx, item))
@@ -4357,7 +4646,7 @@ async def _stream_director_shot_generation(req: DirectorGenerateRequest) -> Asyn
     target_shots = max(1, min(target_shots, 120))
 
     try:
-        yield _script_director_event({"type": "status", "text": f"Kimi Director planning {target_shots} shots..."})
+        yield _script_director_event({"type": "status", "text": f"Director planning {target_shots} shots..."})
         plan = await director.request_plan(
             brief=brief,
             campaign_id=campaign_id,
@@ -4365,19 +4654,19 @@ async def _stream_director_shot_generation(req: DirectorGenerateRequest) -> Asyn
             target_shots=target_shots,
         )
         normalized = director.normalize_shots(plan, campaign_id)
-        yield _script_director_event({"type": "status", "text": f"Kimi plan received: {len(normalized)} shots"})
+        yield _script_director_event({"type": "status", "text": f"Director plan received: {len(normalized)} shots"})
 
         try:
-            yield _script_director_event({"type": "status", "text": "Kimi critique pass running..."})
+            yield _script_director_event({"type": "status", "text": "Director critique pass running..."})
             review = await director.self_check_plan(brief, campaign_id, normalized)
             score = director.score_from_review(review)
             status = str(review.get("status", "reviewed") or "reviewed")
             yield _script_director_event({
                 "type": "status",
-                "text": f"Kimi critique: {status}" + (f" ({score})" if score is not None else ""),
+                "text": f"Director critique: {status}" + (f" ({score})" if score is not None else ""),
             })
             if status.lower() in {"warn", "fail"} or (score is not None and score < 70):
-                yield _script_director_event({"type": "status", "text": "Kimi revision pass running..."})
+                yield _script_director_event({"type": "status", "text": "Director revision pass running..."})
                 revised = await director.revise_plan(
                     brief=brief,
                     campaign_id=campaign_id,
@@ -4387,9 +4676,9 @@ async def _stream_director_shot_generation(req: DirectorGenerateRequest) -> Asyn
                     length=req.length or "",
                 )
                 normalized = director.normalize_shots(revised, campaign_id)
-                yield _script_director_event({"type": "status", "text": f"Kimi revision applied: {len(normalized)} shots"})
+                yield _script_director_event({"type": "status", "text": f"Director revision applied: {len(normalized)} shots"})
         except Exception as e:
-            yield _script_director_event({"type": "status", "text": f"Warning: Kimi critique unavailable: {str(e)[:240]}"})
+            yield _script_director_event({"type": "status", "text": f"Warning: Director critique unavailable: {str(e)[:240]}"})
 
         script_shots = [_script_shot_from_director_plan(s, campaign_id) for s in normalized]
         _SHOTS_STORE[:] = [s for s in _SHOTS_STORE if str(s.get("source") or "") != "script_director"]
@@ -4400,7 +4689,13 @@ async def _stream_director_shot_generation(req: DirectorGenerateRequest) -> Asyn
             yield _script_director_event({"type": "shot", "shot": shot, "index": idx, "total": total})
         yield _script_director_event({"type": "done", "text": f"Shot list ready: {total} shots", "count": total})
     except Exception as e:
-        yield _script_director_event({"type": "status", "text": f"Director API unavailable; using package fallback coverage: {str(e)[:180]}"})
+        if os.getenv("FORGE_DEV_FALLBACK", "false").lower() != "true":
+            yield _script_director_event({
+                "type": "error",
+                "text": f"Director unavailable; coverage fallback is disabled. Check Settings or set FORGE_DEV_FALLBACK=true for demo fallback. {str(e)[:180]}",
+            })
+            return
+        yield _script_director_event({"type": "status", "text": f"Demo fallback coverage enabled: {str(e)[:180]}"})
         fallback_plan = _fallback_director_shots_from_brief(brief, campaign_id, target_shots)
         script_shots = [_script_shot_from_director_plan(s, campaign_id) for s in fallback_plan]
         _SHOTS_STORE[:] = [s for s in _SHOTS_STORE if str(s.get("source") or "") != "script_director"]
@@ -4425,6 +4720,8 @@ async def api_script_develop(req: ScriptDevelopRequest):
         package = await _request_script_package(req)
         return {"status": "ok", "package": package, "source": package.get("source", "director_api")}
     except Exception as e:
+        if os.getenv("FORGE_DEV_FALLBACK", "false").lower() != "true":
+            raise HTTPException(status_code=502, detail=f"Director script package failed: {str(e)[:500]}")
         fallback = _fallback_script_package(req)
         fallback["error"] = str(e)[:500]
         return {"status": "fallback", "package": fallback, "source": "fallback", "error": str(e)[:500]}
@@ -4956,7 +5253,7 @@ async def api_video_workflows():
     }
 
 
-class LocalHiggsfieldImageRequest(BaseModel):
+class LocalSparkMediaImageRequest(BaseModel):
     prompt: str
     width_and_height: str = "1696x960"
     enhance_prompt: bool = False
@@ -4971,23 +5268,23 @@ class LocalHiggsfieldImageRequest(BaseModel):
     wait_for_output: bool = False
 
 
-class LocalHiggsfieldMotion(BaseModel):
+class LocalSparkMediaMotion(BaseModel):
     id: str
     strength: float = 1.0
 
 
-class LocalHiggsfieldVideoRequest(BaseModel):
+class LocalSparkMediaVideoRequest(BaseModel):
     input_image_url: str
     prompt: str
-    model: str = "dop-turbo"
+    model: str = "ltx-i2v"
     seed: Optional[int] = None
-    motions: List[LocalHiggsfieldMotion] = []
+    motions: List[LocalSparkMediaMotion] = []
     input_image_end_url: Optional[str] = None
     enhance_prompt: bool = True
     wait_for_output: bool = False
 
 
-class LocalHiggsfieldCharacterRequest(BaseModel):
+class LocalSparkMediaCharacterRequest(BaseModel):
     name: str
     image_urls: List[str]
 
@@ -5167,8 +5464,8 @@ def _resolve_comfy_primary() -> str:
     return host
 
 
-def _make_local_higgsfield_adapter() -> LocalHiggsfieldAdapter:
-    return LocalHiggsfieldAdapter(
+def _make_local_spark_media_adapter() -> LocalSparkMediaAdapter:
+    return LocalSparkMediaAdapter(
         repo_root=REPO_ROOT,
         media_root=MEDIA_ROOT,
         media_images=MEDIA_IMAGES,
@@ -5307,8 +5604,8 @@ async def _generate_storyboard_image(req: StoryboardImageGenerateRequest) -> Dic
             model_family=spark_model["model_family"],
             render_type="storyboard",
         )
-        adapter = _make_local_higgsfield_adapter()
-        payload = await adapter.generate_image_soul(
+        adapter = _make_local_spark_media_adapter()
+        payload = await adapter.generate_image(
             prompt=prompt,
             width_and_height=req.width_and_height,
             enhance_prompt=req.enhance_prompt,
@@ -5485,20 +5782,20 @@ async def api_hermes_run_campaign(req: RunCampaignRequest):
     return StreamingResponse(_stream(), media_type="application/x-ndjson")
 
 
-@app.get("/api/local-higgsfield/styles")
-async def api_local_higgsfield_styles():
-    """Higgsfield-like style presets implemented locally through Forge."""
-    return {"available_styles": _make_local_higgsfield_adapter().list_styles()}
+@app.get("/api/local-spark-media/styles")
+async def api_local_spark_media_styles():
+    """Spark media style presets implemented locally through Forge."""
+    return {"available_styles": _make_local_spark_media_adapter().list_styles()}
 
 
-@app.get("/api/local-higgsfield/motions")
-async def api_local_higgsfield_motions():
-    """Higgsfield-like motion presets mapped to local LTX/ComfyUI prompts."""
-    return {"available_motions": _make_local_higgsfield_adapter().list_motions()}
+@app.get("/api/local-spark-media/motions")
+async def api_local_spark_media_motions():
+    """Spark media motion presets mapped to local LTX/ComfyUI prompts."""
+    return {"available_motions": _make_local_spark_media_adapter().list_motions()}
 
 
-@app.post("/api/local-higgsfield/generate-image")
-async def api_local_higgsfield_generate_image(req: LocalHiggsfieldImageRequest):
+@app.post("/api/local-spark-media/generate-image")
+async def api_local_spark_media_generate_image(req: LocalSparkMediaImageRequest):
     prompt = (req.prompt or "").strip()
     if not prompt:
         raise HTTPException(status_code=400, detail="prompt is required")
@@ -5508,8 +5805,8 @@ async def api_local_higgsfield_generate_image(req: LocalHiggsfieldImageRequest):
         model_family="flux2-dev",
         render_type="storyboard" if "storyboard" in prompt.lower() else "image",
     )
-    adapter = _make_local_higgsfield_adapter()
-    return await adapter.generate_image_soul(
+    adapter = _make_local_spark_media_adapter()
+    return await adapter.generate_image(
         prompt=prompt,
         width_and_height=req.width_and_height,
         enhance_prompt=req.enhance_prompt,
@@ -5526,8 +5823,8 @@ async def api_local_higgsfield_generate_image(req: LocalHiggsfieldImageRequest):
     )
 
 
-@app.post("/api/local-higgsfield/generate-video")
-async def api_local_higgsfield_generate_video(req: LocalHiggsfieldVideoRequest):
+@app.post("/api/local-spark-media/generate-video")
+async def api_local_spark_media_generate_video(req: LocalSparkMediaVideoRequest):
     if not (req.input_image_url or "").strip():
         raise HTTPException(status_code=400, detail="input_image_url is required")
     if not (req.prompt or "").strip():
@@ -5539,8 +5836,8 @@ async def api_local_higgsfield_generate_video(req: LocalHiggsfieldVideoRequest):
         render_type="video",
     )
     motions = [m.model_dump() for m in req.motions]
-    adapter = _make_local_higgsfield_adapter()
-    return await adapter.generate_video_dop(
+    adapter = _make_local_spark_media_adapter()
+    return await adapter.generate_video(
         input_image_url=req.input_image_url,
         prompt=prompt,
         model=req.model,
@@ -5552,40 +5849,40 @@ async def api_local_higgsfield_generate_video(req: LocalHiggsfieldVideoRequest):
     )
 
 
-@app.get("/api/local-higgsfield/jobs/{job_set_id}")
-async def api_local_higgsfield_job_status(job_set_id: str):
+@app.get("/api/local-spark-media/jobs/{job_set_id}")
+async def api_local_spark_media_job_status(job_set_id: str):
     try:
-        return await _make_local_higgsfield_adapter().get_job_status(job_set_id)
+        return await _make_local_spark_media_adapter().get_job_status(job_set_id)
     except KeyError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
 
-@app.post("/api/local-higgsfield/characters")
-async def api_local_higgsfield_create_character(req: LocalHiggsfieldCharacterRequest):
+@app.post("/api/local-spark-media/characters")
+async def api_local_spark_media_create_character(req: LocalSparkMediaCharacterRequest):
     if not (req.name or "").strip():
         raise HTTPException(status_code=400, detail="name is required")
     if not req.image_urls:
         raise HTTPException(status_code=400, detail="image_urls is required")
-    return await _make_local_higgsfield_adapter().create_character(name=req.name, image_urls=req.image_urls)
+    return await _make_local_spark_media_adapter().create_character(name=req.name, image_urls=req.image_urls)
 
 
-@app.get("/api/local-higgsfield/characters")
-async def api_local_higgsfield_list_characters():
-    return _make_local_higgsfield_adapter().list_characters()
+@app.get("/api/local-spark-media/characters")
+async def api_local_spark_media_list_characters():
+    return _make_local_spark_media_adapter().list_characters()
 
 
-@app.get("/api/local-higgsfield/characters/{reference_id}")
-async def api_local_higgsfield_get_character(reference_id: str):
+@app.get("/api/local-spark-media/characters/{reference_id}")
+async def api_local_spark_media_get_character(reference_id: str):
     try:
-        return _make_local_higgsfield_adapter().get_character(reference_id)
+        return _make_local_spark_media_adapter().get_character(reference_id)
     except KeyError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
 
-@app.delete("/api/local-higgsfield/characters/{reference_id}")
-async def api_local_higgsfield_delete_character(reference_id: str):
+@app.delete("/api/local-spark-media/characters/{reference_id}")
+async def api_local_spark_media_delete_character(reference_id: str):
     try:
-        return _make_local_higgsfield_adapter().delete_character(reference_id)
+        return _make_local_spark_media_adapter().delete_character(reference_id)
     except KeyError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
@@ -9812,6 +10109,22 @@ async def api_asset_vault_get_package(package_id: str):
     if not package:
         raise HTTPException(status_code=404, detail=f"Asset Vault package not found: {package_id}")
     return {"status": "ok", "package": package}
+
+
+@app.post("/api/asset-vault/verify-frame")
+async def api_asset_vault_verify_frame(req: AssetVaultFrameVerifyRequest):
+    package = req.package if isinstance(req.package, dict) and req.package else None
+    if not package and (req.package_id or "").strip():
+        package = _asset_vault_package_by_id(req.package_id)
+    if not package:
+        raise HTTPException(status_code=404, detail="Asset Vault package not found")
+    result = await _verify_asset_vault_frame(
+        image_url=req.image_url,
+        package=package,
+        prompt=req.prompt,
+        panel=req.panel,
+    )
+    return {"status": "ok", "verification": result}
 
 
 @app.post("/api/asset-vault/packages")

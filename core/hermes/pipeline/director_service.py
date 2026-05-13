@@ -84,13 +84,10 @@ def _multi_person_cast_directive(brief: str, target_shots: int) -> str:
     if target_shots < 4 or not asks_for_people:
         return ""
     return (
-        "Multi-person cast rule: each shot must feature a visibly different person, not the same averaged face. "
-        "For every person specify a unique name or label, exact adult age or age decade, face shape, nose/jaw/eye details, "
-        "hair color/style/texture, build/height, wardrobe, occupation or social context, and a specific environment. "
-        "Do not default the whole set to one ambiguous median/biracial look, one age band, one hairstyle, or one body type. "
-        "Honor any demographic instructions in the brief exactly; otherwise use deliberate variety across age, skin tone, "
-        "facial structure, hair texture, body type, styling, and setting. "
-        "Put these distinguishing traits directly inside visual_brief so the image model receives them."
+        "Batch subject rule: honor the user's requested subject constraints exactly in every shot. "
+        "Do not add subject-trait, age, body-type, wardrobe, role, or setting variation unless the brief explicitly asks for it. "
+        "If the brief requests multiple distinct people, use only the distinguishing traits the brief provides; otherwise keep the requested subject type consistent across the set. "
+        "Put all explicit user constraints directly inside visual_brief so the image model receives them."
     )
 
 
@@ -406,7 +403,7 @@ class KimiDirectorService:
         # Judge-facing: require Kimi second pass critique for coverage/coherence risk.
         system_prompt = (
             "You are Kimi Quality Director. "
-            "Evaluate the shot plan for narrative coherence, visual diversity, and renderability risk. "
+            "Evaluate the shot plan for narrative coherence, visual specificity, and renderability risk. "
             "Return JSON only."
         )
         prompt = {

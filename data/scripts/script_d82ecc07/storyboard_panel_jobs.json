@@ -1,0 +1,524 @@
+{
+  "1": [
+    {
+      "index": 1,
+      "status": "completed",
+      "job_set_id": "52392068-1381-4a80-a775-986daec40f63",
+      "provider": "spark",
+      "model": "flux2_dev",
+      "url": "/media-assets/local_spark_media/results/52392068-1381-4a80-a775-986daec40f63/flux2_dev_52392068_00001_.png",
+      "raw": {
+        "id": "52392068-1381-4a80-a775-986daec40f63",
+        "type": "text2image_local",
+        "created_at": "2026-05-12T21:02:51.785188+00:00",
+        "updated_at": "2026-05-12T21:04:49.813206+00:00",
+        "status": "completed",
+        "local_backend": "forge_comfyui",
+        "comfy_url": "http://100.80.184.21:8188",
+        "local_output_dir": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/52392068-1381-4a80-a775-986daec40f63",
+        "jobs": [
+          {
+            "id": "163aba5a-746a-43bf-8049-74e4f0c790da",
+            "prompt_id": "163aba5a-746a-43bf-8049-74e4f0c790da",
+            "job_set_type": "text2image_local",
+            "status": "completed",
+            "results": {
+              "raw": {
+                "type": "image_url",
+                "url": "/media-assets/local_spark_media/results/52392068-1381-4a80-a775-986daec40f63/flux2_dev_52392068_00001_.png",
+                "local_path": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/52392068-1381-4a80-a775-986daec40f63/flux2_dev_52392068_00001_.png"
+              },
+              "min": {
+                "type": "image_url",
+                "url": "/media-assets/local_spark_media/results/52392068-1381-4a80-a775-986daec40f63/flux2_dev_52392068_00001_.png",
+                "local_path": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/52392068-1381-4a80-a775-986daec40f63/flux2_dev_52392068_00001_.png"
+              },
+              "all": [
+                {
+                  "type": "image_url",
+                  "url": "/media-assets/local_spark_media/results/52392068-1381-4a80-a775-986daec40f63/flux2_dev_52392068_00001_.png",
+                  "local_path": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/52392068-1381-4a80-a775-986daec40f63/flux2_dev_52392068_00001_.png"
+                }
+              ]
+            },
+            "error": ""
+          }
+        ],
+        "input_params": {
+          "prompt": "Single high-resolution cinematic production keyframe for board 1 shot 1 of 'Untitled Script'. This is an image-to-video start frame, not a storyboard page, not a contact sheet, not a grid. Style: cinematic. Scene action: Pip brushes through tall grass, stops abruptly. A faceted crystal rests on a flat stone, pulsing with warm amber light.. Scene SC_001: The Discovery. Location: Sunlit Meadow Clearing; time/light: Late Afternoon. Characters: Pip. Continuity: {\"wardrobe\": \"Soft blue-tinted fur, slightly dusted with pollen\", \"props\": [\"Luma-Crystal (amber phase)\"], \"screen_direction\": \"Left to Right\"}. Setting: Sunlit Meadow Clearing. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: Late Afternoon. Mood: Curiosity to Intrigue. Characters: Pip. Character consistency: Pip: Compact build, blue-tinted fur, expressive ears that flatten during conflict and perk during resolution.; Pop: Slightly taller build, orange-tinted fur, steady gaze that breaks into surprise during the illusion reveal.. Continuity: {\"wardrobe\": \"Soft blue-tinted fur, slightly dusted with pollen\", \"props\": [\"Luma-Crystal (amber phase)\"], \"screen_direction\": \"Left to Right\"}. No text, no captions, no dialogue, no titles, no panel number. Make one clean cinematic frame with readable blocking, crisp subject edges, sharp eyes, clear hands, detailed textures, controlled depth of field, consistent wardrobe, consistent face, cinematic composition, tactile material detail, natural skin or surface imperfections, no border, no panel frame, no page layout, no watermark. Prompt standard enforcement: material specificity: visible skin pores, fine flyaway hairs, fabric weave, scuffed surfaces, dust and fingerprints where physically plausible; lighting source: motivated real light source with direction, color temperature, catchlights, practical reflections, grounded shadows; casting variation: each person has a distinct face shape, age bracket, hairstyle, body type, skin tone, wardrobe silhouette, posture, and expression; no duplicated template faces.",
+          "final_prompt": "Single high-resolution cinematic production keyframe for board 1 shot 1 of 'Untitled Script'. This is an image-to-video start frame, not a storyboard page, not a contact sheet, not a grid. Style: cinematic. Scene action: Pip brushes through tall grass, stops abruptly. A faceted crystal rests on a flat stone, pulsing with warm amber light.. Scene SC_001: The Discovery. Location: Sunlit Meadow Clearing; time/light: Late Afternoon. Characters: Pip. Continuity: {\"wardrobe\": \"Soft blue-tinted fur, slightly dusted with pollen\", \"props\": [\"Luma-Crystal (amber phase)\"], \"screen_direction\": \"Left to Right\"}. Setting: Sunlit Meadow Clearing. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: Late Afternoon. Mood: Curiosity to Intrigue. Characters: Pip. Character consistency: Pip: Compact build, blue-tinted fur, expressive ears that flatten during conflict and perk during resolution.; Pop: Slightly taller build, orange-tinted fur, steady gaze that breaks into surprise during the illusion reveal.. Continuity: {\"wardrobe\": \"Soft blue-tinted fur, slightly dusted with pollen\", \"props\": [\"Luma-Crystal (amber phase)\"], \"screen_direction\": \"Left to Right\"}. No text, no captions, no dialogue, no titles, no panel number. Make one clean cinematic frame with readable blocking, crisp subject edges, sharp eyes, clear hands, detailed textures, controlled depth of field, consistent wardrobe, consistent face, cinematic composition, tactile material detail, natural skin or surface imperfections, no border, no panel frame, no page layout, no watermark. Prompt standard enforcement: material specificity: visible skin pores, fine flyaway hairs, fabric weave, scuffed surfaces, dust and fingerprints where physically plausible; lighting source: motivated real light source with direction, color temperature, catchlights, practical reflections, grounded shadows; casting variation: each person has a distinct face shape, age bracket, hairstyle, body type, skin tone, wardrobe silhouette, posture, and expression; no duplicated template faces.",
+          "width_and_height": "1920x1080",
+          "quality": "1080p",
+          "batch_size": 1,
+          "workflow_id": "01_flux2_text_to_image",
+          "style_id": "",
+          "style_strength": 0.0,
+          "seed": 3706419416,
+          "custom_reference_id": "",
+          "image_reference_url": "",
+          "local_equivalence_note": "Local adapter maps local image request to Forge Flux/ComfyUI workflow."
+        }
+      }
+    },
+    {
+      "index": 2,
+      "status": "completed",
+      "job_set_id": "9db34a1f-0b62-4830-9fcc-f4361b53eb7b",
+      "provider": "spark",
+      "model": "flux2_dev",
+      "url": "/media-assets/local_spark_media/results/9db34a1f-0b62-4830-9fcc-f4361b53eb7b/flux2_dev_9db34a1f_00001_.png",
+      "raw": {
+        "id": "9db34a1f-0b62-4830-9fcc-f4361b53eb7b",
+        "type": "text2image_local",
+        "created_at": "2026-05-12T21:02:52.834498+00:00",
+        "updated_at": "2026-05-12T21:06:50.609537+00:00",
+        "status": "completed",
+        "local_backend": "forge_comfyui",
+        "comfy_url": "http://100.80.184.21:8188",
+        "local_output_dir": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/9db34a1f-0b62-4830-9fcc-f4361b53eb7b",
+        "jobs": [
+          {
+            "id": "8a87689f-81d1-401a-89ba-a94a7e7c8baf",
+            "prompt_id": "8a87689f-81d1-401a-89ba-a94a7e7c8baf",
+            "job_set_type": "text2image_local",
+            "status": "completed",
+            "results": {
+              "raw": {
+                "type": "image_url",
+                "url": "/media-assets/local_spark_media/results/9db34a1f-0b62-4830-9fcc-f4361b53eb7b/flux2_dev_9db34a1f_00001_.png",
+                "local_path": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/9db34a1f-0b62-4830-9fcc-f4361b53eb7b/flux2_dev_9db34a1f_00001_.png"
+              },
+              "min": {
+                "type": "image_url",
+                "url": "/media-assets/local_spark_media/results/9db34a1f-0b62-4830-9fcc-f4361b53eb7b/flux2_dev_9db34a1f_00001_.png",
+                "local_path": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/9db34a1f-0b62-4830-9fcc-f4361b53eb7b/flux2_dev_9db34a1f_00001_.png"
+              },
+              "all": [
+                {
+                  "type": "image_url",
+                  "url": "/media-assets/local_spark_media/results/9db34a1f-0b62-4830-9fcc-f4361b53eb7b/flux2_dev_9db34a1f_00001_.png",
+                  "local_path": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/9db34a1f-0b62-4830-9fcc-f4361b53eb7b/flux2_dev_9db34a1f_00001_.png"
+                }
+              ]
+            },
+            "error": ""
+          }
+        ],
+        "input_params": {
+          "prompt": "Single high-resolution cinematic production keyframe for board 1 shot 2 of 'Untitled Script'. This is an image-to-video start frame, not a storyboard page, not a contact sheet, not a grid. Style: cinematic. Scene action: Pop enters frame from right, eyes widen. The crystal now reads as cool violet in Pop's sightline.. Scene SC_002: The Arrival. Location: Sunlit Meadow Clearing; time/light: Late Afternoon. Characters: Pip, Pop. Continuity: {\"wardrobe\": \"Warm orange-tinted fur, clean edges\", \"props\": [\"Luma-Crystal (violet phase)\"], \"screen_direction\": \"Right to Left\"}. Setting: Sunlit Meadow Clearing. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: Late Afternoon. Mood: Intrigue to Confusion. Characters: Pip, Pop. Character consistency: Pip: Compact build, blue-tinted fur, expressive ears that flatten during conflict and perk during resolution.; Pop: Slightly taller build, orange-tinted fur, steady gaze that breaks into surprise during the illusion reveal.. Continuity: {\"wardrobe\": \"Warm orange-tinted fur, clean edges\", \"props\": [\"Luma-Crystal (violet phase)\"], \"screen_direction\": \"Right to Left\"}. No text, no captions, no dialogue, no titles, no panel number. Make one clean cinematic frame with readable blocking, crisp subject edges, sharp eyes, clear hands, detailed textures, controlled depth of field, consistent wardrobe, consistent face, cinematic composition, tactile material detail, natural skin or surface imperfections, no border, no panel frame, no page layout, no watermark. Prompt standard enforcement: material specificity: visible skin pores, fine flyaway hairs, fabric weave, scuffed surfaces, dust and fingerprints where physically plausible; lighting source: motivated real light source with direction, color temperature, catchlights, practical reflections, grounded shadows; casting variation: each person has a distinct face shape, age bracket, hairstyle, body type, skin tone, wardrobe silhouette, posture, and expression; no duplicated template faces.",
+          "final_prompt": "Single high-resolution cinematic production keyframe for board 1 shot 2 of 'Untitled Script'. This is an image-to-video start frame, not a storyboard page, not a contact sheet, not a grid. Style: cinematic. Scene action: Pop enters frame from right, eyes widen. The crystal now reads as cool violet in Pop's sightline.. Scene SC_002: The Arrival. Location: Sunlit Meadow Clearing; time/light: Late Afternoon. Characters: Pip, Pop. Continuity: {\"wardrobe\": \"Warm orange-tinted fur, clean edges\", \"props\": [\"Luma-Crystal (violet phase)\"], \"screen_direction\": \"Right to Left\"}. Setting: Sunlit Meadow Clearing. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: Late Afternoon. Mood: Intrigue to Confusion. Characters: Pip, Pop. Character consistency: Pip: Compact build, blue-tinted fur, expressive ears that flatten during conflict and perk during resolution.; Pop: Slightly taller build, orange-tinted fur, steady gaze that breaks into surprise during the illusion reveal.. Continuity: {\"wardrobe\": \"Warm orange-tinted fur, clean edges\", \"props\": [\"Luma-Crystal (violet phase)\"], \"screen_direction\": \"Right to Left\"}. No text, no captions, no dialogue, no titles, no panel number. Make one clean cinematic frame with readable blocking, crisp subject edges, sharp eyes, clear hands, detailed textures, controlled depth of field, consistent wardrobe, consistent face, cinematic composition, tactile material detail, natural skin or surface imperfections, no border, no panel frame, no page layout, no watermark. Prompt standard enforcement: material specificity: visible skin pores, fine flyaway hairs, fabric weave, scuffed surfaces, dust and fingerprints where physically plausible; lighting source: motivated real light source with direction, color temperature, catchlights, practical reflections, grounded shadows; casting variation: each person has a distinct face shape, age bracket, hairstyle, body type, skin tone, wardrobe silhouette, posture, and expression; no duplicated template faces.",
+          "width_and_height": "1920x1080",
+          "quality": "1080p",
+          "batch_size": 1,
+          "workflow_id": "01_flux2_text_to_image",
+          "style_id": "",
+          "style_strength": 0.0,
+          "seed": 563163214,
+          "custom_reference_id": "",
+          "image_reference_url": "",
+          "local_equivalence_note": "Local adapter maps local image request to Forge Flux/ComfyUI workflow."
+        }
+      }
+    },
+    {
+      "index": 3,
+      "status": "completed",
+      "job_set_id": "11e5b772-bad4-4508-8f83-6c17294ded4b",
+      "provider": "spark",
+      "model": "flux2_dev",
+      "url": "/media-assets/local_spark_media/results/11e5b772-bad4-4508-8f83-6c17294ded4b/flux2_dev_11e5b772_00001_.png",
+      "raw": {
+        "id": "11e5b772-bad4-4508-8f83-6c17294ded4b",
+        "type": "text2image_local",
+        "created_at": "2026-05-12T21:02:53.789937+00:00",
+        "updated_at": "2026-05-12T21:08:41.971344+00:00",
+        "status": "completed",
+        "local_backend": "forge_comfyui",
+        "comfy_url": "http://100.80.184.21:8188",
+        "local_output_dir": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/11e5b772-bad4-4508-8f83-6c17294ded4b",
+        "jobs": [
+          {
+            "id": "c8afb46d-7c16-4e5f-9e29-4a96125a9ee8",
+            "prompt_id": "c8afb46d-7c16-4e5f-9e29-4a96125a9ee8",
+            "job_set_type": "text2image_local",
+            "status": "completed",
+            "results": {
+              "raw": {
+                "type": "image_url",
+                "url": "/media-assets/local_spark_media/results/11e5b772-bad4-4508-8f83-6c17294ded4b/flux2_dev_11e5b772_00001_.png",
+                "local_path": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/11e5b772-bad4-4508-8f83-6c17294ded4b/flux2_dev_11e5b772_00001_.png"
+              },
+              "min": {
+                "type": "image_url",
+                "url": "/media-assets/local_spark_media/results/11e5b772-bad4-4508-8f83-6c17294ded4b/flux2_dev_11e5b772_00001_.png",
+                "local_path": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/11e5b772-bad4-4508-8f83-6c17294ded4b/flux2_dev_11e5b772_00001_.png"
+              },
+              "all": [
+                {
+                  "type": "image_url",
+                  "url": "/media-assets/local_spark_media/results/11e5b772-bad4-4508-8f83-6c17294ded4b/flux2_dev_11e5b772_00001_.png",
+                  "local_path": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/11e5b772-bad4-4508-8f83-6c17294ded4b/flux2_dev_11e5b772_00001_.png"
+                }
+              ]
+            },
+            "error": ""
+          }
+        ],
+        "input_params": {
+          "prompt": "Single high-resolution cinematic production keyframe for board 1 shot 3 of 'Untitled Script'. This is an image-to-video start frame, not a storyboard page, not a contact sheet, not a grid. Style: cinematic. Scene action: Pip steps between Pop and the crystal, shielding it.. Scene SC_003: First Friction. Location: Sunlit Meadow Clearing; time/light: Late Afternoon. Characters: Pip. Continuity: {\"wardrobe\": \"Soft blue-tinted fur\", \"props\": [\"Luma-Crystal (amber phase)\"], \"screen_direction\": \"Center Frame\"}. Setting: Sunlit Meadow Clearing. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: Late Afternoon. Mood: Confusion to Defensive. Characters: Pip. Character consistency: Pip: Compact build, blue-tinted fur, expressive ears that flatten during conflict and perk during resolution.; Pop: Slightly taller build, orange-tinted fur, steady gaze that breaks into surprise during the illusion reveal.. Continuity: {\"wardrobe\": \"Soft blue-tinted fur\", \"props\": [\"Luma-Crystal (amber phase)\"], \"screen_direction\": \"Center Frame\"}. No text, no captions, no dialogue, no titles, no panel number. Make one clean cinematic frame with readable blocking, crisp subject edges, sharp eyes, clear hands, detailed textures, controlled depth of field, consistent wardrobe, consistent face, cinematic composition, tactile material detail, natural skin or surface imperfections, no border, no panel frame, no page layout, no watermark. Prompt standard enforcement: material specificity: visible skin pores, fine flyaway hairs, fabric weave, scuffed surfaces, dust and fingerprints where physically plausible; lighting source: motivated real light source with direction, color temperature, catchlights, practical reflections, grounded shadows; casting variation: each person has a distinct face shape, age bracket, hairstyle, body type, skin tone, wardrobe silhouette, posture, and expression; no duplicated template faces.",
+          "final_prompt": "Single high-resolution cinematic production keyframe for board 1 shot 3 of 'Untitled Script'. This is an image-to-video start frame, not a storyboard page, not a contact sheet, not a grid. Style: cinematic. Scene action: Pip steps between Pop and the crystal, shielding it.. Scene SC_003: First Friction. Location: Sunlit Meadow Clearing; time/light: Late Afternoon. Characters: Pip. Continuity: {\"wardrobe\": \"Soft blue-tinted fur\", \"props\": [\"Luma-Crystal (amber phase)\"], \"screen_direction\": \"Center Frame\"}. Setting: Sunlit Meadow Clearing. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: Late Afternoon. Mood: Confusion to Defensive. Characters: Pip. Character consistency: Pip: Compact build, blue-tinted fur, expressive ears that flatten during conflict and perk during resolution.; Pop: Slightly taller build, orange-tinted fur, steady gaze that breaks into surprise during the illusion reveal.. Continuity: {\"wardrobe\": \"Soft blue-tinted fur\", \"props\": [\"Luma-Crystal (amber phase)\"], \"screen_direction\": \"Center Frame\"}. No text, no captions, no dialogue, no titles, no panel number. Make one clean cinematic frame with readable blocking, crisp subject edges, sharp eyes, clear hands, detailed textures, controlled depth of field, consistent wardrobe, consistent face, cinematic composition, tactile material detail, natural skin or surface imperfections, no border, no panel frame, no page layout, no watermark. Prompt standard enforcement: material specificity: visible skin pores, fine flyaway hairs, fabric weave, scuffed surfaces, dust and fingerprints where physically plausible; lighting source: motivated real light source with direction, color temperature, catchlights, practical reflections, grounded shadows; casting variation: each person has a distinct face shape, age bracket, hairstyle, body type, skin tone, wardrobe silhouette, posture, and expression; no duplicated template faces.",
+          "width_and_height": "1920x1080",
+          "quality": "1080p",
+          "batch_size": 1,
+          "workflow_id": "01_flux2_text_to_image",
+          "style_id": "",
+          "style_strength": 0.0,
+          "seed": 1138179722,
+          "custom_reference_id": "",
+          "image_reference_url": "",
+          "local_equivalence_note": "Local adapter maps local image request to Forge Flux/ComfyUI workflow."
+        }
+      }
+    },
+    {
+      "index": 4,
+      "status": "in_progress",
+      "job_set_id": "c4dce399-e497-435c-a728-ec78cfa3ef93",
+      "provider": "spark",
+      "model": "flux2_dev",
+      "url": "",
+      "raw": {
+        "id": "c4dce399-e497-435c-a728-ec78cfa3ef93",
+        "type": "text2image_local",
+        "created_at": "2026-05-12T21:02:54.454682+00:00",
+        "updated_at": "2026-05-12T21:10:04.595798+00:00",
+        "status": "in_progress",
+        "local_backend": "forge_comfyui",
+        "comfy_url": "http://100.80.184.21:8188",
+        "local_output_dir": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/c4dce399-e497-435c-a728-ec78cfa3ef93",
+        "jobs": [
+          {
+            "id": "84a6d639-3dd3-4e10-a59d-55ac60af0cf4",
+            "prompt_id": "84a6d639-3dd3-4e10-a59d-55ac60af0cf4",
+            "job_set_type": "text2image_local",
+            "status": "in_progress",
+            "results": {},
+            "error": ""
+          }
+        ],
+        "input_params": {
+          "prompt": "Single high-resolution cinematic production keyframe for board 1 shot 4 of 'Untitled Script'. This is an image-to-video start frame, not a storyboard page, not a contact sheet, not a grid. Style: cinematic. Scene action: Pop circles left, crystal shifts to magenta.. Scene SC_003: First Friction. Location: Sunlit Meadow Clearing; time/light: Late Afternoon. Characters: Pop. Continuity: {\"wardrobe\": \"Warm orange-tinted fur\", \"props\": [\"Luma-Crystal (magenta phase)\"], \"screen_direction\": \"Left to Center\"}. Setting: Sunlit Meadow Clearing. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: Late Afternoon. Mood: Confusion to Defensive. Characters: Pop. Character consistency: Pip: Compact build, blue-tinted fur, expressive ears that flatten during conflict and perk during resolution.; Pop: Slightly taller build, orange-tinted fur, steady gaze that breaks into surprise during the illusion reveal.. Continuity: {\"wardrobe\": \"Warm orange-tinted fur\", \"props\": [\"Luma-Crystal (magenta phase)\"], \"screen_direction\": \"Left to Center\"}. No text, no captions, no dialogue, no titles, no panel number. Make one clean cinematic frame with readable blocking, crisp subject edges, sharp eyes, clear hands, detailed textures, controlled depth of field, consistent wardrobe, consistent face, cinematic composition, tactile material detail, natural skin or surface imperfections, no border, no panel frame, no page layout, no watermark. Prompt standard enforcement: material specificity: visible skin pores, fine flyaway hairs, fabric weave, scuffed surfaces, dust and fingerprints where physically plausible; lighting source: motivated real light source with direction, color temperature, catchlights, practical reflections, grounded shadows; casting variation: each person has a distinct face shape, age bracket, hairstyle, body type, skin tone, wardrobe silhouette, posture, and expression; no duplicated template faces.",
+          "final_prompt": "Single high-resolution cinematic production keyframe for board 1 shot 4 of 'Untitled Script'. This is an image-to-video start frame, not a storyboard page, not a contact sheet, not a grid. Style: cinematic. Scene action: Pop circles left, crystal shifts to magenta.. Scene SC_003: First Friction. Location: Sunlit Meadow Clearing; time/light: Late Afternoon. Characters: Pop. Continuity: {\"wardrobe\": \"Warm orange-tinted fur\", \"props\": [\"Luma-Crystal (magenta phase)\"], \"screen_direction\": \"Left to Center\"}. Setting: Sunlit Meadow Clearing. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: Late Afternoon. Mood: Confusion to Defensive. Characters: Pop. Character consistency: Pip: Compact build, blue-tinted fur, expressive ears that flatten during conflict and perk during resolution.; Pop: Slightly taller build, orange-tinted fur, steady gaze that breaks into surprise during the illusion reveal.. Continuity: {\"wardrobe\": \"Warm orange-tinted fur\", \"props\": [\"Luma-Crystal (magenta phase)\"], \"screen_direction\": \"Left to Center\"}. No text, no captions, no dialogue, no titles, no panel number. Make one clean cinematic frame with readable blocking, crisp subject edges, sharp eyes, clear hands, detailed textures, controlled depth of field, consistent wardrobe, consistent face, cinematic composition, tactile material detail, natural skin or surface imperfections, no border, no panel frame, no page layout, no watermark. Prompt standard enforcement: material specificity: visible skin pores, fine flyaway hairs, fabric weave, scuffed surfaces, dust and fingerprints where physically plausible; lighting source: motivated real light source with direction, color temperature, catchlights, practical reflections, grounded shadows; casting variation: each person has a distinct face shape, age bracket, hairstyle, body type, skin tone, wardrobe silhouette, posture, and expression; no duplicated template faces.",
+          "width_and_height": "1920x1080",
+          "quality": "1080p",
+          "batch_size": 1,
+          "workflow_id": "01_flux2_text_to_image",
+          "style_id": "",
+          "style_strength": 0.0,
+          "seed": 2752260023,
+          "custom_reference_id": "",
+          "image_reference_url": "",
+          "local_equivalence_note": "Local adapter maps local image request to Forge Flux/ComfyUI workflow."
+        }
+      }
+    }
+  ],
+  "2": [
+    {
+      "index": 1,
+      "status": "in_progress",
+      "job_set_id": "2e24efea-6889-4bd9-b1e5-a6230089bb75",
+      "provider": "spark",
+      "model": "flux2_dev",
+      "url": "",
+      "raw": {
+        "id": "2e24efea-6889-4bd9-b1e5-a6230089bb75",
+        "type": "text2image_local",
+        "created_at": "2026-05-12T21:02:55.560141+00:00",
+        "updated_at": "2026-05-12T21:10:04.661155+00:00",
+        "status": "in_progress",
+        "local_backend": "forge_comfyui",
+        "comfy_url": "http://100.80.184.21:8188",
+        "local_output_dir": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/2e24efea-6889-4bd9-b1e5-a6230089bb75",
+        "jobs": [
+          {
+            "id": "2d37da27-2ef2-4f25-8159-f43535cb58dd",
+            "prompt_id": "2d37da27-2ef2-4f25-8159-f43535cb58dd",
+            "job_set_type": "text2image_local",
+            "status": "in_progress",
+            "results": {},
+            "error": ""
+          }
+        ],
+        "input_params": {
+          "prompt": "Single high-resolution cinematic production keyframe for board 2 shot 1 of 'Untitled Script'. This is an image-to-video start frame, not a storyboard page, not a contact sheet, not a grid. Style: cinematic. Scene action: Both step forward, paws raised. The crystal flashes red at Pip, green at Pop.. Scene SC_004: The Standoff. Location: Sunlit Meadow Clearing; time/light: Late Afternoon. Characters: Pip, Pop. Continuity: {\"wardrobe\": \"Blue & orange fur ruffled by tension\", \"props\": [\"Luma-Crystal (split-color phase)\"], \"screen_direction\": \"Push In\"}. Setting: Sunlit Meadow Clearing. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: Late Afternoon. Mood: Defensive to Hostile. Characters: Pip, Pop. Character consistency: Pip: Compact build, blue-tinted fur, expressive ears that flatten during conflict and perk during resolution.; Pop: Slightly taller build, orange-tinted fur, steady gaze that breaks into surprise during the illusion reveal.. Continuity: {\"wardrobe\": \"Blue & orange fur ruffled by tension\", \"props\": [\"Luma-Crystal (split-color phase)\"], \"screen_direction\": \"Push In\"}. No text, no captions, no dialogue, no titles, no panel number. Make one clean cinematic frame with readable blocking, crisp subject edges, sharp eyes, clear hands, detailed textures, controlled depth of field, consistent wardrobe, consistent face, cinematic composition, tactile material detail, natural skin or surface imperfections, no border, no panel frame, no page layout, no watermark. Prompt standard enforcement: material specificity: visible skin pores, fine flyaway hairs, fabric weave, scuffed surfaces, dust and fingerprints where physically plausible; lighting source: motivated real light source with direction, color temperature, catchlights, practical reflections, grounded shadows; casting variation: each person has a distinct face shape, age bracket, hairstyle, body type, skin tone, wardrobe silhouette, posture, and expression; no duplicated template faces.",
+          "final_prompt": "Single high-resolution cinematic production keyframe for board 2 shot 1 of 'Untitled Script'. This is an image-to-video start frame, not a storyboard page, not a contact sheet, not a grid. Style: cinematic. Scene action: Both step forward, paws raised. The crystal flashes red at Pip, green at Pop.. Scene SC_004: The Standoff. Location: Sunlit Meadow Clearing; time/light: Late Afternoon. Characters: Pip, Pop. Continuity: {\"wardrobe\": \"Blue & orange fur ruffled by tension\", \"props\": [\"Luma-Crystal (split-color phase)\"], \"screen_direction\": \"Push In\"}. Setting: Sunlit Meadow Clearing. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: Late Afternoon. Mood: Defensive to Hostile. Characters: Pip, Pop. Character consistency: Pip: Compact build, blue-tinted fur, expressive ears that flatten during conflict and perk during resolution.; Pop: Slightly taller build, orange-tinted fur, steady gaze that breaks into surprise during the illusion reveal.. Continuity: {\"wardrobe\": \"Blue & orange fur ruffled by tension\", \"props\": [\"Luma-Crystal (split-color phase)\"], \"screen_direction\": \"Push In\"}. No text, no captions, no dialogue, no titles, no panel number. Make one clean cinematic frame with readable blocking, crisp subject edges, sharp eyes, clear hands, detailed textures, controlled depth of field, consistent wardrobe, consistent face, cinematic composition, tactile material detail, natural skin or surface imperfections, no border, no panel frame, no page layout, no watermark. Prompt standard enforcement: material specificity: visible skin pores, fine flyaway hairs, fabric weave, scuffed surfaces, dust and fingerprints where physically plausible; lighting source: motivated real light source with direction, color temperature, catchlights, practical reflections, grounded shadows; casting variation: each person has a distinct face shape, age bracket, hairstyle, body type, skin tone, wardrobe silhouette, posture, and expression; no duplicated template faces.",
+          "width_and_height": "1920x1080",
+          "quality": "1080p",
+          "batch_size": 1,
+          "workflow_id": "01_flux2_text_to_image",
+          "style_id": "",
+          "style_strength": 0.0,
+          "seed": 690932297,
+          "custom_reference_id": "",
+          "image_reference_url": "",
+          "local_equivalence_note": "Local adapter maps local image request to Forge Flux/ComfyUI workflow."
+        }
+      }
+    },
+    {
+      "index": 2,
+      "status": "in_progress",
+      "job_set_id": "5f69f58a-e400-4048-ae8c-89b9e0176a42",
+      "provider": "spark",
+      "model": "flux2_dev",
+      "url": "",
+      "raw": {
+        "id": "5f69f58a-e400-4048-ae8c-89b9e0176a42",
+        "type": "text2image_local",
+        "created_at": "2026-05-12T21:02:57.027111+00:00",
+        "updated_at": "2026-05-12T21:10:04.749947+00:00",
+        "status": "in_progress",
+        "local_backend": "forge_comfyui",
+        "comfy_url": "http://100.80.184.21:8188",
+        "local_output_dir": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/5f69f58a-e400-4048-ae8c-89b9e0176a42",
+        "jobs": [
+          {
+            "id": "11bf1a45-031b-4db3-89e8-c5c004d52c69",
+            "prompt_id": "11bf1a45-031b-4db3-89e8-c5c004d52c69",
+            "job_set_type": "text2image_local",
+            "status": "in_progress",
+            "results": {},
+            "error": ""
+          }
+        ],
+        "input_params": {
+          "prompt": "Single high-resolution cinematic production keyframe for board 2 shot 2 of 'Untitled Script'. This is an image-to-video start frame, not a storyboard page, not a contact sheet, not a grid. Style: cinematic. Scene action: Extreme close-ups alternate. Ears flatten, tails twitch. They argue over ownership and truth.. Scene SC_005: Peak Disagreement. Location: Sunlit Meadow Clearing; time/light: Late Afternoon. Characters: Pip, Pop. Continuity: {\"wardrobe\": \"Detailed fur texture visible\", \"props\": [], \"screen_direction\": \"Static\"}. Setting: Sunlit Meadow Clearing. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: Late Afternoon. Mood: Hostile to Frustrated. Characters: Pip, Pop. Character consistency: Pip: Compact build, blue-tinted fur, expressive ears that flatten during conflict and perk during resolution.; Pop: Slightly taller build, orange-tinted fur, steady gaze that breaks into surprise during the illusion reveal.. Continuity: {\"wardrobe\": \"Detailed fur texture visible\", \"props\": [], \"screen_direction\": \"Static\"}. No text, no captions, no dialogue, no titles, no panel number. Make one clean cinematic frame with readable blocking, crisp subject edges, sharp eyes, clear hands, detailed textures, controlled depth of field, consistent wardrobe, consistent face, cinematic composition, tactile material detail, natural skin or surface imperfections, no border, no panel frame, no page layout, no watermark. Prompt standard enforcement: material specificity: visible skin pores, fine flyaway hairs, fabric weave, scuffed surfaces, dust and fingerprints where physically plausible; lighting source: motivated real light source with direction, color temperature, catchlights, practical reflections, grounded shadows; casting variation: each person has a distinct face shape, age bracket, hairstyle, body type, skin tone, wardrobe silhouette, posture, and expression; no duplicated template faces.",
+          "final_prompt": "Single high-resolution cinematic production keyframe for board 2 shot 2 of 'Untitled Script'. This is an image-to-video start frame, not a storyboard page, not a contact sheet, not a grid. Style: cinematic. Scene action: Extreme close-ups alternate. Ears flatten, tails twitch. They argue over ownership and truth.. Scene SC_005: Peak Disagreement. Location: Sunlit Meadow Clearing; time/light: Late Afternoon. Characters: Pip, Pop. Continuity: {\"wardrobe\": \"Detailed fur texture visible\", \"props\": [], \"screen_direction\": \"Static\"}. Setting: Sunlit Meadow Clearing. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: Late Afternoon. Mood: Hostile to Frustrated. Characters: Pip, Pop. Character consistency: Pip: Compact build, blue-tinted fur, expressive ears that flatten during conflict and perk during resolution.; Pop: Slightly taller build, orange-tinted fur, steady gaze that breaks into surprise during the illusion reveal.. Continuity: {\"wardrobe\": \"Detailed fur texture visible\", \"props\": [], \"screen_direction\": \"Static\"}. No text, no captions, no dialogue, no titles, no panel number. Make one clean cinematic frame with readable blocking, crisp subject edges, sharp eyes, clear hands, detailed textures, controlled depth of field, consistent wardrobe, consistent face, cinematic composition, tactile material detail, natural skin or surface imperfections, no border, no panel frame, no page layout, no watermark. Prompt standard enforcement: material specificity: visible skin pores, fine flyaway hairs, fabric weave, scuffed surfaces, dust and fingerprints where physically plausible; lighting source: motivated real light source with direction, color temperature, catchlights, practical reflections, grounded shadows; casting variation: each person has a distinct face shape, age bracket, hairstyle, body type, skin tone, wardrobe silhouette, posture, and expression; no duplicated template faces.",
+          "width_and_height": "1920x1080",
+          "quality": "1080p",
+          "batch_size": 1,
+          "workflow_id": "01_flux2_text_to_image",
+          "style_id": "",
+          "style_strength": 0.0,
+          "seed": 1853388339,
+          "custom_reference_id": "",
+          "image_reference_url": "",
+          "local_equivalence_note": "Local adapter maps local image request to Forge Flux/ComfyUI workflow."
+        }
+      }
+    },
+    {
+      "index": 3,
+      "status": "in_progress",
+      "job_set_id": "18426287-ae92-4f64-8aad-97c11dcf1088",
+      "provider": "spark",
+      "model": "flux2_dev",
+      "url": "",
+      "raw": {
+        "id": "18426287-ae92-4f64-8aad-97c11dcf1088",
+        "type": "text2image_local",
+        "created_at": "2026-05-12T21:02:57.694740+00:00",
+        "updated_at": "2026-05-12T21:10:04.826933+00:00",
+        "status": "in_progress",
+        "local_backend": "forge_comfyui",
+        "comfy_url": "http://100.80.184.21:8188",
+        "local_output_dir": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/18426287-ae92-4f64-8aad-97c11dcf1088",
+        "jobs": [
+          {
+            "id": "836cd46b-74d8-4feb-a924-6b02410a1408",
+            "prompt_id": "836cd46b-74d8-4feb-a924-6b02410a1408",
+            "job_set_type": "text2image_local",
+            "status": "in_progress",
+            "results": {},
+            "error": ""
+          }
+        ],
+        "input_params": {
+          "prompt": "Single high-resolution cinematic production keyframe for board 2 shot 3 of 'Untitled Script'. This is an image-to-video start frame, not a storyboard page, not a contact sheet, not a grid. Style: cinematic. Scene action: Pop stumbles back slightly. A sunbeam catches a hidden internal mirror in the crystal, casting a sharp white flare across both faces.. Scene SC_006: The Shift. Location: Sunlit Meadow Clearing; time/light: Late Afternoon. Characters: Pip, Pop. Continuity: {\"wardrobe\": \"Silhouetted by flare\", \"props\": [\"Luma-Crystal (white flare phase)\"], \"screen_direction\": \"Pull Back\"}. Setting: Sunlit Meadow Clearing. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: Late Afternoon. Mood: Frustrated to Uncertain. Characters: Pip, Pop. Character consistency: Pip: Compact build, blue-tinted fur, expressive ears that flatten during conflict and perk during resolution.; Pop: Slightly taller build, orange-tinted fur, steady gaze that breaks into surprise during the illusion reveal.. Continuity: {\"wardrobe\": \"Silhouetted by flare\", \"props\": [\"Luma-Crystal (white flare phase)\"], \"screen_direction\": \"Pull Back\"}. No text, no captions, no dialogue, no titles, no panel number. Make one clean cinematic frame with readable blocking, crisp subject edges, sharp eyes, clear hands, detailed textures, controlled depth of field, consistent wardrobe, consistent face, cinematic composition, tactile material detail, natural skin or surface imperfections, no border, no panel frame, no page layout, no watermark. Prompt standard enforcement: material specificity: visible skin pores, fine flyaway hairs, fabric weave, scuffed surfaces, dust and fingerprints where physically plausible; lighting source: motivated real light source with direction, color temperature, catchlights, practical reflections, grounded shadows; casting variation: each person has a distinct face shape, age bracket, hairstyle, body type, skin tone, wardrobe silhouette, posture, and expression; no duplicated template faces.",
+          "final_prompt": "Single high-resolution cinematic production keyframe for board 2 shot 3 of 'Untitled Script'. This is an image-to-video start frame, not a storyboard page, not a contact sheet, not a grid. Style: cinematic. Scene action: Pop stumbles back slightly. A sunbeam catches a hidden internal mirror in the crystal, casting a sharp white flare across both faces.. Scene SC_006: The Shift. Location: Sunlit Meadow Clearing; time/light: Late Afternoon. Characters: Pip, Pop. Continuity: {\"wardrobe\": \"Silhouetted by flare\", \"props\": [\"Luma-Crystal (white flare phase)\"], \"screen_direction\": \"Pull Back\"}. Setting: Sunlit Meadow Clearing. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: Late Afternoon. Mood: Frustrated to Uncertain. Characters: Pip, Pop. Character consistency: Pip: Compact build, blue-tinted fur, expressive ears that flatten during conflict and perk during resolution.; Pop: Slightly taller build, orange-tinted fur, steady gaze that breaks into surprise during the illusion reveal.. Continuity: {\"wardrobe\": \"Silhouetted by flare\", \"props\": [\"Luma-Crystal (white flare phase)\"], \"screen_direction\": \"Pull Back\"}. No text, no captions, no dialogue, no titles, no panel number. Make one clean cinematic frame with readable blocking, crisp subject edges, sharp eyes, clear hands, detailed textures, controlled depth of field, consistent wardrobe, consistent face, cinematic composition, tactile material detail, natural skin or surface imperfections, no border, no panel frame, no page layout, no watermark. Prompt standard enforcement: material specificity: visible skin pores, fine flyaway hairs, fabric weave, scuffed surfaces, dust and fingerprints where physically plausible; lighting source: motivated real light source with direction, color temperature, catchlights, practical reflections, grounded shadows; casting variation: each person has a distinct face shape, age bracket, hairstyle, body type, skin tone, wardrobe silhouette, posture, and expression; no duplicated template faces.",
+          "width_and_height": "1920x1080",
+          "quality": "1080p",
+          "batch_size": 1,
+          "workflow_id": "01_flux2_text_to_image",
+          "style_id": "",
+          "style_strength": 0.0,
+          "seed": 3084383682,
+          "custom_reference_id": "",
+          "image_reference_url": "",
+          "local_equivalence_note": "Local adapter maps local image request to Forge Flux/ComfyUI workflow."
+        }
+      }
+    },
+    {
+      "index": 4,
+      "status": "in_progress",
+      "job_set_id": "7de6fff7-1a0d-4d6e-b949-dca0892f1c5c",
+      "provider": "spark",
+      "model": "flux2_dev",
+      "url": "",
+      "raw": {
+        "id": "7de6fff7-1a0d-4d6e-b949-dca0892f1c5c",
+        "type": "text2image_local",
+        "created_at": "2026-05-12T21:02:58.600200+00:00",
+        "updated_at": "2026-05-12T21:10:04.957542+00:00",
+        "status": "in_progress",
+        "local_backend": "forge_comfyui",
+        "comfy_url": "http://100.80.184.21:8188",
+        "local_output_dir": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/7de6fff7-1a0d-4d6e-b949-dca0892f1c5c",
+        "jobs": [
+          {
+            "id": "8ab51a03-1f7a-4204-a625-6e6a6071353f",
+            "prompt_id": "8ab51a03-1f7a-4204-a625-6e6a6071353f",
+            "job_set_type": "text2image_local",
+            "status": "in_progress",
+            "results": {},
+            "error": ""
+          }
+        ],
+        "input_params": {
+          "prompt": "Single high-resolution cinematic production keyframe for board 2 shot 4 of 'Untitled Script'. This is an image-to-video start frame, not a storyboard page, not a contact sheet, not a grid. Style: cinematic. Scene action: The flare fades. The crystal now shows a neutral, unified glow. Both lower their paws.. Scene SC_007: The Break. Location: Sunlit Meadow Clearing; time/light: Late Afternoon. Characters: Pip. Continuity: {\"wardrobe\": \"Relaxed posture\", \"props\": [\"Luma-Crystal (neutral phase)\"], \"screen_direction\": \"Center Frame\"}. Setting: Sunlit Meadow Clearing. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: Late Afternoon. Mood: Uncertain to Realization. Characters: Pip. Character consistency: Pip: Compact build, blue-tinted fur, expressive ears that flatten during conflict and perk during resolution.; Pop: Slightly taller build, orange-tinted fur, steady gaze that breaks into surprise during the illusion reveal.. Continuity: {\"wardrobe\": \"Relaxed posture\", \"props\": [\"Luma-Crystal (neutral phase)\"], \"screen_direction\": \"Center Frame\"}. No text, no captions, no dialogue, no titles, no panel number. Make one clean cinematic frame with readable blocking, crisp subject edges, sharp eyes, clear hands, detailed textures, controlled depth of field, consistent wardrobe, consistent face, cinematic composition, tactile material detail, natural skin or surface imperfections, no border, no panel frame, no page layout, no watermark. Prompt standard enforcement: material specificity: visible skin pores, fine flyaway hairs, fabric weave, scuffed surfaces, dust and fingerprints where physically plausible; lighting source: motivated real light source with direction, color temperature, catchlights, practical reflections, grounded shadows; casting variation: each person has a distinct face shape, age bracket, hairstyle, body type, skin tone, wardrobe silhouette, posture, and expression; no duplicated template faces.",
+          "final_prompt": "Single high-resolution cinematic production keyframe for board 2 shot 4 of 'Untitled Script'. This is an image-to-video start frame, not a storyboard page, not a contact sheet, not a grid. Style: cinematic. Scene action: The flare fades. The crystal now shows a neutral, unified glow. Both lower their paws.. Scene SC_007: The Break. Location: Sunlit Meadow Clearing; time/light: Late Afternoon. Characters: Pip. Continuity: {\"wardrobe\": \"Relaxed posture\", \"props\": [\"Luma-Crystal (neutral phase)\"], \"screen_direction\": \"Center Frame\"}. Setting: Sunlit Meadow Clearing. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: Late Afternoon. Mood: Uncertain to Realization. Characters: Pip. Character consistency: Pip: Compact build, blue-tinted fur, expressive ears that flatten during conflict and perk during resolution.; Pop: Slightly taller build, orange-tinted fur, steady gaze that breaks into surprise during the illusion reveal.. Continuity: {\"wardrobe\": \"Relaxed posture\", \"props\": [\"Luma-Crystal (neutral phase)\"], \"screen_direction\": \"Center Frame\"}. No text, no captions, no dialogue, no titles, no panel number. Make one clean cinematic frame with readable blocking, crisp subject edges, sharp eyes, clear hands, detailed textures, controlled depth of field, consistent wardrobe, consistent face, cinematic composition, tactile material detail, natural skin or surface imperfections, no border, no panel frame, no page layout, no watermark. Prompt standard enforcement: material specificity: visible skin pores, fine flyaway hairs, fabric weave, scuffed surfaces, dust and fingerprints where physically plausible; lighting source: motivated real light source with direction, color temperature, catchlights, practical reflections, grounded shadows; casting variation: each person has a distinct face shape, age bracket, hairstyle, body type, skin tone, wardrobe silhouette, posture, and expression; no duplicated template faces.",
+          "width_and_height": "1920x1080",
+          "quality": "1080p",
+          "batch_size": 1,
+          "workflow_id": "01_flux2_text_to_image",
+          "style_id": "",
+          "style_strength": 0.0,
+          "seed": 1642615852,
+          "custom_reference_id": "",
+          "image_reference_url": "",
+          "local_equivalence_note": "Local adapter maps local image request to Forge Flux/ComfyUI workflow."
+        }
+      }
+    }
+  ],
+  "3": [
+    {
+      "index": 1,
+      "status": "in_progress",
+      "job_set_id": "21f74a67-e01d-4a96-bb97-aeac0aec99e6",
+      "provider": "spark",
+      "model": "flux2_dev",
+      "url": "",
+      "raw": {
+        "id": "21f74a67-e01d-4a96-bb97-aeac0aec99e6",
+        "type": "text2image_local",
+        "created_at": "2026-05-12T21:02:59.585187+00:00",
+        "updated_at": "2026-05-12T21:10:05.043480+00:00",
+        "status": "in_progress",
+        "local_backend": "forge_comfyui",
+        "comfy_url": "http://100.80.184.21:8188",
+        "local_output_dir": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/21f74a67-e01d-4a96-bb97-aeac0aec99e6",
+        "jobs": [
+          {
+            "id": "f4aaad4f-7334-4813-8630-9a900cd6a39a",
+            "prompt_id": "f4aaad4f-7334-4813-8630-9a900cd6a39a",
+            "job_set_type": "text2image_local",
+            "status": "in_progress",
+            "results": {},
+            "error": ""
+          }
+        ],
+        "input_params": {
+          "prompt": "Single high-resolution cinematic production keyframe for board 3 shot 1 of 'Untitled Script'. This is an image-to-video start frame, not a storyboard page, not a contact sheet, not a grid. Style: cinematic. Scene action: They step closer together, tilting heads. The crystal refracts into a soft rainbow halo.. Scene SC_008: Joint Examination. Location: Sunlit Meadow Clearing; time/light: Late Afternoon. Characters: Pip, Pop. Continuity: {\"wardrobe\": \"Fur aligned, calm\", \"props\": [\"Luma-Crystal (rainbow halo phase)\"], \"screen_direction\": \"Slow Push In\"}. Setting: Sunlit Meadow Clearing. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: Late Afternoon. Mood: Realization to Wonder. Characters: Pip, Pop. Character consistency: Pip: Compact build, blue-tinted fur, expressive ears that flatten during conflict and perk during resolution.; Pop: Slightly taller build, orange-tinted fur, steady gaze that breaks into surprise during the illusion reveal.. Continuity: {\"wardrobe\": \"Fur aligned, calm\", \"props\": [\"Luma-Crystal (rainbow halo phase)\"], \"screen_direction\": \"Slow Push In\"}. No text, no captions, no dialogue, no titles, no panel number. Make one clean cinematic frame with readable blocking, crisp subject edges, sharp eyes, clear hands, detailed textures, controlled depth of field, consistent wardrobe, consistent face, cinematic composition, tactile material detail, natural skin or surface imperfections, no border, no panel frame, no page layout, no watermark. Prompt standard enforcement: material specificity: visible skin pores, fine flyaway hairs, fabric weave, scuffed surfaces, dust and fingerprints where physically plausible; lighting source: motivated real light source with direction, color temperature, catchlights, practical reflections, grounded shadows; casting variation: each person has a distinct face shape, age bracket, hairstyle, body type, skin tone, wardrobe silhouette, posture, and expression; no duplicated template faces.",
+          "final_prompt": "Single high-resolution cinematic production keyframe for board 3 shot 1 of 'Untitled Script'. This is an image-to-video start frame, not a storyboard page, not a contact sheet, not a grid. Style: cinematic. Scene action: They step closer together, tilting heads. The crystal refracts into a soft rainbow halo.. Scene SC_008: Joint Examination. Location: Sunlit Meadow Clearing; time/light: Late Afternoon. Characters: Pip, Pop. Continuity: {\"wardrobe\": \"Fur aligned, calm\", \"props\": [\"Luma-Crystal (rainbow halo phase)\"], \"screen_direction\": \"Slow Push In\"}. Setting: Sunlit Meadow Clearing. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: Late Afternoon. Mood: Realization to Wonder. Characters: Pip, Pop. Character consistency: Pip: Compact build, blue-tinted fur, expressive ears that flatten during conflict and perk during resolution.; Pop: Slightly taller build, orange-tinted fur, steady gaze that breaks into surprise during the illusion reveal.. Continuity: {\"wardrobe\": \"Fur aligned, calm\", \"props\": [\"Luma-Crystal (rainbow halo phase)\"], \"screen_direction\": \"Slow Push In\"}. No text, no captions, no dialogue, no titles, no panel number. Make one clean cinematic frame with readable blocking, crisp subject edges, sharp eyes, clear hands, detailed textures, controlled depth of field, consistent wardrobe, consistent face, cinematic composition, tactile material detail, natural skin or surface imperfections, no border, no panel frame, no page layout, no watermark. Prompt standard enforcement: material specificity: visible skin pores, fine flyaway hairs, fabric weave, scuffed surfaces, dust and fingerprints where physically plausible; lighting source: motivated real light source with direction, color temperature, catchlights, practical reflections, grounded shadows; casting variation: each person has a distinct face shape, age bracket, hairstyle, body type, skin tone, wardrobe silhouette, posture, and expression; no duplicated template faces.",
+          "width_and_height": "1920x1080",
+          "quality": "1080p",
+          "batch_size": 1,
+          "workflow_id": "01_flux2_text_to_image",
+          "style_id": "",
+          "style_strength": 0.0,
+          "seed": 4263635519,
+          "custom_reference_id": "",
+          "image_reference_url": "",
+          "local_equivalence_note": "Local adapter maps local image request to Forge Flux/ComfyUI workflow."
+        }
+      }
+    },
+    {
+      "index": 2,
+      "status": "in_progress",
+      "job_set_id": "2f516b4b-79f8-478b-82f3-fa5773527f42",
+      "provider": "spark",
+      "model": "flux2_dev",
+      "url": "",
+      "raw": {
+        "id": "2f516b4b-79f8-478b-82f3-fa5773527f42",
+        "type": "text2image_local",
+        "created_at": "2026-05-12T21:03:00.639887+00:00",
+        "updated_at": "2026-05-12T21:10:05.125540+00:00",
+        "status": "in_progress",
+        "local_backend": "forge_comfyui",
+        "comfy_url": "http://100.80.184.21:8188",
+        "local_output_dir": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/2f516b4b-79f8-478b-82f3-fa5773527f42",
+        "jobs": [
+          {
+            "id": "31d025b8-4d9f-41f9-bede-c3215529eac2",
+            "prompt_id": "31d025b8-4d9f-41f9-bede-c3215529eac2",
+            "job_set_type": "text2image_local",
+            "status": "in_progress",
+            "results": {},
+            "error": ""
+          }
+        ],
+        "input_params": {
+          "prompt": "Single high-resolution cinematic production keyframe for board 3 shot 2 of 'Untitled Script'. This is an image-to-video start frame, not a storyboard page, not a contact sheet, not a grid. Style: cinematic. Scene action: Pip gently nudges Pop\u2019s shoulder. Shared smile.. Scene SC_008: Joint Examination. Location: Sunlit Meadow Clearing; time/light: Late Afternoon. Characters: Pip, Pop. Continuity: {\"wardrobe\": \"Matching relaxed stance\", \"props\": [], \"screen_direction\": \"Static\"}. Setting: Sunlit Meadow Clearing. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: Late Afternoon. Mood: Realization to Wonder. Characters: Pip, Pop. Character consistency: Pip: Compact build, blue-tinted fur, expressive ears that flatten during conflict and perk during resolution.; Pop: Slightly taller build, orange-tinted fur, steady gaze that breaks into surprise during the illusion reveal.. Continuity: {\"wardrobe\": \"Matching relaxed stance\", \"props\": [], \"screen_direction\": \"Static\"}. No text, no captions, no dialogue, no titles, no panel number. Make one clean cinematic frame with readable blocking, crisp subject edges, sharp eyes, clear hands, detailed textures, controlled depth of field, consistent wardrobe, consistent face, cinematic composition, tactile material detail, natural skin or surface imperfections, no border, no panel frame, no page layout, no watermark. Prompt standard enforcement: material specificity: visible skin pores, fine flyaway hairs, fabric weave, scuffed surfaces, dust and fingerprints where physically plausible; lighting source: motivated real light source with direction, color temperature, catchlights, practical reflections, grounded shadows; casting variation: each person has a distinct face shape, age bracket, hairstyle, body type, skin tone, wardrobe silhouette, posture, and expression; no duplicated template faces.",
+          "final_prompt": "Single high-resolution cinematic production keyframe for board 3 shot 2 of 'Untitled Script'. This is an image-to-video start frame, not a storyboard page, not a contact sheet, not a grid. Style: cinematic. Scene action: Pip gently nudges Pop\u2019s shoulder. Shared smile.. Scene SC_008: Joint Examination. Location: Sunlit Meadow Clearing; time/light: Late Afternoon. Characters: Pip, Pop. Continuity: {\"wardrobe\": \"Matching relaxed stance\", \"props\": [], \"screen_direction\": \"Static\"}. Setting: Sunlit Meadow Clearing. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: Late Afternoon. Mood: Realization to Wonder. Characters: Pip, Pop. Character consistency: Pip: Compact build, blue-tinted fur, expressive ears that flatten during conflict and perk during resolution.; Pop: Slightly taller build, orange-tinted fur, steady gaze that breaks into surprise during the illusion reveal.. Continuity: {\"wardrobe\": \"Matching relaxed stance\", \"props\": [], \"screen_direction\": \"Static\"}. No text, no captions, no dialogue, no titles, no panel number. Make one clean cinematic frame with readable blocking, crisp subject edges, sharp eyes, clear hands, detailed textures, controlled depth of field, consistent wardrobe, consistent face, cinematic composition, tactile material detail, natural skin or surface imperfections, no border, no panel frame, no page layout, no watermark. Prompt standard enforcement: material specificity: visible skin pores, fine flyaway hairs, fabric weave, scuffed surfaces, dust and fingerprints where physically plausible; lighting source: motivated real light source with direction, color temperature, catchlights, practical reflections, grounded shadows; casting variation: each person has a distinct face shape, age bracket, hairstyle, body type, skin tone, wardrobe silhouette, posture, and expression; no duplicated template faces.",
+          "width_and_height": "1920x1080",
+          "quality": "1080p",
+          "batch_size": 1,
+          "workflow_id": "01_flux2_text_to_image",
+          "style_id": "",
+          "style_strength": 0.0,
+          "seed": 377862866,
+          "custom_reference_id": "",
+          "image_reference_url": "",
+          "local_equivalence_note": "Local adapter maps local image request to Forge Flux/ComfyUI workflow."
+        }
+      }
+    },
+    {
+      "index": 3,
+      "status": "in_progress",
+      "job_set_id": "49a020ec-140a-43ee-b8bd-99cfad3088a0",
+      "provider": "spark",
+      "model": "flux2_dev",
+      "url": "",
+      "raw": {
+        "id": "49a020ec-140a-43ee-b8bd-99cfad3088a0",
+        "type": "text2image_local",
+        "created_at": "2026-05-12T21:03:02.368218+00:00",
+        "updated_at": "2026-05-12T21:10:05.218319+00:00",
+        "status": "in_progress",
+        "local_backend": "forge_comfyui",
+        "comfy_url": "http://100.80.184.21:8188",
+        "local_output_dir": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/49a020ec-140a-43ee-b8bd-99cfad3088a0",
+        "jobs": [
+          {
+            "id": "9bf67106-03cc-4a0a-9ad2-dce449026d69",
+            "prompt_id": "9bf67106-03cc-4a0a-9ad2-dce449026d69",
+            "job_set_type": "text2image_local",
+            "status": "in_progress",
+            "results": {},
+            "error": ""
+          }
+        ],
+        "input_params": {
+          "prompt": "Single high-resolution cinematic production keyframe for board 3 shot 3 of 'Untitled Script'. This is an image-to-video start frame, not a storyboard page, not a contact sheet, not a grid. Style: cinematic. Scene action: Wide shot. They sit side-by-side watching the crystal pulse gently as golden hour light washes over them.. Scene SC_009: Shared Light. Location: Sunlit Meadow Clearing; time/light: Late Afternoon. Characters: Pip, Pop. Continuity: {\"wardrobe\": \"Warm backlight glow\", \"props\": [\"Luma-Crystal (steady pulse)\"], \"screen_direction\": \"Static Wide\"}. Setting: Sunlit Meadow Clearing. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: Late Afternoon. Mood: Wonder to Contentment. Characters: Pip, Pop. Character consistency: Pip: Compact build, blue-tinted fur, expressive ears that flatten during conflict and perk during resolution.; Pop: Slightly taller build, orange-tinted fur, steady gaze that breaks into surprise during the illusion reveal.. Continuity: {\"wardrobe\": \"Warm backlight glow\", \"props\": [\"Luma-Crystal (steady pulse)\"], \"screen_direction\": \"Static Wide\"}. No text, no captions, no dialogue, no titles, no panel number. Make one clean cinematic frame with readable blocking, crisp subject edges, sharp eyes, clear hands, detailed textures, controlled depth of field, consistent wardrobe, consistent face, cinematic composition, tactile material detail, natural skin or surface imperfections, no border, no panel frame, no page layout, no watermark. Prompt standard enforcement: material specificity: visible skin pores, fine flyaway hairs, fabric weave, scuffed surfaces, dust and fingerprints where physically plausible; lighting source: motivated real light source with direction, color temperature, catchlights, practical reflections, grounded shadows; casting variation: each person has a distinct face shape, age bracket, hairstyle, body type, skin tone, wardrobe silhouette, posture, and expression; no duplicated template faces.",
+          "final_prompt": "Single high-resolution cinematic production keyframe for board 3 shot 3 of 'Untitled Script'. This is an image-to-video start frame, not a storyboard page, not a contact sheet, not a grid. Style: cinematic. Scene action: Wide shot. They sit side-by-side watching the crystal pulse gently as golden hour light washes over them.. Scene SC_009: Shared Light. Location: Sunlit Meadow Clearing; time/light: Late Afternoon. Characters: Pip, Pop. Continuity: {\"wardrobe\": \"Warm backlight glow\", \"props\": [\"Luma-Crystal (steady pulse)\"], \"screen_direction\": \"Static Wide\"}. Setting: Sunlit Meadow Clearing. Camera: filmic storyboard composition, clear subject silhouette, readable blocking, specific lens angle. Lighting: Late Afternoon. Mood: Wonder to Contentment. Characters: Pip, Pop. Character consistency: Pip: Compact build, blue-tinted fur, expressive ears that flatten during conflict and perk during resolution.; Pop: Slightly taller build, orange-tinted fur, steady gaze that breaks into surprise during the illusion reveal.. Continuity: {\"wardrobe\": \"Warm backlight glow\", \"props\": [\"Luma-Crystal (steady pulse)\"], \"screen_direction\": \"Static Wide\"}. No text, no captions, no dialogue, no titles, no panel number. Make one clean cinematic frame with readable blocking, crisp subject edges, sharp eyes, clear hands, detailed textures, controlled depth of field, consistent wardrobe, consistent face, cinematic composition, tactile material detail, natural skin or surface imperfections, no border, no panel frame, no page layout, no watermark. Prompt standard enforcement: material specificity: visible skin pores, fine flyaway hairs, fabric weave, scuffed surfaces, dust and fingerprints where physically plausible; lighting source: motivated real light source with direction, color temperature, catchlights, practical reflections, grounded shadows; casting variation: each person has a distinct face shape, age bracket, hairstyle, body type, skin tone, wardrobe silhouette, posture, and expression; no duplicated template faces.",
+          "width_and_height": "1920x1080",
+          "quality": "1080p",
+          "batch_size": 1,
+          "workflow_id": "01_flux2_text_to_image",
+          "style_id": "",
+          "style_strength": 0.0,
+          "seed": 299284902,
+          "custom_reference_id": "",
+          "image_reference_url": "",
+          "local_equivalence_note": "Local adapter maps local image request to Forge Flux/ComfyUI workflow."
+        }
+      }
+    }
+  ]
+}

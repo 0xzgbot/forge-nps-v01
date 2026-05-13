@@ -1,5 +1,5 @@
 """Affiliate and ad-creative orchestration helpers."""
 
-from .local_higgsfield import LocalHiggsfieldAdapter
+from .local_spark_media import LocalSparkMediaAdapter
 
-__all__ = ["LocalHiggsfieldAdapter"]
+__all__ = ["LocalSparkMediaAdapter"]

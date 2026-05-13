@@ -1,0 +1,17 @@
+{
+  "script_id": "script_0c51df95",
+  "title": "Untitled Script",
+  "brief": "Two cute characters argue over something, only to discover thewere both wrong and another character comes in to set it all straight.  everyone laughs.  depth to the scenes, very 3d looking, dramitc lighting, very experessive.",
+  "tone": "",
+  "runtime_seconds": 60,
+  "target_scenes": 4,
+  "status": "complete",
+  "created_at": "2026-05-12T22:23:41.659406Z",
+  "updated_at": "2026-05-12T23:16:15.651513Z",
+  "has_package": true,
+  "coverage_count": 5,
+  "storyboard_count": 12,
+  "video_shot_count": 12,
+  "video_complete_count": 12,
+  "active_job_id": "scriptjob_a4700f93758b"
+}

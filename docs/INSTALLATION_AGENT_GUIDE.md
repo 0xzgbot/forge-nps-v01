@@ -422,7 +422,7 @@ z_image_<job>_00001.png
 z_image_turbo_<job>_00001.png
 ```
 
-Older files with `local_higgsfield_...` were created by the previous compatibility adapter prefix and are not renamed retroactively.
+Older pre-rename render files may still exist on disk under their original historical names; new app output uses selected model prefixes.
 
 ## Git Workflow for Agents
 

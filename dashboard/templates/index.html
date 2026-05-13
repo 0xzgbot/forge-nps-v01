@@ -47,6 +47,111 @@
             margin-top: 8px;
         }
         .sidebar-section { display: flex; flex-direction: column; gap: 8px; }
+        .advanced-toggle-card {
+            border: 1px solid #2f3a4d;
+            border-radius: 8px;
+            padding: 10px;
+            background: #111827;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .advanced-toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .advanced-toggle-copy {
+            color: #8f98aa;
+            font-size: 11px;
+            line-height: 1.35;
+        }
+        .mode-switch {
+            position: relative;
+            display: inline-flex;
+            width: 50px;
+            height: 28px;
+            flex: 0 0 auto;
+        }
+        .mode-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .mode-switch span {
+            position: absolute;
+            inset: 0;
+            border-radius: 999px;
+            background: #252b36;
+            border: 1px solid #425068;
+            transition: 0.16s ease;
+        }
+        .mode-switch span::after {
+            content: "";
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            left: 3px;
+            top: 3px;
+            border-radius: 50%;
+            background: #d8e1f5;
+            transition: 0.16s ease;
+        }
+        .mode-switch input:checked + span {
+            background: #5b351c;
+            border-color: #ff8d38;
+        }
+        .mode-switch input:checked + span::after {
+            transform: translateX(22px);
+            background: #ffd08a;
+        }
+        .advanced-only { display: none !important; }
+        body.advanced-mode .advanced-only { display: revert !important; }
+        body.advanced-mode .advanced-flex { display: flex !important; }
+        body.advanced-mode .advanced-grid { display: grid !important; }
+        body.advanced-mode .page-view.active.advanced-only { display: flex !important; }
+        .creator-only { display: revert; }
+        body.advanced-mode .creator-only { display: none !important; }
+        .library-drawer {
+            border: 1px solid #26313f;
+            border-radius: 8px;
+            background: rgba(12, 16, 22, 0.78);
+            padding: 0;
+            overflow: hidden;
+        }
+        .library-drawer > summary {
+            list-style: none;
+            cursor: pointer;
+            padding: 10px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            color: #cbd6f6;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+        .library-drawer > summary::-webkit-details-marker { display: none; }
+        .library-drawer > summary::after {
+            content: "Open";
+            color: #748097;
+            font-size: 10px;
+        }
+        .library-drawer[open] > summary::after { content: "Close"; }
+        .library-drawer-body {
+            padding: 0 10px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .simple-helper {
+            color: #8a93a5;
+            font-size: 12px;
+            line-height: 1.45;
+        }
 
         /* Buttons */
         .btn {
@@ -515,6 +620,11 @@
         }
         .nav-tab:hover { background: #2a2a2a; color: #ccc; }
         .nav-tab.active { background: #3D5AFE; border-color: #3D5AFE; color: #fff; }
+        body:not(.advanced-mode) .nav-tabs {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        body.advanced-mode .nav-tab.advanced-only { display: block !important; }
         .ideas-view {
             min-height: 0;
             background: #0A0A0A;
@@ -1202,8 +1312,8 @@
         }
         .script-chat-log {
             flex: 1;
-            min-height: 128px;
-            max-height: 260px;
+            min-height: 220px;
+            max-height: 460px;
             overflow-y: auto;
             padding: 12px;
             display: flex;
@@ -1479,6 +1589,10 @@
         .script-step-panel.active {
             display: flex !important;
         }
+        body:not(.advanced-mode) .script-step-panel.advanced-only,
+        body:not(.advanced-mode) .script-advanced-details.advanced-only {
+            display: none !important;
+        }
         .script-panel-head {
             display: flex;
             align-items: center;
@@ -1594,7 +1708,7 @@
         }
         .script-brief-panel .script-action-row {
             display: grid;
-            grid-template-columns: minmax(180px, 1fr) minmax(180px, max-content);
+            grid-template-columns: minmax(180px, 0.9fr) minmax(190px, 1fr) minmax(190px, 1fr) minmax(180px, 0.9fr);
             align-items: end;
             gap: 12px;
             justify-content: stretch;
@@ -1726,7 +1840,8 @@
             gap: 6px;
             min-width: 0;
         }
-        .script-inline-field label {
+        .script-inline-field label,
+        .script-inline-field > span {
             color: #6C7278;
             font-size: 11px;
             font-weight: 700;
@@ -2213,6 +2328,296 @@
             grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             gap: 12px;
         }
+        #products-view {
+            padding: 24px;
+            overflow: auto;
+        }
+        .asset-vault-live-root {
+            width: 100%;
+            max-width: 1560px;
+            margin: 0 auto;
+        }
+        .asset-vault-live-root .view-inner {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+        .asset-vault-live-root .view-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 18px;
+            padding: 18px 20px;
+            border: 1px solid rgba(30, 42, 58, 0.92);
+            border-radius: var(--r-md);
+            background: rgba(13, 17, 23, 0.82);
+            box-shadow: 0 18px 48px rgba(0, 0, 0, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.035);
+        }
+        .asset-vault-live-root .view-header h1 {
+            margin: 4px 0 6px;
+            font-size: clamp(28px, 4vw, 48px);
+            line-height: 1.02;
+            letter-spacing: 0;
+        }
+        .asset-vault-live-root .view-header .sub {
+            max-width: 980px;
+            margin: 0;
+            color: var(--text-secondary);
+            line-height: 1.45;
+        }
+        .asset-vault-live-root .view-header .actions,
+        .product-recipe-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .panel {
+            border: 1px solid rgba(30, 42, 58, 0.92);
+            border-radius: var(--r-md);
+            background: rgba(13, 17, 23, 0.82);
+            box-shadow: 0 18px 48px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.035);
+            overflow: hidden;
+        }
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            min-height: 50px;
+            padding: 12px 16px;
+            border-bottom: 1px solid rgba(30, 42, 58, 0.72);
+            background: rgba(4, 8, 13, 0.48);
+        }
+        .panel-header .title {
+            color: var(--text-primary);
+            font-size: 14px;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+        .panel-header .meta {
+            color: var(--text-secondary);
+            font-size: 11px;
+        }
+        .panel-body {
+            padding: 14px 16px;
+        }
+        .field,
+        .form-row {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 0;
+        }
+        .t-label,
+        .form-row > span {
+            color: var(--text-secondary);
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+        .input,
+        .textarea,
+        .select {
+            width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
+        }
+        .product-workspace {
+            display: grid;
+            grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+            gap: 16px;
+            align-items: start;
+        }
+        .product-sidebar {
+            position: sticky;
+            top: 0;
+            max-height: calc(100vh - 180px);
+        }
+        .product-sidebar .panel-body {
+            max-height: calc(100vh - 250px);
+            overflow: auto;
+        }
+        .product-roster {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .product-pick {
+            width: 100%;
+            min-height: 72px;
+            display: grid;
+            grid-template-columns: 54px minmax(0, 1fr);
+            gap: 10px;
+            align-items: center;
+            padding: 10px;
+            border: 1px solid rgba(30, 42, 58, 0.95) !important;
+            border-radius: var(--r-sm);
+            background: rgba(4, 8, 13, 0.62) !important;
+            color: var(--text-primary) !important;
+            text-align: left;
+        }
+        .product-pick.active {
+            border-color: rgba(255, 106, 42, 0.58) !important;
+            background: rgba(255, 106, 42, 0.08) !important;
+        }
+        .product-pick-thumb,
+        .product-preview {
+            display: block;
+            overflow: hidden;
+            border: 1px solid rgba(30, 42, 58, 0.92);
+            border-radius: var(--r-sm);
+            background: rgba(4, 8, 13, 0.72);
+        }
+        .product-pick-thumb {
+            width: 52px;
+            height: 52px;
+        }
+        .product-preview {
+            width: 132px;
+            min-width: 132px;
+            height: 132px;
+        }
+        .product-pick-thumb img,
+        .product-preview img {
+            width: 100%;
+            height: 100%;
+            display: block;
+            object-fit: cover;
+        }
+        .product-preview-fallback {
+            width: 100%;
+            height: 100%;
+            display: grid;
+            place-items: center;
+            color: var(--amber);
+            font-size: 26px;
+            font-weight: 900;
+            background: linear-gradient(135deg, rgba(255, 106, 42, 0.16), rgba(110, 168, 254, 0.08));
+        }
+        .product-pick-copy {
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .product-pick-copy .name,
+        .product-pick-copy .role {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .product-pick-copy .name {
+            color: var(--text-primary);
+            font-size: 13px;
+            font-weight: 800;
+        }
+        .product-pick-copy .role {
+            color: var(--text-secondary);
+            font-size: 11px;
+        }
+        .product-main {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            min-width: 0;
+        }
+        .product-builder-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.65fr);
+            gap: 16px;
+            align-items: stretch;
+        }
+        .product-identity-card {
+            min-width: 0;
+        }
+        .product-identity-body {
+            display: grid;
+            grid-template-columns: 132px minmax(0, 1fr);
+            gap: 16px;
+            align-items: start;
+        }
+        .product-form-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-width: 0;
+        }
+        .product-form-stack .form-inline {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+        .product-form-stack textarea {
+            min-height: 110px;
+            resize: vertical;
+        }
+        .product-banks-card .product-bank-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .asset-vault-character-link {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .character-reference-strip {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
+            gap: 10px;
+        }
+        .character-reference-thumb {
+            min-width: 0;
+            margin: 0;
+            padding: 8px;
+            border: 1px solid rgba(30, 42, 58, 0.92);
+            border-radius: var(--r-sm);
+            background: rgba(4, 8, 13, 0.62);
+        }
+        .character-reference-thumb img,
+        .character-video-ref {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            display: block;
+            object-fit: cover;
+            border-radius: 4px;
+            background: rgba(4, 8, 13, 0.86);
+        }
+        .character-video-ref {
+            display: grid;
+            place-items: center;
+            color: var(--amber);
+            font-size: 12px;
+            font-weight: 800;
+        }
+        .character-reference-thumb figcaption {
+            margin-top: 7px;
+            color: var(--text-primary);
+            font-size: 11px;
+            line-height: 1.3;
+            overflow-wrap: anywhere;
+        }
+        .character-reference-thumb figcaption small,
+        .character-reference-thumb figcaption span {
+            color: var(--text-secondary);
+            font-size: 10px;
+            text-transform: uppercase;
+        }
+        .asset-vault-character-link .product-recipe-actions,
+        .asset-vault-reference-editor .product-recipe-actions {
+            align-items: stretch;
+        }
+        .asset-vault-character-link .product-recipe-actions {
+            display: grid;
+            grid-template-columns: minmax(180px, 1fr) minmax(130px, 0.45fr) minmax(180px, 1fr) auto;
+        }
+        .product-recipe-card .panel-body,
+        .product-gallery-card .panel-body {
+            min-width: 0;
+        }
         .asset-vault-span-2 {
             grid-column: 1 / -1;
         }
@@ -2227,6 +2632,12 @@
             gap: 8px;
             align-items: start;
         }
+        .asset-reference-upload-row {
+            display: grid;
+            grid-template-columns: minmax(130px, 0.7fr) minmax(150px, 1fr) minmax(220px, 1.2fr) minmax(220px, 1.4fr) auto;
+            gap: 8px;
+            align-items: center;
+        }
         .character-reference-thumb .btn {
             width: 100%;
             margin-top: 6px;
@@ -2234,7 +2645,39 @@
             padding: 4px 8px;
         }
         @media (max-width: 900px) {
+            #products-view {
+                padding: 14px;
+            }
+            .asset-vault-live-root .view-header,
+            .product-identity-body {
+                grid-template-columns: 1fr;
+                flex-direction: column;
+            }
+            .asset-vault-live-root .view-header {
+                display: flex;
+            }
+            .product-workspace,
+            .product-builder-grid,
+            .product-form-stack .form-inline {
+                grid-template-columns: 1fr;
+            }
+            .product-sidebar {
+                position: static;
+                max-height: none;
+            }
+            .product-sidebar .panel-body {
+                max-height: 240px;
+            }
+            .product-preview {
+                width: 100%;
+                height: auto;
+                aspect-ratio: 16 / 9;
+            }
             .asset-reference-row {
+                grid-template-columns: 1fr;
+            }
+            .asset-reference-upload-row,
+            .asset-vault-character-link .product-recipe-actions {
                 grid-template-columns: 1fr;
             }
         }
@@ -3947,7 +4390,8 @@
             grid-column: 1 / -1;
         }
         #script-view .script-chat-log {
-            max-height: 180px;
+            min-height: 360px;
+            max-height: min(58vh, 640px);
         }
 
         @media (max-width: 900px) {
@@ -3965,6 +4409,10 @@
             .video-workspace {
                 flex-direction: column;
                 overflow: visible;
+            }
+            #script-view .script-chat-log {
+                min-height: 280px;
+                max-height: 62vh;
             }
             .idea-board-header {
                 flex-direction: column;
@@ -4008,6 +4456,48 @@
                 grid-column: auto;
             }
         }
+        body.advanced-mode .dashboard-left-pane.advanced-only,
+        body.advanced-mode .sidebar-section.advanced-only {
+            display: flex !important;
+        }
+        body.advanced-mode .dashboard-filter-dock.advanced-only,
+        body.advanced-mode .script-header-actions .advanced-only,
+        body.advanced-mode .script-action-row .advanced-only,
+        body.advanced-mode .card-actions .advanced-only,
+        body.advanced-mode .product-recipe-actions .advanced-only {
+            display: flex !important;
+        }
+        body.advanced-mode .settings-form-grid .advanced-only,
+        body.advanced-mode .form-inline .advanced-only,
+        body.advanced-mode .product-builder-grid .advanced-only {
+            display: flex !important;
+        }
+        body.advanced-mode section.advanced-only,
+        body.advanced-mode details.advanced-only {
+            display: block !important;
+        }
+        body:not(.advanced-mode) .filmstrip-item .shot-label,
+        body:not(.advanced-mode) .filmstrip-item .video-prompt-dot,
+        body:not(.advanced-mode) .video-library-cell .audit-badge,
+        body:not(.advanced-mode) .video-library-cell .video-prompt-preview,
+        body:not(.advanced-mode) .video-library-cell .video-status-detail,
+        body:not(.advanced-mode) .video-library-cell .video-prompt-dot {
+            display: none !important;
+        }
+        body:not(.advanced-mode) .filmstrip-item.audit-pass,
+        body:not(.advanced-mode) .filmstrip-item.audit-fail,
+        body:not(.advanced-mode) .filmstrip-item.retry-cell,
+        body:not(.advanced-mode) .grid-cell.audit-pass,
+        body:not(.advanced-mode) .grid-cell.audit-fail,
+        body:not(.advanced-mode) .grid-cell.retry-cell {
+            border: 1px solid #333 !important;
+            box-shadow: none !important;
+        }
+        body:not(.advanced-mode) #spark-grid .video-library-cell .cell-label {
+            max-height: 42px;
+            font-size: 11px;
+            color: #c6d4f4;
+        }
     </style>
 </head>
 <body>
@@ -4019,36 +4509,50 @@
             <div class="nav-tab active" data-page="dashboard-view" onclick="switchPage('dashboard-view')">Images</div>
             <div class="nav-tab" data-page="spark-view" onclick="switchPage('spark-view')">Videos</div>
             <div class="nav-tab" data-page="identity-view" onclick="switchPage('identity-view')">Characters</div>
-            <div class="nav-tab" data-page="ideas-view" onclick="switchPage('ideas-view')">Ideas</div>
-            <div class="nav-tab" data-page="script-view" onclick="switchPage('script-view')">Script</div>
-            <div class="nav-tab" data-page="products-view" onclick="switchPage('products-view')">Asset Vault</div>
-            <div class="nav-tab" data-page="memory-view" onclick="switchPage('memory-view'); loadMemoryTab()">Memory</div>
+            <div class="nav-tab advanced-only" data-page="ideas-view" onclick="switchPage('ideas-view')">Ideas</div>
+            <div class="nav-tab" data-page="script-view" onclick="switchPage('script-view')">Script Studio</div>
+            <div class="nav-tab" data-page="products-view" onclick="switchPage('products-view')">Assets</div>
+            <div class="nav-tab advanced-only" data-page="memory-view" onclick="switchPage('memory-view'); loadMemoryTab()">Memory</div>
             <div class="nav-tab" data-page="settings-view" onclick="switchPage('settings-view')">Settings</div>
         </div>
 
-        <div class="sidebar-section">
+        <div class="advanced-toggle-card">
+            <div class="advanced-toggle-row">
+                <strong>Advanced Mode</strong>
+                <label class="mode-switch" title="Show technical controls and debug details">
+                    <input type="checkbox" id="advanced-mode-toggle" onchange="setAdvancedMode(this.checked)">
+                    <span></span>
+                </label>
+            </div>
+            <div class="advanced-toggle-copy creator-only">Simple creator UI. Turn on for endpoints, prompt banks, logs, filters, and fine-tuning controls.</div>
+            <div class="advanced-toggle-copy advanced-only">Technical mode: route controls, diagnostics, debug panels, filters, and prompt-bank editors are visible.</div>
+        </div>
+
+        <div class="sidebar-section advanced-only">
             <h3>System Heartbeat</h3>
             <div class="stat-row"><span>Total Shots</span><span class="val" id="stat-shots">0</span></div>
             <div class="stat-row"><span>Sessions</span><span class="val" id="stat-sessions">0</span></div>
             <div class="stat-row"><span>RAM</span><span class="val" id="stat-ram">—</span></div>
         </div>
 
-        <div class="sidebar-section campaigns-section">
-            <h3>Campaigns</h3>
+        <details class="sidebar-section campaigns-section library-drawer">
+            <summary>Library</summary>
+            <div class="library-drawer-body">
             <div class="sort-row">
                 <select id="campaign-sort-key" class="sort-select" onchange="onCampaignSortChange()">
                     <option value="name">Name</option>
                     <option value="time">Time</option>
                 </select>
-                <label class="model-checkbox"><input type="checkbox" id="campaign-sort-reverse" onchange="onCampaignSortChange()"> Reverse</label>
-                <button id="media-sort-toggle" class="btn btn-secondary" style="padding:6px 10px;min-width:44px;" onclick="toggleMediaSortOrder()" title="Toggle media sort order">↓</button>
+                <label class="model-checkbox advanced-only"><input type="checkbox" id="campaign-sort-reverse" onchange="onCampaignSortChange()"> Reverse</label>
+                <button id="media-sort-toggle" class="btn btn-secondary advanced-only" style="padding:6px 10px;min-width:44px;" onclick="toggleMediaSortOrder()" title="Toggle media sort order">↓</button>
             </div>
             <div id="campaign-list" class="campaign-list">
                 <div style="color:#666; font-size:12px;">Loading...</div>
             </div>
-        </div>
+            </div>
+        </details>
 
-        <div class="sidebar-section" style="margin-top:auto;">
+        <div class="sidebar-section advanced-only" style="margin-top:auto;">
             <button class="btn btn-secondary" onclick="refreshShotViews()">Refresh Shots</button>
             <button class="btn btn-secondary" onclick="clearLog()">Clear Log</button>
         </div>
@@ -4069,25 +4573,25 @@
                         <input id="target-count-input" type="number" min="1" max="120" step="1" value="5" inputmode="numeric" oninput="onTargetCountInput()" onchange="onTargetCountInput()">
                         <span id="target-count-unit">images</span>
                     </label>
-                    <select id="platform-mode" class="platform-mode-select" onchange="updatePlatformDetection()">
+                    <select id="platform-mode" class="platform-mode-select advanced-only" onchange="updatePlatformDetection()">
                         <option value="auto">Auto Detect</option>
                         <option value="tiktok">Force TikTok 9:16</option>
                         <option value="off">Disable Platform Skill</option>
                     </select>
-                    <label class="model-checkbox"><input type="checkbox" id="series-continuity" onchange="updatePlatformDetection()"> Series Continuity</label>
+                    <label class="model-checkbox advanced-only"><input type="checkbox" id="series-continuity" onchange="updatePlatformDetection()"> Series Continuity</label>
                 </div>
                 <div id="brief-actions">
                     <button class="btn" id="run-campaign-btn" onclick="runCampaign()">Generate Images</button>
-                    <input type="text" id="dashboard-selected-count" value="0 selected" readonly style="width:120px;background:#222;border:1px solid #444;border-radius:4px;color:#ccc;padding:8px 10px;font-size:12px;">
-                    <label class="model-checkbox"><input type="checkbox" id="append-campaign" checked> Append To Selected Campaign</label>
+                    <input class="advanced-only" type="text" id="dashboard-selected-count" value="0 selected" readonly style="width:120px;background:#222;border:1px solid #444;border-radius:4px;color:#ccc;padding:8px 10px;font-size:12px;">
+                    <label class="model-checkbox advanced-only"><input type="checkbox" id="append-campaign" checked> Append To Selected Campaign</label>
                     <button class="btn btn-cancel" id="cancel-campaign-btn" onclick="cancelCampaign()" style="display:none;">✕ Cancel</button>
-                    <div class="model-checkbox model-combo">
+                    <div class="model-checkbox model-combo advanced-only">
                         <label class="model-inline-option"><input type="checkbox" id="model-flux2" checked> Flux2.Dev</label>
                         <span class="model-divider" aria-hidden="true"></span>
                         <label class="model-inline-option" title="Requires Flux2.Dev"><input type="checkbox" id="model-turbo"> Turbo</label>
                     </div>
-                    <label class="model-checkbox"><input type="checkbox" id="model-klein"> Flux2 Klein</label>
-                    <input type="text" id="filter-campaign-id" placeholder="Campaign ID" style="width:130px;background:#222;border:1px solid #444;border-radius:4px;color:#ccc;padding:8px 10px;font-size:12px;">
+                    <label class="model-checkbox advanced-only"><input type="checkbox" id="model-klein"> Flux2 Klein</label>
+                    <input class="advanced-only" type="text" id="filter-campaign-id" placeholder="Campaign ID" style="width:130px;background:#222;border:1px solid #444;border-radius:4px;color:#ccc;padding:8px 10px;font-size:12px;">
                 </div>
             <div id="campaign-status-box">
                 <span class="status-role">Pipeline</span>
@@ -4097,7 +4601,7 @@
         </div>
 
         <div class="dashboard-workspace">
-            <div id="dashboard-left-pane" class="dashboard-left-pane">
+            <div id="dashboard-left-pane" class="dashboard-left-pane advanced-only">
                 <!-- Event Log -->
                 <div id="log-panel"></div>
 
@@ -4112,7 +4616,7 @@
             <div class="dashboard-right-pane">
                 <!-- Filmstrip -->
                 <div id="filmstrip"></div>
-                <div class="dashboard-filter-dock">
+                <div class="dashboard-filter-dock advanced-only">
                     <button id="media-sort-toggle-inline" class="btn btn-secondary" style="padding:6px 10px;min-width:44px;" onclick="toggleMediaSortOrder()" title="Toggle media sort order">↓</button>
                     <label class="model-checkbox"><input type="checkbox" id="filter-rendered-only" onchange="loadShots();loadVideoLibrary();"> Rendered</label>
                     <label class="model-checkbox"><input type="checkbox" id="filter-failed-only" onchange="loadShots();loadVideoLibrary();"> Failed</label>
@@ -4131,7 +4635,7 @@
         </div>  <!-- /#main dashboard-view -->
 
         <!-- Ideas View -->
-        <div id="ideas-view" class="page-view ideas-view">
+        <div id="ideas-view" class="page-view ideas-view advanced-only">
             <div class="idea-board-header">
                 <div>
                     <div class="idea-kicker">Creative board</div>
@@ -4201,20 +4705,20 @@
                         <label>Chat Model</label>
                         <input type="text" id="cfg-lmstudio-model" placeholder="qwen3.6-35b-a3b" onchange="markDirty('models.hermes_3.model_name')">
                     </div>
-                    <div class="form-row">
+                    <div class="form-row advanced-only">
                         <label>Vision Model</label>
                         <input type="text" id="cfg-visual-model" placeholder="qwen3.6-35b-a3b" onchange="markDirty('models.kimi_vl.model_name')">
                     </div>
-                    <div class="form-row settings-span-2">
+                    <div class="form-row settings-span-2 advanced-only">
                         <label>Vision Endpoint</label>
                         <input type="text" id="cfg-vision-endpoint-api1" placeholder="http://localhost:1234/v1" onchange="markDirty('models.kimi_vl.endpoint_api1')">
                     </div>
                 </div>
                 <div class="card-actions">
                     <button class="btn btn-secondary" onclick="testLMStudio()">Test &amp; Detect Models</button>
-                    <button class="btn btn-secondary" onclick="loadLMStudioModel()">Load Model</button>
-                    <button class="btn btn-secondary" onclick="testVision()">Test Vision</button>
-                    <button class="btn" onclick="reloadHermesVision()">Reload Hermes/Vision</button>
+                    <button class="btn btn-secondary advanced-only" onclick="loadLMStudioModel()">Load Model</button>
+                    <button class="btn btn-secondary advanced-only" onclick="testVision()">Test Vision</button>
+                    <button class="btn advanced-only" onclick="reloadHermesVision()">Reload Hermes/Vision</button>
                 </div>
                 <div class="settings-result-grid">
                     <div id="lmstudio-test-result" class="test-result"></div>
@@ -4243,23 +4747,23 @@
                         <label>API Key</label>
                         <input type="password" id="cfg-kimi-api-key" placeholder="Bearer token..." onchange="markDirty('kimi.api_key')">
                     </div>
-                    <div class="form-row">
+                    <div class="form-row advanced-only">
                         <label>Provider Endpoint</label>
                         <input type="text" id="cfg-kimi-endpoint" placeholder="https://integrate.api.nvidia.com/v1/chat/completions" onchange="markDirty('kimi.endpoint')">
                     </div>
-                    <div class="form-row">
+                    <div class="form-row advanced-only">
                         <label>Director Model</label>
-                        <input type="text" id="cfg-director-model" placeholder="moonshotai/kimi-k2.6" onchange="markDirty('models.director_kimi.model_name')">
+                        <input type="text" id="cfg-director-model" placeholder="provider/model-name" onchange="markDirty('models.director_kimi.model_name')">
                     </div>
-                    <div class="form-row">
+                    <div class="form-row advanced-only">
                         <label>Director Endpoint</label>
                         <input type="text" id="cfg-director-endpoint-api1" placeholder="https://integrate.api.nvidia.com/v1/chat/completions" onchange="markDirty('models.director_kimi.endpoint_api1')">
                     </div>
                 </div>
 	                <div class="card-actions">
-	                    <button class="btn btn-secondary" onclick="testProvider()">Test Provider</button>
+	                    <button class="btn btn-secondary advanced-only" onclick="testProvider()">Test Provider</button>
 	                    <button class="btn btn-secondary" onclick="testDirector()">Test Director</button>
-	                    <button class="btn btn-secondary" onclick="testDirectorSelfCheck()">Test Self-Check</button>
+	                    <button class="btn btn-secondary advanced-only" onclick="testDirectorSelfCheck()">Test Self-Check</button>
 	                </div>
 	                <div class="settings-result-grid">
 	                    <div id="kimi-test-result" class="test-result"></div>
@@ -4272,7 +4776,7 @@
                 <h3><span class="settings-step">3</span> Render Workers</h3>
                 <p class="card-desc">Spark and ComfyUI endpoints used by image and video generation.</p>
                 <div class="settings-form-grid settings-form-grid-single">
-                    <div class="form-row">
+                    <div class="form-row advanced-only">
                         <label>Spark Primary WebSocket</label>
                         <input type="text" id="cfg-spark-primary" placeholder="ws://localhost:8000" onchange="markDirty('spark.primary')">
                     </div>
@@ -4280,7 +4784,7 @@
                         <label>ComfyUI Primary</label>
                         <input type="text" id="cfg-comfyui-primary" placeholder="http://localhost:8188" onchange="markDirty('comfyui.primary')">
                     </div>
-                    <div class="form-row">
+                    <div class="form-row advanced-only">
                         <label>ComfyUI Secondary</label>
                         <input type="text" id="cfg-comfyui-secondary" placeholder="http://localhost:8189" onchange="markDirty('comfyui.secondary')">
                     </div>
@@ -4315,7 +4819,7 @@
                         <label>OpenAI API Key</label>
                         <input type="password" id="cfg-openai-api-key" placeholder="OpenAI API key..." onchange="markDirty('storyboard_images.openai_api_key')">
                     </div>
-                    <div class="form-row">
+                    <div class="form-row advanced-only">
                         <label>OpenAI Image Model</label>
                         <input type="text" id="cfg-openai-image-model" placeholder="gpt-image-2" onchange="markDirty('storyboard_images.openai_model')">
                     </div>
@@ -4323,7 +4827,7 @@
                         <label>Gemini API Key</label>
                         <input type="password" id="cfg-gemini-api-key" placeholder="Google AI Studio key..." onchange="markDirty('storyboard_images.gemini_api_key')">
                     </div>
-	                    <div class="form-row">
+	                    <div class="form-row advanced-only">
 	                        <label>Nano Banana Model</label>
 	                        <input type="text" id="cfg-gemini-image-model" placeholder="gemini-2.5-flash-image" onchange="markDirty('storyboard_images.gemini_model')">
 	                    </div>
@@ -4334,7 +4838,7 @@
 	                </div>
 	            </div>
 
-            <div class="settings-card settings-card-wide bank-editor-card">
+            <div class="settings-card settings-card-wide bank-editor-card advanced-only">
                 <h3><span class="settings-step">5</span> Bank Editor</h3>
                 <p class="card-desc">Default prompt bank entries used by character variation templates.</p>
                 <div class="settings-bank-grid">
@@ -4405,7 +4909,7 @@ beach</textarea>
                 <div class="script-header-actions">
                     <button class="btn btn-secondary" onclick="clearShotList()">Reset</button>
                     <button class="btn btn-secondary" onclick="switchScriptFlowStep('projects')">Projects</button>
-                    <button class="btn btn-secondary" onclick="switchScriptFlowStep('jobs')">Progress</button>
+                    <button class="btn btn-secondary advanced-only" onclick="switchScriptFlowStep('jobs')">Progress</button>
                     <button class="btn btn-secondary" onclick="switchScriptFlowStep('videos')">Videos</button>
                 </div>
             </div>
@@ -4503,9 +5007,26 @@ beach</textarea>
                         <label class="storyboard-checkbox">Hook Dialogue
                             <span><input type="checkbox" id="script-hook-first-dialogue" checked> add immediate viewer hook</span>
                         </label>
+                        <label class="script-inline-field script-brief-model-field">
+                            <span>Storyboard Model</span>
+                            <select id="storyboard-image-model">
+                                <option value="spark:flux2_dev">Spark / Flux2.Dev</option>
+                                <option value="spark:flux2_klein">Spark / Flux2 Klein</option>
+                                <option value="spark:z_image">Spark / Z-Image</option>
+                                <option value="spark:z_image_turbo">Spark / Z-Image Turbo</option>
+                                <option value="openai">OpenAI Image</option>
+                                <option value="gemini">Nano Banana</option>
+                            </select>
+                        </label>
+                        <label class="script-inline-field script-brief-model-field">
+                            <span>Asset Vault</span>
+                            <select id="storyboard-asset-vault-package">
+                                <option value="">No Asset Vault package</option>
+                            </select>
+                        </label>
                         <button class="btn script-primary-action" id="develop-script-btn" onclick="runScriptPipeline()">Generate Videos</button>
                     </div>
-                    <details class="script-upload-details">
+                    <details class="script-upload-details advanced-only">
                         <summary>Upload brief file</summary>
                         <label class="script-upload">
                             <span>Upload .md/.txt/.pdf</span>
@@ -4515,7 +5036,7 @@ beach</textarea>
                     <div class="script-next-action"><strong>Output:</strong> Generate Videos writes the script, builds storyboard start frames, and queues individual LTX clips automatically.</div>
                 </section>
 
-                <section class="script-panel script-package-panel script-step-panel" data-script-step-panel="package">
+                <section class="script-panel script-package-panel script-step-panel advanced-only" data-script-step-panel="package">
                     <div class="script-panel-head">
                         <span>02A</span>
                         <h3>Locked Package</h3>
@@ -4537,7 +5058,7 @@ beach</textarea>
                     <div class="script-next-action"><strong>Next:</strong> Review the locked package, then Build Coverage below.</div>
                 </section>
 
-                <section class="script-panel script-scenes-panel script-step-panel" data-script-step-panel="package_debug">
+                <section class="script-panel script-scenes-panel script-step-panel advanced-only" data-script-step-panel="package_debug">
                     <div class="script-panel-head">
                         <span>02B</span>
                         <h3>Scenes and Beats</h3>
@@ -4545,7 +5066,7 @@ beach</textarea>
                     <div id="script-scenes-output" class="script-scenes-output"><div class="script-empty-mini">Generate the package to see scene structure.</div></div>
                 </section>
 
-                <section class="script-panel script-json-panel script-step-panel" data-script-step-panel="package_debug">
+                <section class="script-panel script-json-panel script-step-panel advanced-only" data-script-step-panel="package_debug">
                     <div class="script-panel-head">
                         <span>02C</span>
                         <h3>Package JSON</h3>
@@ -4554,7 +5075,7 @@ beach</textarea>
                     <div class="script-next-action"><strong>Next:</strong> Any edits here are used by Build Coverage and Storyboard.</div>
                 </section>
 
-                <section class="script-panel script-shot-panel script-step-panel" data-script-step-panel="coverage">
+                <section class="script-panel script-shot-panel script-step-panel advanced-only" data-script-step-panel="coverage">
                     <div class="script-panel-head">
                         <span>02D</span>
                         <div class="script-panel-title">
@@ -4593,7 +5114,7 @@ beach</textarea>
                             <p>Panel frames for image-to-video start frames.</p>
                         </div>
                     </div>
-                    <details class="script-advanced-details">
+                    <details class="script-advanced-details advanced-only">
                         <summary>Storyboard settings</summary>
                         <div class="script-control-surface">
                         <div class="script-control-grid storyboard-grid">
@@ -4613,23 +5134,6 @@ beach</textarea>
                                 <label for="storyboard-resolution">Resolution</label>
                                 <input type="text" id="storyboard-resolution" value="1920x1080">
                             </div>
-                            <div class="script-inline-field">
-                                <label for="storyboard-image-model">Render Model</label>
-                                <select id="storyboard-image-model">
-                                    <option value="spark:flux2_dev">Spark / Flux2.Dev</option>
-                                    <option value="spark:flux2_klein">Spark / Flux2 Klein</option>
-                                    <option value="spark:z_image">Spark / Z-Image</option>
-                                    <option value="spark:z_image_turbo">Spark / Z-Image Turbo</option>
-                                    <option value="openai">OpenAI Image</option>
-                                    <option value="gemini">Nano Banana</option>
-                                </select>
-                            </div>
-                            <div class="script-inline-field">
-                                <label for="storyboard-asset-vault-package">Asset Vault</label>
-                                <select id="storyboard-asset-vault-package">
-                                    <option value="">No Asset Vault package</option>
-                                </select>
-                            </div>
                             <button class="btn script-primary-action" id="generate-storyboard-btn" onclick="generateStoryboard()">Build Storyboard</button>
                         </div>
                         <div class="script-secondary-actions">
@@ -4643,7 +5147,7 @@ beach</textarea>
                         </div>
                     </details>
                     <div id="storyboard-character-sheet-output" class="storyboard-render-result"></div>
-                    <details class="script-advanced-details">
+                    <details class="script-advanced-details advanced-only">
                         <summary>Prompt controls</summary>
                         <div>
                             <div class="script-storyboard-style">
@@ -4699,7 +5203,7 @@ beach</textarea>
                     </div>
                 </section>
 
-                <section class="script-panel script-chat-panel script-step-panel" data-script-step-panel="brief">
+                <section class="script-panel script-chat-panel script-step-panel advanced-only" data-script-step-panel="brief">
                     <div class="script-chat-header">
                         <span>Hermes Notes</span>
                         <span id="script-chat-status">Ready</span>
@@ -4715,95 +5219,14 @@ beach</textarea>
 
         <!-- Asset Vault View -->
         <div id="products-view" class="page-view products-view">
-            <div class="spark-header">
-                <h2>Asset Vault</h2>
-            </div>
-            <div class="studio-scroll">
-                <div class="studio-grid">
-                    <div class="studio-card col-5">
-                        <h3>Linked Character</h3>
-                        <div style="aspect-ratio:1/1;border:1px solid var(--border);border-radius:var(--r-md);background:radial-gradient(circle at 50% 35%, rgba(255,106,42,0.16), transparent 28%), linear-gradient(135deg, rgba(110,168,254,0.06), rgba(214,168,79,0.08));display:grid;place-items:center;color:var(--amber);letter-spacing:.18em;text-transform:uppercase;">Reference Preview</div>
-                    </div>
-                    <div class="studio-card magenta col-7">
-                        <h3>Package Description Editor</h3>
-                        <div class="control-grid">
-                            <div class="control-field">
-                                <label>Package Name</label>
-                                <input type="text" value="Emberdrive Mk-II">
-                            </div>
-                            <div class="control-field">
-                                <label>Finish</label>
-                                <select>
-                                    <option>Obsidian chassis</option>
-                                    <option>Brushed alloy</option>
-                                    <option>Matte ceramic</option>
-                                </select>
-                            </div>
-                            <div class="control-field">
-                                <label>Consistency</label>
-                                <input type="range" min="0" max="100" value="91">
-                            </div>
-                            <div class="control-field">
-                                <label>Seed Lock</label>
-                                <label class="model-checkbox"><input type="checkbox" checked> Deterministic package seed</label>
-                            </div>
-                        </div>
-                        <div class="control-field" style="margin-top:12px;">
-                            <label>Description</label>
-                            <textarea rows="7">High-performance propulsion module with obsidian casing, amber heat sinks, visible turbine geometry, and premium technical lifestyle framing.</textarea>
-                        </div>
-                    </div>
-                    <div class="studio-card amber col-3">
-                        <h3>Angle Bank</h3>
-                        <label class="model-checkbox"><input type="checkbox" checked> Macro detail</label>
-                        <label class="model-checkbox"><input type="checkbox" checked> 45 degree hero</label>
-                        <label class="model-checkbox"><input type="checkbox"> Top-down flat lay</label>
-                        <label class="model-checkbox"><input type="checkbox"> Scale reference</label>
-                    </div>
-                    <div class="studio-card col-3">
-                        <h3>Material Bank</h3>
-                        <label class="model-checkbox"><input type="checkbox" checked> Aluminum</label>
-                        <label class="model-checkbox"><input type="checkbox" checked> Carbon fiber</label>
-                        <label class="model-checkbox"><input type="checkbox"> Glass reveal</label>
-                        <label class="model-checkbox"><input type="checkbox"> Rubberized grip</label>
-                    </div>
-                    <div class="studio-card magenta col-3">
-                        <h3>Context Bank</h3>
-                        <label class="model-checkbox"><input type="radio" name="product-context" checked> Studio sweep</label>
-                        <label class="model-checkbox"><input type="radio" name="product-context"> Lifestyle field</label>
-                        <label class="model-checkbox"><input type="radio" name="product-context"> Exploded tech view</label>
-                        <label class="model-checkbox"><input type="radio" name="product-context"> Retail PDP</label>
-                    </div>
-                    <div class="studio-card col-3">
-                        <h3>Lighting Bank</h3>
-                        <div class="control-field">
-                            <label>Rim Intensity</label>
-                            <input type="range" min="0" max="100" value="76">
-                        </div>
-                        <div class="control-field">
-                            <label>Glow Color</label>
-                            <div class="swatch-row">
-                                <span class="swatch" style="background:var(--cyan);color:var(--cyan);"></span>
-                                <span class="swatch" style="background:var(--amber);color:var(--amber);"></span>
-                                <span class="swatch" style="background:var(--magenta);color:var(--magenta);"></span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="studio-card col-12">
-                        <h3>Package Variation Gallery</h3>
-                        <div class="spark-grid" style="min-height:260px;padding:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;">
-                            <div class="grid-placeholder"><p>No package renders loaded.</p></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <div id="asset-vault-live-root" class="asset-vault-live-root"></div>
         </div>  <!-- /#products-view -->
 
         <!-- Video View -->
         <div id="spark-view" class="page-view spark-view">
         <div class="spark-header">
-            <h2>Video Processing Studio</h2>
-            <div style="display:flex;gap:8px;">
+            <h2>Videos</h2>
+            <div class="advanced-only advanced-flex" style="gap:8px;">
                 <button class="btn btn-secondary" onclick="remediateFailedSelected()">Re-Render Failed</button>
                 <button class="btn btn-secondary" onclick="clearVideoSelection()">Clear Selection</button>
                 <button class="btn btn-secondary" onclick="refreshPhotos()">Refresh Photos</button>
@@ -4814,10 +5237,10 @@ beach</textarea>
         <div class="spark-toolbar">
             <div class="video-generate-panel">
                 <div class="video-generate-prompt-row">
-                    <input type="text" id="video-prompt" placeholder="Generated motion prompt appears here, or write an override before Process">
-                    <button class="btn video-generate-primary" id="video-generate-primary-btn" onclick="generateVideoPromptsForSelected()">Generate Prompt From Selected Images</button>
+                    <input type="text" id="video-prompt" placeholder="Motion prompt for selected start frames">
+                    <button class="btn video-generate-primary advanced-only" id="video-generate-primary-btn" onclick="generateVideoPromptsForSelected()">Build Prompt</button>
                 </div>
-                <div class="video-option-strip">
+                <div class="video-option-strip advanced-only advanced-flex">
                     <div class="video-option">
                         <label for="video-model-select">Model</label>
                         <select id="video-model-select">
@@ -4852,16 +5275,16 @@ beach</textarea>
                         </select>
                     </div>
                 </div>
-                <div class="video-option-summary" id="video-option-summary">LTX 2.3 Fast / 5 Sec / 540p / 16:9</div>
-                <div class="video-workflow-strip" aria-label="Video workflow">
+                <div class="video-option-summary advanced-only" id="video-option-summary">LTX 2.3 Fast / 5 Sec / 540p / 16:9</div>
+                <div class="video-workflow-strip advanced-only advanced-flex" aria-label="Video workflow">
                     <div class="video-workflow-step"><strong>01 Select</strong>Choose rendered image cards.</div>
                     <div class="video-workflow-step"><strong>02 Prompt</strong>Generate motion prompts.</div>
                     <div class="video-workflow-step"><strong>03 Review</strong>Edit the prompt field if needed.</div>
-                    <div class="video-workflow-step"><strong>04 Process</strong>Queue LTX video jobs.</div>
+                    <div class="video-workflow-step"><strong>04 Generate</strong>Queue LTX video jobs.</div>
                     <div class="video-workflow-step"><strong>05 Complete</strong>Finished MP4s appear here.</div>
                 </div>
             </div>
-                <div class="toolbar-row">
+                <div class="toolbar-row advanced-only advanced-flex">
                     <div class="toolbar-group" style="flex:1;min-width:260px;">
                         <label>Import Folder / Report</label>
                         <input type="text" id="video-import-path" placeholder="/Users/zgbot/Desktop/FORGE_NPS_MEDIA/imports">
@@ -4880,11 +5303,11 @@ beach</textarea>
                         <label>Selected Media</label>
                         <input type="text" id="video-selected-count" value="0 selected" readonly>
                 </div>
-                <div class="toolbar-group">
+                <div class="toolbar-group advanced-only">
                     <label>FPS</label>
                     <input type="number" id="video-fps" value="24" min="12" max="60">
                 </div>
-                <div class="toolbar-group">
+                <div class="toolbar-group advanced-only">
                     <label>Thumbs</label>
                     <label class="thumbnail-size-control" title="Resize video tab thumbnails">
                         <input type="range" id="video-thumbnail-size-slider" class="thumbnail-size-slider" min="120" max="320" step="10" value="200" oninput="setMediaThumbSize(this.value)">
@@ -4893,15 +5316,15 @@ beach</textarea>
                 </div>
                 <div class="toolbar-group">
                     <label>Action</label>
-                    <button class="btn" id="start-batch-btn" onclick="processSelectedVideos()">Process</button>
-                    <button class="btn btn-secondary" id="carousel-export-btn" onclick="exportCarousel()">Export Carousel</button>
+                    <button class="btn btn-primary" id="start-batch-btn" onclick="processSelectedVideos()">Generate Videos</button>
+                    <button class="btn btn-secondary advanced-only" id="carousel-export-btn" onclick="exportCarousel()">Export Carousel</button>
                 </div>
             </div>
         </div>
 
         <!-- Status Bar -->
         <div class="spark-status" id="spark-status">
-            <span id="spark-status-text">Ready — select images, generate prompts, then click Process</span>
+            <span id="spark-status-text">Ready — select start frames, then Generate Videos.</span>
             <span id="spark-progress"></span>
         </div>
 
@@ -4912,7 +5335,7 @@ beach</textarea>
                 <div class="spark-grid" id="spark-grid" style="flex:1;min-height:0;overflow:auto;">
                     <!-- Grid cells will be dynamically inserted here -->
                     <div class="grid-placeholder">
-                        <p>Select photos, generate prompts, then click <strong>Process</strong> to generate video files.</p>
+                        <p>Select start frames, then click <strong>Generate Videos</strong>.</p>
                     </div>
                 </div>
             </div>
@@ -4925,15 +5348,15 @@ beach</textarea>
                 <h2>Characters</h2>
                 <div style="display:flex;gap:8px;">
                     <button class="btn btn-secondary" onclick="loadCharacterManager()">Refresh Characters</button>
-                    <button class="btn btn-secondary" onclick="loadIdentityTab()">Refresh</button>
-                    <button class="btn" onclick="saveCampaignIdentity()">Save Identity Pack</button>
+                    <button class="btn btn-secondary advanced-only" onclick="loadIdentityTab()">Refresh Identity Pack</button>
+                    <button class="btn advanced-only" onclick="saveCampaignIdentity()">Save Identity Pack</button>
                 </div>
             </div>
             <div class="script-flow-guide character-flow-guide" aria-label="Character workflow">
                 <button class="script-flow-step active" type="button" data-character-step="design" onclick="switchCharacterFlowStep('design')"><span>01</span><div><strong>Design</strong><em id="character-step-status-design">Ready</em></div></button>
                 <button class="script-flow-step" type="button" data-character-step="render" onclick="switchCharacterFlowStep('render')"><span>02</span><div><strong>Render</strong><em id="character-step-status-render">Waiting</em></div></button>
                 <button class="script-flow-step" type="button" data-character-step="references" onclick="switchCharacterFlowStep('references')"><span>03</span><div><strong>References</strong><em id="character-step-status-references">Waiting</em></div></button>
-                <button class="script-flow-step" type="button" data-character-step="lora" onclick="switchCharacterFlowStep('lora')"><span>04</span><div><strong>LoRA</strong><em id="character-step-status-lora">Not ready</em></div></button>
+                <button class="script-flow-step advanced-only" type="button" data-character-step="lora" onclick="switchCharacterFlowStep('lora')"><span>04</span><div><strong>LoRA</strong><em id="character-step-status-lora">Not ready</em></div></button>
             </div>
             <div class="spark-toolbar character-library">
                 <div class="character-forge-grid">
@@ -5021,7 +5444,7 @@ beach</textarea>
                         </div>
                     </section>
                 </div>
-                <section class="character-forge-panel character-lora-panel character-step-panel" data-character-step-panel="lora">
+                <section class="character-forge-panel character-lora-panel character-step-panel advanced-only" data-character-step-panel="lora">
                     <h3>Character LoRA Pack</h3>
                     <div class="character-lora-summary">
                         <div class="character-lora-stat"><span>Selected</span><strong id="character-lora-selected">No character selected</strong></div>
@@ -5040,7 +5463,7 @@ beach</textarea>
                     <pre id="character-lora-pack-output" class="character-lora-output">No LoRA dataset package prepared in this session.</pre>
                 </section>
             </div>
-            <div class="spark-toolbar" style="margin-bottom:16px;">
+            <div class="spark-toolbar advanced-only" style="margin-bottom:16px;">
                 <div class="toolbar-row">
                     <div class="toolbar-group">
                         <label>Campaign</label>
@@ -5083,7 +5506,7 @@ beach</textarea>
                 </div>
             </div>
 
-            <div class="spark-toolbar">
+            <div class="spark-toolbar advanced-only">
                 <div class="toolbar-row">
                     <div class="toolbar-group" style="min-width:220px;">
                         <label>Clone From Campaign</label>
@@ -5151,14 +5574,8 @@ beach</textarea>
         </div> <!-- /#identity-view -->
 
         <!-- ========== MEMORY VIEW ========== -->
-        <div id="memory-view" class="page-view memory-view">
+        <div id="memory-view" class="page-view memory-view advanced-only">
             <div style="padding:20px;display:flex;flex-direction:column;gap:16px;height:100%;overflow:hidden;">
-  <div class="hero-grid">
-    <div class="hero-card"><div class="hero-val" id="mg-events">—</div><div class="hero-lbl">Events</div></div>
-    <div class="hero-card"><div class="hero-val" id="mg-insights">—</div><div class="hero-lbl">Insights</div></div>
-    <div class="hero-card"><div class="hero-val" id="mg-sessions">—</div><div class="hero-lbl">Sessions</div></div>
-    <div class="hero-card"><div class="hero-val" id="mg-rules">—</div><div class="hero-lbl">Rules</div></div>
-  </div>
   <div class="memory-layout" style="flex:1;min-height:0;">
     <div style="display:flex;flex-direction:column;gap:10px;">
       <div class="graph-controls">
@@ -5178,7 +5595,7 @@ beach</textarea>
           <label>Contribution</label>
           <select id="mem-filter-contribution">
             <option value="all">All</option>
-            <option value="kimi">Kimi</option>
+            <option value="kimi">Director</option>
             <option value="hermes">Hermes</option>
             <option value="spark">Spark</option>
             <option value="audit">Audit</option>
@@ -5270,8 +5687,8 @@ beach</textarea>
                     <div class="detail-row"><span class="detail-label">Video Prompt:</span><span id="lightbox-video-prompt">-</span></div>
                     <div class="detail-row"><span class="detail-label">Video Prompt Source:</span><span id="lightbox-video-prompt-source">-</span></div>
                     <div class="detail-row"><span class="detail-label">Negative:</span><span id="lightbox-negative-prompt">-</span></div>
-                    <div class="detail-row"><span class="detail-label">Kimi Plan:</span><span id="lightbox-kimi-plan">-</span></div>
-                    <div class="detail-row"><span class="detail-label">Kimi Rationale:</span><span id="lightbox-kimi-rationale">-</span></div>
+                    <div class="detail-row"><span class="detail-label">Director Plan:</span><span id="lightbox-kimi-plan">-</span></div>
+                    <div class="detail-row"><span class="detail-label">Director Rationale:</span><span id="lightbox-kimi-rationale">-</span></div>
                     <div class="detail-row"><span class="detail-label">Skills:</span><span id="lightbox-skills-used">-</span></div>
                     <div class="detail-row"><span class="detail-label">Profile:</span><span id="lightbox-workflow-profile">-</span></div>
                     <div class="detail-row"><span class="detail-label">Model Standard:</span><span id="lightbox-model-standard">-</span></div>

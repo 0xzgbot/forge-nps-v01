@@ -1,0 +1,1127 @@
+{
+  "job_id": "scriptjob_a4700f93758b",
+  "script_id": "script_0c51df95",
+  "status": "complete",
+  "phase": "complete",
+  "created_at": "2026-05-12T22:23:41.705270Z",
+  "updated_at": "2026-05-12T23:16:15.654407Z",
+  "request": {
+    "script_id": "script_0c51df95",
+    "title": "Untitled Script",
+    "brief": "Two cute characters argue over something, only to discover thewere both wrong and another character comes in to set it all straight.  everyone laughs.  depth to the scenes, very 3d looking, dramitc lighting, very experessive.",
+    "tone": "",
+    "runtime_seconds": 60,
+    "target_scenes": 4,
+    "target_shots": null,
+    "hook_first_dialogue": true,
+    "storyboard_panels_per_board": 4,
+    "storyboard_target_panels": null,
+    "storyboard_resolution": "1920x1080",
+    "storyboard_style": "cinematic",
+    "storyboard_character_consistency": "",
+    "storyboard_negative_prompt": "blurry, soft focus, smeared detail, low resolution, deformed, extra limbs, bad hands, text, captions, labels, panel numbers, page layout, grid, contact sheet, watermark, inconsistent characters, merged panels",
+    "storyboard_reference_image_url": "",
+    "storyboard_include_captions": false,
+    "storyboard_image_provider": "spark",
+    "storyboard_image_model": "",
+    "storyboard_spark_model": "flux2_dev",
+    "asset_vault_package_id": "",
+    "video_workflow_id": "04_ltx2.3_image_to_video",
+    "video_duration": 5,
+    "video_fps": 24,
+    "video_resolution": "540p",
+    "video_aspect_ratio": "16:9",
+    "run_video": true,
+    "wait_for_videos": true,
+    "video_wait_seconds": 21600,
+    "stop_after": "videos"
+  },
+  "logs": [
+    {
+      "timestamp": "2026-05-12T22:23:41.713205Z",
+      "phase": "project",
+      "level": "info",
+      "message": "Pipeline started"
+    },
+    {
+      "timestamp": "2026-05-12T22:23:41.718416Z",
+      "phase": "script",
+      "level": "info",
+      "message": "Generating locked script package"
+    },
+    {
+      "timestamp": "2026-05-12T22:25:24.989900Z",
+      "phase": "coverage",
+      "level": "info",
+      "message": "Generating coverage shot list"
+    },
+    {
+      "timestamp": "2026-05-12T22:27:48.299280Z",
+      "phase": "coverage",
+      "level": "info",
+      "message": "Coverage ready: 5 shot(s)"
+    },
+    {
+      "timestamp": "2026-05-12T22:27:48.300487Z",
+      "phase": "storyboard",
+      "level": "info",
+      "message": "Building storyboard plan"
+    },
+    {
+      "timestamp": "2026-05-12T22:27:48.308397Z",
+      "phase": "storyboard",
+      "level": "info",
+      "message": "Storyboard ready: 12 panel(s)"
+    },
+    {
+      "timestamp": "2026-05-12T22:27:48.309397Z",
+      "phase": "frames",
+      "level": "info",
+      "message": "Queueing storyboard panel start frames"
+    },
+    {
+      "timestamp": "2026-05-12T22:27:48.923450Z",
+      "phase": "frames",
+      "level": "info",
+      "message": "Queued board 1 panel 1",
+      "url": ""
+    },
+    {
+      "timestamp": "2026-05-12T22:27:49.573073Z",
+      "phase": "frames",
+      "level": "info",
+      "message": "Queued board 1 panel 2",
+      "url": ""
+    },
+    {
+      "timestamp": "2026-05-12T22:27:50.176333Z",
+      "phase": "frames",
+      "level": "info",
+      "message": "Queued board 1 panel 3",
+      "url": ""
+    },
+    {
+      "timestamp": "2026-05-12T22:27:50.828111Z",
+      "phase": "frames",
+      "level": "info",
+      "message": "Queued board 1 panel 4",
+      "url": ""
+    },
+    {
+      "timestamp": "2026-05-12T22:27:51.319687Z",
+      "phase": "frames",
+      "level": "info",
+      "message": "Queued board 2 panel 1",
+      "url": ""
+    },
+    {
+      "timestamp": "2026-05-12T22:27:52.607252Z",
+      "phase": "frames",
+      "level": "info",
+      "message": "Queued board 2 panel 2",
+      "url": ""
+    },
+    {
+      "timestamp": "2026-05-12T22:27:53.298017Z",
+      "phase": "frames",
+      "level": "info",
+      "message": "Queued board 2 panel 3",
+      "url": ""
+    },
+    {
+      "timestamp": "2026-05-12T22:27:54.134456Z",
+      "phase": "frames",
+      "level": "info",
+      "message": "Queued board 2 panel 4",
+      "url": ""
+    },
+    {
+      "timestamp": "2026-05-12T22:27:54.775091Z",
+      "phase": "frames",
+      "level": "info",
+      "message": "Queued board 3 panel 1",
+      "url": ""
+    },
+    {
+      "timestamp": "2026-05-12T22:27:55.407264Z",
+      "phase": "frames",
+      "level": "info",
+      "message": "Queued board 3 panel 2",
+      "url": ""
+    },
+    {
+      "timestamp": "2026-05-12T22:27:56.645258Z",
+      "phase": "frames",
+      "level": "info",
+      "message": "Queued board 3 panel 3",
+      "url": ""
+    },
+    {
+      "timestamp": "2026-05-12T22:27:57.180199Z",
+      "phase": "frames",
+      "level": "info",
+      "message": "Queued board 3 panel 4",
+      "url": ""
+    },
+    {
+      "timestamp": "2026-05-12T22:30:10.049027Z",
+      "phase": "frames",
+      "level": "info",
+      "message": "Rendered board 1 panel 1",
+      "url": "/media-assets/local_spark_media/results/a2d8d37b-1456-464e-9e1c-de4ca99bdcc5/flux2_dev_a2d8d37b_00001_.png"
+    },
+    {
+      "timestamp": "2026-05-12T22:32:27.691638Z",
+      "phase": "frames",
+      "level": "info",
+      "message": "Rendered board 1 panel 2",
+      "url": "/media-assets/local_spark_media/results/c51b4963-0712-4d2d-a367-816adcbb4d4d/flux2_dev_c51b4963_00001_.png"
+    },
+    {
+      "timestamp": "2026-05-12T22:34:41.359372Z",
+      "phase": "frames",
+      "level": "info",
+      "message": "Rendered board 1 panel 3",
+      "url": "/media-assets/local_spark_media/results/2095aef8-1fed-42bf-8ad7-9b83d043d878/flux2_dev_2095aef8_00001_.png"
+    },
+    {
+      "timestamp": "2026-05-12T22:36:52.833418Z",
+      "phase": "frames",
+      "level": "info",
+      "message": "Rendered board 1 panel 4",
+      "url": "/media-assets/local_spark_media/results/a1985d8c-1512-4003-9ef0-a12d779cb2e1/flux2_dev_a1985d8c_00001_.png"
+    },
+    {
+      "timestamp": "2026-05-12T22:39:02.294459Z",
+      "phase": "frames",
+      "level": "info",
+      "message": "Rendered board 2 panel 1",
+      "url": "/media-assets/local_spark_media/results/fd563881-084c-4398-9c8d-4f564d801c43/flux2_dev_fd563881_00001_.png"
+    },
+    {
+      "timestamp": "2026-05-12T22:41:13.697281Z",
+      "phase": "frames",
+      "level": "info",
+      "message": "Rendered board 2 panel 2",
+      "url": "/media-assets/local_spark_media/results/141a292c-c604-44d4-bbca-78ba380fa795/flux2_dev_141a292c_00001_.png"
+    },
+    {
+      "timestamp": "2026-05-12T22:43:28.279686Z",
+      "phase": "frames",
+      "level": "info",
+      "message": "Rendered board 2 panel 3",
+      "url": "/media-assets/local_spark_media/results/45c33ee8-6318-448b-9e3a-5bfe80b78e76/flux2_dev_45c33ee8_00001_.png"
+    },
+    {
+      "timestamp": "2026-05-12T22:45:34.136957Z",
+      "phase": "frames",
+      "level": "info",
+      "message": "Rendered board 2 panel 4",
+      "url": "/media-assets/local_spark_media/results/63c2341d-918f-4879-8101-b81e991319ef/flux2_dev_63c2341d_00001_.png"
+    },
+    {
+      "timestamp": "2026-05-12T22:47:48.523314Z",
+      "phase": "frames",
+      "level": "info",
+      "message": "Rendered board 3 panel 1",
+      "url": "/media-assets/local_spark_media/results/cf15909b-f1d1-4a45-82e7-ed3f66819586/flux2_dev_cf15909b_00001_.png"
+    },
+    {
+      "timestamp": "2026-05-12T22:49:50.234594Z",
+      "phase": "frames",
+      "level": "info",
+      "message": "Rendered board 3 panel 2",
+      "url": "/media-assets/local_spark_media/results/6a981b7d-ed59-432b-b8e1-d516e865a40f/flux2_dev_6a981b7d_00001_.png"
+    },
+    {
+      "timestamp": "2026-05-12T22:51:50.125320Z",
+      "phase": "frames",
+      "level": "info",
+      "message": "Rendered board 3 panel 3",
+      "url": "/media-assets/local_spark_media/results/cecadfc9-eefe-41dc-ae53-407363d430a0/flux2_dev_cecadfc9_00001_.png"
+    },
+    {
+      "timestamp": "2026-05-12T22:53:53.005082Z",
+      "phase": "frames",
+      "level": "info",
+      "message": "Rendered board 3 panel 4",
+      "url": "/media-assets/local_spark_media/results/db7a0533-3ede-4a3b-9998-7baed82955c0/flux2_dev_db7a0533_00001_.png"
+    },
+    {
+      "timestamp": "2026-05-12T22:53:53.017285Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Exporting storyboard frames as video shots"
+    },
+    {
+      "timestamp": "2026-05-12T22:53:53.027161Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Created 12 video shot record(s)"
+    },
+    {
+      "timestamp": "2026-05-12T22:53:53.028508Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Queueing 12 image-to-video job(s)"
+    },
+    {
+      "timestamp": "2026-05-12T22:54:05.245349Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Queued 12 ComfyUI video job(s)"
+    },
+    {
+      "timestamp": "2026-05-12T22:54:05.918439Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 0 complete, 12 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T22:54:16.619088Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 0 complete, 12 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T22:54:27.396905Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 0 complete, 12 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T22:54:38.138190Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 0 complete, 12 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T22:54:48.797980Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 0 complete, 12 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T22:54:59.376210Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 0 complete, 12 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T22:55:10.054291Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 0 complete, 12 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T22:55:20.769196Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 0 complete, 12 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T22:55:31.452696Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 0 complete, 12 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T22:55:42.259502Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 0 complete, 12 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T22:55:53.008541Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 0 complete, 12 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T22:56:03.663888Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 0 complete, 12 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T22:56:14.448428Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 0 complete, 12 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T22:56:25.044440Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 0 complete, 12 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T22:56:35.856907Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 0 complete, 12 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T22:56:46.688768Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 0 complete, 12 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T22:56:57.464373Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 0 complete, 12 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T22:57:08.222739Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 0 complete, 12 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T22:57:19.070028Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 1 complete, 11 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T22:57:29.691615Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 1 complete, 11 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T22:57:40.366426Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 1 complete, 11 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T22:57:51.307729Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 1 complete, 11 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T22:58:01.869260Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 1 complete, 11 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T22:58:12.521096Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 1 complete, 11 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T22:58:23.037955Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 1 complete, 11 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T22:58:33.589259Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 1 complete, 11 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T22:58:44.257693Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 1 complete, 11 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T22:58:54.748967Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 1 complete, 11 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T22:59:05.594396Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 2 complete, 10 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T22:59:16.315778Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 2 complete, 10 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T22:59:26.906410Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 2 complete, 10 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T22:59:37.592182Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 2 complete, 10 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T22:59:48.239169Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 2 complete, 10 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T22:59:59.016013Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 2 complete, 10 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:00:09.827506Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 2 complete, 10 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:00:20.562038Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 2 complete, 10 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:00:31.329224Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 2 complete, 10 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:00:42.109507Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 2 complete, 10 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:00:53.382275Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 3 complete, 9 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:01:04.272731Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 3 complete, 9 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:01:15.071529Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 3 complete, 9 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:01:26.080110Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 3 complete, 9 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:01:36.870370Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 3 complete, 9 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:01:47.686175Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 3 complete, 9 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:01:58.659403Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 3 complete, 9 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:02:09.594721Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 3 complete, 9 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:02:20.512687Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 3 complete, 9 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:02:31.395299Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 4 complete, 8 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:02:42.463054Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 4 complete, 8 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:02:54.564562Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 4 complete, 8 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:03:05.711467Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 4 complete, 8 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:03:16.671753Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 4 complete, 8 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:03:27.835688Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 4 complete, 8 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:03:38.853043Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 4 complete, 8 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:03:49.946408Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 4 complete, 8 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:04:00.894366Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 4 complete, 8 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:04:12.031490Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 5 complete, 7 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:04:23.426315Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 5 complete, 7 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:04:34.439929Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 5 complete, 7 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:04:45.970965Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 5 complete, 7 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:04:57.135802Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 5 complete, 7 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:05:08.230380Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 5 complete, 7 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:05:19.659016Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 5 complete, 7 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:05:31.158536Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 5 complete, 7 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:05:42.388011Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 5 complete, 7 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:05:53.609172Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 5 complete, 7 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:06:04.982390Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 6 complete, 6 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:06:16.541417Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 6 complete, 6 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:06:28.065143Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 6 complete, 6 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:06:39.628392Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 6 complete, 6 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:06:50.992272Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 6 complete, 6 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:07:02.609166Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 6 complete, 6 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:07:14.183682Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 6 complete, 6 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:07:25.852757Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 6 complete, 6 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:07:38.011373Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 7 complete, 5 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:07:49.523684Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 7 complete, 5 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:08:02.747961Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 7 complete, 5 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:08:14.269145Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 7 complete, 5 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:08:25.930309Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 7 complete, 5 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:08:37.385724Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 7 complete, 5 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:08:48.913316Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 7 complete, 5 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:09:00.617418Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 7 complete, 5 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:09:12.153990Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 7 complete, 5 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:09:23.795347Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 8 complete, 4 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:09:35.602956Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 8 complete, 4 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:09:47.219566Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 8 complete, 4 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:09:59.096697Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 8 complete, 4 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:10:10.839574Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 8 complete, 4 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:10:22.541280Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 8 complete, 4 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:10:34.571388Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 8 complete, 4 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:10:46.201183Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 8 complete, 4 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:10:57.872234Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 8 complete, 4 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:11:09.907133Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 9 complete, 3 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:11:22.264574Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 9 complete, 3 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:11:34.073492Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 9 complete, 3 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:11:46.078832Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 9 complete, 3 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:11:58.008326Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 9 complete, 3 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:12:09.867812Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 9 complete, 3 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:12:21.733046Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 9 complete, 3 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:12:33.706402Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 9 complete, 3 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:12:46.099754Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 9 complete, 3 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:12:58.590722Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 10 complete, 2 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:13:12.875408Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 10 complete, 2 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:13:25.384704Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 10 complete, 2 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:13:37.607338Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 10 complete, 2 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:13:49.657834Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 10 complete, 2 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:14:01.666192Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 10 complete, 2 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:14:13.567081Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 10 complete, 2 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:14:25.542369Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 10 complete, 2 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:14:37.788420Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 11 complete, 1 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:14:50.056682Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 11 complete, 1 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:15:02.341793Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 11 complete, 1 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:15:14.630091Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 11 complete, 1 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:15:26.744101Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 11 complete, 1 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:15:38.786575Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 11 complete, 1 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:15:50.897355Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 11 complete, 1 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:16:02.845105Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 11 complete, 1 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:16:15.650653Z",
+      "phase": "videos",
+      "level": "info",
+      "message": "Video sync: 12 complete, 0 running, 0 error(s)"
+    },
+    {
+      "timestamp": "2026-05-12T23:16:15.654395Z",
+      "phase": "complete",
+      "level": "info",
+      "message": "Pipeline complete"
+    }
+  ],
+  "coverage_count": 5,
+  "storyboard_count": 12,
+  "video_jobs": [
+    {
+      "shot_id": "script_script_0c51df95__SB_001",
+      "prompt_id": "993842c2-e04f-4a9e-bdbc-30e485aa8e51",
+      "campaign_id": "script_script_0c51df95",
+      "workflow_id": "04_ltx2.3_image_to_video",
+      "seed": 3635788837,
+      "duration": 5,
+      "fps": 24,
+      "host": "http://100.80.184.21:8188",
+      "status": "complete",
+      "video_url": "/media-assets/videos/script_script_0c51df95/script_script_0c51df95__SB_001__video_00001_.mp4"
+    },
+    {
+      "shot_id": "script_script_0c51df95__SB_002",
+      "prompt_id": "a5c2ca55-0a10-4a63-b7cc-19cf4c12b499",
+      "campaign_id": "script_script_0c51df95",
+      "workflow_id": "04_ltx2.3_image_to_video",
+      "seed": 3573489613,
+      "duration": 5,
+      "fps": 24,
+      "host": "http://100.80.184.21:8188",
+      "status": "complete"
+    },
+    {
+      "shot_id": "script_script_0c51df95__SB_003",
+      "prompt_id": "61886c3f-3937-447b-86a6-3b6f96edd6b2",
+      "campaign_id": "script_script_0c51df95",
+      "workflow_id": "04_ltx2.3_image_to_video",
+      "seed": 1980521495,
+      "duration": 5,
+      "fps": 24,
+      "host": "http://100.80.184.21:8188",
+      "status": "complete"
+    },
+    {
+      "shot_id": "script_script_0c51df95__SB_004",
+      "prompt_id": "c4cfd431-592e-4183-bffa-30b6521a35a0",
+      "campaign_id": "script_script_0c51df95",
+      "workflow_id": "04_ltx2.3_image_to_video",
+      "seed": 3294699888,
+      "duration": 5,
+      "fps": 24,
+      "host": "http://100.80.184.21:8188",
+      "status": "complete"
+    },
+    {
+      "shot_id": "script_script_0c51df95__SB_001",
+      "prompt_id": "0b16acc6-76ec-48c5-8bd6-af0a67640633",
+      "campaign_id": "script_script_0c51df95",
+      "workflow_id": "04_ltx2.3_image_to_video",
+      "seed": 3202611024,
+      "duration": 5,
+      "fps": 24,
+      "host": "http://100.80.184.21:8188",
+      "status": "complete"
+    },
+    {
+      "shot_id": "script_script_0c51df95__SB_002",
+      "prompt_id": "3d7c1588-d06d-432f-88b4-e4c60e527d7b",
+      "campaign_id": "script_script_0c51df95",
+      "workflow_id": "04_ltx2.3_image_to_video",
+      "seed": 2825176779,
+      "duration": 5,
+      "fps": 24,
+      "host": "http://100.80.184.21:8188",
+      "status": "complete"
+    },
+    {
+      "shot_id": "script_script_0c51df95__SB_003",
+      "prompt_id": "48c279e4-089f-4984-b409-417eac6e93c5",
+      "campaign_id": "script_script_0c51df95",
+      "workflow_id": "04_ltx2.3_image_to_video",
+      "seed": 1328839651,
+      "duration": 5,
+      "fps": 24,
+      "host": "http://100.80.184.21:8188",
+      "status": "complete"
+    },
+    {
+      "shot_id": "script_script_0c51df95__SB_004",
+      "prompt_id": "066b825e-1832-49a8-8bf5-a50bff4c5abe",
+      "campaign_id": "script_script_0c51df95",
+      "workflow_id": "04_ltx2.3_image_to_video",
+      "seed": 1305463379,
+      "duration": 5,
+      "fps": 24,
+      "host": "http://100.80.184.21:8188",
+      "status": "complete"
+    },
+    {
+      "shot_id": "script_script_0c51df95__SB_001",
+      "prompt_id": "e98068a5-36fd-423a-af77-a0a24885bc0a",
+      "campaign_id": "script_script_0c51df95",
+      "workflow_id": "04_ltx2.3_image_to_video",
+      "seed": 231992131,
+      "duration": 5,
+      "fps": 24,
+      "host": "http://100.80.184.21:8188",
+      "status": "complete"
+    },
+    {
+      "shot_id": "script_script_0c51df95__SB_002",
+      "prompt_id": "6f26abc8-90db-4163-9ada-ca9b782d5bfa",
+      "campaign_id": "script_script_0c51df95",
+      "workflow_id": "04_ltx2.3_image_to_video",
+      "seed": 3404518195,
+      "duration": 5,
+      "fps": 24,
+      "host": "http://100.80.184.21:8188",
+      "status": "complete"
+    },
+    {
+      "shot_id": "script_script_0c51df95__SB_003",
+      "prompt_id": "705a9cec-2aff-4644-8332-fafa182afd0a",
+      "campaign_id": "script_script_0c51df95",
+      "workflow_id": "04_ltx2.3_image_to_video",
+      "seed": 533184691,
+      "duration": 5,
+      "fps": 24,
+      "host": "http://100.80.184.21:8188",
+      "status": "complete"
+    },
+    {
+      "shot_id": "script_script_0c51df95__SB_004",
+      "prompt_id": "6be99654-04dc-434b-a0fb-6862d726abcb",
+      "campaign_id": "script_script_0c51df95",
+      "workflow_id": "04_ltx2.3_image_to_video",
+      "seed": 4047180643,
+      "duration": 5,
+      "fps": 24,
+      "host": "http://100.80.184.21:8188",
+      "status": "complete"
+    }
+  ],
+  "error": ""
+}

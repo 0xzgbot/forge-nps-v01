@@ -39,7 +39,7 @@ Forge NPS is a multi-service app. The dashboard coordinates external Kimi/NVIDIA
 | [core/hermes/pipeline/state_machine.py](/Users/zgbot/Desktop/forge_nps_v01/core/hermes/pipeline/state_machine.py) | Canonical shot state transitions. |
 | [core/prompts/prompt_compiler.py](/Users/zgbot/Desktop/forge_nps_v01/core/prompts/prompt_compiler.py) | Workflow-aware prompt artifact compilation. |
 | [core/storyboard/image_providers.py](/Users/zgbot/Desktop/forge_nps_v01/core/storyboard/image_providers.py) | Optional OpenAI and Gemini/Nano Banana storyboard image providers. |
-| [core/affiliate/local_higgsfield.py](/Users/zgbot/Desktop/forge_nps_v01/core/affiliate/local_higgsfield.py) | Legacy-compatible local creative adapter backed by Spark/ComfyUI. New visible output names use the selected model prefix. |
+| [core/affiliate/local_spark_media.py](/Users/zgbot/Desktop/forge_nps_v01/core/affiliate/local_spark_media.py) | Legacy-compatible local creative adapter backed by Spark/ComfyUI. New visible output names use the selected model prefix. |
 
 ## Data Flow
 
