@@ -147,6 +147,31 @@ def _truthy_config(value: Any) -> bool:
     return str(value or "").strip().lower() in {"1", "true", "yes", "on", "local", "lmstudio"}
 
 
+def _client_host(request: Request) -> str:
+    forwarded = str(request.headers.get("x-forwarded-for") or "").split(",", 1)[0].strip()
+    return forwarded or (request.client.host if request.client else "")
+
+
+def _is_loopback_host(host: str) -> bool:
+    normalized = (host or "").strip().lower()
+    return normalized in {"127.0.0.1", "::1", "localhost"} or normalized.startswith("127.")
+
+
+def _require_config_write_access(request: Request) -> None:
+    """Protect disk-writing config endpoints without breaking local dashboard use."""
+    expected = str(os.getenv("FORGE_CONFIG_WRITE_TOKEN", "") or "").strip()
+    provided = str(request.headers.get("x-forge-config-token") or "").strip()
+    if expected:
+        if not provided or provided != expected:
+            raise HTTPException(status_code=403, detail="config write token required")
+        return
+    if not _is_loopback_host(_client_host(request)):
+        raise HTTPException(
+            status_code=403,
+            detail="config writes are restricted to loopback unless FORGE_CONFIG_WRITE_TOKEN is set",
+        )
+
+
 def _lmstudio_base_candidates(host: str = "", port: Any = None) -> List[str]:
     cfg = get_raw_config()
     primary = _normalize_lmstudio_base_url(host, port)
@@ -7459,8 +7484,9 @@ class ConfigUpdateRequest(BaseModel):
 
 
 @app.post("/api/config")
-async def api_config_update(req: ConfigUpdateRequest):
+async def api_config_update(req: ConfigUpdateRequest, request: Request):
     """Update configuration values. Persists to data/config.json."""
+    _require_config_write_access(request)
     from core.bridge.runtime_config import set_config, apply_to_environment
     updated = set_config(req.updates)
     apply_to_environment()
@@ -7474,8 +7500,9 @@ class FlatConfigUpdateRequest(BaseModel):
 
 
 @app.post("/api/config/save")
-async def api_config_save(req: FlatConfigUpdateRequest):
+async def api_config_save(req: FlatConfigUpdateRequest, request: Request):
     """Save config updates from frontend dot-path payloads."""
+    _require_config_write_access(request)
     from core.bridge.runtime_config import set_config, apply_to_environment
     incoming: Dict[str, Any] = {}
     if isinstance(req.updates, dict):
