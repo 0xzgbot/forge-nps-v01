@@ -14,7 +14,7 @@
         "updated_at": "2026-05-12T22:30:10.046012+00:00",
         "status": "completed",
         "local_backend": "forge_comfyui",
-        "comfy_url": "http://100.80.184.21:8188",
+        "comfy_url": "http://localhost:8188",
         "local_output_dir": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/a2d8d37b-1456-464e-9e1c-de4ca99bdcc5",
         "jobs": [
           {
@@ -74,7 +74,7 @@
         "updated_at": "2026-05-12T22:32:27.687165+00:00",
         "status": "completed",
         "local_backend": "forge_comfyui",
-        "comfy_url": "http://100.80.184.21:8188",
+        "comfy_url": "http://localhost:8188",
         "local_output_dir": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/c51b4963-0712-4d2d-a367-816adcbb4d4d",
         "jobs": [
           {
@@ -134,7 +134,7 @@
         "updated_at": "2026-05-12T22:34:41.355860+00:00",
         "status": "completed",
         "local_backend": "forge_comfyui",
-        "comfy_url": "http://100.80.184.21:8188",
+        "comfy_url": "http://localhost:8188",
         "local_output_dir": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/2095aef8-1fed-42bf-8ad7-9b83d043d878",
         "jobs": [
           {
@@ -194,7 +194,7 @@
         "updated_at": "2026-05-12T22:36:52.830087+00:00",
         "status": "completed",
         "local_backend": "forge_comfyui",
-        "comfy_url": "http://100.80.184.21:8188",
+        "comfy_url": "http://localhost:8188",
         "local_output_dir": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/a1985d8c-1512-4003-9ef0-a12d779cb2e1",
         "jobs": [
           {
@@ -256,7 +256,7 @@
         "updated_at": "2026-05-12T22:39:02.290255+00:00",
         "status": "completed",
         "local_backend": "forge_comfyui",
-        "comfy_url": "http://100.80.184.21:8188",
+        "comfy_url": "http://localhost:8188",
         "local_output_dir": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/fd563881-084c-4398-9c8d-4f564d801c43",
         "jobs": [
           {
@@ -316,7 +316,7 @@
         "updated_at": "2026-05-12T22:41:13.694480+00:00",
         "status": "completed",
         "local_backend": "forge_comfyui",
-        "comfy_url": "http://100.80.184.21:8188",
+        "comfy_url": "http://localhost:8188",
         "local_output_dir": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/141a292c-c604-44d4-bbca-78ba380fa795",
         "jobs": [
           {
@@ -376,7 +376,7 @@
         "updated_at": "2026-05-12T22:43:28.276690+00:00",
         "status": "completed",
         "local_backend": "forge_comfyui",
-        "comfy_url": "http://100.80.184.21:8188",
+        "comfy_url": "http://localhost:8188",
         "local_output_dir": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/45c33ee8-6318-448b-9e3a-5bfe80b78e76",
         "jobs": [
           {
@@ -436,7 +436,7 @@
         "updated_at": "2026-05-12T22:45:34.134638+00:00",
         "status": "completed",
         "local_backend": "forge_comfyui",
-        "comfy_url": "http://100.80.184.21:8188",
+        "comfy_url": "http://localhost:8188",
         "local_output_dir": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/63c2341d-918f-4879-8101-b81e991319ef",
         "jobs": [
           {
@@ -498,7 +498,7 @@
         "updated_at": "2026-05-12T22:47:48.521512+00:00",
         "status": "completed",
         "local_backend": "forge_comfyui",
-        "comfy_url": "http://100.80.184.21:8188",
+        "comfy_url": "http://localhost:8188",
         "local_output_dir": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/cf15909b-f1d1-4a45-82e7-ed3f66819586",
         "jobs": [
           {
@@ -558,7 +558,7 @@
         "updated_at": "2026-05-12T22:49:50.223976+00:00",
         "status": "completed",
         "local_backend": "forge_comfyui",
-        "comfy_url": "http://100.80.184.21:8188",
+        "comfy_url": "http://localhost:8188",
         "local_output_dir": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/6a981b7d-ed59-432b-b8e1-d516e865a40f",
         "jobs": [
           {
@@ -618,7 +618,7 @@
         "updated_at": "2026-05-12T22:51:50.122944+00:00",
         "status": "completed",
         "local_backend": "forge_comfyui",
-        "comfy_url": "http://100.80.184.21:8188",
+        "comfy_url": "http://localhost:8188",
         "local_output_dir": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/cecadfc9-eefe-41dc-ae53-407363d430a0",
         "jobs": [
           {
@@ -678,7 +678,7 @@
         "updated_at": "2026-05-12T22:53:53.001547+00:00",
         "status": "completed",
         "local_backend": "forge_comfyui",
-        "comfy_url": "http://100.80.184.21:8188",
+        "comfy_url": "http://localhost:8188",
         "local_output_dir": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/db7a0533-3ede-4a3b-9998-7baed82955c0",
         "jobs": [
           {

@@ -341,7 +341,7 @@
       "seed": 3855302733,
       "duration": 4,
       "fps": 24,
-      "host": "http://100.80.184.21:8188",
+      "host": "http://localhost:8188",
       "status": "complete",
       "video_url": "/media-assets/videos/script_demo_one_click_asset_vault_001/script_demo_one_click_asset_vault_001__SB_001__video_00001_.mp4"
     },
@@ -353,7 +353,7 @@
       "seed": 3963276803,
       "duration": 4,
       "fps": 24,
-      "host": "http://100.80.184.21:8188",
+      "host": "http://localhost:8188",
       "status": "complete"
     }
   ],

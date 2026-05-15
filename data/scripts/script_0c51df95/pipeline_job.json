@@ -997,7 +997,7 @@
       "seed": 3635788837,
       "duration": 5,
       "fps": 24,
-      "host": "http://100.80.184.21:8188",
+      "host": "http://localhost:8188",
       "status": "complete",
       "video_url": "/media-assets/videos/script_script_0c51df95/script_script_0c51df95__SB_001__video_00001_.mp4"
     },
@@ -1009,7 +1009,7 @@
       "seed": 3573489613,
       "duration": 5,
       "fps": 24,
-      "host": "http://100.80.184.21:8188",
+      "host": "http://localhost:8188",
       "status": "complete"
     },
     {
@@ -1020,7 +1020,7 @@
       "seed": 1980521495,
       "duration": 5,
       "fps": 24,
-      "host": "http://100.80.184.21:8188",
+      "host": "http://localhost:8188",
       "status": "complete"
     },
     {
@@ -1031,7 +1031,7 @@
       "seed": 3294699888,
       "duration": 5,
       "fps": 24,
-      "host": "http://100.80.184.21:8188",
+      "host": "http://localhost:8188",
       "status": "complete"
     },
     {
@@ -1042,7 +1042,7 @@
       "seed": 3202611024,
       "duration": 5,
       "fps": 24,
-      "host": "http://100.80.184.21:8188",
+      "host": "http://localhost:8188",
       "status": "complete"
     },
     {
@@ -1053,7 +1053,7 @@
       "seed": 2825176779,
       "duration": 5,
       "fps": 24,
-      "host": "http://100.80.184.21:8188",
+      "host": "http://localhost:8188",
       "status": "complete"
     },
     {
@@ -1064,7 +1064,7 @@
       "seed": 1328839651,
       "duration": 5,
       "fps": 24,
-      "host": "http://100.80.184.21:8188",
+      "host": "http://localhost:8188",
       "status": "complete"
     },
     {
@@ -1075,7 +1075,7 @@
       "seed": 1305463379,
       "duration": 5,
       "fps": 24,
-      "host": "http://100.80.184.21:8188",
+      "host": "http://localhost:8188",
       "status": "complete"
     },
     {
@@ -1086,7 +1086,7 @@
       "seed": 231992131,
       "duration": 5,
       "fps": 24,
-      "host": "http://100.80.184.21:8188",
+      "host": "http://localhost:8188",
       "status": "complete"
     },
     {
@@ -1097,7 +1097,7 @@
       "seed": 3404518195,
       "duration": 5,
       "fps": 24,
-      "host": "http://100.80.184.21:8188",
+      "host": "http://localhost:8188",
       "status": "complete"
     },
     {
@@ -1108,7 +1108,7 @@
       "seed": 533184691,
       "duration": 5,
       "fps": 24,
-      "host": "http://100.80.184.21:8188",
+      "host": "http://localhost:8188",
       "status": "complete"
     },
     {
@@ -1119,7 +1119,7 @@
       "seed": 4047180643,
       "duration": 5,
       "fps": 24,
-      "host": "http://100.80.184.21:8188",
+      "host": "http://localhost:8188",
       "status": "complete"
     }
   ],

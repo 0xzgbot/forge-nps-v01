@@ -14,7 +14,7 @@
         "updated_at": "2026-05-12T21:04:49.813206+00:00",
         "status": "completed",
         "local_backend": "forge_comfyui",
-        "comfy_url": "http://100.80.184.21:8188",
+        "comfy_url": "http://localhost:8188",
         "local_output_dir": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/52392068-1381-4a80-a775-986daec40f63",
         "jobs": [
           {
@@ -74,7 +74,7 @@
         "updated_at": "2026-05-12T21:06:50.609537+00:00",
         "status": "completed",
         "local_backend": "forge_comfyui",
-        "comfy_url": "http://100.80.184.21:8188",
+        "comfy_url": "http://localhost:8188",
         "local_output_dir": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/9db34a1f-0b62-4830-9fcc-f4361b53eb7b",
         "jobs": [
           {
@@ -134,7 +134,7 @@
         "updated_at": "2026-05-12T21:08:41.971344+00:00",
         "status": "completed",
         "local_backend": "forge_comfyui",
-        "comfy_url": "http://100.80.184.21:8188",
+        "comfy_url": "http://localhost:8188",
         "local_output_dir": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/11e5b772-bad4-4508-8f83-6c17294ded4b",
         "jobs": [
           {
@@ -194,7 +194,7 @@
         "updated_at": "2026-05-12T21:10:04.595798+00:00",
         "status": "in_progress",
         "local_backend": "forge_comfyui",
-        "comfy_url": "http://100.80.184.21:8188",
+        "comfy_url": "http://localhost:8188",
         "local_output_dir": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/c4dce399-e497-435c-a728-ec78cfa3ef93",
         "jobs": [
           {
@@ -238,7 +238,7 @@
         "updated_at": "2026-05-12T21:10:04.661155+00:00",
         "status": "in_progress",
         "local_backend": "forge_comfyui",
-        "comfy_url": "http://100.80.184.21:8188",
+        "comfy_url": "http://localhost:8188",
         "local_output_dir": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/2e24efea-6889-4bd9-b1e5-a6230089bb75",
         "jobs": [
           {
@@ -280,7 +280,7 @@
         "updated_at": "2026-05-12T21:10:04.749947+00:00",
         "status": "in_progress",
         "local_backend": "forge_comfyui",
-        "comfy_url": "http://100.80.184.21:8188",
+        "comfy_url": "http://localhost:8188",
         "local_output_dir": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/5f69f58a-e400-4048-ae8c-89b9e0176a42",
         "jobs": [
           {
@@ -322,7 +322,7 @@
         "updated_at": "2026-05-12T21:10:04.826933+00:00",
         "status": "in_progress",
         "local_backend": "forge_comfyui",
-        "comfy_url": "http://100.80.184.21:8188",
+        "comfy_url": "http://localhost:8188",
         "local_output_dir": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/18426287-ae92-4f64-8aad-97c11dcf1088",
         "jobs": [
           {
@@ -364,7 +364,7 @@
         "updated_at": "2026-05-12T21:10:04.957542+00:00",
         "status": "in_progress",
         "local_backend": "forge_comfyui",
-        "comfy_url": "http://100.80.184.21:8188",
+        "comfy_url": "http://localhost:8188",
         "local_output_dir": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/7de6fff7-1a0d-4d6e-b949-dca0892f1c5c",
         "jobs": [
           {
@@ -408,7 +408,7 @@
         "updated_at": "2026-05-12T21:10:05.043480+00:00",
         "status": "in_progress",
         "local_backend": "forge_comfyui",
-        "comfy_url": "http://100.80.184.21:8188",
+        "comfy_url": "http://localhost:8188",
         "local_output_dir": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/21f74a67-e01d-4a96-bb97-aeac0aec99e6",
         "jobs": [
           {
@@ -450,7 +450,7 @@
         "updated_at": "2026-05-12T21:10:05.125540+00:00",
         "status": "in_progress",
         "local_backend": "forge_comfyui",
-        "comfy_url": "http://100.80.184.21:8188",
+        "comfy_url": "http://localhost:8188",
         "local_output_dir": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/2f516b4b-79f8-478b-82f3-fa5773527f42",
         "jobs": [
           {
@@ -492,7 +492,7 @@
         "updated_at": "2026-05-12T21:10:05.218319+00:00",
         "status": "in_progress",
         "local_backend": "forge_comfyui",
-        "comfy_url": "http://100.80.184.21:8188",
+        "comfy_url": "http://localhost:8188",
         "local_output_dir": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/49a020ec-140a-43ee-b8bd-99cfad3088a0",
         "jobs": [
           {

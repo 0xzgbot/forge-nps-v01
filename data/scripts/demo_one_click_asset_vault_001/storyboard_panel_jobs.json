@@ -14,7 +14,7 @@
         "updated_at": "2026-05-13T01:31:24.032632+00:00",
         "status": "completed",
         "local_backend": "forge_comfyui",
-        "comfy_url": "http://100.80.184.21:8188",
+        "comfy_url": "http://localhost:8188",
         "local_output_dir": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/08397414-15b4-47a5-8642-902f9e844e66",
         "jobs": [
           {
@@ -74,7 +74,7 @@
         "updated_at": "2026-05-13T01:33:57.007002+00:00",
         "status": "completed",
         "local_backend": "forge_comfyui",
-        "comfy_url": "http://100.80.184.21:8188",
+        "comfy_url": "http://localhost:8188",
         "local_output_dir": "/Users/zgbot/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/2bbd0a51-c319-424e-bf20-8b6ddded57b1",
         "jobs": [
           {
