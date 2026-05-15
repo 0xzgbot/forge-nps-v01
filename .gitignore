@@ -111,3 +111,9 @@ hermes_home/profiles/live/skills/*/
 
 # Local sweep artifacts
 private/artifacts/
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+!.env.example
