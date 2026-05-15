@@ -209,7 +209,7 @@ def main():
         for sfile in SESSIONS_DIR.glob("*.json"):
             text = sfile.read_text()
             if "Desktop/forge_nps/" in text and "forge_nps_v01" not in text:
-                new_text = text.replace("/Users/zgbot/Desktop/forge_nps/", "/Users/zgbot/Desktop/forge_nps_v01/")
+                new_text = text.replace("/Users/zgbot/Desktop/forge_nps/", f"{REPO_ROOT}/")
                 sfile.write_text(new_text)
                 fixed += 1
         print(f"[FIX] Repaired {fixed} session files")

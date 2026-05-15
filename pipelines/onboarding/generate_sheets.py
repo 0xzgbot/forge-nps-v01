@@ -1,9 +1,14 @@
 import os
 import json
-import time
-import requests
 import re
 import sys
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from pipelines.comfy_client import ComfyClient
 
 NODE_TEXT = "6"          
 NODE_RESOLUTION = "8"    
@@ -11,68 +16,12 @@ NODE_FILENAME = "11"
 DEFAULT_WIDTH = 1024
 DEFAULT_HEIGHT = 576  
 
-class ComfyClient:
-    def __init__(self, host, port):
-        self.base_url = f"http://{host}:{port}"
-
-    def check_health(self, host, port):
-        try:
-            response = requests.get(f"{self.base_url}/api/system_stats", timeout=5)
-            if response.status_code == 200:
-                return True, response.json()
-            return False, {"error": f"Status code {response.status_code}"}
-        except Exception as e:
-            return False, {"error": str(e)}
-
-    def submit_prompt(self, host, port, workflow_dict):
-        try:
-            response = requests.post(f"{self.base_url}/prompt", json={"prompt": workflow_dict}, timeout=5)
-            if response.status_code == 200:
-                return response.json().get("prompt_id")
-            return None
-        except Exception as e:
-            print(f"Error submitting prompt: {e}")
-            return None
-
-    def poll_job(self, host, port, prompt_id, timeout_sec=300):
-        start_time = time.time()
-        while time.time() - start_time < timeout_sec:
-            try:
-                response = requests.get(f"{self.base_url}/history/{prompt_id}", timeout=5)
-                if response.status_code == 200:
-                    data = response.json()
-                    if prompt_id in data:
-                        outputs = data[prompt_id].get("outputs", {})
-                        for node_id, node_output in outputs.items():
-                            if "images" in node_output:
-                                return node_output["images"][0]["filename"]
-                time.sleep(5)
-            except Exception as e:
-                print(f"Error polling job: {e}")
-                time.sleep(5)
-        return None
-
-    def download_output(self, host, port, filename, save_path):
-        try:
-            url = f"{self.base_url}/view?filename={filename}&type=output&subfolder="
-            response = requests.get(url, stream=True, timeout=10)
-            if response.status_code == 200:
-                with open(save_path, 'wb') as f:
-                    for chunk in response.iter_content(chunk_size=8192):
-                        f.write(chunk)
-                return True
-            return False
-        except Exception as e:
-            print(f"Error downloading output: {e}")
-            return False
-
 def generate_sheets(project_slug, host="localhost", port=8188):
     print(f"\n>>> Starting Reference Sheet Generation for project: {project_slug}")
     
-    cwd = os.getcwd()
-    project_dir = os.path.join(cwd, "projects", project_slug)
+    project_dir = os.path.join(PROJECT_ROOT, "projects", project_slug)
     project_md_path = os.path.join(project_dir, "PROJECT.md")
-    workflow_path = os.path.join(cwd, "workflows", "z_image_turbo_api.json")
+    workflow_path = os.path.join(PROJECT_ROOT, "workflows", "z_image_turbo_api.json")
     assets_dir = os.path.join(project_dir, "assets")
 
     if not os.path.exists(project_md_path):

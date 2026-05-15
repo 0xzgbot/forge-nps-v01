@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 import sys
+import warnings
 from pathlib import Path
 from typing import List, Dict, Any
 
@@ -27,10 +28,19 @@ logger = logging.getLogger("ForgeEngine")
 
 class ForgeEngine:
     """
-    Legacy entry point — superseded by ForgeOrchestrator.
-    Kept for backward-compatibility with older scripts.
+    DEPRECATED — superseded by ForgeOrchestrator.
+
+    Use core.orchestrator.forge_orchestrator.ForgeOrchestrator instead.
+    This legacy class is kept for backward-compatibility with older scripts
+    and will be removed in a future version.
     """
     def __init__(self):
+        warnings.warn(
+            "ForgeEngine is deprecated. Use ForgeOrchestrator "
+            "(core.orchestrator.forge_orchestrator) instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
         if ArchitectRouter is None or Dispatcher is None:
             raise ImportError("ForgeEngine dependencies unavailable. Use ForgeOrchestrator instead.")
         self.router = ArchitectRouter()

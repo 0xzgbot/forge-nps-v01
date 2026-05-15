@@ -2,9 +2,9 @@ import sys
 from pathlib import Path
 
 # Add project root to path for local execution and testing
-project_root = "/Users/zgbot/Desktop/forge_nps_v01"
-if project_root not in sys.path:
-    sys.path.append(project_root)
+project_root = Path(__file__).resolve().parents[2]
+if str(project_root) not in sys.path:
+    sys.path.append(str(project_root))
 
 from forge_nexus.mcp.base import MCPToolDefinition
 from forge_nexus.mcp.registry import MCPToolRegistry
@@ -102,7 +102,7 @@ class ForgeMCPServer:
 
 if __name__ == "__main__":
     # Integration Test
-    test_path = Path("/Users/zgbot/Desktop/forge_nps_v01")
+    test_path = project_root
     server = ForgeMCPServer(test_path)
     
     print("--- MCP Server Discovery Test ---")

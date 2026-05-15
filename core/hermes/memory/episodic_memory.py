@@ -27,10 +27,11 @@ class EpisodicMemory:
 
     def __init__(
         self,
-        memory_dir: str = "/Users/zgbot/Desktop/forge_nps_v01/data/hermes_memory/episodic",
+        memory_dir: Optional[str] = None,
         embedder: Optional[BaseEmbedder] = None,
     ):
-        self.memory_dir = Path(memory_dir)
+        default_memory_dir = Path(__file__).resolve().parents[3] / "data" / "hermes_memory" / "episodic"
+        self.memory_dir = Path(memory_dir) if memory_dir else default_memory_dir
         self.memory_dir.mkdir(parents=True, exist_ok=True)
         self.log_path = self.memory_dir / "events.jsonl"
         self.embedder = embedder or HybridEmbedder()

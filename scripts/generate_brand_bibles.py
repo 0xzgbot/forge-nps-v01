@@ -8,7 +8,8 @@ import logging
 import sys
 from pathlib import Path
 
-sys.path.insert(0, '/Users/zgbot/Desktop/forge_nps_v01')
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(PROJECT_ROOT))
 
 from core.bridge.config_manager import ConfigManager
 from core.bridge.kimi_bridge import KimiBridge
@@ -93,7 +94,7 @@ async def generate_bible(kimi: KimiBridge, campaign: dict, projects_dir: Path):
         return False
 
 async def main():
-    cm = ConfigManager('/Users/zgbot/Desktop/forge_nps_v01/.env')
+    cm = ConfigManager(str(PROJECT_ROOT / ".env"))
     missing = cm.validate()
     if missing:
         logger.error(f"Missing config: {missing}")
@@ -105,7 +106,7 @@ async def main():
         config_manager=cm
     )
 
-    projects_dir = Path("/Users/zgbot/Desktop/forge_nps_v01/data/projects")
+    projects_dir = PROJECT_ROOT / "data" / "projects"
     projects_dir.mkdir(parents=True, exist_ok=True)
 
     results = {}

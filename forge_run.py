@@ -6,7 +6,9 @@ import sys
 from pathlib import Path
 
 # Add project root to sys.path for seamless imports
-sys.path.append('/Users/zgbot/Desktop/forge_nps_v01')
+PROJECT_ROOT = Path(__file__).resolve().parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.append(str(PROJECT_ROOT))
 
 from core.bridge.kimi_bridge import KimiBridge
 from core.genesis.genesis_engine import GenesisEngine
