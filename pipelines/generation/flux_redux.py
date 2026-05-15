@@ -2,12 +2,15 @@ import os
 import json
 import re
 from datetime import datetime
+from pathlib import Path
 from hermes_tools import terminal, json_parse
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 # --- CONFIGURATION ---
 COMFYUI_HOST = "localhost"
 COMFYUI_PORT = 8188  # Primary GPU (Image Gen)
-WORKFLOW_PATH = "~/Desktop/forge_nps_v01/workflows/flux_redux_api.json"
+WORKFLOW_PATH = os.path.join(PROJECT_ROOT, "workflows", "flux_redux_api.json")
 
 class FluxReduxGenerator:
     def __init__(self, host=COMFYUI_HOST, port=COMFYUI_PORT):
@@ -36,7 +39,7 @@ class FluxReduxGenerator:
         Generates consistent image using Flux Redux and encodes metadata into filename.
         """
         # 1. Load Reference Image (Head Sheet)
-        ref_image_path = f"~/Desktop/forge_nps_v01/projects/{project_slug}/assets/head_sheet.png"
+        ref_image_path = os.path.join(PROJECT_ROOT, "projects", project_slug, "assets/head_sheet.png")
         uploaded_filename = self.upload_image(ref_image_path)
 
         # 2. Prepare Workflow
@@ -72,7 +75,7 @@ class FluxReduxGenerator:
         # 6. Download and Save with Encoded Metadata (Option A)
         # Pattern: {slug}_{char}_{output_name}_{pose}_{view}_{crop}_{lighting}_{bg}.png
         encoded_filename = f"{project_slug}_{character_key}_{output_name}_{pose}_{view}_{crop}_{lighting}_{bg}.png"
-        save_path = f"~/Desktop/forge_nps_v01/projects/{project_slug}/generations/anchors/{encoded_filename}"
+        save_path = os.path.join(PROJECT_ROOT, "projects", project_slug, "generations/anchors", encoded_filename)
         
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
         self._download_output(output_filename, save_path)

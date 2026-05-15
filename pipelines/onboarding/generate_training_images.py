@@ -3,6 +3,9 @@ import sys
 import random
 import json
 import argparse
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 try:
     from hermes_tools import comfy_client
@@ -22,7 +25,7 @@ GPU_PORT = 8188
 DISTRIBUTION = {"isolation": 0.30, "environmental": 0.40, "closeup": 0.20, "fullbody": 0.10}
 
 def get_project_data(slug):
-    path = f"~/Desktop/forge_nps_v01/projects/{slug}/PROJECT.md"
+    path = os.path.join(PROJECT_ROOT, "projects", slug, "PROJECT.md")
     with open(path, 'r', encoding="utf-8") as f: return f.read()
 
 def parse_character_info(content, slug):
@@ -35,7 +38,7 @@ def parse_character_info(content, slug):
 
 def load_banks(slug):
     banks = {}
-    dir_path = f"~/Desktop/forge_nps_v01/projects/{slug}/banks"
+    dir_path = os.path.join(PROJECT_ROOT, "projects", slug, "banks")
     for fn in os.listdir(dir_path):
         if fn.endswith(".txt"):
             with open(os.path.join(dir_path, fn), 'r') as f:
@@ -66,7 +69,7 @@ def main():
     slug = args.slug
     content = get_project_data(slug); subject, trigger = parse_character_info(content, slug); banks = load_banks(slug)
     client = comfy_client.ComfyClient(host="localhost", port=GPU_PORT)
-    output_dir = f"~/Desktop/forge_nps_v01/projects/{slug}/assets/training_images"; os.makedirs(output_dir, exist_ok=True)
+    output_dir = os.path.join(PROJECT_ROOT, "projects", slug, "assets/training_images"); os.makedirs(output_dir, exist_ok=True)
     
     prompt_jobs = []
     for i in range(args.count):

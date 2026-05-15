@@ -1,9 +1,12 @@
 import json
 import jsonschema
 from jsonschema import validate
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parent
 
 def test_validation():
-    schema_path = '~/Desktop/forge_nps_v01/core/schemas/director_schema.json'
+    schema_path = PROJECT_ROOT / "core" / "schemas" / "director_schema.json"
     
     with open(schema_path, 'r', encoding="utf-8") as f:
         schema = json.load(f)

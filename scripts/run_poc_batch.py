@@ -2,11 +2,14 @@ import json
 import requests
 from typing import List, Dict, Any
 import os
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 # Import the ArchitectRouter from the local pipeline
 try:
     import sys
-    sys.path.append("~/Desktop/forge_nps_v01")
+    sys.path.append(str(PROJECT_ROOT))
     from pipelines.generation.architect_router import ArchitectRouter
 except ImportError as e:
     print(f"[ERROR] Failed to import ArchitectRouter: {e}")
@@ -19,8 +22,8 @@ class PoCGenerator:
         self.router = router
         # Mapping kernel IDs to actual workflow files discovered in /workflows/
         self.workflow_map = {
-            "flux_2_dev": "~/Desktop/forge_nps_v01/workflows/flux_redux_api.json",
-            "zimage_turbo": "~/Desktop/forge_nps_v01/workflows/z_image_turbo_api.json",
+            "flux_2_dev": str(PROJECT_ROOT / "workflows" / "flux_redux_api.json"),
+            "zimage_turbo": str(PROJECT_ROOT / "workflows" / "z_image_turbo_api.json"),
             "ltx_2_3": None # No LTX workflow found in /workflows/ yet
         }
 

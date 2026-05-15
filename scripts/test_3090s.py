@@ -8,7 +8,8 @@ logger = logging.getLogger("Test3090s")
 
 GPU1 = "http://localhost:8188"
 GPU2 = "http://localhost:8189"
-OUT = Path("~/Desktop/forge_nps_v01/data/renders/3090_tests")
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+OUT = PROJECT_ROOT / "data" / "renders" / "3090_tests"
 OUT.mkdir(parents=True, exist_ok=True)
 
 def zimg(prompt, unet="z_image_turbo_bf16.safetensors", seed=42, w=1024, h=1024):

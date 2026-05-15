@@ -2,11 +2,12 @@
 import sys
 import os
 import asyncio
+from pathlib import Path
 
 # Ensure project root is in path
-PROJECT_ROOT = "~/Desktop/forge_nps_v01"
-if PROJECT_ROOT not in sys.path:
-    sys.path.append(PROJECT_ROOT)
+PROJECT_ROOT = Path(__file__).resolve().parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.append(str(PROJECT_ROOT))
 
 from core.orchestrator.forge_orchestrator import ForgeOrchestrator
 from core.bridge.config_manager import ConfigManager

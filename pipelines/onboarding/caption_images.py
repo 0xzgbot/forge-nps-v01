@@ -2,6 +2,9 @@ import os
 import sys
 import argparse
 import re
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 def caption_images(slug):
     """
@@ -10,7 +13,7 @@ def caption_images(slug):
     Extracts metadata from filename via robust regex.
     Expected format: {slug}_char1_train_{idx}_{pose}_{view}_{crop}_{lighting}_{bg}.png
     """
-    project_root = f"~/Desktop/forge_nps_v01/projects/{slug}"
+    project_root = os.path.join(PROJECT_ROOT, "projects", slug)
     images_dir = os.path.join(project_root, "assets/training_images")
     
     if not os.path.exists(images_dir):

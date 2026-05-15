@@ -2,8 +2,10 @@ import asyncio
 import json
 import sys
 import os
+from pathlib import Path
 
-sys.path.append("~/Desktop/forge_nps_v01")
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+sys.path.append(str(PROJECT_ROOT))
 from agents.visual.visual_agent import VisualAgent
 
 async def run_test():

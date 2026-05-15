@@ -2,13 +2,16 @@
 """Quick test to verify Kimi K2.5 API works end-to-end."""
 import asyncio
 import sys
-sys.path.insert(0, '~/Desktop/forge_nps_v01')
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(PROJECT_ROOT))
 
 from core.bridge.config_manager import ConfigManager
 from core.bridge.kimi_bridge import KimiBridge
 
 async def main():
-    cm = ConfigManager('~/Desktop/forge_nps_v01/.env')
+    cm = ConfigManager(str(PROJECT_ROOT / ".env"))
     missing = cm.validate()
     if missing:
         print(f"Missing config: {missing}")

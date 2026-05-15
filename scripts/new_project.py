@@ -1,9 +1,10 @@
 import os
 import shutil
 import sys
+from pathlib import Path
 
-# Use absolute paths derived from the environment or project root
-BASE_DIR = "~/Desktop/forge_nps_v01"
+# Use paths derived from this checkout so the script works outside one machine.
+BASE_DIR = Path(__file__).resolve().parents[1]
 TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
 PROJECTS_DIR = os.path.join(BASE_DIR, "projects")
 SCRIPTS_DIR = os.path.join(BASE_DIR, "scripts")
