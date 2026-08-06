@@ -84,7 +84,7 @@ class TimelineAssembler:
         
         # In a real implementation, this would write a text file with 'file /path/to/asset' lines
         # For the hackathon demo, we return a placeholder path.
-        placeholder_path = f"/tmp/forge_nps_{assembly['session_id']}_concat.txt"
+        placeholder_path = f"/tmp/cinesmith_{assembly['session_id']}_concat.txt"
         
         # Simulate writing the file (optional but good for demonstration)
         try:

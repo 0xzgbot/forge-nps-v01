@@ -1,7 +1,7 @@
 # SKILL: Wes Anderson Specialist
 ## Domain: Cinematography, Production Design, Color Theory, Typography, Narrative Style
 ## Version: 1.0
-## For: Forge Hermes Agent — Prompt Engineering & Scene Planning
+## For: Cinesmith Hermes Agent — Prompt Engineering & Scene Planning
 
 ---
 
@@ -306,7 +306,7 @@ STYLE SKILL: Pixar Specialist
 TECHNICAL SKILL: ComfyUI/Flux Pipeline
     └── PARAMETERS: sampler, steps, CFG, model selection, conditioning
 
-OUTPUT: Wes Anderson-style prompts optimized for the Forge pipeline
+OUTPUT: Wes Anderson-style prompts optimized for the Cinesmith pipeline
 ```
 
 ### Can You Stack Wes Anderson + Pixar?

@@ -9,23 +9,23 @@ logger = logging.getLogger("ResilienceLayer")
 
 T = TypeVar('T')
 
-class ForgeNPSException(Exception):
-    """Base exception for all Forge NPS system errors."""
+class CinesmithException(Exception):
+    """Base exception for all Cinesmith system errors."""
     pass
 
-class TransientError(ForgeNPSException):
+class TransientError(CinesmithException):
     """Errors that are likely temporary (e.g., API timeout, rate limit). 
     These should trigger a retry logic."""
     pass
 
-class FatalError(ForgeNPSException):
+class FatalError(CinesmithException):
     """Errors that represent unrecoverable failures (e.g., invalid credentials, file not found).
     These should terminate the current process/loop immediately."""
     pass
 
 class ErrorHandler:
     """
-    The Resilience Specialist component of Forge NPS.
+    The Resilience Specialist component of Cinesmith.
     Provides robust error handling with exponential backoff and retry logic 
     to ensure high-uptime for long-running production pipelines.
     """

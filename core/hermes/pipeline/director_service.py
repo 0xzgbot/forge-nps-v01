@@ -228,9 +228,9 @@ class KimiDirectorService:
     @staticmethod
     def _max_tokens_for_target(target_shots: int, default: int = 8192) -> int:
         if target_shots >= 20:
-            return max(default, int(os.getenv("FORGE_KIMI_MAX_TOKENS_20_SHOTS", "16384")))
+            return max(default, int(os.getenv("CINESMITH_KIMI_MAX_TOKENS_20_SHOTS", "16384")))
         if target_shots >= 12:
-            return max(default, int(os.getenv("FORGE_KIMI_MAX_TOKENS_12_SHOTS", "12288")))
+            return max(default, int(os.getenv("CINESMITH_KIMI_MAX_TOKENS_12_SHOTS", "12288")))
         return default
 
     async def request_plan(
@@ -260,7 +260,7 @@ class KimiDirectorService:
             }],
         }
         system_prompt = (
-            "You are Kimi acting as Director Planner for FORGE NPS. "
+            "You are Kimi acting as Director Planner for CINESMITH NPS. "
             "Return only JSON matching the schema exactly. "
             "You are planning shots, not writing final diffusion prompts."
         )
@@ -284,12 +284,12 @@ class KimiDirectorService:
             "response_format": self._response_format(),
             "max_tokens": self._max_tokens_for_target(target),
         }
-        timeout_sec = float(os.getenv("FORGE_KIMI_TIMEOUT_SEC", "300"))
+        timeout_sec = float(os.getenv("CINESMITH_KIMI_TIMEOUT_SEC", "300"))
         # Scale timeout for larger plans (e.g., 20-image requests).
         if target and target >= 20:
-            timeout_sec = max(timeout_sec, float(os.getenv("FORGE_KIMI_TIMEOUT_20_SHOTS_SEC", "600")))
+            timeout_sec = max(timeout_sec, float(os.getenv("CINESMITH_KIMI_TIMEOUT_20_SHOTS_SEC", "600")))
         elif target >= 12:
-            timeout_sec = max(timeout_sec, float(os.getenv("FORGE_KIMI_TIMEOUT_12_SHOTS_SEC", "420")))
+            timeout_sec = max(timeout_sec, float(os.getenv("CINESMITH_KIMI_TIMEOUT_12_SHOTS_SEC", "420")))
         async with httpx.AsyncClient(timeout=timeout_sec) as client:
             resp = await client.post(
                 self.endpoint,
@@ -329,7 +329,7 @@ class KimiDirectorService:
             return {"campaign_id": campaign_id, "shots": []}
         needed = target_shots - have
         system_prompt = (
-            "You are Kimi acting as Director Planner for FORGE NPS. "
+            "You are Kimi acting as Director Planner for CINESMITH NPS. "
             "Return only JSON. Extend the existing plan without duplicating existing sequence numbers."
         )
         prompt = {
@@ -368,9 +368,9 @@ class KimiDirectorService:
             "response_format": self._response_format(),
             "max_tokens": self._max_tokens_for_target(target_shots),
         }
-        timeout_sec = float(os.getenv("FORGE_KIMI_TIMEOUT_SEC", "300"))
+        timeout_sec = float(os.getenv("CINESMITH_KIMI_TIMEOUT_SEC", "300"))
         if target_shots >= 20:
-            timeout_sec = max(timeout_sec, float(os.getenv("FORGE_KIMI_TIMEOUT_20_SHOTS_SEC", "600")))
+            timeout_sec = max(timeout_sec, float(os.getenv("CINESMITH_KIMI_TIMEOUT_20_SHOTS_SEC", "600")))
         async with httpx.AsyncClient(timeout=timeout_sec) as client:
             resp = await client.post(
                 self.endpoint,
@@ -429,8 +429,8 @@ class KimiDirectorService:
             "response_format": self._response_format(),
             "max_tokens": 4096,
         }
-        timeout_sec = float(os.getenv("FORGE_KIMI_SELF_CHECK_TIMEOUT_SEC", "90"))
-        retries = max(0, int(os.getenv("FORGE_KIMI_SELF_CHECK_RETRIES", "2")))
+        timeout_sec = float(os.getenv("CINESMITH_KIMI_SELF_CHECK_TIMEOUT_SEC", "90"))
+        retries = max(0, int(os.getenv("CINESMITH_KIMI_SELF_CHECK_RETRIES", "2")))
         last_error = ""
         async with httpx.AsyncClient(timeout=timeout_sec) as client:
             for attempt in range(retries + 1):
@@ -524,9 +524,9 @@ class KimiDirectorService:
             "response_format": self._response_format(),
             "max_tokens": self._max_tokens_for_target(target_shots),
         }
-        timeout_sec = float(os.getenv("FORGE_KIMI_TIMEOUT_SEC", "300"))
+        timeout_sec = float(os.getenv("CINESMITH_KIMI_TIMEOUT_SEC", "300"))
         if target_shots >= 20:
-            timeout_sec = max(timeout_sec, float(os.getenv("FORGE_KIMI_TIMEOUT_20_SHOTS_SEC", "600")))
+            timeout_sec = max(timeout_sec, float(os.getenv("CINESMITH_KIMI_TIMEOUT_20_SHOTS_SEC", "600")))
         async with httpx.AsyncClient(timeout=timeout_sec) as client:
             resp = await client.post(
                 self.endpoint,

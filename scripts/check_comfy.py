@@ -1,5 +1,11 @@
 import sys
-import os
+from pathlib import Path
+
+# Ensure the repo root is importable when this script is run directly.
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
 from pipelines.comfy_client import ComfyClient
 
 # Configuration
@@ -59,6 +65,4 @@ def run_health_check():
         print("-" * 40)
 
 if __name__ == "__main__":
-    # Ensure the root is in sys.path so 'pipelines' can be imported
-    sys.path.append(os.getcwd())
     run_health_check()

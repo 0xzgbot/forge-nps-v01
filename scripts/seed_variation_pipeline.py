@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Seed Image → Batch Variation Pipeline for Forge NPS.
+Seed Image → Batch Variation Pipeline for Cinesmith.
 
 Drop 1-2 seed/reference images into data/seed_images/.
 This script generates 20-30 FLUX2 NVFP4 Turbo renders with systematic

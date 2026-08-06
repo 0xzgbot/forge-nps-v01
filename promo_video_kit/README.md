@@ -1,12 +1,12 @@
-# Forge NPS — Promo Video Production Kit
+# Cinesmith — Promo Video Production Kit
 
 > **The Pipeline That Promotes Itself**
 >
 > This kit contains everything needed to produce a 90-second promo video for
-> Forge NPS using NousResearch's newly released creative skills:
+> Cinesmith using NousResearch's newly released creative skills:
 > TouchDesigner-MCP, p5js, ComfyUI v5, and AudioCraft.
 >
-> The video demonstrates Forge NPS creating its own marketing — a meta-narrative
+> The video demonstrates Cinesmith creating its own marketing — a meta-narrative
 > that has genuinely no competition at the hackathon.
 
 ---
@@ -24,7 +24,7 @@ promo_video_kit/
 │   ├── assemble_all_td.py              # Build all scenes at once
 │   └── build_memory_graph.py           # Original (legacy)
 ├── p5js/
-│   ├── transition_data_to_light.html       # Particles → "FORGE" text
+│   ├── transition_data_to_light.html       # Particles → "CINESMITH" text
 │   ├── transition_audit_gate.html          # PASS/FAIL/RETRY kinetic type
 │   └── transition_memory_consolidation.html # Nodes → logo formation
 ├── comfyui/
@@ -48,7 +48,8 @@ promo_video_kit/
 
 - [ ] **twozero MCP plugin** installed in TouchDesigner
   ```bash
-  bash "${HERMES_HOME:-$HOME/.hermes}/skills/creative/touchdesigner-mcp/scripts/setup.sh"
+  # Cinesmith: prefer repo-local hermes_home (never assume ~/.hermes)
+bash "${HERMES_HOME:-$(cd "$(dirname "$0")/.." && pwd)/hermes_home}/skills/creative/touchdesigner-mcp/scripts/setup.sh"
   ```
   Then drag `~/Downloads/twozero.tox` into TD and enable MCP.
 
@@ -66,13 +67,13 @@ promo_video_kit/
 
 ### Required Data
 
-- [ ] **Forge NPS events.jsonl** exists:
+- [ ] **Cinesmith events.jsonl** exists:
   ```bash
-  ls ~/Desktop/forge_nps_v01/data/hermes_memory/episodic/events.jsonl
+  ls ~/Desktop/cinesmith_v01/data/hermes_memory/episodic/events.jsonl
   ```
   If empty, scripts generate demo events automatically.
 
-- [ ] **Dashboard recording** — screen-record the Forge NPS dashboard
+- [ ] **Dashboard recording** — screen-record the Cinesmith dashboard
   running a campaign (QuickTime Player or OBS).
 
 - [ ] **ComfyUI is running** and accessible for hero frame generation.
@@ -86,7 +87,7 @@ promo_video_kit/
 Build all 5 scenes with one command:
 
 ```bash
-cd ~/Desktop/forge_nps_v01/promo_video_kit/touchdesigner
+cd ~/Desktop/cinesmith_v01/promo_video_kit/touchdesigner
 python3 assemble_all_td.py
 ```
 
@@ -94,23 +95,23 @@ Then record each scene (15–30 seconds each):
 
 ```bash
 # 1. Memory Graph V2
-open /tmp/forge_memory_graph_v2.toe
+open /tmp/cinesmith_memory_graph_v2.toe
 # F1 → click recorder TOP → Record ON → 20s → Record OFF
 
 # 2. Pipeline Flow
-open /tmp/forge_pipeline_flow.toe
+open /tmp/cinesmith_pipeline_flow.toe
 # F1 → click recorder TOP → Record ON → 15s → Record OFF
 
 # 3. Audit Gate
-open /tmp/forge_audit_gate.toe
+open /tmp/cinesmith_audit_gate.toe
 # F1 → click recorder TOP → Record ON → 15s → Record OFF
 
 # 4. Command Center
-open /tmp/forge_command_center.toe
+open /tmp/cinesmith_command_center.toe
 # F1 → click recorder TOP → Record ON → 15s → Record OFF
 
 # 5. Provenance Web
-open /tmp/forge_provenance_web.toe
+open /tmp/cinesmith_provenance_web.toe
 # F1 → click recorder TOP → Record ON → 15s → Record OFF
 ```
 
@@ -123,7 +124,7 @@ open /tmp/forge_provenance_web.toe
 
 ```bash
 # Transition 1: "Data to Light"
-open ~/Desktop/forge_nps_v01/promo_video_kit/p5js/transition_data_to_light.html
+open ~/Desktop/cinesmith_v01/promo_video_kit/p5js/transition_data_to_light.html
 # Press 'R' to start, 'S' to save stills
 
 # Transition 2: "The Audit Gate"
@@ -135,7 +136,7 @@ open transition_memory_consolidation.html
 
 For video export (headless):
 ```bash
-cd ~/Desktop/forge_nps_v01/promo_video_kit/p5js
+cd ~/Desktop/cinesmith_v01/promo_video_kit/p5js
 node scripts/export-frames.js transition_data_to_light.html --frames 360
 ffmpeg -framerate 30 -i frame_%06d.png -c:v prores -profile:v 3 transition1.mov
 ```
@@ -170,7 +171,7 @@ See: `audiocraft/soundtrack_prompts.md`
 ### Phase 5: Dashboard Recording (10 min)
 
 Record yourself:
-1. Opening Forge NPS dashboard
+1. Opening Cinesmith dashboard
 2. Entering a brief
 3. Clicking **Run Campaign**
 4. Showing the event stream
@@ -183,19 +184,19 @@ Save to `promo_video_kit/assets/dashboard.mov`.
 ### Phase 6: Assembly (5 min)
 
 ```bash
-cd ~/Desktop/forge_nps_v01/promo_video_kit/scripts
+cd ~/Desktop/cinesmith_v01/promo_video_kit/scripts
 chmod +x assemble_promo.sh
 ./assemble_promo.sh
 ```
 
-Output: `/tmp/forge_nps_promo_final.mov`
+Output: `/tmp/cinesmith_promo_final.mov`
 
 Convert to MP4 for sharing:
 ```bash
-ffmpeg -i /tmp/forge_nps_promo_final.mov \
+ffmpeg -i /tmp/cinesmith_promo_final.mov \
   -c:v libx264 -crf 18 -preset slow \
   -c:a aac -b:a 192k \
-  ~/Desktop/forge_nps_promo_final.mp4
+  ~/Desktop/cinesmith_promo_final.mp4
 ```
 
 ---
@@ -216,7 +217,7 @@ ffmpeg -i /tmp/forge_nps_promo_final.mov \
 | 1:15–1:25 | **Provenance Web** — retry lineage in 3D | TouchDesigner | 10s |
 | 1:25–1:35 | **Memory Graph V2** — living brain visualization | TouchDesigner | 10s |
 | 1:35–1:40 | p5js Transition: Memory Consolidation | Browser | 5s |
-| 1:40–1:45 | Closing title: "Forge NPS. Every shot, accounted for." | Generated by script | 5s |
+| 1:40–1:45 | Closing title: "Cinesmith. Every shot, accounted for." | Generated by script | 5s |
 
 ---
 
@@ -312,7 +313,7 @@ Then update the paths in `scripts/assemble_promo.sh` and run it.
 
 ## 🏆 Final Submission Checklist
 
-- [ ] Promo video exported as MP4 (`forge_nps_promo_final.mp4`)
+- [ ] Promo video exported as MP4 (`cinesmith_promo_final.mp4`)
 - [ ] Video is 60–90 seconds
 - [ ] Video shows the 5 model roles (Kimi, Hermes, Spark, Vision, Memory)
 - [ ] Video includes at least one TouchDesigner visual

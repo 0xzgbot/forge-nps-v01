@@ -13,9 +13,9 @@
         "created_at": "2026-05-13T01:26:26.976785+00:00",
         "updated_at": "2026-05-13T01:31:24.032632+00:00",
         "status": "completed",
-        "local_backend": "forge_comfyui",
+        "local_backend": "cinesmith_comfyui",
         "comfy_url": "http://localhost:8188",
-        "local_output_dir": "~/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/08397414-15b4-47a5-8642-902f9e844e66",
+        "local_output_dir": "~/Desktop/CINESMITH_MEDIA/local_spark_media/results/08397414-15b4-47a5-8642-902f9e844e66",
         "jobs": [
           {
             "id": "738b8d5b-6420-4144-b6ea-388d7ebd2adb",
@@ -26,18 +26,18 @@
               "raw": {
                 "type": "image_url",
                 "url": "/media-assets/local_spark_media/results/08397414-15b4-47a5-8642-902f9e844e66/flux2_dev_08397414_00001_.png",
-                "local_path": "~/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/08397414-15b4-47a5-8642-902f9e844e66/flux2_dev_08397414_00001_.png"
+                "local_path": "~/Desktop/CINESMITH_MEDIA/local_spark_media/results/08397414-15b4-47a5-8642-902f9e844e66/flux2_dev_08397414_00001_.png"
               },
               "min": {
                 "type": "image_url",
                 "url": "/media-assets/local_spark_media/results/08397414-15b4-47a5-8642-902f9e844e66/flux2_dev_08397414_00001_.png",
-                "local_path": "~/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/08397414-15b4-47a5-8642-902f9e844e66/flux2_dev_08397414_00001_.png"
+                "local_path": "~/Desktop/CINESMITH_MEDIA/local_spark_media/results/08397414-15b4-47a5-8642-902f9e844e66/flux2_dev_08397414_00001_.png"
               },
               "all": [
                 {
                   "type": "image_url",
                   "url": "/media-assets/local_spark_media/results/08397414-15b4-47a5-8642-902f9e844e66/flux2_dev_08397414_00001_.png",
-                  "local_path": "~/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/08397414-15b4-47a5-8642-902f9e844e66/flux2_dev_08397414_00001_.png"
+                  "local_path": "~/Desktop/CINESMITH_MEDIA/local_spark_media/results/08397414-15b4-47a5-8642-902f9e844e66/flux2_dev_08397414_00001_.png"
                 }
               ]
             },
@@ -56,7 +56,7 @@
           "seed": 4007963247,
           "custom_reference_id": "",
           "image_reference_url": "",
-          "local_equivalence_note": "Local adapter maps local image request to Forge Flux/ComfyUI workflow."
+          "local_equivalence_note": "Local adapter maps local image request to Cinesmith Flux/ComfyUI workflow."
         }
       }
     },
@@ -73,9 +73,9 @@
         "created_at": "2026-05-13T01:26:28.566670+00:00",
         "updated_at": "2026-05-13T01:33:57.007002+00:00",
         "status": "completed",
-        "local_backend": "forge_comfyui",
+        "local_backend": "cinesmith_comfyui",
         "comfy_url": "http://localhost:8188",
-        "local_output_dir": "~/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/2bbd0a51-c319-424e-bf20-8b6ddded57b1",
+        "local_output_dir": "~/Desktop/CINESMITH_MEDIA/local_spark_media/results/2bbd0a51-c319-424e-bf20-8b6ddded57b1",
         "jobs": [
           {
             "id": "156195c3-3319-480e-9afb-42e1132daef4",
@@ -86,18 +86,18 @@
               "raw": {
                 "type": "image_url",
                 "url": "/media-assets/local_spark_media/results/2bbd0a51-c319-424e-bf20-8b6ddded57b1/flux2_dev_2bbd0a51_00001_.png",
-                "local_path": "~/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/2bbd0a51-c319-424e-bf20-8b6ddded57b1/flux2_dev_2bbd0a51_00001_.png"
+                "local_path": "~/Desktop/CINESMITH_MEDIA/local_spark_media/results/2bbd0a51-c319-424e-bf20-8b6ddded57b1/flux2_dev_2bbd0a51_00001_.png"
               },
               "min": {
                 "type": "image_url",
                 "url": "/media-assets/local_spark_media/results/2bbd0a51-c319-424e-bf20-8b6ddded57b1/flux2_dev_2bbd0a51_00001_.png",
-                "local_path": "~/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/2bbd0a51-c319-424e-bf20-8b6ddded57b1/flux2_dev_2bbd0a51_00001_.png"
+                "local_path": "~/Desktop/CINESMITH_MEDIA/local_spark_media/results/2bbd0a51-c319-424e-bf20-8b6ddded57b1/flux2_dev_2bbd0a51_00001_.png"
               },
               "all": [
                 {
                   "type": "image_url",
                   "url": "/media-assets/local_spark_media/results/2bbd0a51-c319-424e-bf20-8b6ddded57b1/flux2_dev_2bbd0a51_00001_.png",
-                  "local_path": "~/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/2bbd0a51-c319-424e-bf20-8b6ddded57b1/flux2_dev_2bbd0a51_00001_.png"
+                  "local_path": "~/Desktop/CINESMITH_MEDIA/local_spark_media/results/2bbd0a51-c319-424e-bf20-8b6ddded57b1/flux2_dev_2bbd0a51_00001_.png"
                 }
               ]
             },
@@ -116,7 +116,7 @@
           "seed": 2399340331,
           "custom_reference_id": "",
           "image_reference_url": "",
-          "local_equivalence_note": "Local adapter maps local image request to Forge Flux/ComfyUI workflow."
+          "local_equivalence_note": "Local adapter maps local image request to Cinesmith Flux/ComfyUI workflow."
         }
       }
     }

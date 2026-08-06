@@ -126,7 +126,7 @@ The run button is considered wired when the stream reaches at least:
 Primary event store:
 
 ```text
-~/Desktop/forge_nps_v01/data/hermes_memory/episodic/events.jsonl
+~/Desktop/cinesmith_v01/data/hermes_memory/episodic/events.jsonl
 ```
 
 `GET /api/memory/health` is the memory integrity gate and should report:
@@ -137,7 +137,7 @@ Primary event store:
 - `fallback_events`
 - `shots_missing_audit_after_render`
 
-Fallback-source events are excluded from learning unless `FORGE_LEARN_FROM_FALLBACK=true`.
+Fallback-source events are excluded from learning unless `CINESMITH_LEARN_FROM_FALLBACK=true`.
 
 ## Legacy Policy
 Hard-disabled (`410 legacy_disabled`):
@@ -153,5 +153,5 @@ Compatibility shim:
 
 ## Fallback Policy
 - Production runs stop before Spark on Kimi failure.
-- Dev fallback is opt-in only: `FORGE_DEV_FALLBACK=true`.
-- Fallback events are excluded from learning unless `FORGE_LEARN_FROM_FALLBACK=true`.
+- Dev fallback is opt-in only: `CINESMITH_DEV_FALLBACK=true`.
+- Fallback events are excluded from learning unless `CINESMITH_LEARN_FROM_FALLBACK=true`.

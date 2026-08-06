@@ -4,9 +4,10 @@ from pydantic import BaseModel, Field
 import json
 import sys
 import os
+from pathlib import Path
 
 # Add the project root to sys.path so we can import modules correctly
-sys.path.append("~/Desktop/forge_nps_v01")
+sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from core.bridge.kimi_bridge import KimiBridge, StrictSchemaGuard
 
@@ -64,7 +65,7 @@ async def test_direct_with_narrative_success():
         assert result["reasoning_trace"] == "I analyzed the script and lore."
         
         # Verify log file creation
-        log_path = f"~/Desktop/forge_nps_v01/data/reasoning_logs/{session_id}/full_analysis_reasoning.md"
+        log_path = str(Path(__file__).resolve().parents[1] / f"data/reasoning_logs/{session_id}/full_analysis_reasoning.md")
         assert os.path.exists(log_path)
         with open(log_path, 'r', encoding="utf-8") as f:
             content = f.read()

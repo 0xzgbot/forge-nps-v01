@@ -1,7 +1,7 @@
 # SKILL: Soviet Constructivist / Brutalist Specialist
 ## Domain: Bold Geometry, Monumental Scale, Raw Materiality, Agitprop Typography, Stark Lighting
 ## Version: 1.0
-## For: Forge Hermes Agent — Prompt Engineering & Scene Planning
+## For: Cinesmith Hermes Agent — Prompt Engineering & Scene Planning
 
 ---
 

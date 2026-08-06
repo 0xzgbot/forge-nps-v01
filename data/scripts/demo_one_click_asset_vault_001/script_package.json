@@ -167,7 +167,7 @@
   "source": "lmstudio_director",
   "director_backend": "lmstudio",
   "director_model": "qwen3.6-35b-a3b@q6_k",
-  "forge_request": {
+  "cinesmith_request": {
     "fingerprint": "8d6c8a0738d3fbe689724dceccd5c936b1db5cc91c08ae993915e701318d5920",
     "title": "The Lamp That Answered",
     "brief_hash": "76785c6334f644ed2f0770b5504bd61575b3265d787fed02fcf8219620bd24c7",

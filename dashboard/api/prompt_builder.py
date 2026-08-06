@@ -1,5 +1,5 @@
 """
-Prompt Builder API for Forge NPS Dashboard.
+Prompt Builder API for Cinesmith Dashboard.
 
 Serves variation bank items and generates recipes from user selections.
 """

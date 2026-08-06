@@ -4,7 +4,7 @@ from typing import Dict, Any, List
 class KimiPayloadParser:
     """
     Parses high-density Markdown research payloads from Kimi into 
-    actionable prompt corrections and feedback for the forge_nps.
+    actionable prompt corrections and feedback for the cinesmith.
     """
 
     def __init__(self):
@@ -39,7 +39,7 @@ class KimiPayloadParser:
 
     def parse_audit_v2(self, raw_output: str) -> dict:
         """
-        Parses forge_nps ContinuityAuditor output.
+        Parses cinesmith ContinuityAuditor output.
         Extracts: is_consistent, confidence_score, error_category,
                   mismatch_report, remediation_prompt, affected_anchors
         Falls back to parse_audit() for v1 format.

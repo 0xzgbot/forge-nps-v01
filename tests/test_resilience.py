@@ -3,9 +3,10 @@ import unittest
 import sys
 import asyncio
 import os
+from pathlib import Path
 
 # Ensure project root is in path
-sys.path.append("~/Desktop/forge_nps_v01")
+sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from core.error_handling_protocols import ErrorHandler, TransientError, FatalError
 from agents.auditor.continuity_auditor import ContinuityAuditor
@@ -24,11 +25,11 @@ class MockKimiBridge:
             # Return valid structure on second call
             return {"subject": "A neon samurai", "camera_motion": "slow pan", "lighting": "cinematic"}
 
-class TestForgeIntegration(unittest.IsolatedAsyncioTestCase):
+class TestCinesmithIntegration(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self.handler = ErrorHandler(max_retries=2, base_delay=0.1)
         # Mocking the lore file for auditor test
-        self.lore_path = "~/Desktop/forge_nps_v01/data/lore_bible/world_bible.md"
+        self.lore_path = str(Path(__file__).resolve().parents[1] / "data/lore_bible/world_bible.md")
 
     async def test_integration_flow(self):
         print("\n--- Starting Integrated Flow Test ---")

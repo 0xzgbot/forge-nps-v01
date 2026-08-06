@@ -1,0 +1,17 @@
+{
+  "script_id": "smoke_script_persistence",
+  "title": "Smoke Script Persistence",
+  "brief": "A short dashboard smoke test project.",
+  "tone": "clean validation",
+  "runtime_seconds": 15,
+  "target_scenes": 1,
+  "status": "draft",
+  "created_at": "2026-07-08T19:36:06.797707Z",
+  "updated_at": "2026-07-08T21:10:41.188858Z",
+  "has_package": false,
+  "coverage_count": 0,
+  "storyboard_count": 0,
+  "video_shot_count": 0,
+  "video_complete_count": 0,
+  "active_job_id": ""
+}

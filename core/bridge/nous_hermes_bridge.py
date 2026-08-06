@@ -44,7 +44,7 @@ class NousHermesBridge:
             or str(cfg.get("LMSTUDIO_CHAT_MODEL", ""))
             or "Hermes-3-Llama-3.2-3B"
         ).strip()
-        self.client = LMStudioClient()
+        self.client = LMStudioClient(timeout=float(os.getenv("CINESMITH_HERMES_CHAT_TIMEOUT_SEC", "240")))
         self.last_error: Optional[str] = None
         try:
             self.skills = SkillLoader()
@@ -210,24 +210,81 @@ class NousHermesBridge:
             logger.warning(f"[HERMES] generate_character failed: {e}")
             return None
 
-    async def chat(self, messages: List[Dict[str, str]]) -> str:
+    async def chat(
+        self,
+        messages: List[Dict[str, str]],
+        max_tokens: int = 2048,
+        temperature: float = 0.8,
+    ) -> str:
         """General chat — used by Hermes Live panel CLI."""
         # Prepend system message if not already present
         if not messages or messages[0].get("role") != "system":
             messages = [{"role": "system", "content": HERMES_SYSTEM}] + messages
         messages = [dict(message) for message in messages]
-        messages[0]["content"] = "/no_think\n" + str(messages[0].get("content") or "")
+        max_tokens = max(512, min(int(max_tokens or 2048), 16384))
+        no_think_rule = (
+            "/no_think\n"
+            "Do not use hidden reasoning. Do not spend tokens thinking. "
+            "Write the final assistant answer directly and completely."
+        )
+        messages[0]["content"] = no_think_rule + "\n" + str(messages[0].get("content") or "")
         for i in range(len(messages) - 1, -1, -1):
             if messages[i].get("role") == "user":
-                messages[i]["content"] = str(messages[i].get("content") or "") + "\n/no_think"
+                messages[i]["content"] = (
+                    str(messages[i].get("content") or "")
+                    + "\n\n/no_think\n"
+                    + "Return visible final assistant content now. Do not put the answer only in reasoning_content."
+                )
                 break
         try:
             resp = await self.client.chat_async(
                 messages=messages,
                 model=self.model,
-                temperature=0.8,
-                max_tokens=2048,
+                temperature=max(0.1, min(float(temperature or 0.8), 1.5)),
+                max_tokens=max_tokens,
             )
+            content = self._chat_response_content(resp)
+            if content is not None:
+                return content
+
+            # Some reasoning-heavy local models spend the whole budget in hidden
+            # reasoning. Retry once with a larger budget and stricter final-only
+            # instruction before surfacing the diagnostic to the UI.
+            retry_messages = [dict(message) for message in messages]
+            retry_messages[0]["content"] = (
+                "/no_think\n"
+                "You previously returned hidden reasoning only. This retry must emit visible final assistant content. "
+                "Start with the requested answer immediately. No analysis, no preamble, no hidden reasoning.\n"
+                + str(retry_messages[0].get("content") or "")
+            )
+            retry_max_tokens = min(16384, max(max_tokens * 2, 4096))
+            resp = await self.client.chat_async(
+                messages=retry_messages,
+                model=self.model,
+                temperature=max(0.1, min(float(temperature or 0.8), 1.5)),
+                max_tokens=retry_max_tokens,
+            )
+            content = self._chat_response_content(resp)
+            if content is not None:
+                return content
+            return self._chat_response_error(resp)
+        except Exception as e:
+            logger.warning(f"[HERMES] chat failed: {e}")
+            return f"[Hermes offline] {e}"
+
+    def _chat_response_content(self, resp: Dict[str, Any]) -> Optional[str]:
+        if isinstance(resp, dict) and resp.get("error"):
+            return f"[Hermes offline] {resp.get('error')}"
+        choices = resp.get("choices") if isinstance(resp, dict) else None
+        if not choices:
+            return None
+        choice = choices[0] if isinstance(choices[0], dict) else {}
+        message = choice.get("message", {}) if isinstance(choice, dict) else {}
+        content = (message.get("content") or "").strip()
+        return content or None
+
+    def _chat_response_error(self, resp: Dict[str, Any]) -> str:
+        try:
             if isinstance(resp, dict) and resp.get("error"):
                 return f"[Hermes offline] {resp.get('error')}"
             choices = resp.get("choices") if isinstance(resp, dict) else None
@@ -251,13 +308,13 @@ class NousHermesBridge:
                     return (
                         "[Hermes offline] model_returned_reasoning_only "
                         f"finish_reason={finish_reason}{token_detail}; "
-                        "LM Studio did not emit final assistant content."
+                        "LM Studio did not emit final assistant content after retry. "
+                        "Use a non-reasoning chat model or increase the model context/output budget in LM Studio."
                     )
                 return f"[Hermes offline] empty_chat_response finish_reason={finish_reason}"
-            return content
         except Exception as e:
-            logger.warning(f"[HERMES] chat failed: {e}")
-            return f"[Hermes offline] {e}"
+            detail = json.dumps(resp, ensure_ascii=False)[:500] if isinstance(resp, dict) else str(resp)[:500]
+            return f"[Hermes offline] invalid_chat_response: {detail or e}"
 
     def compile_prompt(
         self,

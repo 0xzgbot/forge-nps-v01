@@ -324,7 +324,7 @@ class KimiBridge:
                 except Exception as e:
                     logger.warning(f"Failed to read lore file {path}: {e}")
 
-            system_prompt = "You are the FORGE Remediation Engine. Your task is to analyze why a shot failed to meet its directive and provide a correction."
+            system_prompt = "You are the CINESMITH Remediation Engine. Your task is to analyze why a shot failed to meet its directive and provide a correction."
             
             user_input = (
                 f"FAILURE ANALYSIS REQUEST\n"

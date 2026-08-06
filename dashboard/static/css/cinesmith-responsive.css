@@ -1,0 +1,509 @@
+/* ============================================================
+   Cinesmith — H4 Mobile / tablet layout pass
+   Does not change desktop Agency / Create / Stories defaults.
+   Loaded after template inline styles + cinesmith-theme.css.
+   ============================================================ */
+
+/* Prevent accidental horizontal scroll on small viewports */
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+/* ---------- Tablet (≤1100px): denser chrome, still side-by-side where possible ---------- */
+@media (max-width: 1100px) {
+  #sidebar {
+    width: 260px !important;
+    min-width: 240px !important;
+  }
+
+  .dashboard-left-pane,
+  .video-left-pane {
+    min-width: 260px !important;
+    width: 38% !important;
+  }
+
+  #filmstrip {
+    grid-template-columns: repeat(auto-fill, minmax(min(var(--media-thumb-size, 160px), 42vw), 1fr));
+    grid-auto-rows: minmax(120px, var(--media-thumb-size, 160px));
+    padding: 10px 12px;
+  }
+
+  .spark-grid {
+    grid-template-columns: repeat(auto-fill, minmax(min(var(--media-thumb-size, 160px), 42vw), 1fr));
+    gap: 10px;
+  }
+
+  .filmstrip-item {
+    min-height: 120px;
+  }
+
+  .grid-cell {
+    min-height: min(var(--media-thumb-size, 160px), 220px);
+  }
+
+  .agency-console-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pt-steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  #create-view.page-view,
+  #create-view {
+    padding: 16px 14px !important;
+  }
+
+  .create-hub-grid {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+
+  #memory-suggestions {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  }
+
+  .character-render-gallery {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  }
+
+  .product-builder-grid,
+  .product-layout {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ---------- Phone / small tablet (≤900px): stack shell ---------- */
+@media (max-width: 900px) {
+  body {
+    flex-direction: column !important;
+    overflow: auto !important;
+    height: auto !important;
+    min-height: 100vh !important;
+    min-height: 100dvh !important;
+  }
+
+  /* Sidebar becomes top chrome */
+  #sidebar {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    max-height: none !important;
+    border-right: none !important;
+    border-bottom: 1px solid var(--border, #1E2A3A) !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18) !important;
+    padding: 14px 12px 12px !important;
+    gap: 10px !important;
+    overflow: visible !important;
+  }
+
+  .cinesmith-theme-row {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    padding-bottom: 4px;
+    background: inherit;
+  }
+
+  #system-readiness {
+    margin-bottom: 6px !important;
+  }
+
+  #system-readiness .ready-actions {
+    margin-left: 0;
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  /* Workspace nav: compact grid, scroll if needed */
+  .nav-tabs {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 4px !important;
+    padding: 6px !important;
+    max-height: none;
+  }
+
+  body:not(.advanced-mode) .nav-tabs {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+
+  body.advanced-mode .nav-tabs {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+
+  .nav-tab {
+    text-align: center;
+    padding: 8px 4px !important;
+    font-size: 10px !important;
+    letter-spacing: 0.06em !important;
+    min-height: 36px;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Main content fills remaining height */
+  body > div[style*="flex:1"],
+  body > div[style*="flex: 1"] {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    overflow: auto !important;
+  }
+
+  .page-view.active {
+    min-height: 0;
+    overflow: auto !important;
+  }
+
+  /* Images / Videos workspaces stack */
+  .dashboard-workspace,
+  .video-workspace {
+    flex-direction: column !important;
+    overflow: visible !important;
+    height: auto !important;
+    min-height: 0 !important;
+    padding: 0 10px 16px !important;
+    gap: 10px !important;
+  }
+
+  .dashboard-left-pane,
+  .video-left-pane,
+  .dashboard-right-pane,
+  .video-right-pane {
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+  }
+
+  .dashboard-left-pane,
+  .video-left-pane {
+    max-height: none;
+  }
+
+  .dashboard-right-pane,
+  .video-right-pane {
+    min-height: 50vh;
+  }
+
+  .dashboard-divider {
+    display: none !important;
+  }
+
+  #brief-panel {
+    margin: 10px !important;
+    padding: 12px !important;
+  }
+
+  #brief-actions {
+    flex-direction: column;
+    align-items: stretch !important;
+  }
+
+  #brief-actions .btn,
+  #brief-actions .btn-secondary {
+    width: 100%;
+  }
+
+  .platform-detect-row,
+  .model-combo {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  #campaign-status-box {
+    grid-template-columns: 1fr !important;
+    gap: 6px !important;
+  }
+
+  /* Galleries denser on phone */
+  #filmstrip {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)) !important;
+    grid-auto-rows: 120px !important;
+    padding: 8px !important;
+    gap: 6px !important;
+    min-height: 220px;
+    max-height: none;
+  }
+
+  .filmstrip-item {
+    min-height: 120px !important;
+  }
+
+  .spark-grid {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)) !important;
+    gap: 8px !important;
+  }
+
+  .grid-cell {
+    min-height: 130px !important;
+  }
+
+  .dashboard-filter-dock {
+    position: static !important;
+    justify-content: stretch;
+    flex-direction: column;
+    align-items: stretch !important;
+  }
+
+  .dashboard-filter-dock .btn,
+  .dashboard-filter-dock button {
+    width: 100%;
+  }
+
+  /* Agency */
+  .agency-topbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .agency-top-actions {
+    width: 100%;
+  }
+
+  .agency-top-actions .ghost-btn {
+    flex: 1 1 auto;
+    text-align: center;
+  }
+
+  .agency-live-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .agency-live-actions .btn,
+  .agency-live-actions .btn-secondary {
+    width: 100%;
+  }
+
+  .ep-console,
+  #agency-production-timeline {
+    min-height: 0;
+  }
+
+  #ep-hermes-log {
+    max-height: 180px;
+  }
+
+  .ep-input-row {
+    flex-direction: column;
+  }
+
+  .pt-steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  /* Stories / script */
+  #script-view {
+    padding: 12px !important;
+    gap: 10px !important;
+  }
+
+  #script-view .script-flow {
+    gap: 10px;
+  }
+
+  #script-view #script-brief {
+    min-height: 140px !important;
+  }
+
+  #script-view .script-chat-log {
+    min-height: 240px !important;
+    max-height: 50vh !important;
+  }
+
+  .script-header-actions,
+  .script-action-row {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .script-header-actions .btn,
+  .script-action-row .btn {
+    flex: 1 1 auto;
+  }
+
+  /* Ideas board */
+  .idea-board-header {
+    flex-direction: column !important;
+    padding: 12px 14px !important;
+  }
+
+  .idea-board-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .idea-create-bar,
+  .idea-hook-bar {
+    grid-template-columns: 1fr !important;
+  }
+
+  .idea-board {
+    grid-auto-flow: row !important;
+    grid-auto-columns: auto !important;
+    grid-template-columns: 1fr !important;
+    overflow: visible !important;
+  }
+
+  .idea-column {
+    min-height: 200px !important;
+  }
+
+  /* Characters / products */
+  .product-sidebar {
+    width: auto !important;
+    max-width: none !important;
+  }
+
+  .product-sidebar .panel-body {
+    max-height: none;
+  }
+
+  .character-tab-grid,
+  .char-hero,
+  .dna-body {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Settings */
+  .settings-grid,
+  .settings-flow-grid,
+  .settings-form-grid,
+  .settings-bank-grid,
+  .settings-result-grid,
+  .settings-subgrid-2x2,
+  .studio-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .ai-provider-card,
+  .col-3, .col-4, .col-5, .col-6, .col-7, .col-8, .col-12,
+  .settings-span-2 {
+    grid-column: auto !important;
+  }
+
+  /* Overlays fit phone */
+  #cinesmith-onboarding {
+    padding: 12px !important;
+    align-items: flex-start !important;
+  }
+
+  #cinesmith-onboarding .onboard-card {
+    max-height: calc(100dvh - 24px);
+    overflow: auto;
+  }
+
+  #keyboard-help {
+    right: 10px !important;
+    left: 10px !important;
+    bottom: 10px !important;
+    width: auto !important;
+  }
+
+  #global-toast-host {
+    top: 10px !important;
+    right: 10px !important;
+    left: 10px !important;
+  }
+
+  #global-toast-host .g-toast {
+    max-width: none;
+    min-width: 0;
+  }
+
+  .lightbox-content {
+    width: 96vw !important;
+    height: 94vh !important;
+    height: 94dvh !important;
+    flex-direction: column !important;
+  }
+
+  .lightbox-details {
+    min-width: 0 !important;
+  }
+}
+
+/* ---------- Narrow phone (≤560px) ---------- */
+@media (max-width: 560px) {
+  #sidebar {
+    padding: 12px 10px 10px !important;
+  }
+
+  .nav-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  body:not(.advanced-mode) .nav-tabs,
+  body.advanced-mode .nav-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .nav-tab {
+    font-size: 10px !important;
+    letter-spacing: 0.04em !important;
+  }
+
+  #system-readiness .ready-chip {
+    font-size: 10px;
+    padding: 3px 7px;
+  }
+
+  #filmstrip {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-auto-rows: minmax(100px, 28vw) !important;
+  }
+
+  .spark-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .create-hub-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  #memory-suggestions {
+    grid-template-columns: 1fr !important;
+  }
+
+  .agency-topbar h2 {
+    font-size: 18px !important;
+  }
+
+  .pt-steps {
+    grid-template-columns: 1fr 1fr !important;
+    font-size: 9px;
+  }
+
+  /* Touch-friendly controls */
+  .btn,
+  .btn-secondary,
+  .ghost-btn,
+  .preset-chip,
+  .cinesmith-theme-toggle {
+    min-height: 40px;
+  }
+
+  input,
+  select,
+  textarea {
+    font-size: 16px !important; /* avoid iOS zoom on focus */
+  }
+}
+
+/* ---------- Landscape phone: keep nav compact, restore a bit more gallery density ---------- */
+@media (max-width: 900px) and (orientation: landscape) {
+  #filmstrip {
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)) !important;
+  }
+
+  .spark-grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)) !important;
+  }
+
+  .nav-tabs {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+}

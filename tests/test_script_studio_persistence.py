@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from dashboard import forge_dashboard as dashboard
+from dashboard import cinesmith_dashboard as dashboard
 
 
 def test_rebuild_script_video_shots_from_storyboard_frames_uses_unique_sequences():

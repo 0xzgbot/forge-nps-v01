@@ -1,5 +1,5 @@
 # SKILL: Hero's Journey / Monomyth Narrative Structure
-## Version: 1.0 | Forge Hermes Agent Narrative Architecture
+## Version: 1.0 | Cinesmith Hermes Agent Narrative Architecture
 
 ---
 

@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Callable
 
 import httpx
+from PIL import Image
 
 from core.bridge.runtime_config import get_raw_config
 from core.dispatch.comfy_client import ComfyUIClient
@@ -14,6 +15,9 @@ from .role_skill_mapper import role_skill_scope
 
 
 class HermesVideoService:
+    FIRST_LAST_WORKFLOW_MARKERS = ("first_last", "first-last", "firstlast")
+    FIRST_LAST_WORKFLOW_ID = "05_ltx2.3_first_last_frame_to_video"
+
     def __init__(
         self,
         *,
@@ -29,6 +33,69 @@ class HermesVideoService:
         self.resolve_image_path = resolve_image_path
         self.workflow_file_for_id = workflow_file_for_id
         self.profile_cli = HermesProfileCLI()
+
+    @staticmethod
+    def is_first_last_workflow(workflow_id: str = "") -> bool:
+        """True when the workflow expects start + end frame LoadImage slots."""
+        wid = str(workflow_id or "").strip().lower()
+        if not wid:
+            return False
+        return any(marker in wid for marker in HermesVideoService.FIRST_LAST_WORKFLOW_MARKERS)
+
+    @staticmethod
+    def resolve_frame_pairs(
+        shot_ids: List[str],
+        *,
+        workflow_id: str = "",
+        end_shot_id: Optional[str] = None,
+    ) -> List[Dict[str, Optional[str]]]:
+        """
+        Resolve (start_shot_id, end_shot_id) pairs for video processing.
+
+        Rules (documented):
+        - Explicit end_shot_id: every start in shot_ids pairs with that end frame
+          (shot_ids that equal end_shot_id are skipped as starts).
+        - First/last workflow + exactly 2 shot_ids and no end_shot_id:
+          start = first selected, end = second selected (single pair).
+        - First/last workflow otherwise without an end: still emit pairs with
+          end_shot_id=None so the caller can block with a clear error.
+        - Single-frame I2V (default): one pair per shot with end_shot_id=None.
+
+        Returns list of {"start_shot_id": str, "end_shot_id": Optional[str]}.
+        """
+        starts = [str(s).strip() for s in (shot_ids or []) if str(s or "").strip()]
+        end_id = str(end_shot_id or "").strip() or None
+        is_fl = HermesVideoService.is_first_last_workflow(workflow_id)
+
+        if end_id:
+            pairs: List[Dict[str, Optional[str]]] = []
+            for sid in starts:
+                if sid == end_id:
+                    continue
+                pairs.append({"start_shot_id": sid, "end_shot_id": end_id})
+            # If only end was selected, or all starts equal end, still expose a
+            # blocked pair when first/last so UI gets a useful error.
+            if not pairs and is_fl:
+                pairs.append({"start_shot_id": starts[0] if starts else "", "end_shot_id": end_id})
+            return pairs
+
+        if is_fl and len(starts) == 2:
+            # Documented auto-pair: selection order is start → end.
+            return [{"start_shot_id": starts[0], "end_shot_id": starts[1]}]
+
+        if is_fl:
+            return [{"start_shot_id": sid, "end_shot_id": None} for sid in starts]
+
+        return [{"start_shot_id": sid, "end_shot_id": None} for sid in starts]
+
+    def _resolve_shot_image_path(self, shot: Dict[str, Any]) -> str:
+        if shot.get("image_path"):
+            return str(shot.get("image_path"))
+        if shot.get("image_url"):
+            p = self.resolve_image_path(str(shot.get("image_url") or ""))
+            if p:
+                return str(p)
+        return ""
 
     @staticmethod
     def _extract_json_response(text: str) -> Dict[str, Any]:
@@ -61,6 +128,19 @@ class HermesVideoService:
         if suffix == ".webp":
             return "image/webp"
         return "image/png"
+
+    @staticmethod
+    def _source_aspect_width(image_path: str, target_height: Optional[int]) -> Optional[int]:
+        if not image_path or not target_height:
+            return None
+        try:
+            with Image.open(image_path) as img:
+                source_width, source_height = img.size
+            if source_width <= 0 or source_height <= 0:
+                return None
+            return max(64, int(round(int(target_height) * source_width / source_height)))
+        except Exception:
+            return None
 
     def _vision_config(self) -> tuple[str, str, str]:
         cfg = get_raw_config()
@@ -157,12 +237,15 @@ class HermesVideoService:
         fps: int = 24,
         width: Optional[int] = None,
         height: Optional[int] = None,
+        source_aspect: bool = False,
         prompt: str = "",
         platform_skill: Optional[Dict[str, Any]] = None,
         min_audit_score: float = 0.85,
         min_audit_confidence: float = 0.70,
         require_audit_pass: bool = True,
         allow_failed_override: bool = False,
+        end_shot_id: Optional[str] = None,
+        end_image_path: Optional[str] = None,
     ) -> Dict[str, Any]:
         if not shot_ids:
             return {"status": "error", "error": "shot_ids_required"}
@@ -197,8 +280,32 @@ class HermesVideoService:
         output_dir = self.media_videos / campaign_id
         output_dir.mkdir(parents=True, exist_ok=True)
 
+        is_first_last = self.is_first_last_workflow(workflow_id)
+        # When end_image_path is provided without end_shot_id, still force pair mode
+        # for first_last workflows (direct path injection).
+        effective_end_shot_id = str(end_shot_id or "").strip() or None
+        pairs = self.resolve_frame_pairs(
+            [str(x) for x in shot_ids],
+            workflow_id=workflow_id,
+            end_shot_id=effective_end_shot_id,
+        )
+        # Direct end_image_path without shot-level end: attach to every pair that
+        # lacks an end_shot_id when first/last or when any end was requested.
+        wants_end_frame = is_first_last or bool(effective_end_shot_id) or bool(end_image_path)
+
         results: List[Dict[str, Any]] = []
-        for sid in shot_ids:
+        for pair in pairs:
+            sid = str(pair.get("start_shot_id") or "").strip()
+            pair_end_id = str(pair.get("end_shot_id") or "").strip() or None
+            if not sid:
+                results.append({
+                    "shot_id": sid or "unknown",
+                    "status": "error",
+                    "error": "start_shot_required",
+                    "workflow_id": workflow_id,
+                })
+                continue
+
             shot = self.find_shot(str(sid))
             if not shot:
                 results.append({"shot_id": sid, "status": "error", "error": "shot_not_found"})
@@ -223,13 +330,7 @@ class HermesVideoService:
                 )
                 continue
 
-            image_path = ""
-            if shot.get("image_path"):
-                image_path = str(shot.get("image_path"))
-            elif shot.get("image_url"):
-                p = self.resolve_image_path(str(shot.get("image_url") or ""))
-                if p:
-                    image_path = str(p)
+            image_path = self._resolve_shot_image_path(shot)
             if not image_path:
                 results.append({
                     "shot_id": sid,
@@ -239,6 +340,43 @@ class HermesVideoService:
                     "workflow_id": workflow_id,
                 })
                 continue
+
+            resolved_end_path = ""
+            if wants_end_frame:
+                if end_image_path and not pair_end_id:
+                    resolved_end_path = str(end_image_path)
+                elif pair_end_id:
+                    end_shot = self.find_shot(str(pair_end_id))
+                    if not end_shot:
+                        results.append({
+                            "shot_id": sid,
+                            "end_shot_id": pair_end_id,
+                            "status": "error",
+                            "error": "end_shot_not_found",
+                            "workflow_id": workflow_id,
+                        })
+                        continue
+                    resolved_end_path = self._resolve_shot_image_path(end_shot)
+                if not resolved_end_path and is_first_last:
+                    results.append({
+                        "shot_id": sid,
+                        "end_shot_id": pair_end_id,
+                        "status": "blocked",
+                        "error": "end_frame_required",
+                        "reasons": ["end_frame_required"],
+                        "workflow_id": workflow_id,
+                    })
+                    continue
+                if pair_end_id and not resolved_end_path:
+                    results.append({
+                        "shot_id": sid,
+                        "end_shot_id": pair_end_id,
+                        "status": "blocked",
+                        "error": "end_image_missing",
+                        "reasons": ["end_image_missing"],
+                        "workflow_id": workflow_id,
+                    })
+                    continue
 
             shot_platform = platform_skill if isinstance(platform_skill, dict) and platform_skill.get("active") else shot.get("platform_skill", {})
             prompt_text = (prompt or "").strip() or str(
@@ -254,23 +392,31 @@ class HermesVideoService:
             constraints = shot_platform.get("constraints") if isinstance(shot_platform, dict) else {}
             target_width = int((constraints or {}).get("width") or width or 0) or None
             target_height = int((constraints or {}).get("height") or height or 0) or None
+            if source_aspect and not (constraints or {}).get("width") and target_height:
+                target_width = self._source_aspect_width(image_path, target_height) or target_width
 
-            submit = await client.submit_prompt_for_shot(
-                shot_id=f"{sid}__video",
-                prompt=prompt_text,
-                workflow_path=str(wf),
-                output_dir=str(output_dir),
-                image_path=image_path,
-                wait_for_output=False,
-                width=target_width,
-                height=target_height,
-                duration=duration,
-                fps=fps,
-            )
+            submit_kwargs: Dict[str, Any] = {
+                "shot_id": f"{sid}__video",
+                "prompt": prompt_text,
+                "workflow_path": str(wf),
+                "output_dir": str(output_dir),
+                "image_path": image_path,
+                "wait_for_output": False,
+                "width": target_width,
+                "height": target_height,
+                "duration": duration,
+                "fps": fps,
+            }
+            # First/last (or explicit end): map start+end into LoadImage slots via image_paths.
+            if resolved_end_path:
+                submit_kwargs["image_paths"] = [image_path, resolved_end_path]
+
+            submit = await client.submit_prompt_for_shot(**submit_kwargs)
             if submit.get("status") != "success":
                 results.append(
                     {
                         "shot_id": sid,
+                        "end_shot_id": pair_end_id,
                         "status": "error",
                         "error": submit.get("error", "submit_failed"),
                         "status_code": submit.get("status_code"),
@@ -279,24 +425,115 @@ class HermesVideoService:
                     }
                 )
                 continue
-            results.append(
-                {
-                    "shot_id": sid,
-                    "status": "ok",
-                    "workflow_id": workflow_id,
-                    "prompt_id": submit.get("prompt_id"),
-                    "seed": submit.get("seed"),
-                    "queued": True,
-                    "host": host,
-                    "output_dir": str(output_dir),
-                }
-            )
+            result_item: Dict[str, Any] = {
+                "shot_id": sid,
+                "status": "ok",
+                "workflow_id": workflow_id,
+                "prompt_id": submit.get("prompt_id"),
+                "seed": submit.get("seed"),
+                "queued": True,
+                "host": host,
+                "output_dir": str(output_dir),
+            }
+            if pair_end_id:
+                result_item["end_shot_id"] = pair_end_id
+            if resolved_end_path:
+                result_item["mode"] = "first_last"
+            results.append(result_item)
 
         return {
             "status": "ok",
             "workflow_id": workflow_id,
-            "requested": len(shot_ids),
+            "requested": len(pairs) if pairs else len(shot_ids),
             "results": results,
+            "output_dir": str(output_dir),
+            "mode": "first_last" if is_first_last or any(r.get("mode") == "first_last" for r in results) else "start_frames",
+        }
+
+    async def process_text(
+        self,
+        *,
+        shot_id: str,
+        workflow_id: str,
+        prompt: str,
+        duration: int = 5,
+        fps: int = 24,
+        width: Optional[int] = None,
+        height: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        prompt_text = (prompt or "").strip()
+        if not prompt_text:
+            return {"status": "error", "error": "prompt_required"}
+        if not workflow_id:
+            return {"status": "error", "error": "workflow_id_required"}
+
+        wf = self.workflow_file_for_id(workflow_id)
+        if not wf:
+            return {"status": "error", "error": f"workflow_missing:{workflow_id}"}
+
+        cfg = get_raw_config()
+        primary = (os.getenv("COMFYUI_PRIMARY", "") or str(cfg.get("COMFYUI_PRIMARY", "")) or "").rstrip("/")
+        secondary = (os.getenv("COMFYUI_SECONDARY", "") or str(cfg.get("COMFYUI_SECONDARY", "")) or "").rstrip("/")
+        hosts = [h for h in [primary, secondary] if h]
+        if not hosts:
+            return {"status": "error", "error": "comfy_not_configured", "message": "Set COMFYUI_PRIMARY in Settings."}
+        dedup_hosts: List[str] = []
+        for h in hosts:
+            if h not in dedup_hosts:
+                dedup_hosts.append(h)
+
+        host = dedup_hosts[0]
+        client = ComfyUIClient(host)
+        for candidate in dedup_hosts:
+            probe = ComfyUIClient(candidate)
+            ok, _ = await probe.check_health()
+            if ok:
+                host = candidate
+                client = probe
+                break
+
+        campaign_id = (self.active_campaign_getter() or "text_video_batch").strip() or "text_video_batch"
+        output_dir = self.media_videos / campaign_id
+        output_dir.mkdir(parents=True, exist_ok=True)
+        if duration:
+            prompt_text = f"{prompt_text}\n\nvideo_duration_seconds={int(duration)}"
+        if fps:
+            prompt_text = f"{prompt_text}\nvideo_fps={int(fps)}"
+
+        submit = await client.submit_prompt_for_shot(
+            shot_id=shot_id,
+            prompt=prompt_text,
+            workflow_path=str(wf),
+            output_dir=str(output_dir),
+            wait_for_output=False,
+            width=width,
+            height=height,
+            duration=duration,
+            fps=fps,
+        )
+        if submit.get("status") != "success":
+            return {
+                "status": "error",
+                "error": submit.get("error", "submit_failed"),
+                "status_code": submit.get("status_code"),
+                "raw": submit.get("raw"),
+                "workflow_id": workflow_id,
+            }
+        result = {
+            "shot_id": shot_id,
+            "status": "ok",
+            "workflow_id": workflow_id,
+            "prompt_id": submit.get("prompt_id"),
+            "seed": submit.get("seed"),
+            "queued": True,
+            "host": host,
+            "output_dir": str(output_dir),
+        }
+        return {
+            "status": "ok",
+            "workflow_id": workflow_id,
+            "requested": 1,
+            "results": [result],
             "output_dir": str(output_dir),
         }
 
@@ -308,6 +545,8 @@ class HermesVideoService:
         fps: int = 24,
         workflow_id: str = "04_ltx2.3_image_to_video",
         bible_text: str = "",
+        prompt_request: str = "",
+        aspect_ratio: str = "",
         platform_skill: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
@@ -388,6 +627,8 @@ class HermesVideoService:
                 "High temporal consistency, no morphing, no identity drift, no new objects, no extra limbs, no text, no watermark, no abrupt lighting change.",
             ]
             return " ".join(p for p in parts if p).strip()
+
+        user_motion_request = str(prompt_request or "").strip()
 
         # Collect shot data and images
         selected_shot_id_set = set(str(x) for x in shot_ids)
@@ -535,6 +776,8 @@ class HermesVideoService:
             "shots": analysis_results,
             "fps": fps,
             "workflow_id": workflow_id,
+            "user_motion_request": user_motion_request,
+            "target_aspect_ratio": aspect_ratio or "source",
             "platform_skill": platform_skill or {},
         }
         prompts_data = {}
@@ -547,6 +790,8 @@ class HermesVideoService:
             "duration_plan": prompt_payload["duration_plan"],
             "fps": fps,
             "workflow_id": workflow_id,
+            "user_motion_request": user_motion_request,
+            "target_aspect_ratio": aspect_ratio or "source",
             "platform_skill": platform_skill or {},
             "allowed_skill_patterns": compiler_scope.get("patterns", []),
             "instructions": (
@@ -558,7 +803,14 @@ class HermesVideoService:
                 "the vision_analysis. Do not output generic text like preserve identity and gentle "
                 "parallax by itself. Include specific visible subjects, exact environment, camera "
                 "movement, subject/environment motion, lighting continuity, temporal pacing, and "
-                "concrete negative constraints."
+                "concrete negative constraints. "
+                f"Target framing/aspect ratio: {aspect_ratio or 'match each selected source image'}. "
+                + (
+                    f"Honor this user motion/story request while staying grounded in the selected image pixels: {user_motion_request[:1200]}. "
+                    "Do not replace visible identity, wardrobe, scene layout, or lighting unless the user explicitly asks for that change. "
+                    if user_motion_request
+                    else ""
+                )
                 + (
                     " Apply the provided platform_skill exactly, including 9:16 framing, first-3-second hook, "
                     "caption-safe bottom third, and 8-15s TikTok pacing."

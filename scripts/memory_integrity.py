@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Memory Integrity Audit & Reconciliation Tool for Forge NPS Hermes Memory.
+Memory Integrity Audit & Reconciliation Tool for Cinesmith Hermes Memory.
 
 Usage:
     python scripts/memory_integrity.py --audit
@@ -70,7 +70,7 @@ def audit() -> Dict:
     stale_sessions = []
     for sfile in sessions:
         text = sfile.read_text()
-        if "Desktop/forge_nps/" in text and "forge_nps_v01" not in text:
+        if "Desktop/cinesmith/" in text and "cinesmith_v01" not in text:
             stale_sessions.append(sfile.name)
 
     # Check for duplicate event IDs
@@ -208,8 +208,8 @@ def main():
         fixed = 0
         for sfile in SESSIONS_DIR.glob("*.json"):
             text = sfile.read_text()
-            if "Desktop/forge_nps/" in text and "forge_nps_v01" not in text:
-                new_text = text.replace("~/Desktop/forge_nps/", f"{REPO_ROOT}/")
+            if "Desktop/cinesmith/" in text and "cinesmith_v01" not in text:
+                new_text = text.replace("~/Desktop/cinesmith/", f"{REPO_ROOT}/")
                 sfile.write_text(new_text)
                 fixed += 1
         print(f"[FIX] Repaired {fixed} session files")

@@ -1,6 +1,6 @@
 #!/bin/bash
 # ═══════════════════════════════════════════════════════════════════════════
-# Forge NPS — Promo Video Assembly Script
+# Cinesmith — Promo Video Assembly Script
 # ═══════════════════════════════════════════════════════════════════════════
 #
 # This script stitches together all the promo video components into a
@@ -16,25 +16,25 @@
 #   ./assemble_promo.sh
 #
 # OUTPUT:
-#   /tmp/forge_nps_promo_final.mov  (ProRes HQ, 1280x720, 30fps)
+#   /tmp/cinesmith_promo_final.mov  (ProRes HQ, 1280x720, 30fps)
 # ═══════════════════════════════════════════════════════════════════════════
 
 set -euo pipefail
 
 # ── Configuration ──────────────────────────────────────────────────────────
 OUTPUT_DIR="/tmp"
-FINAL_OUTPUT="${OUTPUT_DIR}/forge_nps_promo_final.mov"
-TEMP_DIR="${OUTPUT_DIR}/forge_promo_temp"
+FINAL_OUTPUT="${OUTPUT_DIR}/cinesmith_promo_final.mov"
+TEMP_DIR="${OUTPUT_DIR}/cinesmith_promo_temp"
 FPS=30
 RESOLUTION="1280x720"
 
 # Source files (UPDATE THESE PATHS to match your actual exports)
 DASHBOARD_RECORDING="${TEMP_DIR}/dashboard_recording.mov"      # YOU record this
-TD_MEMORY="/tmp/forge_memory_graph_v2_output.mov"              # TouchDesigner
-TD_PIPELINE="/tmp/forge_pipeline_flow_output.mov"              # TouchDesigner
-TD_AUDIT="/tmp/forge_audit_gate_output.mov"                   # TouchDesigner
-TD_COMMAND="/tmp/forge_command_center_output.mov"              # TouchDesigner
-TD_PROVENANCE="/tmp/forge_provenance_web_output.mov"           # TouchDesigner
+TD_MEMORY="/tmp/cinesmith_memory_graph_v2_output.mov"              # TouchDesigner
+TD_PIPELINE="/tmp/cinesmith_pipeline_flow_output.mov"              # TouchDesigner
+TD_AUDIT="/tmp/cinesmith_audit_gate_output.mov"                   # TouchDesigner
+TD_COMMAND="/tmp/cinesmith_command_center_output.mov"              # TouchDesigner
+TD_PROVENANCE="/tmp/cinesmith_provenance_web_output.mov"           # TouchDesigner
 TRANSITION1_FRAMES="${TEMP_DIR}/transition1_frames/frame_%06d.png"  # p5js export
 TRANSITION2_FRAMES="${TEMP_DIR}/transition2_frames/frame_%06d.png"  # p5js export
 TRANSITION3_FRAMES="${TEMP_DIR}/transition3_frames/frame_%06d.png"  # p5js export
@@ -66,7 +66,7 @@ T_TRANSITION3=5
 T_CLOSE=5
 
 echo "═══════════════════════════════════════════════════════════════"
-echo "  Forge NPS — Promo Video Assembly"
+echo "  Cinesmith — Promo Video Assembly"
 echo "═══════════════════════════════════════════════════════════════"
 echo ""
 
@@ -92,7 +92,7 @@ generate_opening() {
             enable='between(t,0.5,4)':
             alpha='if(lt(t,1),t-0.5,if(lt(t,3.5),1,4-t))',
             drawtext=fontfile=/System/Library/Fonts/Helvetica.ttc:
-            text='Forge NPS':
+            text='Cinesmith':
             fontsize=72:fontcolor=#00FFFF:x=(w-text_w)/2:y=(h-text_h)/2+40:
             enable='between(t,1,4)':
             alpha='if(lt(t,1.5),t-1,if(lt(t,3.5),1,4-t))',
@@ -110,7 +110,7 @@ generate_closing() {
     ffmpeg -y -f lavfi -i "color=c=black:s=${RESOLUTION}:r=${FPS}:d=${T_CLOSE}" \
         -vf "
             drawtext=fontfile=/System/Library/Fonts/Helvetica.ttc:
-            text='Forge NPS':
+            text='Cinesmith':
             fontsize=96:fontcolor=#00FFFF:x=(w-text_w)/2:y=(h-text_h)/2-50:
             enable='between(t,0.5,4)':
             alpha='if(lt(t,1),t-0.5,if(lt(t,3.5),1,4.5-t))',
@@ -292,6 +292,6 @@ echo ""
 echo "NEXT STEPS:"
 echo "  1. Review ${FINAL_OUTPUT} in your video player"
 echo "  2. If quality is good, convert to H.264 for sharing:"
-echo "     ffmpeg -i ${FINAL_OUTPUT} -c:v libx264 -crf 18 -preset slow -c:a aac -b:a 192k ${OUTPUT_DIR}/forge_nps_promo_final.mp4"
+echo "     ffmpeg -i ${FINAL_OUTPUT} -c:v libx264 -crf 18 -preset slow -c:a aac -b:a 192k ${OUTPUT_DIR}/cinesmith_promo_final.mp4"
 echo "  3. Upload to YouTube/Vimeo for hackathon submission"
 echo ""

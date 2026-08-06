@@ -1,21 +1,22 @@
 <p align="center">
-  <img src="marketing/assets/forge-hero-brain.png" alt="Forge NPS cinematic AI production command center" width="100%">
+  <img src="marketing/assets/cinesmith-hero-brain.png" alt="Cinesmith cinematic AI production command center" width="100%">
 </p>
 
 <p align="center">
-  <img src="marketing/assets/the-forge-demo-preview.gif" alt="Forge NPS demo video preview" width="100%">
+  <img src="marketing/assets/the-cinesmith-demo-preview.gif" alt="Cinesmith demo video preview" width="100%">
   <br>
-  <a href="marketing/assets/the-forge-demo.mp4"><strong>Watch full demo with sound</strong></a>
+  <a href="marketing/assets/the-cinesmith-demo.mp4"><strong>Watch full demo with sound</strong></a>
 </p>
 
-<h1 align="center">Forge NPS</h1>
+<h1 align="center">Cinesmith</h1>
 
 <p align="center">
-  <strong>A Hermes-led virtual agency for cinematic AI production.</strong>
+  <em>formerly Forge NPS</em> · <strong>A Hermes-led virtual agency for cinematic AI production — in real time.</strong>
 </p>
 
 <p align="center">
-  Hermes orchestrates the pipeline. Kimi Moonshot plans and critiques. Skill packs provide specialist craft. Memory turns every production run into compounding agency intelligence.
+  You brief Hermes like an executive producer. Hermes plans, compiles, renders, audits, remediates, and remembers.
+  Kimi Moonshot supports planning/critique. Spark executes images and video. This is an agency runtime — not a fixed “script runner.”
 </p>
 
 <p align="center">
@@ -39,9 +40,28 @@
 
 ---
 
+## Desktop + Spark Quick Start
+
+Mac/PC desktop + LAN Spark (ComfyUI) in about **15 minutes**. Full ship guide: **[docs/DESKTOP_SPARK_PACKAGE.md](docs/DESKTOP_SPARK_PACKAGE.md)**.
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.template .env   # set COMFYUI_PRIMARY + optional Director key
+python3 scripts/preflight_desktop_spark.py
+./scripts/launch_cinesmith.sh --package
+# open http://127.0.0.1:7000 → Settings → Test connections → Images / Stories / Videos
+```
+
+- **Isolation:** repo `hermes_home/` only (not `~/.hermes`).
+- **Media:** sibling `CINESMITH_MEDIA` or `./media`.
+- **Smoke:** `python3 scripts/smoke_cinesmith.py --base-url http://127.0.0.1:7000`
+
+---
+
 ## The Operating Model
 
-Forge NPS is built around one non-negotiable idea: AI production needs an agency brain, not a pile of disconnected prompts.
+Cinesmith is built around one non-negotiable idea: AI production needs an agency brain, not a pile of disconnected prompts.
 
 | Layer | Role |
 | --- | --- |
@@ -52,12 +72,16 @@ Forge NPS is built around one non-negotiable idea: AI production needs an agency
 | **Spark / ComfyUI** | Render execution layer for images and videos. |
 | **Vision Audit** | Quality gate that drives remediation instead of silent failure. |
 
-## Latest Workspace Update
+## Latest product surface
 
-The current dashboard refresh is documented in [docs/CHANGELOG.md](docs/CHANGELOG.md). Highlights include:
+Documented in [docs/CHANGELOG.md](docs/CHANGELOG.md) and [docs/POLISH_ROADMAP.md](docs/POLISH_ROADMAP.md):
 
-- **Script Studio is now a one-click script-to-video pipeline**: paste a short brief, click **Generate Videos**, and Forge runs script package creation, coverage, storyboard planning, 1080p start-frame rendering, and individual image-to-video jobs from a single job runner.
-- Script Studio's Videos step now shows generated start frames and completed clips directly instead of sending users to the global Videos page to finish the workflow manually.
+- **Agency home** with getting-started coach, sample EP briefs, EP chat, production timeline, ⌘K palette
+- **Images** — live Hermes campaign (plan → compile → Spark → audit → memory)
+- **Stories** — multi-beat production + multi-episode series fields + package export
+- **Videos** — start frames, **First → Last** pairs, text-to-video
+- **Characters** — **Sheet from photo** continuity (works offline for identity lock)
+- **Desktop + Spark package** — `launch_cinesmith.sh --package`, preflight, slim ship notes
 - Storyboard rendering defaults to individual high-resolution production keyframes, not multi-panel page proofs. Page proofs remain an advanced diagnostic/export option.
 - Storyboard image providers are configurable in Settings: local Spark/ComfyUI (`Flux2.Dev`, `Flux2 Klein`, `Z-Image`, `Z-Image Turbo`) plus optional OpenAI image generation and Gemini/Nano Banana when API keys are set.
 - New local storyboard output filenames use the actual selected model prefix, such as `flux2_dev_...`, `flux2_klein_...`, or `z_image_...`, instead of the old compatibility adapter label.
@@ -98,7 +122,7 @@ The current dashboard refresh is documented in [docs/CHANGELOG.md](docs/CHANGELO
   <tr>
     <td width="50%">
       <h3>Memory makes it a true virtual agency</h3>
-      <p>Forge records what happened, why it happened, what failed, how it was corrected, and what finally passed. Production history becomes operational intelligence instead of lost context.</p>
+      <p>Cinesmith records what happened, why it happened, what failed, how it was corrected, and what finally passed. Production history becomes operational intelligence instead of lost context.</p>
       <ul>
         <li>Shot planning events</li>
         <li>Render attempts and results</li>
@@ -107,7 +131,7 @@ The current dashboard refresh is documented in [docs/CHANGELOG.md](docs/CHANGELO
       </ul>
     </td>
     <td width="50%">
-      <img src="marketing/assets/memory-skill-agency.png" alt="Forge memory and skill pack virtual agency" width="100%">
+      <img src="marketing/assets/memory-skill-agency.png" alt="Cinesmith memory and skill pack virtual agency" width="100%">
     </td>
   </tr>
 </table>
@@ -132,11 +156,11 @@ The current dashboard refresh is documented in [docs/CHANGELOG.md](docs/CHANGELO
 
 ## Skill Pack as Virtual Agency
 
-Forge NPS extends Hermes with a curated, multi-layer skills library.
+Cinesmith extends Hermes with a curated, multi-layer skills library.
 
 | Specialist Layer | Included Capability |
 | --- | --- |
-| **14 Forge agent protocols** | Closed-loop Sense, Think, Act, Correct behavior. |
+| **14 Cinesmith agent protocols** | Closed-loop Sense, Think, Act, Correct behavior. |
 | **13 ComfyUI / Spark operating skills** | Renderer-facing production procedures. |
 | **12 deep style specialists** | Cyberpunk, Ghibli, Wes Anderson, Caravaggio, Pixar, Ukiyo-e, Synthwave, Surrealism, Soviet Constructivist, Italian Giallo, Art Nouveau / Deco, Neural Aesthetic. |
 | **10 diagnostic skills** | Failure-mode knowledge feeding audit and remediation. |
@@ -199,18 +223,25 @@ Legacy dispatch and render routes are intentionally disabled and return `410 leg
 ## Quick Start
 
 ```bash
-cd ~/Desktop/forge_nps_v01
+cd /path/to/cinesmith_v01
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements.txt
-python3 -m dashboard.forge_dashboard
+cp -n .env.template .env   # then edit keys/endpoints
+bash scripts/launch_cinesmith.sh
 ```
+
+`launch_cinesmith.sh` sets **Hermes isolation** (`HERMES_HOME=<repo>/hermes_home`, never `~/.hermes`) and a portable media root (sibling `CINESMITH_MEDIA` or `<repo>/media`).
 
 Open:
 
 ```text
 http://localhost:7000
 ```
+
+First load opens the **Agency** home: brief Hermes live, run an image campaign, or produce a multi-beat **Story**. Press `?` for shortcuts. Readiness chips (Hermes / Spark / Director / Media) live in the sidebar.
+
+Product vision: [docs/PRODUCT_VISION.md](docs/PRODUCT_VISION.md) · Roadmap: [docs/POLISH_ROADMAP.md](docs/POLISH_ROADMAP.md)
 
 ## Required Services
 
@@ -220,7 +251,7 @@ http://localhost:7000
 | Kimi / NVIDIA-compatible API | `https://integrate.api.nvidia.com/v1/chat/completions` |
 | LM Studio | `http://localhost:1234` |
 | ComfyUI / Spark | `http://localhost:8188` |
-| Media root | `~/Desktop/FORGE_NPS_MEDIA` |
+| Media root | `CINESMITH_MEDIA_ROOT` or sibling `CINESMITH_MEDIA` or `<repo>/media` |
 
 Minimum environment/config values:
 
@@ -237,7 +268,7 @@ LMSTUDIO_CHAT_MODEL=qwen3.6-35b-a3b@q6_k
 LMSTUDIO_VISION_MODEL=qwen3.6-35b-a3b@q6_k
 
 COMFYUI_PRIMARY=http://localhost:8188
-FORGE_MEDIA_ROOT=~/Desktop/FORGE_NPS_MEDIA
+CINESMITH_MEDIA_ROOT=~/Desktop/CINESMITH_MEDIA
 
 STORYBOARD_IMAGE_PROVIDER=spark:flux2_dev
 OPENAI_IMAGE_MODEL=gpt-image-2
@@ -251,7 +282,7 @@ GEMINI_IMAGE_MODEL=gemini-2.5-flash-image
 ## Verification
 
 ```bash
-python3 -m py_compile dashboard/forge_dashboard.py core/hermes/pipeline/campaign_service.py core/hermes/pipeline/profile_cli.py
+python3 -m py_compile dashboard/cinesmith_dashboard.py core/hermes/pipeline/campaign_service.py core/hermes/pipeline/profile_cli.py
 python3 -m pytest tests/test_profile_cli.py tests/test_director_shot_count.py
 scripts/pre_push_hygiene.sh
 curl -sS http://localhost:7000/api/stats
@@ -275,7 +306,7 @@ Run the full pre-demo checklist in [docs/STABILITY_CHECKLIST.md](docs/STABILITY_
 
 ## Key Runtime Files
 
-- [dashboard/forge_dashboard.py](dashboard/forge_dashboard.py)
+- [dashboard/cinesmith_dashboard.py](dashboard/cinesmith_dashboard.py)
 - [core/hermes/pipeline/campaign_service.py](core/hermes/pipeline/campaign_service.py)
 - [core/hermes/pipeline/director_service.py](core/hermes/pipeline/director_service.py)
 - [core/hermes/pipeline/profile_cli.py](core/hermes/pipeline/profile_cli.py)
@@ -287,13 +318,13 @@ Run the full pre-demo checklist in [docs/STABILITY_CHECKLIST.md](docs/STABILITY_
 `hermes_engine` is tracked as a submodule. To update it:
 
 ```bash
-~/Desktop/forge_nps_v01/scripts/update_hermes_engine.sh
+~/Desktop/cinesmith_v01/scripts/update_hermes_engine.sh
 git status
 git commit -am "chore: update hermes_engine"
 git push
 ```
 
-Keep Forge-specific behavior in this repo (`dashboard/`, `core/`, `hermes_home/skills`, `hermes_home/profiles/forgehermes`) rather than editing upstream engine internals.
+Keep Cinesmith-specific behavior in this repo (`dashboard/`, `core/`, `hermes_home/skills`, `hermes_home/profiles/cinesmith`) rather than editing upstream engine internals.
 
 ## README vs GitHub Pages
 

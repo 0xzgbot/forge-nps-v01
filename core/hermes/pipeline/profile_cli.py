@@ -7,6 +7,7 @@ from urllib.parse import urlsplit, urlunsplit
 import httpx
 
 from core.bridge.runtime_config import get_raw_config
+from core.cinesmith_env import cinesmith_hermes_cli_argv, cinesmith_hermes_launcher, hermes_isolated_env
 
 
 class HermesProfileCLI:
@@ -16,23 +17,25 @@ class HermesProfileCLI:
     """
 
     def __init__(self) -> None:
-        self.runner = os.getenv("FORGE_PROFILE_CLI_RUNNER", "forgehermes").strip() or "forgehermes"
-        self.timeout_sec = float(os.getenv("FORGE_PROFILE_CLI_TIMEOUT_SEC", "600"))
+        # Bare names (hermes/cinesmith) are rewritten by cinesmith_hermes_cli_argv
+        # to the vendored launcher so PATH wrappers never touch ~/.hermes.
+        self.runner = (os.getenv("CINESMITH_PROFILE_CLI_RUNNER") or "").strip()
+        self.timeout_sec = float(os.getenv("CINESMITH_PROFILE_CLI_TIMEOUT_SEC", "600"))
         self.last_error = ""
         self.profile_map = {
-            "compiler": os.getenv("FORGE_PROFILE_COMPILER", "compiler"),
-            "remediator": os.getenv("FORGE_PROFILE_REMEDIATOR", "remediator"),
-            "director": os.getenv("FORGE_PROFILE_DIRECTOR", "director_planner"),
-            "critic": os.getenv("FORGE_PROFILE_CRITIC", "coverage_critic"),
-            "continuity": os.getenv("FORGE_PROFILE_CONTINUITY", "continuity_guard"),
-            "audit": os.getenv("FORGE_PROFILE_AUDIT", "audit_judge"),
+            "compiler": os.getenv("CINESMITH_PROFILE_COMPILER", "compiler"),
+            "remediator": os.getenv("CINESMITH_PROFILE_REMEDIATOR", "remediator"),
+            "director": os.getenv("CINESMITH_PROFILE_DIRECTOR", "director_planner"),
+            "critic": os.getenv("CINESMITH_PROFILE_CRITIC", "coverage_critic"),
+            "continuity": os.getenv("CINESMITH_PROFILE_CONTINUITY", "continuity_guard"),
+            "audit": os.getenv("CINESMITH_PROFILE_AUDIT", "audit_judge"),
         }
 
     @staticmethod
     def _profile_system_prompt(profile: str) -> str:
         prompts = {
             "compiler": (
-                "You are Hermes / Prompt Compiler for FORGE NPS. Return JSON only. "
+                "You are Hermes / Prompt Compiler for CINESMITH NPS. Return JSON only. "
                 "For image prompt tasks, output compiled_prompt and negative_prompt. "
                 "For FLUX2 and Z-Image image tasks, preserve the provided model-standard clauses, "
                 "replace generic quality tokens with concrete material/optic/lighting detail, and do not embed negative prompt blocks in the positive prompt. "
@@ -98,14 +101,14 @@ class HermesProfileCLI:
 
     def _runtime_args_and_env(self) -> tuple[list[str], Dict[str, str], Dict[str, str]]:
         cfg = get_raw_config()
-        provider = os.getenv("FORGE_PROFILE_PROVIDER", "custom").strip() or "custom"
+        provider = os.getenv("CINESMITH_PROFILE_PROVIDER", "custom").strip() or "custom"
         model = (
-            os.getenv("FORGE_PROFILE_MODEL", "")
+            os.getenv("CINESMITH_PROFILE_MODEL", "")
             or os.getenv("LMSTUDIO_CHAT_MODEL", "")
             or str(cfg.get("LMSTUDIO_CHAT_MODEL", ""))
         ).strip()
         base_candidates = [
-            ("FORGE_PROFILE_BASE_URL", os.getenv("FORGE_PROFILE_BASE_URL", "")),
+            ("CINESMITH_PROFILE_BASE_URL", os.getenv("CINESMITH_PROFILE_BASE_URL", "")),
             ("OPENAI_BASE_URL", os.getenv("OPENAI_BASE_URL", "")),
             ("LMSTUDIO_HOST", str(cfg.get("LMSTUDIO_HOST", ""))),
             ("KIMI_VISUAL_ENDPOINT_API1", str(cfg.get("KIMI_VISUAL_ENDPOINT_API1", ""))),
@@ -125,16 +128,21 @@ class HermesProfileCLI:
         if model:
             args.extend(["--model", model])
 
-        env = os.environ.copy()
+        env = hermes_isolated_env()
         if base_url:
             env["OPENAI_BASE_URL"] = base_url
             env["CUSTOM_BASE_URL"] = base_url
         env.setdefault("OPENAI_API_KEY", "not-needed")
+        # Prefer vendored Hermes launcher when CLI mode is enabled.
+        launcher = cinesmith_hermes_launcher()
+        if launcher.exists():
+            env.setdefault("CINESMITH_HERMES_LAUNCHER", str(launcher))
         debug = {
             "provider": provider,
             "model": model,
             "base_url": base_url,
             "base_source": base_source,
+            "hermes_home": env.get("HERMES_HOME", ""),
         }
         return args, env, debug
 
@@ -161,7 +169,7 @@ class HermesProfileCLI:
                 },
             ],
             "temperature": 0.2,
-            "max_tokens": int(os.getenv("FORGE_PROFILE_MAX_TOKENS", "8192")),
+            "max_tokens": int(os.getenv("CINESMITH_PROFILE_MAX_TOKENS", "8192")),
             "chat_template_kwargs": {"thinking": False, "enable_thinking": False},
         }
         headers = {"Content-Type": "application/json"}
@@ -208,14 +216,22 @@ class HermesProfileCLI:
 
     async def run_json(self, profile: str, task: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         self.last_error = ""
-        if os.getenv("FORGE_PROFILE_USE_CLI", "false").lower() != "true":
+        if os.getenv("CINESMITH_PROFILE_USE_CLI", "false").lower() != "true":
             return await self._run_direct_json(profile, task)
 
         prompt = json.dumps(task, ensure_ascii=True)
         target_profile = self.profile_map.get(profile, profile)
         # Use explicit profile switch + oneshot mode for deterministic stdout.
+        # Always isolate HERMES_HOME and prefer vendored hermes_engine/hermes.
         runtime_args, env, runtime_debug = self._runtime_args_and_env()
-        cmd = [self.runner, *runtime_args, "--profile", target_profile, "-z", prompt]
+        cmd = cinesmith_hermes_cli_argv(
+            *runtime_args,
+            "--profile",
+            target_profile,
+            "-z",
+            prompt,
+            runner=self.runner,
+        )
         try:
             proc = await asyncio.create_subprocess_exec(
                 *cmd,
@@ -231,37 +247,28 @@ class HermesProfileCLI:
             if not text:
                 self.last_error = "cli_empty_stdout"
                 return None
+            exchange = {
+                "stage": f"hermes_profile_{target_profile}",
+                "transport": "cinesmith_hermes_cli",
+                "runner": " ".join(cmd[:2]) if len(cmd) >= 2 else (self.runner or "cinesmith_hermes"),
+                "cmd_prefix": cmd[:2],
+                "hermes_home": env.get("HERMES_HOME", ""),
+                "profile": target_profile,
+                "provider": runtime_debug.get("provider", ""),
+                "model": runtime_debug.get("model", ""),
+                "base_url": runtime_debug.get("base_url", ""),
+                "request": task,
+                "response": {
+                    "stdout": text,
+                },
+            }
             parsed = self._parse_json_text(text)
             if parsed is not None:
-                parsed["__exchange"] = {
-                    "stage": f"hermes_profile_{target_profile}",
-                    "transport": "forgehermes_oneshot",
-                    "runner": self.runner,
-                    "profile": target_profile,
-                    "provider": runtime_debug.get("provider", ""),
-                    "model": runtime_debug.get("model", ""),
-                    "base_url": runtime_debug.get("base_url", ""),
-                    "request": task,
-                    "response": {
-                        "stdout": text,
-                    },
-                }
+                parsed["__exchange"] = exchange
                 return parsed
             return {
                 "text": text,
-                "__exchange": {
-                    "stage": f"hermes_profile_{target_profile}",
-                    "transport": "forgehermes_oneshot",
-                    "runner": self.runner,
-                    "profile": target_profile,
-                    "provider": runtime_debug.get("provider", ""),
-                    "model": runtime_debug.get("model", ""),
-                    "base_url": runtime_debug.get("base_url", ""),
-                    "request": task,
-                    "response": {
-                        "stdout": text,
-                    },
-                },
+                "__exchange": exchange,
             }
         except Exception as e:
             self.last_error = str(e) or e.__class__.__name__

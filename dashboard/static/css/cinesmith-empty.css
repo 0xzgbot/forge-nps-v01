@@ -1,0 +1,419 @@
+/* ============================================================
+   Cinesmith — Empty states, Assemble/Export discoverability (H10),
+   Spark recovery strip, Memory agency learning (J1)
+   ============================================================ */
+
+/* ---- Shared empty card ---- */
+.cinesmith-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 10px;
+  margin: 12px;
+  padding: 18px 20px;
+  border-radius: 14px;
+  border: 1px dashed rgba(61, 90, 254, 0.35);
+  background:
+    linear-gradient(145deg, rgba(18, 26, 42, 0.95) 0%, rgba(12, 18, 30, 0.98) 100%);
+  color: #c8cdd8;
+  min-height: 120px;
+  box-sizing: border-box;
+  max-width: 560px;
+}
+
+.cinesmith-empty-state.cinesmith-empty-inline {
+  margin: 0;
+  width: 100%;
+  max-width: none;
+  min-height: 100px;
+}
+
+.cinesmith-empty-state .fes-kicker {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #35f0d0;
+}
+
+.cinesmith-empty-state .fes-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 650;
+  color: #f2f4f8;
+  line-height: 1.35;
+}
+
+.cinesmith-empty-state .fes-body {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #8f98aa;
+  max-width: 48ch;
+}
+
+.cinesmith-empty-state .fes-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.cinesmith-empty-state .fes-actions .btn,
+.cinesmith-empty-state .fes-actions button {
+  font-size: 12px;
+}
+
+/* Filmstrip host when empty — fill the gallery area */
+#filmstrip:not(:has(.filmstrip-item)) {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  min-height: 160px;
+}
+
+#filmstrip .cinesmith-empty-state {
+  grid-column: 1 / -1;
+}
+
+/* Video grid empty */
+#spark-grid .cinesmith-empty-state,
+#spark-grid .grid-placeholder.cinesmith-empty-host {
+  grid-column: 1 / -1;
+}
+
+#spark-grid .grid-placeholder {
+  display: flex;
+  align-items: stretch;
+  justify-content: flex-start;
+  min-height: 140px;
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+
+/* Character roster empty */
+#character-manager-content .cinesmith-empty-state {
+  grid-column: 1 / -1;
+  margin: 4px 0;
+}
+
+/* Stories video list empty */
+#script-video-output-list .cinesmith-empty-state {
+  margin: 8px 0;
+  max-width: none;
+}
+
+/* ---- H10 Assemble / Export strip states ---- */
+#cinesmith-stories-export-strip {
+  position: relative;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+}
+
+#cinesmith-stories-export-strip.fse-ready {
+  border-color: rgba(53, 240, 208, 0.45) !important;
+  box-shadow: 0 0 0 1px rgba(53, 240, 208, 0.12), 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+#cinesmith-stories-export-strip.fse-ready .btn-primary-export,
+#cinesmith-stories-export-strip.fse-ready [data-cinesmith-export-package] {
+  border-color: #1d6b5a !important;
+  background: linear-gradient(180deg, #124038 0%, #0d2a24 100%) !important;
+  color: #35f0d0 !important;
+  font-weight: 700;
+  box-shadow: 0 0 18px rgba(53, 240, 208, 0.18);
+}
+
+#cinesmith-stories-export-strip.fse-empty {
+  opacity: 0.92;
+  border-style: dashed !important;
+}
+
+#cinesmith-stories-export-strip.fse-empty [data-cinesmith-export-package],
+#cinesmith-stories-export-strip.fse-empty #export-story-package-cta {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+#cinesmith-stories-export-strip .fse-reason {
+  flex: 1 1 100%;
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: #8f98aa;
+}
+
+#cinesmith-stories-export-strip.fse-ready .fse-reason {
+  color: #9fd9cb;
+}
+
+#cinesmith-stories-export-strip .fse-cta-hermes {
+  border-color: #3d5afe;
+  background: rgba(61, 90, 254, 0.12);
+  color: #c8d2ff;
+}
+
+/* Export buttons elsewhere when empty project */
+button[data-cinesmith-export-package][disabled],
+#export-story-package-btn[disabled],
+#export-story-package-videos[disabled] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* ---- Spark recovery strip (non-blocking) ---- */
+#cinesmith-spark-recovery {
+  display: none;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 0 0 10px;
+  padding: 11px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 180, 95, 0.4);
+  background: linear-gradient(135deg, rgba(42, 28, 12, 0.95) 0%, rgba(22, 18, 14, 0.98) 100%);
+  color: #ffe8c8;
+  font-size: 12.5px;
+  line-height: 1.45;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.22);
+}
+
+#cinesmith-spark-recovery.visible {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+#cinesmith-spark-recovery .fsr-icon {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 180, 95, 0.15);
+  color: #ffb45f;
+  font-weight: 800;
+  font-size: 14px;
+}
+
+#cinesmith-spark-recovery .fsr-copy {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+#cinesmith-spark-recovery .fsr-copy strong {
+  display: block;
+  color: #fff4e4;
+  font-size: 13px;
+  margin-bottom: 2px;
+}
+
+#cinesmith-spark-recovery .fsr-copy span,
+#cinesmith-spark-recovery .fsr-copy p {
+  margin: 0;
+  color: #d9c4a4;
+  font-size: 12px;
+}
+
+#cinesmith-spark-recovery .fsr-meta {
+  margin-top: 4px;
+  font-size: 11px;
+  color: #a89272;
+  word-break: break-all;
+}
+
+#cinesmith-spark-recovery .fsr-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  flex: 1 1 100%;
+  margin-top: 2px;
+}
+
+#cinesmith-spark-recovery .fsr-actions button,
+#cinesmith-spark-recovery .fsr-actions a.btn {
+  font-size: 11.5px;
+  padding: 6px 10px;
+  min-height: 32px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 180, 95, 0.35);
+  background: rgba(0, 0, 0, 0.25);
+  color: #ffe8c8;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+
+#cinesmith-spark-recovery .fsr-actions button:hover,
+#cinesmith-spark-recovery .fsr-actions a.btn:hover {
+  border-color: #ffb45f;
+  color: #fff;
+}
+
+#cinesmith-spark-recovery .fsr-actions a.fsr-docs {
+  border-color: transparent;
+  background: transparent;
+  color: #ffd9a8;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  padding-left: 4px;
+}
+
+#cinesmith-spark-recovery .fsr-dismiss {
+  margin-left: auto;
+  opacity: 0.7;
+}
+
+/* Place recovery under readiness in sidebar-ish main content */
+body > .cinesmith-spark-recovery-host,
+#cinesmith-main-spark-recovery-slot {
+  /* reserved */
+}
+
+/* When recovery sits at top of main content column */
+.cinesmith-spark-recovery-top {
+  margin: 10px 16px 0;
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
+
+/* ---- Memory Agency learning explainer (J1) ---- */
+#cinesmith-memory-agency-card {
+  margin: 0 0 4px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid #2a3a55;
+  background: linear-gradient(135deg, #121a2a 0%, #0e1624 100%);
+  color: #c8cdd8;
+}
+
+#cinesmith-memory-agency-card .fma-kicker {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #a78bfa;
+  margin-bottom: 4px;
+}
+
+#cinesmith-memory-agency-card h3 {
+  margin: 0 0 6px;
+  font-size: 14px;
+  color: #f2f4f8;
+  font-weight: 650;
+}
+
+#cinesmith-memory-agency-card p {
+  margin: 0 0 8px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #8f98aa;
+  max-width: 72ch;
+}
+
+#cinesmith-memory-agency-card .fma-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding-top: 8px;
+  border-top: 1px solid #2f3a4d;
+  font-size: 12px;
+  color: #9aa3b5;
+}
+
+#cinesmith-memory-agency-card .fma-status .fma-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid #2f3a4d;
+  background: #111827;
+  font-size: 11.5px;
+  color: #d7fff6;
+}
+
+#cinesmith-memory-agency-card .fma-status .fma-chip.warn {
+  border-color: rgba(255, 180, 95, 0.4);
+  color: #ffe8c8;
+}
+
+#cinesmith-memory-agency-card .fma-status .fma-chip.bad {
+  border-color: rgba(255, 107, 107, 0.4);
+  color: #ffd0d0;
+}
+
+#cinesmith-memory-agency-card .fma-status .fma-chip .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #35f0d0;
+}
+
+#cinesmith-memory-agency-card .fma-status .fma-chip.warn .dot {
+  background: #ffb45f;
+}
+
+#cinesmith-memory-agency-card .fma-status .fma-chip.bad .dot {
+  background: #ff6b6b;
+}
+
+#cinesmith-memory-agency-card .fma-hint {
+  font-size: 11px;
+  color: #667086;
+  flex: 1 1 180px;
+}
+
+/* Light theme tweaks */
+html[data-theme="light"] .cinesmith-empty-state,
+body.theme-light .cinesmith-empty-state {
+  border-color: rgba(61, 90, 254, 0.25);
+  background: linear-gradient(145deg, #f7f8fc 0%, #eef1f8 100%);
+  color: #3a4150;
+}
+
+html[data-theme="light"] .cinesmith-empty-state .fes-title,
+body.theme-light .cinesmith-empty-state .fes-title {
+  color: #151a24;
+}
+
+html[data-theme="light"] .cinesmith-empty-state .fes-body,
+body.theme-light .cinesmith-empty-state .fes-body {
+  color: #5a6478;
+}
+
+html[data-theme="light"] #cinesmith-spark-recovery,
+body.theme-light #cinesmith-spark-recovery {
+  background: linear-gradient(135deg, #fff6ea 0%, #ffefd8 100%);
+  color: #5c3d12;
+  border-color: rgba(200, 130, 40, 0.35);
+}
+
+html[data-theme="light"] #cinesmith-memory-agency-card,
+body.theme-light #cinesmith-memory-agency-card {
+  background: #f7f8fc;
+  border-color: #d5dbe8;
+  color: #3a4150;
+}
+
+/* Mobile */
+@media (max-width: 900px) {
+  .cinesmith-empty-state {
+    margin: 10px;
+    padding: 14px 14px;
+    max-width: none;
+  }
+
+  .cinesmith-spark-recovery-top {
+    margin: 8px 10px 0;
+  }
+
+  #cinesmith-spark-recovery .fsr-actions {
+    width: 100%;
+  }
+}

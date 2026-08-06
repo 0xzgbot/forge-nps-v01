@@ -5,7 +5,7 @@
   "camera_defaults": "24-50mm mixed lens grammar, intentional depth layering, strong foreground-midground-background read",
   "lighting_defaults": "stylized but coherent practical lighting with motivated color contrast and volumetric depth",
   "quality_terms": "rich color separation, tactile material detail, natural skin or surface imperfections, stable anatomy and perspective continuity",
-  "negative_prompt": "muddy composition, over-smoothed faces, extra fingers, broken limbs, random typography, watermark, logo",
+  "negative_prompt": "",
   "forbidden_terms": [
     "childish doodle",
     "unfinished draft"

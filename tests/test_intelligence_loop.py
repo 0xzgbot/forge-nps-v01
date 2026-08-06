@@ -1,7 +1,7 @@
 import pytest
 import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
-from core.orchestrator.forge_orchestrator import ForgeOrchestrator
+from core.orchestrator.cinesmith_orchestrator import CinesmithOrchestrator
 
 @pytest.mark.asyncio
 async def test_intelligence_loop_remediation_success():
@@ -49,7 +49,7 @@ async def test_intelligence_loop_remediation_success():
         "final_prompt": "A person walking on the ground."
     }
 
-    orchestrator = ForgeOrchestrator(
+    orchestrator = CinesmithOrchestrator(
         config_manager=mock_config,
         session_manager=mock_session,
         kimi_bridge=mock_kimi,

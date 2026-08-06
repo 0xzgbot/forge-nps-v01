@@ -6,7 +6,7 @@ description: Protocol for recovering assets after a ComfyUI or automation script
 # ComfyUI / Automation Crash Recovery Protocol
 
 ## Trigger
-A crash occurs during a large-scale rendering or automation job (e.g., Forge batch, ComfyUI mega-render), resulting in missing expected output files.
+A crash occurs during a large-scale rendering or automation job (e.g., Cinesmith batch, ComfyUI mega-render), resulting in missing expected output files.
 
 ## Procedure
 

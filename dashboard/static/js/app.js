@@ -1,5 +1,5 @@
 /*
- * Forge NPS — Hermes Command Center
+ * Cinesmith — Hermes Command Center
  * app.js | NDJSON streaming, campaign runner, chat, settings
  */
 
@@ -8,6 +8,8 @@
 // ---------------------------------------------------------------------------
 let chatHistory = [];
 let sessionId = "session_" + Date.now();
+let creatorHermesHistory = [];
+let creatorHermesSessionId = "creator_" + Date.now();
 let scriptChatHistory = [];
 let scriptSessionId = "script_" + Date.now();
 let scriptPackage = null;
@@ -30,7 +32,101 @@ let currentConfig = {};
 let currentPlatformSkill = { active: false, id: "", label: "No platform skill", constraints: {} };
 let platformDetectTimer = null;
 let targetCountManualOverride = false;
-const ADVANCED_MODE_KEY = "forge_advanced_mode";
+const ADVANCED_MODE_KEY = "cinesmith_advanced_mode";
+const TOOLTIP_HELP_KEY = "cinesmith_guided_tooltips";
+
+const HELP_ACTION_TEXT = {
+    runCampaign: "Run with Hermes starts a live agency campaign: Director plans shots, Hermes compiles prompts, Spark renders, and audits write memory. Use Images for stills; use Stories for multi-beat narrative production.",
+    cancelCampaign: "Cancel stops the active image campaign request. Use it when the prompt, model choice, or target count is wrong before more jobs are sent.",
+    sendChat: "Send asks Hermes about the current project. Use this for quick debugging, prompt advice, workflow questions, or asking what the app just did.",
+    sendCreatorHermesChat: "Send asks Hermes Prompt Coach about the current Images prompt. Use it for idea development, prompt rewrites, visual direction, and deciding what to generate next.",
+    askHermesPromptCoach: "Prompt Coach quick actions send the current Images prompt to Hermes with a focused request: improve it, generate ideas, suggest variations, or recommend the next workflow step.",
+    refreshShotViews: "Refresh Shots reloads the image and video libraries from disk. Use it after external renders finish, files are copied in, or the gallery looks stale.",
+    clearLog: "Clear Log only clears the visible event log. It does not delete renders, campaigns, memory, scripts, or settings.",
+    toggleMediaSortOrder: "Toggle sort order flips the gallery between newest-first and oldest-first. Use newest-first while generating; use oldest-first when reviewing a sequence.",
+    applyShotFilters: "Apply Filters reloads the gallery using the checked status filters. Use this to isolate failed renders, retries, passed images, imported media, or one campaign ID.",
+    loadIdeaBoard: "Refresh reloads the idea board from saved cards. Use this after generating hooks, adding ideas, or changing campaign filters.",
+    createIdeaCard: "Add Idea saves a lightweight concept card. Use it to capture hooks, visual angles, story beats, offers, or tests before turning them into prompts.",
+    generateHookIdeas: "Hook generation asks Hermes for short-form opening ideas. Preview first; save only the hooks you want to keep on the idea board.",
+    saveAllSettings: "Save All persists provider, model, and render endpoint settings. Guided Tooltips save immediately in this browser, but API keys and endpoints still need Save All.",
+    testLMStudio: "Test & Detect checks whether LM Studio is reachable and lists available local models. Run this before relying on Hermes chat or vision analysis.",
+    loadLMStudioModel: "Load Model asks LM Studio to load the configured model. Use this when errors say no model is loaded or after changing the model name.",
+    testVision: "Test Vision sends a small vision request to the configured endpoint. Use it before image audits, character checks, or any workflow that needs visual critique.",
+    reloadHermesVision: "Reload Hermes/Vision refreshes the app's local model clients after changing LM Studio or vision settings. Use it after switching models or endpoints.",
+    testProvider: "Test Provider checks the cloud provider endpoint and API key. Use it before API-mode planning or after changing credentials.",
+    testDirector: "Test Director verifies the planning model that turns your brief into structured image, script, or storyboard instructions.",
+    testDirectorSelfCheck: "Test Self-Check verifies the critique path used to catch weak prompts, failed identity constraints, and low-quality generations.",
+    testComfyUIAll: "Test Render Workers checks the configured Spark/ComfyUI render endpoints. Run this before image or video generation if jobs are failing.",
+    testStoryboardProviders: "Check Storyboard Providers verifies storyboard image backends Hermes can use for Stories production.",
+    savePromptBanks: "Save Banks updates the prompt variation banks used by character and prompt templates. Keep entries short, concrete, and visually distinct.",
+    switchPage: "Agency workspaces: Agency home, Images (live Hermes campaign), Videos (motion), Characters, Stories (multi-beat production), Assets, Memory, Settings. Navigation never deletes work.",
+    switchScriptFlowStep: "Stories steps run left to right: Brief → Progress → Storyboard → Videos. Hermes drives production; you can jump back to review.",
+    runScriptPipeline: "Produce with Hermes runs multi-beat story production from your brief: narrative package, coverage, start frames, and clips — orchestrated as agency work, not a fixed screenplay script.",
+    saveScriptProject: "Save Project stores the current story package and storyboard state. Use it before changing briefs or starting a new story.",
+    clearShotList: "Reset clears the current Stories working shot list. Use it when you want Hermes to start from a fresh brief.",
+    generateShotList: "Generate Shot List converts the story brief into individual shots Hermes can produce.",
+    generateStoryboard: "Generate Storyboard turns shots into storyboard boards. Review before spending render time on frames or video.",
+    generateStoryboardCharacterSheet: "Generate Character Sheet creates reference material for consistent characters across storyboard panels and later videos.",
+    renderAssembleExportStoryboardPanels: "Create Video Frames renders storyboard panels and prepares them for video work. Use this when the storyboard is approved enough to become shot frames.",
+    renderStoryboardPanels: "Render Frames Only creates individual storyboard images without assembling a proof page. Use this for testing frame quality quickly.",
+    renderStoryboardBoard: "Render Page Proof creates a full storyboard page preview. Use it to check panel order, composition, and readability.",
+    assembleStoryboardPanels: "Assemble Page Proof combines already-rendered panels into a storyboard proof page without re-rendering images.",
+    copyStoryboardPrompt: "Copy Prompt puts the storyboard prompt on the clipboard so you can inspect, revise, or test it outside the app.",
+    pollStoryboardPanelJobs: "Refresh Panel Jobs checks whether storyboard renders have finished. Use it when ComfyUI/Spark is still processing.",
+    toggleStoryboardAdvanced: "Advanced exposes lower-level storyboard controls. Use it only when the default create-frame workflow needs manual repair.",
+    generateVideoPromptsForSelected: "Generate Prompt Based on Selected Images analyzes selected stills and writes video prompts from them. Do this before generating videos when you want motion to match chosen frames.",
+    generateCustomLtxPrompt: "Generate Custom LTX Prompt asks Hermes to turn a freeform idea into a detailed LTX2 prompt/script with timestamps, dialogue, ambient sound, camera direction, and continuity notes. It does not start rendering.",
+    applyCustomLtxPrompt: "Use moves the generated Hermes LTX2 output into the Image-to-Video prompt field below so it can drive the selected start frames.",
+    copyCustomLtxPrompt: "Copy puts the generated LTX2 prompt/script on the clipboard for review, editing, or use in another tool.",
+    processSelectedVideos: "Process sends selected video jobs to the configured video workflow. Use it after prompts, duration, model, and selected frames are correct.",
+    clearVideoSelection: "Clear Selection deselects the current video items. Use it before starting a different batch.",
+    remediateFailedSelected: "Remediate Failed retries selected failed video jobs with corrective prompt changes. Use it after reviewing why the first attempt failed.",
+    importRenderedMedia: "Import Rendered Media scans local output folders and adds finished media to the app library.",
+    exportCarousel: "Export Carousel packages selected stills and clips for social posting. Use it after final review, not during early prompt testing.",
+    loadIdentityTab: "Refresh reloads character and identity references. Use it after adding images, locking anchors, or importing new assets.",
+    autoSelectIdentityAnchors: "Auto Select Anchors chooses likely identity references from the current campaign. Use it before saving character consistency data.",
+    saveCampaignIdentity: "Save Identity stores selected anchors and role data for the campaign. This helps later prompts preserve the same character.",
+    cloneIdentityFromCampaign: "Clone Identity copies identity settings from another campaign. Use it when a new run should continue the same character or brand look.",
+    bulkSetIdentityActive: "Bulk Active toggles many identity assets at once. Use it to quickly include or exclude whole groups from consistency guidance.",
+    bulkSetIdentityRole: "Set Role applies a shared identity role to selected assets, such as hero, product, wardrobe, or environment.",
+    openCharacterCreate: "New Character opens the character creation form. Use this before generating sheets, references, or character LoRA training data.",
+    createCharacterFromManager: "Create saves a new character profile. Add a clear role and visual description so later prompts have something specific to preserve.",
+    renderCharactersTab: "Refresh reloads the Characters workspace. Use it after renders, uploads, extraction, or profile edits.",
+    selectCharacter: "Selecting a character loads that profile into the editor and reference panels. Work on one character at a time for cleaner consistency.",
+    selectCharacterForCinesmith: "Send to Cinesmith makes this character available to the image-generation workflow. Use it when a campaign prompt should include a saved identity.",
+    saveSelectedCharacterProfile: "Save Profile stores the character's editable profile fields. Use it after changing role, description, wardrobe, or anchor text.",
+    saveSelectedCharacterDna: "Save DNA Only stores identity guidance without replacing the full profile. Use it for small consistency tweaks.",
+    renderCharacterPrompt: "Render Character sends the current character prompt to the render workflow. Use it to test whether the profile produces the intended person.",
+    uploadAssetVaultReference: "Upload adds a reference asset to the package. Use this for product photos, logos, style references, or source material.",
+    addAssetVaultReferenceRow: "Add Asset Reference creates another reference slot. Use one row per important source image or document.",
+    removeAssetVaultReferenceRow: "Remove deletes this reference row from the package editor. It does not delete original files from disk.",
+    createAssetVaultPackage: "New Package starts a clean asset package for a product, brand, or campaign. Use packages to keep references organized.",
+    saveAssetVaultPackage: "Save Package stores the asset package and its references. Save before building prompts from it.",
+    duplicateAssetVaultPackage: "Duplicate copies the selected package so you can branch variations without damaging the original.",
+    deleteAssetVaultPackage: "Delete removes the selected asset package record. Use carefully; this is for cleanup, not normal iteration.",
+    buildProductRecipe: "Build Prompt compiles product references, characters, and banks into a render-ready prompt. Use this before copying or generating.",
+    copyProductPrompt: "Copy Prompt puts the built product prompt on the clipboard. Use it for manual testing or external render tools.",
+    runNexusQuery: "Query searches Cinesmith Nexus for relationships between workflows, prompts, characters, and assets. Ask concrete dependency questions.",
+    memoryApplyFilters: "Apply filters refreshes the memory graph using the selected constraints. Use it to reduce noise before inspecting lineage.",
+    memoryCyLayout: "Graph layout changes how memory nodes are arranged. Use Force for discovery, Tree for lineage, Circle for spotting clusters, and Fit to re-center.",
+    triggerConsolidate: "Consolidate Memory asks Hermes to summarize repeated lessons into reusable rules. Run it after several failures or fixes.",
+};
+
+const HELP_ID_TEXT = {
+    "advanced-mode-toggle": "Advanced Mode reveals technical controls, diagnostics, filters, endpoint fields, and prompt-bank editors. Leave it off for the clean creator workflow.",
+    "target-count-input": "Target controls how many image prompts the run should request. Use a real number here instead of burying the count only in the prompt.",
+    "platform-mode": "Platform Skill chooses whether TikTok-style constraints are auto-detected from the prompt or forced manually. Auto is best unless you are testing a specific format.",
+    "series-continuity": "Series Continuity asks the prompt pipeline to preserve characters and style across a campaign. Use it for recurring people, episodes, or ad sets.",
+    "append-campaign": "Append To Selected Campaign adds new images to the active campaign instead of starting a separate group. Turn it off for a clean new run.",
+    "model-flux2": "Flux2.Dev is the main high-quality still-image model. Use it for most image campaigns and character/reference work.",
+    "model-turbo": "Turbo is only meaningful with Flux2.Dev. Use it for faster tests; turn it off for final-quality stills if quality drops.",
+    "model-klein": "Flux2 Klein is a lighter alternate still-image model. Use it for comparison runs or when the main model is busy.",
+    "filter-campaign-id": "Campaign ID narrows the gallery to one campaign. Paste an exact campaign ID when you need to audit or continue a specific run.",
+    "thumbnail-size-slider": "Thumbs resizes image and video thumbnails. Increase it for visual inspection; decrease it to scan large batches.",
+    "cfg-tooltips-enabled": "Guided Tooltips turns instructional hover and focus help on or off across the app. It is saved in this browser immediately.",
+};
+
+let guidedTooltipActiveTarget = null;
 
 function isAdvancedMode() {
     try {
@@ -55,28 +151,180 @@ function setAdvancedMode(enabled) {
     }
     const activeAdvancedPage = document.querySelector(".page-view.active.advanced-only");
     if (!on && activeAdvancedPage) switchPage("dashboard-view");
+    if (!on) clearHiddenSimpleModeFilters();
+    else renderSimpleFilterChip("");
+    syncVideoQuickOptions();
+    updatePlatformDetection();
 }
 
 function initAdvancedMode() {
     setAdvancedMode(isAdvancedMode());
 }
 
+function isGuidedTooltipsEnabled() {
+    try {
+        return localStorage.getItem(TOOLTIP_HELP_KEY) === "1";
+    } catch (_e) {
+        return false;
+    }
+}
+
+function setGuidedTooltips(enabled) {
+    const on = !!enabled;
+    try {
+        localStorage.setItem(TOOLTIP_HELP_KEY, on ? "1" : "0");
+    } catch (_e) {}
+    document.body.classList.toggle("guided-tooltips", on);
+    ["cfg-tooltips-enabled", "cfg-tooltips-enabled-shell"].forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) el.checked = on;
+    });
+    if (!on) hideGuidedTooltip();
+}
+
+function initGuidedTooltips() {
+    setGuidedTooltips(isGuidedTooltipsEnabled());
+    if (!document.getElementById("cinesmith-help-tooltip")) {
+        const tip = document.createElement("div");
+        tip.id = "cinesmith-help-tooltip";
+        tip.setAttribute("role", "tooltip");
+        document.body.appendChild(tip);
+    }
+    document.addEventListener("mouseover", (event) => {
+        const target = findTooltipTarget(event.target);
+        if (target) showGuidedTooltip(target);
+    });
+    document.addEventListener("focusin", (event) => {
+        const target = findTooltipTarget(event.target);
+        if (target) showGuidedTooltip(target);
+    });
+    document.addEventListener("mouseout", (event) => {
+        const target = findTooltipTarget(event.target);
+        if (target && !target.contains(event.relatedTarget)) hideGuidedTooltip(target);
+    });
+    document.addEventListener("focusout", (event) => {
+        const target = findTooltipTarget(event.target);
+        if (target) hideGuidedTooltip(target);
+    });
+    document.addEventListener("click", () => hideGuidedTooltip());
+    window.addEventListener("scroll", () => hideGuidedTooltip(), true);
+    window.addEventListener("resize", () => hideGuidedTooltip());
+}
+
+function findTooltipTarget(node) {
+    if (!node || !isGuidedTooltipsEnabled()) return null;
+    return node.closest?.("button, [role='button'], .nav-tab, summary, label.model-checkbox, label.toggle, label.settings-switch, .script-flow-step, .character-flow-step, .char-pick, .product-pick");
+}
+
+function showGuidedTooltip(target) {
+    const tip = document.getElementById("cinesmith-help-tooltip");
+    if (!tip || !target) return;
+    const text = getGuidedTooltipText(target);
+    if (!text) return;
+    if (guidedTooltipActiveTarget && guidedTooltipActiveTarget !== target) {
+        restoreNativeTitle(guidedTooltipActiveTarget);
+    }
+    if (target.hasAttribute("title") && !target.dataset.nativeTitle) {
+        target.dataset.nativeTitle = target.getAttribute("title") || "";
+        target.removeAttribute("title");
+    }
+    guidedTooltipActiveTarget = target;
+    tip.textContent = text;
+    tip.classList.add("active");
+    positionGuidedTooltip(target, tip);
+}
+
+function hideGuidedTooltip(target) {
+    const tip = document.getElementById("cinesmith-help-tooltip");
+    if (tip) tip.classList.remove("active");
+    restoreNativeTitle(target || guidedTooltipActiveTarget);
+    guidedTooltipActiveTarget = null;
+}
+
+function restoreNativeTitle(target) {
+    if (!target?.dataset?.nativeTitle) return;
+    target.setAttribute("title", target.dataset.nativeTitle);
+    delete target.dataset.nativeTitle;
+}
+
+function positionGuidedTooltip(target, tip) {
+    const rect = target.getBoundingClientRect();
+    const gap = 10;
+    const maxLeft = window.innerWidth - tip.offsetWidth - 12;
+    let left = Math.min(Math.max(12, rect.left + rect.width / 2 - tip.offsetWidth / 2), maxLeft);
+    let top = rect.bottom + gap;
+    if (top + tip.offsetHeight + 12 > window.innerHeight) {
+        top = Math.max(12, rect.top - tip.offsetHeight - gap);
+    }
+    tip.style.left = left + "px";
+    tip.style.top = top + "px";
+}
+
+function getGuidedTooltipText(target) {
+    if (!target) return "";
+    if (target.dataset.tooltip) return target.dataset.tooltip;
+    if (target.id && HELP_ID_TEXT[target.id]) return HELP_ID_TEXT[target.id];
+    const page = target.dataset.page;
+    if (page) {
+        const pageNames = {
+            "dashboard-view": "Images is the starting workspace for prompt-to-still generation. Create visual options here before selecting images for video or character work.",
+            "spark-view": "Videos is where selected stills become motion prompts and video jobs. Select source images first, generate video prompts, then process the batch.",
+            "identity-view": "Characters stores reusable people and identity references. Build profiles here before asking campaigns or scripts to keep a person consistent.",
+            "ideas-view": "Ideas is a lightweight board for concepts, hooks, and visual angles. Use it before committing an idea to a full image or script run.",
+            "script-view": "Stories is multi-beat production Hermes orchestrates: brief → narrative package → storyboard → frames → clips.",
+            "products-view": "Assets packages product, brand, and reference material so prompts can stay grounded in real source assets.",
+            "memory-view": "Memory shows what Hermes learned from prior attempts. Use it to inspect failures, fixes, and reusable prompt rules.",
+            "settings-view": "Settings controls model routing, API keys, local hosts, render workers, storyboard providers, prompt banks, and this help layer.",
+        };
+        if (pageNames[page]) return pageNames[page];
+    }
+    const onclick = target.getAttribute("onclick") || "";
+    for (const [key, text] of Object.entries(HELP_ACTION_TEXT)) {
+        if (onclick.includes(key)) return text;
+    }
+    const label = normalizeControlLabel(target);
+    const labelMap = {
+        "Save": "Save stores the current edits for this panel. Use it before switching context or starting a render that depends on these values.",
+        "Refresh": "Refresh reloads the current panel from disk or the API. Use it when something finished outside the visible UI.",
+        "Use": "Use selects this item as the active input for the next workflow step. It does not delete or overwrite the other options.",
+        "Export": "Export packages or opens the selected asset for use outside this app. Review the item first so you export the intended version.",
+        "Delete": "Delete removes the selected item or record. Use it only for cleanup after confirming you no longer need it.",
+        "Remove": "Remove detaches this item from the current package or selection. It usually does not delete the original media file.",
+        "Copy": "Copy puts the selected prompt or value on the clipboard for inspection, manual edits, or testing in another tool.",
+        "Edit": "Edit opens inline changes for this item. Save the edit when done or cancel to keep the previous value.",
+        "Cancel": "Cancel backs out of the current action or stops an active job. Use it when the current setup is wrong.",
+        "Advanced": "Advanced reveals lower-level controls for manual repair and debugging. Keep it closed for the normal guided workflow.",
+    };
+    if (labelMap[label]) return labelMap[label];
+    if (label) return label + ": use this control when the current workflow step calls for it. Hover major workflow buttons for more specific guidance.";
+    return "";
+}
+
+function normalizeControlLabel(target) {
+    const raw = (target.getAttribute("aria-label") || target.textContent || target.value || "").replace(/\s+/g, " ").trim();
+    return raw.length > 80 ? raw.slice(0, 77) + "..." : raw;
+}
+
 // Spark state
 let sparkRenderResults = {};
 let sparkWebSocket = null;
 let sparkCampaignId = null;
+let customLtxPromptHistory = [];
+let customLtxPromptSessionId = "ltx_prompt_" + Date.now();
+let customLtxPromptRunCount = 0;
 let videoSelection = new Set();
 let videoShotsById = {};
 let pendingVideoJobs = [];
 let videoJobPollTimer = null;
-const VIDEO_JOBS_KEY = "forge_pending_video_jobs";
+let videoAspectTouched = false;
+const VIDEO_JOBS_KEY = "cinesmith_pending_video_jobs";
 let dashboardSelection = new Set();
 let currentCampaignId = "";
 let identityAssets = [];
 let identityAssetSelection = new Set();
 const MAX_DASHBOARD_THUMBS = 180;
 const MAX_VIDEO_THUMBS = 180;
-const MEDIA_THUMB_SIZE_KEY = "forge_media_thumb_size";
+const MEDIA_THUMB_SIZE_KEY = "cinesmith_media_thumb_size";
 const DEFAULT_MEDIA_THUMB_SIZE = 200;
 let campaignSort = { key: "name", reverse: false };
 let mediaSort = { key: "time", reverse: true }; // newest first
@@ -125,6 +373,88 @@ const $sparkGrid = document.getElementById("spark-grid");
 const $sparkStatusText = document.getElementById("spark-status-text");
 const $sparkProgress = document.getElementById("spark-progress");
 const DEFAULT_VIDEO_WORKFLOW_ID = "04_ltx2.3_image_to_video";
+const DEFAULT_TEXT_VIDEO_WORKFLOW_ID = "09_ltx23_text_to_video_draft_clean";
+const LTX_PROMPT_CHAR_LIMIT = 5000;
+
+function isElementVisible(el) {
+    if (!el) return false;
+    if (el.closest?.(".advanced-only") && !isAdvancedMode()) return false;
+    const style = window.getComputedStyle ? window.getComputedStyle(el) : null;
+    return !style || (style.display !== "none" && style.visibility !== "hidden");
+}
+
+function checkedIfVisible(id, fallback = false) {
+    const el = document.getElementById(id);
+    return isElementVisible(el) ? !!el.checked : fallback;
+}
+
+function valueIfVisible(id, fallback = "") {
+    const el = document.getElementById(id);
+    return isElementVisible(el) ? String(el.value || fallback) : String(fallback);
+}
+
+function getEffectiveModeState() {
+    const advanced = isAdvancedMode();
+    const rawFilters = {
+        campaignId: (document.getElementById("filter-campaign-id")?.value || "").trim(),
+        renderedOnly: !!document.getElementById("filter-rendered-only")?.checked,
+        failedOnly: !!document.getElementById("filter-failed-only")?.checked,
+        passedOnly: !!document.getElementById("filter-passed-only")?.checked,
+        retriesOnly: !!document.getElementById("filter-retries-only")?.checked,
+        importedOnly: !!document.getElementById("filter-imported-only")?.checked,
+    };
+    const simpleHadHiddenFilters = !advanced && Object.values(rawFilters).some(Boolean);
+    const customDuration = parseInt(valueIfVisible("video-custom-duration-select", "5"), 10);
+    const customAspect = valueIfVisible("video-custom-aspect-select", "16:9");
+    const advancedVideoOptions = advanced ? getVideoGenerationOptionsRaw() : null;
+    const simpleVideoOptions = {
+        mode: "videos",
+        workflowId: DEFAULT_VIDEO_WORKFLOW_ID,
+        textWorkflowId: DEFAULT_TEXT_VIDEO_WORKFLOW_ID,
+        duration: Number.isFinite(customDuration) ? customDuration : 5,
+        resolution: "540p",
+        aspectRatio: customAspect || "16:9",
+        modelLabel: "LTX 2.3 Image-to-Video",
+    };
+    return {
+        advanced,
+        images: advanced ? {
+            flux2: !!document.getElementById("model-flux2")?.checked,
+            turbo: !!document.getElementById("model-flux2")?.checked && !!document.getElementById("model-turbo")?.checked,
+            klein: !!document.getElementById("model-klein")?.checked,
+            appendToCampaign: !!document.getElementById("append-campaign")?.checked,
+            selectedCampaignId: rawFilters.campaignId,
+            length: $lengthSelect ? $lengthSelect.value : "",
+        } : {
+            flux2: checkedIfVisible("simple-model-flux2", true),
+            turbo: checkedIfVisible("simple-model-turbo", false) && checkedIfVisible("simple-model-flux2", true),
+            klein: checkedIfVisible("simple-model-klein", false),
+            appendToCampaign: checkedIfVisible("simple-append-campaign", false),
+            selectedCampaignId: valueIfVisible("simple-campaign-id", ""),
+            length: "",
+        },
+        videos: advanced ? {
+            ...advancedVideoOptions,
+            textWorkflowId: isTextVideoWorkflow(advancedVideoOptions.workflowId) ? advancedVideoOptions.workflowId : DEFAULT_TEXT_VIDEO_WORKFLOW_ID,
+        } : simpleVideoOptions,
+        filters: advanced ? rawFilters : {
+            campaignId: "",
+            renderedOnly: false,
+            failedOnly: false,
+            passedOnly: false,
+            retriesOnly: false,
+            importedOnly: false,
+            clearedHiddenFilters: simpleHadHiddenFilters,
+        },
+        platform: advanced ? {
+            mode: document.getElementById("platform-mode")?.value || "auto",
+            seriesContinuity: document.getElementById("series-continuity")?.checked ? true : null,
+        } : {
+            mode: valueIfVisible("simple-platform-mode", "auto") || "auto",
+            seriesContinuity: checkedIfVisible("simple-series-continuity", false) ? true : null,
+        },
+    };
+}
 
 function getSelectedVideoWorkflow() {
     const select = document.getElementById("video-model-select");
@@ -137,7 +467,12 @@ function setDefaultVideoWorkflow() {
     if (select && !select.value) select.value = DEFAULT_VIDEO_WORKFLOW_ID;
 }
 
-function getVideoGenerationOptions() {
+function isTextVideoWorkflow(workflowId) {
+    const id = String(workflowId || "");
+    return id.includes("text_to_video") || id.includes("T2V") || id.includes("T2V_I2V");
+}
+
+function getVideoGenerationOptionsRaw() {
     const modelEl = document.getElementById("video-model-select");
     const durationEl = document.getElementById("video-duration-select");
     const resolutionEl = document.getElementById("video-resolution-select");
@@ -151,6 +486,10 @@ function getVideoGenerationOptions() {
         aspectRatio: String(aspectEl?.value || "16:9"),
         modelLabel: modelEl?.selectedOptions?.[0]?.textContent?.trim() || "LTX 2.3 Fast",
     };
+}
+
+function getVideoGenerationOptions() {
+    return getEffectiveModeState().videos;
 }
 
 function syncVideoQuickOptions() {
@@ -168,12 +507,354 @@ function syncVideoQuickOptions() {
     return options;
 }
 
+function syncCustomLtxAspectToVideoOptions() {
+    const customAspectEl = document.getElementById("video-custom-aspect-select");
+    const aspectEl = document.getElementById("video-aspect-select");
+    if (!customAspectEl || !aspectEl) return;
+    aspectEl.value = String(customAspectEl.value || "16:9");
+    videoAspectTouched = true;
+}
+
+function videoAspectSummaryLabel(aspectRatio) {
+    const val = String(aspectRatio || "").trim().toLowerCase();
+    if (["source", "auto", "image", "same"].includes(val)) return "Source Image";
+    return aspectRatio || "16:9";
+}
+
+function effectiveVideoAspectRatioForSelected(shotIds, options) {
+    if (Array.isArray(shotIds) && shotIds.length && !videoAspectTouched) return "source";
+    return String(options?.aspectRatio || "16:9");
+}
+
+function applyVideoAspectSummaryOverride(options, aspectRatio) {
+    const summary = document.getElementById("video-option-summary");
+    if (!summary) return;
+    summary.textContent = [
+        options.modelLabel,
+        options.duration + " Sec",
+        options.resolution,
+        videoAspectSummaryLabel(aspectRatio),
+    ].join(" / ");
+}
+
 function initVideoQuickOptions() {
-    ["video-model-select", "video-duration-select", "video-resolution-select", "video-aspect-select"].forEach((id) => {
+    ["video-model-select", "video-duration-select", "video-resolution-select", "video-custom-duration-select"].forEach((id) => {
         const el = document.getElementById(id);
         if (el) el.addEventListener("change", syncVideoQuickOptions);
     });
+    const aspectEl = document.getElementById("video-aspect-select");
+    if (aspectEl) {
+        aspectEl.addEventListener("change", () => {
+            videoAspectTouched = true;
+            syncVideoQuickOptions();
+        });
+    }
+    const customAspectEl = document.getElementById("video-custom-aspect-select");
+    if (customAspectEl) {
+        customAspectEl.addEventListener("change", () => {
+            syncCustomLtxAspectToVideoOptions();
+            syncVideoQuickOptions();
+        });
+    }
     syncVideoQuickOptions();
+    updateCustomLtxPromptCount();
+}
+
+function getCustomLtxPromptSettings() {
+    const modeEl = document.getElementById("video-custom-mode-select");
+    const durationEl = document.getElementById("video-custom-duration-select");
+    const scenesEl = document.getElementById("video-custom-scenes-select");
+    const aspectEl = document.getElementById("video-custom-aspect-select");
+    const duration = parseInt(durationEl?.value || "25", 10);
+    const sceneCount = parseInt(scenesEl?.value || "5", 10);
+    const mode = String(modeEl?.value || "balanced");
+    const aspectRatio = String(aspectEl?.value || "16:9");
+    const aspectLabels = {
+        "16:9": "16:9 widescreen landscape",
+        "9:16": "9:16 vertical short-form video",
+        "1:1": "1:1 square feed video",
+    };
+    const modeLabels = {
+        balanced: "balanced Hermes video prompt",
+        cinematic: "cinematic camera and production design emphasis",
+        dialogue: "dialogue-heavy performance and lip-sync timing emphasis",
+        ambient: "ambient audio, room tone, foley, and soundscape emphasis",
+        comedy: "comedy timing, reaction beats, and payoff emphasis",
+    };
+    return {
+        mode,
+        modeLabel: modeLabels[mode] || modeLabels.balanced,
+        duration: Number.isFinite(duration) ? duration : 25,
+        sceneCount: Number.isFinite(sceneCount) ? sceneCount : 5,
+        aspectRatio,
+        aspectLabel: aspectLabels[aspectRatio] || aspectRatio,
+    };
+}
+
+function buildCustomLtxSceneTemplateLines(duration, sceneCount) {
+    const total = Math.max(1, parseInt(duration || 25, 10));
+    const count = Math.max(1, parseInt(sceneCount || 5, 10));
+    const pad = (num) => String(Math.max(0, Math.round(num))).padStart(2, "0");
+    const lines = [];
+    for (let i = 0; i < count; i += 1) {
+        const start = Math.round((total * i) / count);
+        const end = Math.round((total * (i + 1)) / count);
+        lines.push("00:" + pad(start) + "-00:" + pad(end) + " Scene " + (i + 1) + " - [visual action, camera, one short dialogue line if useful, ambient/SFX]");
+    }
+    return lines;
+}
+
+function buildCustomLtxPromptInstruction(userBrief, options) {
+    const targetDuration = parseInt(options.duration || 25, 10);
+    const targetScenes = parseInt(options.sceneCount || 5, 10);
+    const sceneLines = buildCustomLtxSceneTemplateLines(targetDuration, targetScenes);
+    const selectedHints = Array.from(videoSelection || []).slice(0, 5).map((id) => {
+        const shot = videoShotsById[id] || {};
+        return [
+            shot.prompt ? "image prompt: " + String(shot.prompt).slice(0, 420) : "",
+            shot.video_prompt ? "existing video prompt: " + String(shot.video_prompt).slice(0, 420) : "",
+            shot.identity_name ? "identity: " + shot.identity_name : "",
+        ].filter(Boolean).join(" | ");
+    }).filter(Boolean);
+    const priorOutputs = (customLtxPromptHistory || [])
+        .filter((item) => item?.role === "assistant" && item?.content)
+        .slice(-4)
+        .map((item, index) => {
+            const text = String(item.content || "");
+            const title = (text.match(/TITLE:\s*([^\n]+)/i) || [])[1] || "";
+            const chars = (text.match(/Characters?:\s*([^\n.]+)/i) || [])[1] || "";
+            const setting = (text.match(/(?:in|inside|within|at)\s+(?:a|an|the)?\s*([^.,;\n]{12,90})/i) || [])[1] || "";
+            return [
+                "prior " + (index + 1),
+                title ? "title=" + title.slice(0, 80) : "",
+                chars ? "characters=" + chars.slice(0, 120) : "",
+                setting ? "setting=" + setting.slice(0, 120) : "",
+            ].filter(Boolean).join("; ");
+        })
+        .filter(Boolean);
+    const variationSeed = [
+        "run_" + (++customLtxPromptRunCount),
+        Date.now().toString(36),
+        Math.random().toString(36).slice(2, 10),
+    ].join("_");
+
+    return [
+        "You are Hermes inside The Cinesmith. Generate a production-ready LTX 2.3 video prompt/script using every relevant Cinesmith prompting skill: LTX video prompt structure, cinematic motion direction, wholesome/cute 3D animation taste, character continuity, prompt specificity, dialogue timing, ambient sound design, and failure prevention.",
+        "",
+        "FRESHNESS REQUIREMENT:",
+        "- This is a new generation attempt. Variation seed: " + variationSeed + ".",
+        "- Do not reuse the previous title, character names, species pairing, setting, central prop, misunderstanding, dialogue lines, or scene beats from earlier outputs in this session.",
+        "- If the user request is unchanged, invent a materially different premise while preserving the requested format, tone, duration, and LTX constraints.",
+        priorOutputs.length ? "- Previous output fingerprints to avoid: " + priorOutputs.join(" | ") : "- Previous output fingerprints to avoid: none.",
+        "",
+        "USER REQUEST:",
+        userBrief,
+        "",
+        "TARGET SETTINGS:",
+        "- Model/workflow: " + (options.modelLabel || "LTX 2.3"),
+        "- Prompt mode: " + (options.modeLabel || "balanced Hermes video prompt"),
+        "- Duration: " + targetDuration + " seconds exactly",
+        "- Scene count: exactly " + targetScenes + " timestamped scenes/beats",
+        "- HARD LIMIT: final answer must be 5,000 characters or fewer because the LTX prompt field is limited. Aim for 2,800-3,800 characters.",
+        "- Aspect ratio: " + (options.aspectLabel || options.aspectRatio || "16:9"),
+        "- Resolution target: " + (options.resolution || "540p"),
+        "- Output should be one continuous video job/one continuous shot, split by timestamp into different scene beats. Do not write separate render jobs.",
+        "",
+        selectedHints.length ? "OPTIONAL SELECTED IMAGE CONTEXT:\n- " + selectedHints.join("\n- ") : "OPTIONAL SELECTED IMAGE CONTEXT: none; build the prompt fully from the user request.",
+        "",
+        "STYLE RULES:",
+        "- If the user asks for Pixar-style, translate that into: cute high-end 3D animated feature look, expressive appealing character design, soft rounded forms, warm comedic timing, polished animation lighting. Do not rely on a studio name as the only style direction.",
+        "- Make the characters specific and visually distinct. Avoid generic smooth AI faces. Include wardrobe, expressions, body language, props, and environment details.",
+        "- Follow the user's requested story shape exactly. If no story shape is provided, invent a fresh premise with clear setup, escalation, and payoff.",
+        "- Include dialogue, ambient sound, and sound effects that fit each timestamp.",
+        "- Keep it renderable by LTX: concrete motion, camera, lighting, scene continuity, and no impossible rapid cuts.",
+        "",
+        "RETURN ONLY THIS STRUCTURE:",
+        "TITLE:",
+        "LTX2 MASTER PROMPT: [compact paragraph]",
+        "TIMED " + targetDuration + "-SECOND SCRIPT:",
+        ...sceneLines,
+        "CONTINUITY/AUDIO/AVOID: [one compact line]",
+        "",
+        "Do not include markdown tables. Do not explain your process. Do not exceed 5,000 characters.",
+    ].join("\n");
+}
+
+function enforceLtxPromptLimit(text) {
+    const value = String(text || "").trim();
+    if (value.length <= LTX_PROMPT_CHAR_LIMIT) return value;
+    const suffix = "\n\n[Trimmed to fit 5,000 character LTX prompt limit.]";
+    return value.slice(0, LTX_PROMPT_CHAR_LIMIT - suffix.length).trimEnd() + suffix;
+}
+
+function getCustomLtxOutputText() {
+    const outputEl = document.getElementById("video-custom-output");
+    if (!outputEl) return "";
+    if ("value" in outputEl) return String(outputEl.value || "");
+    return String(outputEl.textContent || "");
+}
+
+function setCustomLtxOutputText(text) {
+    const outputEl = document.getElementById("video-custom-output");
+    if (!outputEl) return;
+    if ("value" in outputEl) {
+        outputEl.value = String(text || "");
+    } else {
+        outputEl.textContent = String(text || "");
+    }
+    outputEl.scrollTop = outputEl.scrollHeight;
+}
+
+function selectCustomLtxOutputText() {
+    const outputEl = document.getElementById("video-custom-output");
+    if (!outputEl) return;
+    if (typeof outputEl.select === "function") {
+        outputEl.select();
+        return;
+    }
+    const selection = window.getSelection();
+    const range = document.createRange();
+    range.selectNodeContents(outputEl);
+    selection.removeAllRanges();
+    selection.addRange(range);
+}
+
+function updateCustomLtxPromptCount() {
+    const countEl = document.getElementById("video-custom-count");
+    if (!countEl) return;
+    const count = getCustomLtxOutputText().length;
+    countEl.textContent = count + " / " + LTX_PROMPT_CHAR_LIMIT;
+    countEl.classList.toggle("over", count > LTX_PROMPT_CHAR_LIMIT);
+}
+
+async function generateCustomLtxPrompt() {
+    const briefEl = document.getElementById("video-custom-brief");
+    const outputEl = document.getElementById("video-custom-output");
+    const statusEl = document.getElementById("video-custom-status");
+    const btn = document.getElementById("video-custom-generate-btn");
+    const durationEl = document.getElementById("video-duration-select");
+    const customSettings = getCustomLtxPromptSettings();
+    const brief = (briefEl?.value || "").trim();
+    if (!brief) {
+        if (statusEl) statusEl.textContent = "Enter a prompt request first.";
+        if (briefEl) briefEl.focus();
+        return;
+    }
+
+    if (durationEl) durationEl.value = String(customSettings.duration);
+    syncCustomLtxAspectToVideoOptions();
+    const options = syncVideoQuickOptions();
+    const message = buildCustomLtxPromptInstruction(brief, { ...options, ...customSettings });
+    setCustomLtxOutputText("");
+    if (statusEl) statusEl.textContent = "Hermes generating LTX2 prompt...";
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = "Generating...";
+    }
+
+    try {
+        const resp = await fetch("/api/hermes/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                message,
+                history: customLtxPromptHistory,
+                session_id: customLtxPromptSessionId,
+                max_tokens: 4096,
+                temperature: 0.95,
+            }),
+        });
+        if (!resp.ok) {
+            const body = await resp.text();
+            throw new Error("HTTP " + resp.status + (body ? ": " + body : ""));
+        }
+
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let fullResponse = "";
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n");
+            buffer = lines.pop();
+            for (const line of lines) {
+                if (!line.trim()) continue;
+                try {
+                    const data = JSON.parse(line);
+                    if (data.token) {
+                        fullResponse += data.token;
+                        setCustomLtxOutputText(fullResponse);
+                        updateCustomLtxPromptCount();
+                        if (statusEl) statusEl.textContent = "Hermes streaming...";
+                    }
+                    if (data.done) {
+                        customLtxPromptHistory.push({ role: "user", content: message });
+                        customLtxPromptHistory.push({ role: "assistant", content: fullResponse });
+                        if (customLtxPromptHistory.length > 12) customLtxPromptHistory = customLtxPromptHistory.slice(-12);
+                    }
+                    if (data.error) throw new Error(data.error);
+                } catch (e) {
+                    if (e instanceof SyntaxError) continue;
+                    throw e;
+                }
+            }
+        }
+        if (!fullResponse.trim()) throw new Error("Hermes returned an empty prompt");
+        const limited = enforceLtxPromptLimit(fullResponse);
+        setCustomLtxOutputText(limited);
+        updateCustomLtxPromptCount();
+        if (statusEl) {
+            statusEl.textContent = limited.length < fullResponse.trim().length
+                ? "Prompt ready, trimmed to 5,000 chars."
+                : "Prompt ready. Review, then use.";
+        }
+    } catch (e) {
+        if (statusEl) statusEl.textContent = "Prompt failed: " + (e?.message || e);
+        if (outputEl && !getCustomLtxOutputText()) setCustomLtxOutputText("Prompt generation failed: " + (e?.message || e));
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = "Generate Custom LTX Prompt";
+        }
+    }
+}
+
+function applyCustomLtxPrompt() {
+    const promptEl = document.getElementById("video-prompt");
+    const statusEl = document.getElementById("video-custom-status");
+    const value = getCustomLtxOutputText().trim();
+    if (!value) {
+        if (statusEl) statusEl.textContent = "Generate a prompt before applying it.";
+        return;
+    }
+    if (promptEl) {
+        promptEl.value = value;
+        promptEl.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+    const durationEl = document.getElementById("video-duration-select");
+    const customSettings = getCustomLtxPromptSettings();
+    if (durationEl) durationEl.value = String(customSettings.duration);
+    syncCustomLtxAspectToVideoOptions();
+    syncVideoQuickOptions();
+    if (statusEl) statusEl.textContent = "Moved to Image-to-Video prompt.";
+}
+
+async function copyCustomLtxPrompt() {
+    const statusEl = document.getElementById("video-custom-status");
+    const value = getCustomLtxOutputText().trim();
+    if (!value) {
+        if (statusEl) statusEl.textContent = "Nothing to copy yet.";
+        return;
+    }
+    try {
+        await navigator.clipboard.writeText(value);
+        if (statusEl) statusEl.textContent = "Copied.";
+    } catch (_e) {
+        selectCustomLtxOutputText();
+        if (statusEl) statusEl.textContent = "Selected for copy.";
+    }
 }
 
 function inferImageTargetCount(text, fallback) {
@@ -243,6 +924,7 @@ const $dashboardLeftPane = document.getElementById("dashboard-left-pane");
 // ---------------------------------------------------------------------------
 window.addEventListener("DOMContentLoaded", () => {
     initAdvancedMode();
+    initGuidedTooltips();
     setDefaultVideoWorkflow();
     initVideoQuickOptions();
     switchScriptFlowStep("brief");
@@ -280,7 +962,294 @@ window.addEventListener("DOMContentLoaded", () => {
         if (el) el.addEventListener("input", updateIdentityPreview);
         if (el) el.addEventListener("change", updateIdentityPreview);
     });
+    initProductionPresets();
+    initKeyboardShortcuts();
+    maybeShowOnboarding();
+    refreshSystemReadiness(false);
+    setInterval(() => refreshSystemReadiness(false), 30000);
 });
+
+// ---------------------------------------------------------------------------
+// Polish: readiness, presets, onboarding, shortcuts, toasts
+// ---------------------------------------------------------------------------
+const ONBOARDING_KEY = "cinesmith_onboarding_v1_done";
+
+const IMAGE_PRESETS = [
+    {
+        id: "cinematic",
+        label: "Cinematic still",
+        target: 6,
+        prompt: "A lone astronaut discovers a glowing garden on an alien moon, twin sunsets, anamorphic lens flare, wet rock reflections, ultra detailed practical lighting, 35mm film grain",
+    },
+    {
+        id: "product",
+        label: "Product hero",
+        target: 8,
+        prompt: "Premium matte-black wireless earbuds on dark stone, soft key light, rim light edge, shallow depth of field, luxury ad photography, clean reflections, no text, no logo watermark",
+    },
+    {
+        id: "character",
+        label: "Character sheet",
+        target: 6,
+        prompt: "Character design sheet of a kind 20s travel creator, girl-next-door realism, soft daylight, consistent face and wardrobe across angles, neutral seamless backdrop, production reference quality",
+    },
+    {
+        id: "tiktok",
+        label: "TikTok 9:16",
+        target: 9,
+        prompt: "TikTok vertical 9:16 series of sunlit travel moments with a recurring girl-next-door character, hook-first framing, caption-safe bottom third, warm pastel light, 8-15 second story beats as still keyframes",
+        platform: "tiktok",
+    },
+    {
+        id: "storyboard",
+        label: "Story keyframes",
+        target: 12,
+        prompt: "Twelve cinematic storyboard keyframes for a short film about a courier delivering a glowing package through a rainy neon city, consistent character and costume, sequential coverage, no text overlays",
+    },
+];
+
+const STORY_PRESETS = [
+    {
+        id: "short-film",
+        label: "Short film",
+        brief: "Hermes: produce a 45-second cinematic short — courier races through rainy neon city to deliver a glowing package before midnight. Three-act structure, one hero, strong opening hook, emotional close.",
+    },
+    {
+        id: "product-spot",
+        label: "Product spot",
+        brief: "Hermes: produce a 30-second premium product film for matte-black wireless earbuds. Hero beauty, lifestyle beat, emotional moment, packshot end. Consistent props. No on-screen text.",
+    },
+    {
+        id: "travel-series",
+        label: "Travel series",
+        brief: "Hermes: produce TikTok vertical series (3 beats × ~12s) — girl-next-door traveler finds a hidden coastal village at golden hour. Hook-first, soft pastel light, recurring wardrobe, caption-safe bottom third.",
+    },
+    {
+        id: "micro-drama",
+        label: "Micro drama",
+        brief: "Hermes: produce a 20-second micro-drama — two strangers share an umbrella at a bus stop; one leaves a letter. Naturalistic, tight coverage, warm practicals, emotional final frame.",
+    },
+];
+
+function globalToast(msg, type = "info", ms = 3200) {
+    const host = document.getElementById("global-toast-host");
+    if (!host) {
+        if (typeof showToast === "function") showToast(msg, type);
+        return;
+    }
+    const el = document.createElement("div");
+    el.className = "g-toast " + (type || "info");
+    el.textContent = msg;
+    host.appendChild(el);
+    setTimeout(() => {
+        el.style.opacity = "0";
+        el.style.transition = "opacity .2s";
+        setTimeout(() => el.remove(), 220);
+    }, ms);
+}
+
+function setReadyChip(id, state, label) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.remove("ok", "warn", "bad");
+    if (state) el.classList.add(state);
+    el.innerHTML = "";
+    const d = document.createElement("span");
+    d.className = "dot";
+    el.appendChild(d);
+    el.appendChild(document.createTextNode(label || id));
+}
+
+async function refreshSystemReadiness(manual) {
+    try {
+        const resp = await fetch("/api/system/readiness");
+        if (!resp.ok) throw new Error("HTTP " + resp.status);
+        const data = await resp.json();
+        const checks = data.checks || {};
+        const isoOk = !!(checks.isolation && checks.isolation.ok);
+        const mediaOk = !!(checks.media && checks.media.ok);
+        const sparkOk = !!(checks.spark && checks.spark.ok);
+        const lmOk = !!(checks.lmstudio && checks.lmstudio.ok);
+
+        setReadyChip("ready-isolation", isoOk ? "ok" : "bad", isoOk ? "Hermes isolated" : "Hermes risk");
+        setReadyChip("ready-media", mediaOk ? "ok" : "bad", mediaOk ? "Media ready" : "Media missing");
+        setReadyChip("ready-spark", sparkOk ? "ok" : "warn", sparkOk ? "Spark online" : "Spark offline");
+        setReadyChip("ready-lm", lmOk ? "ok" : "warn", lmOk ? "LM Studio" : "LM offline");
+
+        if (manual) {
+            const status = data.status || "unknown";
+            if (status === "ready") {
+                globalToast("Stack ready for images and video.", "success");
+            } else if (!sparkOk) {
+                globalToast(
+                    (data.hints && data.hints[0]) ||
+                        "Spark offline — set COMFYUI_PRIMARY in Settings, or draft briefs offline.",
+                    "warn",
+                    5200
+                );
+            } else {
+                globalToast(
+                    (data.hints && data.hints[0]) || ("Status: " + status),
+                    "warn"
+                );
+            }
+        }
+        window.__cinesmithReadiness = data;
+        if (window.CinesmithCoach && typeof CinesmithCoach.render === "function") {
+            try {
+                CinesmithCoach.render();
+            } catch (_e) {
+                /* ignore */
+            }
+        }
+        return data;
+    } catch (err) {
+        setReadyChip("ready-isolation", "warn", "Hermes ?");
+        setReadyChip("ready-spark", "warn", "Spark ?");
+        setReadyChip("ready-lm", "warn", "Director ?");
+        setReadyChip("ready-media", "warn", "Media ?");
+        if (manual) globalToast("Could not load readiness: " + (err.message || err), "error");
+        return null;
+    }
+}
+
+function initProductionPresets() {
+    const imageRow = document.getElementById("image-preset-row");
+    if (imageRow && !imageRow.dataset.ready) {
+        IMAGE_PRESETS.forEach((p) => {
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "preset-chip";
+            btn.textContent = p.label;
+            btn.title = p.prompt.slice(0, 140);
+            btn.addEventListener("click", () => applyImagePreset(p));
+            imageRow.appendChild(btn);
+        });
+        imageRow.dataset.ready = "1";
+    }
+    const storyRow = document.getElementById("story-preset-row");
+    if (storyRow && !storyRow.dataset.ready) {
+        STORY_PRESETS.forEach((p) => {
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "preset-chip";
+            btn.textContent = p.label;
+            btn.title = p.brief.slice(0, 140);
+            btn.addEventListener("click", () => applyStoryPreset(p));
+            storyRow.appendChild(btn);
+        });
+        storyRow.dataset.ready = "1";
+    }
+}
+
+function applyImagePreset(preset) {
+    if ($briefInput) {
+        $briefInput.value = preset.prompt;
+        $briefInput.dispatchEvent(new Event("input", { bubbles: true }));
+        $briefInput.focus();
+    }
+    const target = document.getElementById("target-count-input");
+    if (target && preset.target) {
+        target.value = String(preset.target);
+        targetCountManualOverride = true;
+        if (typeof onTargetCountInput === "function") onTargetCountInput();
+        else if (typeof updateTargetCountPill === "function") updateTargetCountPill();
+    }
+    if (preset.platform === "tiktok") {
+        const mode = document.getElementById("platform-mode");
+        if (mode) {
+            mode.value = "tiktok";
+            updatePlatformDetection();
+        }
+    }
+    globalToast("Loaded preset: " + preset.label, "success");
+}
+
+function applyStoryPreset(preset) {
+    const el = document.getElementById("script-brief");
+    if (el) {
+        el.value = preset.brief;
+        el.dispatchEvent(new Event("input", { bubbles: true }));
+        el.focus();
+    }
+    if (typeof updateScriptFlowState === "function") updateScriptFlowState();
+    if (typeof switchScriptFlowStep === "function") switchScriptFlowStep("brief");
+    globalToast("Story brief loaded for Hermes: " + preset.label, "success");
+}
+
+function maybeShowOnboarding() {
+    try {
+        if (localStorage.getItem(ONBOARDING_KEY) === "1") return;
+    } catch (_e) {}
+    const overlay = document.getElementById("cinesmith-onboarding");
+    if (overlay) overlay.classList.add("active");
+}
+
+function dismissOnboarding(persist) {
+    const overlay = document.getElementById("cinesmith-onboarding");
+    if (overlay) overlay.classList.remove("active");
+    if (persist) {
+        try { localStorage.setItem(ONBOARDING_KEY, "1"); } catch (_e) {}
+    }
+}
+
+function finishOnboardingGoSettings() {
+    dismissOnboarding(true);
+    switchPage("settings-view");
+    globalToast("Connect Spark + Director, then Save All.", "info");
+}
+
+function initKeyboardShortcuts() {
+    document.addEventListener("keydown", (event) => {
+        const tag = (event.target && event.target.tagName) || "";
+        const typing = tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || event.target?.isContentEditable;
+
+        if (event.key === "Escape") {
+            dismissOnboarding(false);
+            const help = document.getElementById("keyboard-help");
+            if (help) help.classList.remove("active");
+            return;
+        }
+
+        if (event.key === "?" && !event.metaKey && !event.ctrlKey && !typing) {
+            event.preventDefault();
+            const help = document.getElementById("keyboard-help");
+            if (help) help.classList.toggle("active");
+            return;
+        }
+
+        if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+            const active = document.querySelector(".page-view.active");
+            if (active && active.id === "main") {
+                event.preventDefault();
+                if (!campaignActive) runCampaign();
+                return;
+            }
+            if (active && active.classList.contains("script-view")) {
+                event.preventDefault();
+                if (typeof runScriptPipeline === "function") runScriptPipeline();
+                return;
+            }
+        }
+
+        if (typing) return;
+        const pageMap = {
+            "1": "create-view",
+            "2": "dashboard-view",
+            "3": "spark-view",
+            "4": "identity-view",
+            "5": "script-view",
+            "6": "products-view",
+            "7": "settings-view",
+            "8": "memory-view",
+        };
+        if (pageMap[event.key]) {
+            event.preventDefault();
+            switchPage(pageMap[event.key]);
+            if (pageMap[event.key] === "memory-view" && typeof loadMemoryTab === "function") loadMemoryTab();
+        }
+    });
+}
 
 function id(s) { return document.getElementById(s); }
 
@@ -297,9 +1266,9 @@ function initPlatformControls() {
 
 async function updatePlatformDetection() {
     const brief = ($briefInput?.value || "").trim();
-    const mode = document.getElementById("platform-mode")?.value || "auto";
-    const seriesEl = document.getElementById("series-continuity");
-    const seriesContinuity = seriesEl?.checked ? true : null;
+    const effective = getEffectiveModeState();
+    const mode = effective.platform.mode || "auto";
+    const seriesContinuity = effective.platform.seriesContinuity;
     const pill = document.getElementById("platform-status-pill");
     if (!pill) return;
     if (!brief && mode === "auto") {
@@ -318,7 +1287,7 @@ async function updatePlatformDetection() {
         const data = await resp.json();
         currentPlatformSkill = data.platform || { active: false, id: "", label: "No platform skill", constraints: {} };
         renderPlatformPill(currentPlatformSkill);
-        if (currentPlatformSkill.active && currentPlatformSkill.constraints) {
+        if (effective.advanced && currentPlatformSkill.active && currentPlatformSkill.constraints) {
             const vd = document.getElementById("video-duration");
             const vds = document.getElementById("video-duration-select");
             if (vd && Number(vd.value || 0) < Number(currentPlatformSkill.constraints.duration_min_sec || 8)) {
@@ -823,7 +1792,7 @@ async function refreshShotViews() {
 }
 
 async function refreshPhotos() {
-    const campaignId = (document.getElementById("filter-campaign-id")?.value || "").trim();
+    const campaignId = getEffectiveModeState().filters.campaignId;
     if (campaignId) {
         try {
             const resp = await fetch("/api/comfy/recover-history", {
@@ -844,13 +1813,61 @@ async function refreshPhotos() {
     await refreshShotViews();
 }
 
+function clearHiddenSimpleModeFilters() {
+    if (isAdvancedMode()) return false;
+    const ids = [
+        "filter-rendered-only",
+        "filter-failed-only",
+        "filter-passed-only",
+        "filter-retries-only",
+        "filter-imported-only",
+    ];
+    let changed = false;
+    const campaignEl = document.getElementById("filter-campaign-id");
+    if (campaignEl && campaignEl.value) {
+        campaignEl.value = "";
+        changed = true;
+    }
+    ids.forEach((id) => {
+        const el = document.getElementById(id);
+        if (el?.checked) {
+            el.checked = false;
+            changed = true;
+        }
+    });
+    if (changed) {
+        currentCampaignId = "";
+        renderSimpleFilterChip("Filters cleared for Simple Mode.");
+    } else {
+        renderSimpleFilterChip("Simple Mode: filters off.");
+    }
+    return changed;
+}
+
+function renderSimpleFilterChip(text) {
+    let chip = document.getElementById("simple-filter-chip");
+    if (!chip) {
+        const host = document.querySelector(".dashboard-right-pane") || document.querySelector(".dashboard-workspace");
+        if (!host) return;
+        chip = document.createElement("div");
+        chip.id = "simple-filter-chip";
+        chip.className = "simple-filter-chip";
+        host.insertBefore(chip, host.firstChild);
+    }
+    const show = !isAdvancedMode() && !!text;
+    chip.textContent = text || "";
+    chip.style.display = show ? "inline-flex" : "none";
+}
+
 function syncShotFiltersFromControls() {
-    shotFilters.campaignId = (document.getElementById("filter-campaign-id")?.value || "").trim();
-    shotFilters.renderedOnly = !!document.getElementById("filter-rendered-only")?.checked;
-    shotFilters.failedOnly = !!document.getElementById("filter-failed-only")?.checked;
-    shotFilters.passedOnly = !!document.getElementById("filter-passed-only")?.checked;
-    shotFilters.retriesOnly = !!document.getElementById("filter-retries-only")?.checked;
-    shotFilters.importedOnly = !!document.getElementById("filter-imported-only")?.checked;
+    const effective = getEffectiveModeState();
+    if (!effective.advanced) clearHiddenSimpleModeFilters();
+    shotFilters.campaignId = effective.filters.campaignId;
+    shotFilters.renderedOnly = effective.filters.renderedOnly;
+    shotFilters.failedOnly = effective.filters.failedOnly;
+    shotFilters.passedOnly = effective.filters.passedOnly;
+    shotFilters.retriesOnly = effective.filters.retriesOnly;
+    shotFilters.importedOnly = effective.filters.importedOnly;
 }
 
 function scheduleCampaignMediaRefresh() {
@@ -929,6 +1946,9 @@ function initVideoResizer() {
 
 function applyShotFilters() {
     syncShotFiltersFromControls();
+    if (!isAdvancedMode()) {
+        setVisibleActionStatus("system", "Simple Mode is showing unfiltered media.", "images");
+    }
     loadShots();
     loadVideoLibrary();
 }
@@ -1000,6 +2020,9 @@ function switchPage(pageClass) {
     }
     if (pageClass === "memory-view") {
         loadMemoryTab();
+    }
+    if (pageClass === "create-view" && window.CinesmithProduct && typeof window.CinesmithProduct.init === "function") {
+        window.CinesmithProduct.init();
     }
 }
 
@@ -2135,6 +3158,11 @@ function scriptInputValue(idName, fallback) {
 }
 
 function currentScriptProjectPayload(status) {
+    const seriesTitle = scriptInputValue("script-series-title", "");
+    const seriesIdEl = document.getElementById("script-series-id");
+    const seriesId = ((seriesIdEl && seriesIdEl.value) || "").trim();
+    const epRaw = scriptInputValue("script-episode-number", "0");
+    const epNum = parseInt(epRaw, 10);
     return {
         script_id: currentScriptProjectId || scriptInputValue("script-project-id", ""),
         title: scriptInputValue("script-title", ""),
@@ -2149,6 +3177,11 @@ function currentScriptProjectPayload(status) {
         storyboard_panel_jobs: storyboardPanelJobs || {},
         video_shots: scriptVideoShots,
         status: status || "draft",
+        series_id: seriesId,
+        series_title: seriesTitle,
+        episode_number: Number.isFinite(epNum) ? epNum : 0,
+        episode_title: scriptInputValue("script-episode-title", ""),
+        series_continuity: !!(seriesTitle || seriesId),
     };
 }
 
@@ -2157,11 +3190,19 @@ function renderScriptProjectList() {
     if (!list) return;
     if (!scriptProjects.length) {
         list.innerHTML = '<div class="script-empty-mini">No saved scripts yet.</div>';
+        renderScriptSeriesList([]);
         return;
     }
     list.innerHTML = scriptProjects.map((project) => {
         const active = project.script_id === currentScriptProjectId ? " active" : "";
+        const seriesBits = [];
+        if (project.series_title || project.series_id) {
+            seriesBits.push(project.series_title || project.series_id);
+            if (project.episode_number) seriesBits.push("Ep " + project.episode_number);
+            if (project.episode_title) seriesBits.push(project.episode_title);
+        }
         const counts = [
+            seriesBits.length ? seriesBits.join(" · ") : "",
             project.has_package ? "script" : "",
             project.coverage_count ? project.coverage_count + " shots" : "",
             project.storyboard_count ? project.storyboard_count + " panels" : "",
@@ -2174,6 +3215,52 @@ function renderScriptProjectList() {
             '</button>'
         );
     }).join("");
+    renderScriptSeriesList(window.scriptSeriesGroups || []);
+}
+
+function renderScriptSeriesList(groups) {
+    const host = document.getElementById("script-series-list");
+    if (!host) return;
+    const list = Array.isArray(groups) ? groups.filter((g) => g && g.series_id) : [];
+    if (!list.length) {
+        host.innerHTML = "";
+        return;
+    }
+    host.innerHTML =
+        '<div class="script-series-heading t-meta">Series</div>' +
+        list
+            .map((g) => {
+                const eps = Array.isArray(g.episodes) ? g.episodes : [];
+                const epLinks = eps
+                    .map((ep) => {
+                        const label =
+                            (ep.episode_number ? "Ep " + ep.episode_number + " " : "") +
+                            (ep.episode_title || ep.title || ep.script_id || "");
+                        return (
+                            '<button type="button" class="chip script-series-ep' +
+                            (ep.script_id === currentScriptProjectId ? " active" : "") +
+                            '" onclick="loadScriptProject(\'' +
+                            escapeHtml(ep.script_id || "") +
+                            "')\">" +
+                            escapeHtml(label.trim()) +
+                            "</button>"
+                        );
+                    })
+                    .join("");
+                return (
+                    '<div class="script-series-group">' +
+                    "<strong>" +
+                    escapeHtml(g.series_title || g.series_id) +
+                    "</strong>" +
+                    '<span class="t-meta"> ' +
+                    (g.episode_count || eps.length) +
+                    " ep</span>" +
+                    '<div class="script-series-eps">' +
+                    epLinks +
+                    "</div></div>"
+                );
+            })
+            .join("");
 }
 
 async function loadScriptProjects() {
@@ -2182,10 +3269,70 @@ async function loadScriptProjects() {
         const data = await resp.json();
         if (!resp.ok || data.status !== "ok") throw new Error(data.detail || data.error || "project load failed");
         scriptProjects = Array.isArray(data.projects) ? data.projects : [];
+        window.scriptSeriesGroups = Array.isArray(data.series) ? data.series : [];
         renderScriptProjectList();
         updateScriptFlowState();
     } catch (e) {
         addLogEntry("warning", "Script project list unavailable: " + (e?.message || e));
+    }
+}
+
+async function createNextSeriesEpisode() {
+    try {
+        const sourceId = currentScriptProjectId || scriptInputValue("script-project-id", "");
+        const seriesTitle = scriptInputValue("script-series-title", "");
+        const seriesId = (document.getElementById("script-series-id") || {}).value || "";
+        if (!sourceId && !seriesTitle && !seriesId) {
+            if (typeof globalToast === "function") {
+                globalToast("Set a Series name or load a project first", "warn");
+            } else {
+                addLogEntry("warning", "Set a Series name or load a project first");
+            }
+            return;
+        }
+        // Persist current brief first so series_title is on disk
+        if (typeof saveScriptProject === "function" && (sourceId || seriesTitle)) {
+            try {
+                await saveScriptProject();
+            } catch (_e) {
+                /* continue */
+            }
+        }
+        const resp = await fetch("/api/script/series/new-episode", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                source_script_id: currentScriptProjectId || sourceId,
+                series_id: seriesId,
+                series_title: seriesTitle,
+                episode_title: "",
+                copy_brief: true,
+            }),
+        });
+        const data = await resp.json();
+        if (!resp.ok || data.status !== "ok") {
+            throw new Error(data.detail || data.error || "new episode failed");
+        }
+        if (data.project) {
+            applyLoadedScriptProject(data.project);
+        }
+        await loadScriptProjects();
+        if (typeof globalToast === "function") {
+            globalToast(
+                "Episode " + (data.episode_number || "") + " created in series",
+                "success"
+            );
+        }
+        addLogEntry(
+            "info",
+            "New series episode: " +
+                (data.project && data.project.title ? data.project.title : data.episode_number)
+        );
+    } catch (e) {
+        addLogEntry("error", "New episode failed: " + (e?.message || e));
+        if (typeof globalToast === "function") {
+            globalToast("New episode failed: " + (e?.message || e), "error");
+        }
     }
 }
 
@@ -2202,6 +3349,10 @@ function applyLoadedScriptProject(project) {
     setValue("script-tone", project.tone || "");
     setValue("script-runtime", project.runtime_seconds || 60);
     setValue("script-scenes", project.target_scenes || 4);
+    setValue("script-series-title", project.series_title || "");
+    setValue("script-series-id", project.series_id || "");
+    setValue("script-episode-number", project.episode_number || 0);
+    setValue("script-episode-title", project.episode_title || "");
     const hookEl = document.getElementById("script-hook-first-dialogue");
     if (hookEl) hookEl.checked = project.hook_first_dialogue !== false;
     if ($scriptBrief) $scriptBrief.value = project.brief || "";
@@ -2238,7 +3389,7 @@ function applyLoadedScriptProject(project) {
     renderScriptProjectList();
     updateScriptFlowState();
     loadedScriptProjectFingerprint = scriptProjectInputFingerprint();
-    setScriptStatus("Loaded script project: " + (project.title || currentScriptProjectId), project.status || "");
+    setScriptStatus("Loaded story project: " + (project.title || currentScriptProjectId), project.status || "");
 }
 
 async function loadScriptProject(scriptId) {
@@ -2270,7 +3421,7 @@ async function saveScriptProject(status) {
         if (!resp.ok || data.status !== "ok") throw new Error(data.detail || data.error || "save failed");
         applyLoadedScriptProject(data.project || {});
         await loadScriptProjects();
-        setScriptStatus("Saved script project.", data.project?.script_id || "");
+        setScriptStatus("Saved story project.", data.project?.script_id || "");
         return data.project;
     } catch (e) {
         setScriptStatus("Save failed: " + (e?.message || e), "");
@@ -2344,9 +3495,9 @@ function friendlyScriptPipelineError(job) {
     const lastError = logs.slice().reverse().find((entry) => String(entry.level || "").toLowerCase() === "error");
     const raw = String(job.error || lastError?.message || "").trim();
     const lower = raw.toLowerCase();
-    if (!raw) return "The pipeline stopped. Check Settings, then press Generate Videos again.";
+    if (!raw) return "Hermes production stopped. Check Settings, then produce with Hermes again.";
     if (lower.includes("no models loaded")) {
-        return "Local LM Studio Director has no model loaded. Load the Director model in Settings, then press Generate Videos again.";
+        return "Local LM Studio Director has no model loaded. Load the Director model in Settings, then produce with Hermes again.";
     }
     if (lower.includes("end of life") || lower.includes("reached its end of life")) {
         return "The selected NVIDIA Director model is no longer available. Pick a current Director model or switch to local LM Studio, then retry.";
@@ -2366,9 +3517,9 @@ function scriptPipelineStatusDetail(job) {
     const phase = String(job.phase || "").toLowerCase();
     const logs = Array.isArray(job.logs) ? job.logs : [];
     if (status === "queued") return "Queued. The app will run script, coverage, storyboard, start frames, then videos automatically.";
-    if (status === "complete") return "Done. Open the Videos step in Script Studio to review the generated shot clips.";
+    if (status === "complete") return "Done. Open the Videos step in Stories to review the generated clips.";
     if (status !== "running") return "";
-    if (phase === "script") return "Writing the locked script package from your brief.";
+    if (phase === "script") return "Hermes is locking the narrative package from your brief.";
     if (phase === "coverage") return "Breaking the script into production shots.";
     if (phase === "storyboard") return "Building the storyboard plan from the shot list.";
     if (phase === "frames") {
@@ -2393,8 +3544,8 @@ function renderScriptVideoOutputs(shots) {
         const readyFrames = frameJobs.filter((job) => job.url).length;
         const expectedFrames = frameJobs.length || Number(storyboardPlan?.panel_count || 0);
         const message = expectedFrames
-            ? "No video-ready shot records yet. Start frames ready: " + readyFrames + " / " + expectedFrames + ". Press Generate Videos to resume the full pipeline."
-            : "No generated start frames or videos yet. Enter a brief and press Generate Videos.";
+            ? "No video-ready shot records yet. Start frames ready: " + readyFrames + " / " + expectedFrames + ". Produce with Hermes to resume story production."
+            : "No generated start frames or videos yet. Enter a brief and produce with Hermes.";
         target.innerHTML = '<div class="script-empty-shot"><p>' + escapeHtml(message) + '</p></div>';
         return;
     }
@@ -2512,7 +3663,7 @@ async function runScriptPipeline() {
     } finally {
         if (btn) {
             btn.disabled = false;
-            btn.textContent = "Generate Videos";
+            btn.textContent = "Produce with Hermes";
         }
     }
 }
@@ -2563,10 +3714,10 @@ function updateScriptVideoHandoff() {
                 : selected
                     ? "The pipeline can use these start frames to generate individual LTX clips."
                     : boards
-                        ? "Press Generate Videos to render missing start frames, export shot records, and queue individual clips."
+                        ? "Produce with Hermes to render missing start frames and queue individual clips."
                         : shots
                             ? "Run the pipeline to turn coverage into storyboard frames and videos."
-                            : "Enter a short prompt, then click Generate Videos.";
+                            : "Enter a short brief, then produce with Hermes.";
     }
 }
 
@@ -2586,7 +3737,7 @@ function updateCoverageSourceState() {
         sourceEl.classList.remove("ready");
         sourceEl.innerHTML =
             '<strong>No locked package loaded.</strong>' +
-            'Build or load a script package before generating coverage.';
+            'Let Hermes build a narrative package (or load a project) before coverage.';
         if (btn) btn.disabled = false;
         return;
     }
@@ -2938,7 +4089,7 @@ async function generateStoryboard(options = {}) {
     const sourceText = getStoryboardSourceText();
     const sourcePackage = getStoryboardSourcePackage();
     if (!sourceText) {
-        setScriptStatus("Enter a script or develop a script package before storyboarding.", "");
+        setScriptStatus("Enter a brief or let Hermes build a narrative package before storyboarding.", "");
         return;
     }
     const btn = document.getElementById("generate-storyboard-btn");
@@ -3416,7 +4567,7 @@ async function developScriptPackage(options = {}) {
     refreshScriptDomRefs();
     const brief = ($scriptBrief?.value || "").trim();
     if (!brief) {
-        setScriptStatus("Enter a brief before developing the script package.", "");
+        setScriptStatus("Enter a brief before Hermes builds the narrative package.", "");
         return;
     }
     const btn = document.getElementById("develop-script-btn");
@@ -3424,7 +4575,7 @@ async function developScriptPackage(options = {}) {
         btn.disabled = true;
         btn.textContent = "Developing...";
     }
-    setScriptStatus("Hermes is building the internal script package...", "Package");
+    setScriptStatus("Hermes is locking the narrative package...", "Package");
     try {
         const resp = await fetch("/api/script/develop", {
             method: "POST",
@@ -3439,7 +4590,7 @@ async function developScriptPackage(options = {}) {
         });
         const data = await resp.json();
         if (!resp.ok || !data.package) {
-            throw new Error(data.detail || data.error || "script package failed");
+            throw new Error(data.detail || data.error || "narrative package failed");
         }
         scriptPackage = data.package;
         renderScriptPackage(scriptPackage);
@@ -3504,7 +4655,7 @@ async function generateShotList(options = {}) {
     updateCoverageSourceState();
     const brief = scriptPackageShotlistBrief();
     if (!brief) {
-        setScriptStatus("Develop a script package or enter a brief first.", "");
+        setScriptStatus("Produce a narrative package or enter a brief first.", "");
         return;
     }
 
@@ -3840,6 +4991,7 @@ let __profileLogQueueTimer = null;
 function addLogEntry(type, text) {
     if (!$log) {
         console.log("[" + type + "] " + text);
+        if (type === "error" || type === "warning") setVisibleActionStatus(type, text);
         return;
     }
     const ts = new Date().toLocaleTimeString("en-US", { hour12: false });
@@ -3879,6 +5031,7 @@ function addLogEntry(type, text) {
 
     $log.appendChild(row);
     $log.scrollTop = $log.scrollHeight;
+    if (type === "error" || type === "warning") setVisibleActionStatus(type, text);
 }
 
 function addQueuedProfileLogEntry(type, text) {
@@ -3916,43 +5069,88 @@ function setCampaignStatus(role, message, meta, state) {
     if (state) $campaignStatusBox.classList.add(state);
 }
 
+function setVisibleActionStatus(type, text, scope = "auto") {
+    const message = String(text || "").trim();
+    if (!message) return;
+    const isError = type === "error";
+    const isWarning = type === "warning";
+    if ((scope === "auto" || scope === "images") && $campaignStatusBox) {
+        setCampaignStatus(isError ? "Error" : (isWarning ? "Warning" : "Status"), message, scope === "images" ? "images" : "action", isError ? "error" : (isWarning ? "error" : "running"));
+    }
+    if ((scope === "auto" || scope === "videos") && $sparkStatusText) {
+        $sparkStatusText.textContent = message;
+    }
+}
+
 function campaignStatusFromEvent(event) {
     const type = event.type || "";
     const text = event.text || "";
     const shotId = event.shot_id || "";
     const elapsed = event.elapsed_ms !== undefined ? String(event.elapsed_ms) + "ms" : "";
+    // Approximate pipeline progress for creator confidence (not exact job %).
+    const STAGE_PCT = {
+        profile: "5%",
+        kimi: "15%",
+        kimi_raw: "20%",
+        kimi_plan: "30%",
+        kimi_review: "40%",
+        hermes: "50%",
+        compiler: "55%",
+        compile_errors: "58%",
+        spark: "75%",
+        audit: "90%",
+        memory: "95%",
+        remediation: "70%",
+        done: "100%",
+    };
+    const pct = STAGE_PCT[type] || "";
+    const withPct = (meta) => (pct ? (meta ? meta + " · " + pct : pct) : (meta || ""));
     switch (type) {
         case "profile":
-            return ["Agent", text || "Profile online", elapsed || "profile", "running"];
+            return ["Agent", text || "Profile online", withPct(elapsed || "profile"), "running"];
         case "pipeline_timing":
-            return ["Timing", event.stage || "pipeline", elapsed, "running"];
+            return ["Timing", event.stage || "pipeline", withPct(elapsed), "running"];
         case "kimi":
-            return [event.role_label || "Director", text || "Planning...", shotId || "director", "running"];
+            return [event.role_label || "Director", text || "Planning...", withPct(shotId || "director"), "running"];
         case "kimi_raw":
-            return [event.role_label || "Director", "Director plan received.", event.campaign_id || "raw", "running"];
+            return [event.role_label || "Director", "Director plan received.", withPct(event.campaign_id || "raw"), "running"];
         case "kimi_plan":
-            return [event.role_label || "Director", text || ("Structured plan received (" + (event.count || 0) + " / " + (event.target_shots || event.count || 0) + " shots)"), "plan", "running"];
+            return [event.role_label || "Director", text || ("Structured plan received (" + (event.count || 0) + " / " + (event.target_shots || event.count || 0) + " shots)"), withPct("plan"), "running"];
         case "kimi_review":
-            return [event.role_label || "Coverage Critic", "Coverage review score " + (event.score !== undefined ? event.score : "n/a"), event.status || "review", "running"];
+            return [event.role_label || "Coverage Critic", "Coverage review score " + (event.score !== undefined ? event.score : "n/a"), withPct(event.status || "review"), "running"];
         case "hermes":
-            return ["Hermes", text || "Working...", shotId || "brain", "running"];
+            return ["Hermes", text || "Working...", withPct(shotId || "brain"), "running"];
         case "compiler":
-            return ["Hermes", text || "Compiling prompt...", shotId || "compiler", "running"];
+            return ["Hermes", text || "Compiling prompts…", withPct(shotId || "compiler"), "running"];
+        case "compile_errors":
+            return [
+                "Hermes",
+                text || ((event.failed_count || 0) + " compile failure(s)"),
+                withPct(shotId || "compile errors"),
+                "error",
+            ];
         case "spark":
-            return ["Spark", text || "Rendering...", event.prompt_id || event.status || "render", "running"];
+            return ["Spark", text || "Rendering...", withPct(event.prompt_id || event.status || "render"), "running"];
         case "audit":
         case "memory":
-            return ["Memory", text || "Writing result...", shotId || "audit", "running"];
+            return ["Memory", text || "Writing result...", withPct(shotId || "audit"), "running"];
         case "remediation":
-            return ["Hermes", text || "Remediating...", shotId || "retry", "running"];
+            return ["Hermes", text || "Remediating...", withPct(shotId || "retry"), "running"];
         case "warning":
-            return ["Warning", text || "Warning", elapsed, "running"];
-        case "error":
-            return ["Error", text || "Pipeline error", shotId || "failed", "error"];
+            return ["Warning", text || "Warning", withPct(elapsed), "running"];
+        case "error": {
+            const stage = event.stage ? String(event.stage) : "";
+            const meta = [shotId || "failed", stage].filter(Boolean).join(" · ");
+            const errText = event.message || text || "Pipeline error";
+            return ["Error", errText, withPct(meta), "error"];
+        }
         case "done":
-            return ["Pipeline", text || "Done.", event.shots ? String(event.shots.length) + " shots" : "done", "done"];
+            if (typeof globalToast === "function") {
+                globalToast(text || ("Campaign complete" + (event.shots ? " · " + event.shots.length + " shots" : "")), "success");
+            }
+            return ["Hermes", text || "Done.", withPct(event.shots ? String(event.shots.length) + " shots" : "done"), "done"];
         default:
-            return ["Pipeline", text || type || "Working...", elapsed, "running"];
+            return ["Hermes", text || type || "Working...", withPct(elapsed), "running"];
     }
 }
 
@@ -3969,17 +5167,20 @@ async function runCampaign() {
     const brief = $briefInput.value.trim();
     if (!brief) {
         addLogEntry("error", "Please enter a prompt");
+        setCampaignStatus("Error", "Enter a prompt before generating images.", "prompt required", "error");
+        if ($briefInput) $briefInput.focus();
         return;
     }
     await updatePlatformDetection();
+    const effective = getEffectiveModeState();
 
-    const length = $lengthSelect ? $lengthSelect.value : "";
+    const length = effective.images.length || "";
     const targetShots = updateTargetCountPill();
-    const klein = document.getElementById("model-klein")?.checked;
-    const flux2 = document.getElementById("model-flux2")?.checked;
-    const turbo = flux2 && !!document.getElementById("model-turbo")?.checked;
-    const appendToCampaign = !!document.getElementById("append-campaign")?.checked;
-    const selectedCampaignId = (document.getElementById("filter-campaign-id")?.value || "").trim();
+    const klein = effective.images.klein;
+    const flux2 = effective.images.flux2;
+    const turbo = effective.images.turbo;
+    const appendToCampaign = effective.images.appendToCampaign;
+    const selectedCampaignId = effective.images.selectedCampaignId || "";
     const workflowMap = {
         flux2: {
             standard: "01_flux2_text_to_image",
@@ -3991,8 +5192,8 @@ async function runCampaign() {
     if (klein) workflow_ids.push(workflowMap.klein);
     if (flux2) workflow_ids.push(turbo ? workflowMap.flux2.turbo : workflowMap.flux2.standard);
     if (turbo) addLogEntry("system", "Turbo mode enabled for Flux2.Dev.");
-    const platformMode = document.getElementById("platform-mode")?.value || "auto";
-    const seriesContinuity = !!document.getElementById("series-continuity")?.checked;
+    const platformMode = effective.platform.mode || "auto";
+    const seriesContinuity = effective.platform.seriesContinuity;
     if (currentPlatformSkill && currentPlatformSkill.active) {
         addLogEntry("system", "Platform skill active: " + (currentPlatformSkill.summary || currentPlatformSkill.label || "TikTok vertical"));
     }
@@ -4000,10 +5201,12 @@ async function runCampaign() {
     const dedupedWorkflows = [...new Set(workflow_ids)];
     if (!dedupedWorkflows.length) {
         addLogEntry("error", "Select at least one base model: Flux2 Klein and/or Flux2.Dev");
+        setCampaignStatus("Error", "Select at least one image model.", "model required", "error");
         return;
     }
     if (appendToCampaign && !selectedCampaignId) {
         addLogEntry("error", "Append is enabled, but no campaign is selected. Pick a campaign in the sidebar or disable append.");
+        setCampaignStatus("Error", "Append needs a selected campaign.", "pick campaign", "error");
         return;
     }
     const identity_pack = getIdentityPackFromUI();
@@ -4014,9 +5217,22 @@ async function runCampaign() {
     campaignAbortController = new AbortController();
     const $cancelBtn = document.getElementById("cancel-campaign-btn");
     if ($cancelBtn) $cancelBtn.style.display = "inline-flex";
+    if (window.CinesmithCampaignErrors && typeof CinesmithCampaignErrors.reset === "function") {
+        CinesmithCampaignErrors.reset();
+    }
 
     addLogEntry("system", "Campaign started: target " + targetShots + " image" + (targetShots === 1 ? "" : "s") + " / " + brief);
-    setCampaignStatus("Pipeline", "Target: " + targetShots + " image" + (targetShots === 1 ? "" : "s"), "opening stream", "running");
+    setCampaignStatus("Hermes", "Target: " + targetShots + " image" + (targetShots === 1 ? "" : "s"), "opening stream", "running");
+    if (window.CinesmithAgency && CinesmithAgency.setTimeline) {
+        CinesmithAgency.setTimeline({
+            active: true,
+            mode: "images",
+            stage: "brief",
+            message: "Opening live campaign stream…",
+            progress: 5,
+            events: [],
+        });
+    }
 
     try {
         const resp = await fetch("/api/hermes/run-campaign", {
@@ -4090,15 +5306,15 @@ async function runCampaign() {
                     clearInterval(campaignRecoveryTimer);
                     campaignRecoveryTimer = null;
                     addLogEntry("system", "Recovery refresh complete.");
-                    setCampaignStatus("Pipeline", "Recovery refresh complete.", "done", "done");
+                    setCampaignStatus("Hermes", "Recovery refresh complete.", "done", "done");
                 }
             }, 5000);
         } else {
-            setCampaignStatus("Pipeline", "Campaign cancelled.", "cancelled", "done");
+            setCampaignStatus("Hermes", "Campaign cancelled.", "cancelled", "done");
         }
     } finally {
         $runBtn.disabled = false;
-        $runBtn.textContent = "Generate Images";
+        $runBtn.textContent = "Run with Hermes";
         campaignActive = false;
         campaignAbortController = null;
         const $cancelBtn = document.getElementById("cancel-campaign-btn");
@@ -4152,6 +5368,12 @@ function handleCampaignEvent(event) {
             addLogEntry("hermes", "[compiler] " + text);
             break;
 
+        case "compile_errors": {
+            const n = event.failed_count != null ? event.failed_count : (Array.isArray(event.errors) ? event.errors.length : 0);
+            addLogEntry("error", text || (n + " shot compile(s) failed — see failed shots list for retry hints."));
+            break;
+        }
+
         case "platform_skill":
             currentPlatformSkill = event.platform || currentPlatformSkill;
             renderPlatformPill(currentPlatformSkill);
@@ -4180,9 +5402,16 @@ function handleCampaignEvent(event) {
             addLogEntry("memory", text);
             break;
 
-        case "error":
-            addLogEntry("error", text);
+        case "error": {
+            const bits = [];
+            if (shotId) bits.push(shotId);
+            if (event.stage) bits.push("[" + event.stage + "]");
+            const head = bits.length ? bits.join(" ") + " " : "";
+            const body = event.message || text || "Pipeline error";
+            const hint = event.hint ? " — " + event.hint : "";
+            addLogEntry("error", head + body + hint);
             break;
+        }
 
         case "warning":
             addLogEntry("system", "Warning: " + text);
@@ -4291,6 +5520,163 @@ async function sendChat() {
     }
 }
 
+function creatorHermesPromptFor(action) {
+    const prompt = ($briefInput?.value || "").trim();
+    const targetInput = document.getElementById("target-count-input");
+    const target = clampImageTargetCount(targetInput?.value || 5, 5);
+    const context = prompt
+        ? 'Current Images prompt:\n"' + prompt + '"\n\nTarget image count: ' + target + "."
+        : "No Images prompt has been written yet.";
+    const requests = {
+        improve: "Rewrite the current Images prompt so it is more specific, more visually grounded, and less generic. Keep it practical for Flux/ComfyUI image generation. Include one final prompt I can paste back into the prompt box.",
+        ideas: "Give me 6 strong visual campaign ideas based on the current prompt context. Make them concrete, varied, and immediately usable for image generation.",
+        variations: "Suggest 8 distinct prompt variations. Vary subject, camera, lighting, setting, wardrobe, composition, and mood without making everything look the same.",
+        workflow: "Tell me the best next step in this app. Should I generate images, revise the prompt, create characters, make a script/storyboard, or move selected images to video? Give a short action plan.",
+    };
+    return context + "\n\n" + (requests[action] || "Help me improve this idea and prompt for the next generation run.");
+}
+
+function askHermesPromptCoach(action) {
+    sendCreatorHermesChat(creatorHermesPromptFor(action));
+}
+
+function addCreatorHermesEntry(agent, text) {
+    const log = document.getElementById("creator-hermes-log");
+    if (!log) return null;
+    const empty = log.querySelector(".creator-hermes-empty");
+    if (empty) empty.remove();
+
+    const row = document.createElement("div");
+    const kind = agent === "You" ? "user" : (agent === "Error" ? "error" : "hermes");
+    row.className = "creator-hermes-row " + kind;
+
+    const label = document.createElement("div");
+    label.className = "creator-hermes-agent";
+    label.textContent = agent;
+    row.appendChild(label);
+
+    const bubble = document.createElement("div");
+    bubble.className = "creator-hermes-bubble";
+    bubble.textContent = text || "";
+    row.appendChild(bubble);
+
+    log.appendChild(row);
+    log.scrollTop = log.scrollHeight;
+    return bubble;
+}
+
+function setCreatorHermesThinking(active, bubble) {
+    const status = document.getElementById("creator-hermes-status");
+    if (status) {
+        status.classList.toggle("thinking", Boolean(active));
+        status.textContent = active ? "Thinking" : "Ready";
+    }
+    if (bubble) {
+        bubble.classList.toggle("thinking", Boolean(active));
+        if (active && !bubble.textContent.trim()) bubble.textContent = "Thinking";
+    }
+}
+
+async function sendCreatorHermesChat(forcedMessage) {
+    const input = document.getElementById("creator-hermes-input");
+    const status = document.getElementById("creator-hermes-status");
+    const btn = document.getElementById("creator-hermes-send-btn");
+    const typed = (input?.value || "").trim();
+    const msg = String(forcedMessage || typed || "").trim();
+    if (!msg) return;
+
+    if (input && !forcedMessage) input.value = "";
+    if (status) status.textContent = "Thinking...";
+    if (btn) btn.disabled = true;
+
+    const visibleUserText = forcedMessage ? quickHermesLabel(forcedMessage) : msg;
+    addCreatorHermesEntry("You", visibleUserText);
+    const hermesBubble = addCreatorHermesEntry("Hermes", "");
+    setCreatorHermesThinking(true, hermesBubble);
+
+    try {
+        const resp = await fetch("/api/hermes/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                message: msg,
+                history: creatorHermesHistory,
+                session_id: creatorHermesSessionId,
+            }),
+        });
+
+        if (!resp.ok) {
+            const body = await resp.text();
+            throw new Error("HTTP " + resp.status + (body ? ": " + body : ""));
+        }
+
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let fullResponse = "";
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n");
+            buffer = lines.pop();
+
+            for (const line of lines) {
+                if (!line.trim()) continue;
+                try {
+                    const data = JSON.parse(line);
+                    if (data.token) {
+                        if (hermesBubble?.classList.contains("thinking")) {
+                            hermesBubble.classList.remove("thinking");
+                            hermesBubble.textContent = "";
+                        }
+                        fullResponse += data.token;
+                        if (hermesBubble) hermesBubble.textContent = fullResponse;
+                        if (status) {
+                            status.classList.remove("thinking");
+                            status.textContent = "Streaming...";
+                        }
+                        const log = document.getElementById("creator-hermes-log");
+                        if (log) log.scrollTop = log.scrollHeight;
+                    }
+                    if (data.done) {
+                        creatorHermesHistory.push({ role: "user", content: msg });
+                        creatorHermesHistory.push({ role: "assistant", content: fullResponse });
+                        if (creatorHermesHistory.length > 20) creatorHermesHistory = creatorHermesHistory.slice(-20);
+                    }
+                    if (data.error) throw new Error(data.error);
+                } catch (e) {
+                    if (e instanceof SyntaxError) continue;
+                    throw e;
+                }
+            }
+        }
+
+        setCreatorHermesThinking(false, hermesBubble);
+    } catch (e) {
+        if (hermesBubble) {
+            hermesBubble.classList.remove("thinking");
+            hermesBubble.textContent = "";
+        }
+        addCreatorHermesEntry("Error", "Chat failed: " + (e?.message || e));
+        if (status) {
+            status.classList.remove("thinking");
+            status.textContent = "Error";
+        }
+    } finally {
+        if (btn) btn.disabled = false;
+    }
+}
+
+function quickHermesLabel(message) {
+    if (message.includes("Rewrite the current Images prompt")) return "Improve this prompt.";
+    if (message.includes("Give me 6 strong visual campaign ideas")) return "Give me ideas.";
+    if (message.includes("Suggest 8 distinct prompt variations")) return "Suggest variations.";
+    if (message.includes("Tell me the best next step")) return "What should I do next?";
+    return "Prompt coach request.";
+}
+
 function addScriptChatEntry(agent, text) {
     if (!$scriptChatLog) return null;
     const row = document.createElement("div");
@@ -4396,8 +5782,8 @@ async function sendScriptChat() {
 // Characters
 // ---------------------------------------------------------------------------
 let characterManagerCache = [];
-let characterForgeGender = "";
-let characterForgeSelectedId = "";
+let characterCinesmithGender = "";
+let characterCinesmithSelectedId = "";
 let currentCharacterFlowStep = "design";
 
 function normalizeCharacters(payload) {
@@ -4428,7 +5814,7 @@ function latestCharacterGeneratedImage(char) {
     return characterImage(char);
 }
 
-function characterReferenceImageUrlsForForge(char) {
+function characterReferenceImageUrlsForCinesmith(char) {
     const urls = [];
     const addUrl = (url) => {
         const clean = String(url || "").trim();
@@ -4466,8 +5852,8 @@ function characterLoraReferenceImageUrls(char) {
     return urls;
 }
 
-function selectedCharacterForForge() {
-    const selectedId = characterForgeSelectedId || "";
+function selectedCharacterForCinesmith() {
+    const selectedId = characterCinesmithSelectedId || "";
     return characterManagerCache.find((c) => characterId(c) === selectedId)
         || shellState?.characters?.find((c) => characterId(c) === selectedId)
         || null;
@@ -4484,14 +5870,14 @@ function characterLoraVersions(char) {
 }
 
 function suggestedCharacterLoraTrigger(char) {
-    const base = characterId(char || { id: characterForgeValue("char-forge-name") || "character" }).replace(/_+/g, "_");
+    const base = characterId(char || { id: characterCinesmithValue("char-cinesmith-name") || "character" }).replace(/_+/g, "_");
     return (base || "character") + "_char";
 }
 
 function updateCharacterFlowState() {
-    const selected = selectedCharacterForForge();
+    const selected = selectedCharacterForCinesmith();
     const selectedName = selected ? characterName(selected) : "";
-    const hasDesign = !!(characterForgeValue("char-forge-name") || characterForgeValue("char-forge-base-prompt"));
+    const hasDesign = !!(characterCinesmithValue("char-cinesmith-name") || characterCinesmithValue("char-cinesmith-base-prompt"));
     const hasRender = selected ? !!latestCharacterGeneratedImage(selected) : false;
     const refUrls = selected ? characterLoraReferenceImageUrls(selected) : [];
     const loraVersions = selected ? characterLoraVersions(selected) : [];
@@ -4553,15 +5939,15 @@ function switchCharacterFlowStep(step) {
     updateCharacterFlowState();
 }
 
-function syncCharacterForgeSelectionUi() {
-    const selected = selectedCharacterForForge();
+function syncCharacterCinesmithSelectionUi() {
+    const selected = selectedCharacterForCinesmith();
     const selectedId = selected ? characterId(selected) : "";
-    const refUrls = selected ? characterReferenceImageUrlsForForge(selected) : [];
+    const refUrls = selected ? characterReferenceImageUrlsForCinesmith(selected) : [];
     document.querySelectorAll(".character-card-live").forEach((card) => {
         card.classList.toggle("selected", !!selectedId && card.dataset.characterId === selectedId);
     });
-    const sheetBtn = document.getElementById("char-forge-sheet-btn");
-    const variationBtn = document.getElementById("char-forge-variation-btn");
+    const sheetBtn = document.getElementById("char-cinesmith-sheet-btn");
+    const variationBtn = document.getElementById("char-cinesmith-variation-btn");
     const enabled = !!(selectedId && refUrls.length);
     if (sheetBtn) {
         sheetBtn.disabled = !enabled;
@@ -4643,7 +6029,7 @@ async function loadCharacterManager() {
         if (status) status.textContent = String(chars.length) + " character" + (chars.length === 1 ? "" : "s");
         if (!chars.length) {
             grid.innerHTML = '<div class="character-manager-status">No characters yet.</div>';
-            syncCharacterForgeSelectionUi();
+            syncCharacterCinesmithSelectionUi();
             return;
         }
         grid.innerHTML = chars.map((char) => {
@@ -4656,17 +6042,17 @@ async function loadCharacterManager() {
                 ? '<img class="character-zoomable" src="' + escapeHtml(img) + '" alt="' + escapeHtml(name) + '" loading="lazy" data-zoom-src="' + escapeHtml(img) + '" data-zoom-title="' + escapeHtml(name) + '" data-zoom-prompt="' + escapeHtml(char?.anchor_prompt || char?.role || "") + '">'
                 : '<div class="character-avatar-fallback">' + escapeHtml(name.slice(0, 1).toUpperCase()) + '</div>';
             return (
-                '<article class="character-card-live' + (id === characterForgeSelectedId ? " selected" : "") + '" data-character-id="' + escapeHtml(id) + '">' +
+                '<article class="character-card-live' + (id === characterCinesmithSelectedId ? " selected" : "") + '" data-character-id="' + escapeHtml(id) + '">' +
                     avatar +
                     '<div>' +
                         '<h3>' + escapeHtml(name) + '</h3>' +
                         '<div class="role">' + escapeHtml(char.role || char.description || "Character") + '</div>' +
-                        '<div class="meta"><span>ID ' + escapeHtml(id) + '</span><span>' + escapeHtml(characterStatus(char)) + '</span><span>DNA ' + dna + '</span><span>Master ' + refs + '</span><button class="btn btn-secondary" type="button" onclick="selectCharacterForForge(\'' + escapeHtml(id) + '\')">Use</button><a href="/api/characters/' + encodeURIComponent(id) + '/export-package" target="_blank" rel="noreferrer">Export</a></div>' +
+                        '<div class="meta"><span>ID ' + escapeHtml(id) + '</span><span>' + escapeHtml(characterStatus(char)) + '</span><span>DNA ' + dna + '</span><span>Master ' + refs + '</span><button class="btn btn-secondary" type="button" onclick="selectCharacterForCinesmith(\'' + escapeHtml(id) + '\')">Use</button><a href="/api/characters/' + encodeURIComponent(id) + '/export-package" target="_blank" rel="noreferrer">Export</a></div>' +
                     '</div>' +
                 '</article>'
             );
         }).join("");
-        syncCharacterForgeSelectionUi();
+        syncCharacterCinesmithSelectionUi();
     } catch (e) {
         if (status) status.textContent = "Character load failed";
         grid.innerHTML = '<div class="character-manager-status">Character API unavailable: ' + escapeHtml(e?.message || e) + '</div>';
@@ -4692,9 +6078,9 @@ async function createCharacterFromManager(event) {
     const btn = event?.currentTarget?.tagName === "BUTTON"
         ? event.currentTarget
         : (event?.currentTarget?.querySelector ? event.currentTarget.querySelector('button[type="submit"]') : null);
-    const name = (document.getElementById("char-forge-name")?.value || form?.querySelector('[name="name"]')?.value || "").trim();
-    const description = (document.getElementById("char-forge-role")?.value || form?.querySelector('[name="description"]')?.value || "").trim();
-    const anchorPrompt = (document.getElementById("char-forge-base-prompt")?.value || form?.querySelector('[name="anchor_prompt"]')?.value || "").trim();
+    const name = (document.getElementById("char-cinesmith-name")?.value || form?.querySelector('[name="name"]')?.value || "").trim();
+    const description = (document.getElementById("char-cinesmith-role")?.value || form?.querySelector('[name="description"]')?.value || "").trim();
+    const anchorPrompt = (document.getElementById("char-cinesmith-base-prompt")?.value || form?.querySelector('[name="anchor_prompt"]')?.value || "").trim();
     if (!name) {
         if (status) status.textContent = "Name is required.";
         return;
@@ -4724,7 +6110,7 @@ async function createCharacterFromManager(event) {
     }
 }
 
-function characterForgeValue(id) {
+function characterCinesmithValue(id) {
     return (document.getElementById(id)?.value || "").trim();
 }
 
@@ -4739,8 +6125,8 @@ function withCharacterNoTextRule(prompt) {
     return clean + ", " + CHARACTER_NO_TEXT_PROMPT_RULE;
 }
 
-function getCharacterForgeSeed() {
-    const raw = characterForgeValue("char-forge-seed");
+function getCharacterCinesmithSeed() {
+    const raw = characterCinesmithValue("char-cinesmith-seed");
     if (!raw) return null;
     const parsed = parseInt(raw, 10);
     return Number.isFinite(parsed) ? parsed : null;
@@ -4760,17 +6146,17 @@ function pickRandomSet(list, count) {
     return picked;
 }
 
-function selectedCharacterForgeGender() {
-    return characterForgeGender === "male" || characterForgeGender === "female" ? characterForgeGender : "";
+function selectedCharacterCinesmithGender() {
+    return characterCinesmithGender === "male" || characterCinesmithGender === "female" ? characterCinesmithGender : "";
 }
 
-function characterForgeGenderLabel() {
-    const gender = selectedCharacterForgeGender();
+function characterCinesmithGenderLabel() {
+    const gender = selectedCharacterCinesmithGender();
     return gender ? gender + " person" : "";
 }
 
-function characterForgeNamePool(neutralNames, maleNames, femaleNames) {
-    const gender = selectedCharacterForgeGender();
+function characterCinesmithNamePool(neutralNames, maleNames, femaleNames) {
+    const gender = selectedCharacterCinesmithGender();
     if (gender === "male") return maleNames;
     if (gender === "female") return femaleNames;
     return neutralNames;
@@ -4784,7 +6170,7 @@ function stripCharacterNoTextRule(prompt) {
     return clean.replace(/\s*,\s*,/g, ", ").replace(/^[,\s]+|[,\s]+$/g, "");
 }
 
-function applyCharacterForgeGenderToPrompt(prompt, gender) {
+function applyCharacterCinesmithGenderToPrompt(prompt, gender) {
     if (!prompt || !gender) return prompt || "";
     const required = CHARACTER_NO_TEXT_PROMPT_RULE.split(", ");
     const hadNoTextRule = required.every((term) => String(prompt).toLowerCase().includes(term));
@@ -4797,10 +6183,10 @@ function applyCharacterForgeGenderToPrompt(prompt, gender) {
     return hadNoTextRule ? withCharacterNoTextRule(withGender) : withGender;
 }
 
-function syncCharacterForgeGenderButtons() {
-    const gender = selectedCharacterForgeGender();
+function syncCharacterCinesmithGenderButtons() {
+    const gender = selectedCharacterCinesmithGender();
     for (const option of ["male", "female"]) {
-        const btn = document.getElementById("char-forge-gender-" + option);
+        const btn = document.getElementById("char-cinesmith-gender-" + option);
         if (!btn) continue;
         const active = gender === option;
         btn.classList.toggle("active", active);
@@ -4808,17 +6194,17 @@ function syncCharacterForgeGenderButtons() {
     }
 }
 
-function setCharacterForgeGender(gender) {
-    characterForgeGender = gender === "male" || gender === "female" ? gender : "";
-    syncCharacterForgeGenderButtons();
-    const baseEl = document.getElementById("char-forge-base-prompt");
+function setCharacterCinesmithGender(gender) {
+    characterCinesmithGender = gender === "male" || gender === "female" ? gender : "";
+    syncCharacterCinesmithGenderButtons();
+    const baseEl = document.getElementById("char-cinesmith-base-prompt");
     if (baseEl?.value) {
-        baseEl.value = applyCharacterForgeGenderToPrompt(baseEl.value, selectedCharacterForgeGender());
+        baseEl.value = applyCharacterCinesmithGenderToPrompt(baseEl.value, selectedCharacterCinesmithGender());
         composeCharacterPrompts();
     }
     const status = document.getElementById("character-manager-status");
     if (status) {
-        const label = selectedCharacterForgeGender() || "no gender";
+        const label = selectedCharacterCinesmithGender() || "no gender";
         status.textContent = "Character gender set to " + label + ". From Role and Regular Person will use it.";
     }
 }
@@ -4993,8 +6379,8 @@ async function generateCharacterFromRoleWithKimi(role, status) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
             role,
-            name: characterForgeValue("char-forge-name"),
-            gender: selectedCharacterForgeGender(),
+            name: characterCinesmithValue("char-cinesmith-name"),
+            gender: selectedCharacterCinesmithGender(),
         }),
     });
     const data = await resp.json().catch(() => ({}));
@@ -5006,18 +6392,18 @@ async function generateCharacterFromRoleWithKimi(role, status) {
         const el = document.getElementById(id);
         if (el) el.value = value;
     };
-    setValue("char-forge-name", data.name || characterForgeValue("char-forge-name") || "Generated Character");
-    setValue("char-forge-role", data.role || role);
-    setValue("char-forge-base-prompt", withCharacterNoTextRule(data.base_prompt || ""));
-    setValue("char-forge-locations", Array.isArray(data.locations) ? data.locations.join(", ") : String(data.locations || ""));
-    setValue("char-forge-clothes", Array.isArray(data.clothes) ? data.clothes.join(", ") : String(data.clothes || ""));
-    setValue("char-forge-angles", Array.isArray(data.angles) ? data.angles.join(", ") : String(data.angles || ""));
-    setValue("char-forge-seed", String(Math.floor(100000 + Math.random() * 899999)));
-    const workflow = document.getElementById("char-forge-workflow");
+    setValue("char-cinesmith-name", data.name || characterCinesmithValue("char-cinesmith-name") || "Generated Character");
+    setValue("char-cinesmith-role", data.role || role);
+    setValue("char-cinesmith-base-prompt", withCharacterNoTextRule(data.base_prompt || ""));
+    setValue("char-cinesmith-locations", Array.isArray(data.locations) ? data.locations.join(", ") : String(data.locations || ""));
+    setValue("char-cinesmith-clothes", Array.isArray(data.clothes) ? data.clothes.join(", ") : String(data.clothes || ""));
+    setValue("char-cinesmith-angles", Array.isArray(data.angles) ? data.angles.join(", ") : String(data.angles || ""));
+    setValue("char-cinesmith-seed", String(Math.floor(100000 + Math.random() * 899999)));
+    const workflow = document.getElementById("char-cinesmith-workflow");
     if (workflow) workflow.value = "01_flux2_text_to_image";
 
-    const sheetEl = document.getElementById("char-forge-sheet-prompt");
-    const variationEl = document.getElementById("char-forge-variation-prompt");
+    const sheetEl = document.getElementById("char-cinesmith-sheet-prompt");
+    const variationEl = document.getElementById("char-cinesmith-variation-prompt");
     composeCharacterPrompts();
     if (variationEl && data.variation_prompt) variationEl.value = withCharacterNoTextRule(data.variation_prompt);
     if (status) {
@@ -5028,7 +6414,7 @@ async function generateCharacterFromRoleWithKimi(role, status) {
     return true;
 }
 
-function randomizeCharacterForge() {
+function randomizeCharacterCinesmith() {
     const neutralNames = ["Sable", "Mira", "Cassian", "Nyra", "Orin", "Vale", "Ilya", "Riven", "Mara", "Soren", "Kael", "Vesper"];
     const maleNames = ["Cassian", "Orin", "Soren", "Kael", "Darian", "Lucan", "Ronan", "Malik", "Tomas", "Viktor", "Elias", "Dante"];
     const femaleNames = ["Mira", "Nyra", "Mara", "Vesper", "Selene", "Lyra", "Amara", "Nadia", "Iris", "Elara", "Rhea", "Sabine"];
@@ -5107,8 +6493,8 @@ function randomizeCharacterForge() {
         ["neutral T-pose", "relaxed stance", "turnaround front", "turnaround side", "turnaround rear", "face close-up", "boots detail"],
     ];
 
-    const genderLabel = characterForgeGenderLabel();
-    const name = pickRandom(characterForgeNamePool(neutralNames, maleNames, femaleNames)) + " " + pickRandom(surnames);
+    const genderLabel = characterCinesmithGenderLabel();
+    const name = pickRandom(characterCinesmithNamePool(neutralNames, maleNames, femaleNames)) + " " + pickRandom(surnames);
     const role = pickRandom(archetypes);
     const face = pickRandom(faces);
     const hairDesc = pickRandom(hair);
@@ -5139,15 +6525,15 @@ function randomizeCharacterForge() {
         const el = document.getElementById(id);
         if (el) el.value = value;
     };
-    setValue("char-forge-name", name);
-    setValue("char-forge-role", role);
-    setValue("char-forge-base-prompt", withCharacterNoTextRule(basePrompt));
-    setValue("char-forge-locations", pickRandomSet(locations, Math.min(4, locations.length)).join(", "));
-    setValue("char-forge-clothes", pickRandomSet(clothes, Math.min(4, clothes.length)).join(", "));
-    setValue("char-forge-angles", pickRandomSet(angles, Math.min(8, angles.length)).join(", "));
-    setValue("char-forge-seed", String(seed));
+    setValue("char-cinesmith-name", name);
+    setValue("char-cinesmith-role", role);
+    setValue("char-cinesmith-base-prompt", withCharacterNoTextRule(basePrompt));
+    setValue("char-cinesmith-locations", pickRandomSet(locations, Math.min(4, locations.length)).join(", "));
+    setValue("char-cinesmith-clothes", pickRandomSet(clothes, Math.min(4, clothes.length)).join(", "));
+    setValue("char-cinesmith-angles", pickRandomSet(angles, Math.min(8, angles.length)).join(", "));
+    setValue("char-cinesmith-seed", String(seed));
 
-    const workflow = document.getElementById("char-forge-workflow");
+    const workflow = document.getElementById("char-cinesmith-workflow");
     if (workflow) {
         workflow.value = Math.random() > 0.35 ? "01_flux2_text_to_image" : "08_flux2_klein_9b_text_to_image";
     }
@@ -5157,7 +6543,7 @@ function randomizeCharacterForge() {
     if (status) status.textContent = "Random character generated locally. Review the prompts before sending to Spark.";
 }
 
-function groundCharacterForge() {
+function groundCharacterCinesmith() {
     const neutralNames = ["Alex", "Jordan", "Morgan", "Taylor", "Casey", "Riley", "Jamie", "Avery", "Sam", "Cameron", "Drew", "Robin"];
     const maleNames = ["Michael", "David", "Daniel", "James", "Thomas", "Owen", "Marcus", "Ethan", "Noah", "Caleb", "Andre", "Leo"];
     const femaleNames = ["Sarah", "Maya", "Elena", "Priya", "Nina", "Leah", "Sofia", "Ava", "Clara", "Naomi", "Grace", "Isabel"];
@@ -5225,8 +6611,8 @@ function groundCharacterForge() {
         "hoodie and straight-leg jeans",
         "simple work polo and khaki pants",
     ];
-    const genderLabel = characterForgeGenderLabel();
-    const name = pickRandom(characterForgeNamePool(neutralNames, maleNames, femaleNames)) + " " + pickRandom(surnames);
+    const genderLabel = characterCinesmithGenderLabel();
+    const name = pickRandom(characterCinesmithNamePool(neutralNames, maleNames, femaleNames)) + " " + pickRandom(surnames);
     const role = pickRandom(roles);
     const basePrompt = [
         "Photorealistic portrait of " + name,
@@ -5247,15 +6633,15 @@ function groundCharacterForge() {
         const el = document.getElementById(id);
         if (el) el.value = value;
     };
-    setValue("char-forge-name", name);
-    setValue("char-forge-role", role);
-    setValue("char-forge-base-prompt", withCharacterNoTextRule(basePrompt));
-    setValue("char-forge-locations", pickRandomSet(locations, 4).join(", "));
-    setValue("char-forge-clothes", pickRandomSet(clothes, 4).join(", "));
-    setValue("char-forge-angles", "front, 3/4 left, 3/4 right, side profile, rear, full body, portrait close-up, hands detail");
-    setValue("char-forge-seed", String(Math.floor(100000 + Math.random() * 899999)));
+    setValue("char-cinesmith-name", name);
+    setValue("char-cinesmith-role", role);
+    setValue("char-cinesmith-base-prompt", withCharacterNoTextRule(basePrompt));
+    setValue("char-cinesmith-locations", pickRandomSet(locations, 4).join(", "));
+    setValue("char-cinesmith-clothes", pickRandomSet(clothes, 4).join(", "));
+    setValue("char-cinesmith-angles", "front, 3/4 left, 3/4 right, side profile, rear, full body, portrait close-up, hands detail");
+    setValue("char-cinesmith-seed", String(Math.floor(100000 + Math.random() * 899999)));
 
-    const workflow = document.getElementById("char-forge-workflow");
+    const workflow = document.getElementById("char-cinesmith-workflow");
     if (workflow) workflow.value = "01_flux2_text_to_image";
 
     composeCharacterPrompts();
@@ -5263,9 +6649,9 @@ function groundCharacterForge() {
     if (status) status.textContent = "Grounded regular-person character generated locally. Review before sending to Spark.";
 }
 
-async function generateCharacterFromRoleForge() {
+async function generateCharacterFromRoleCinesmith() {
     const status = document.getElementById("character-manager-status");
-    const role = characterForgeValue("char-forge-role");
+    const role = characterCinesmithValue("char-cinesmith-role");
     if (!role) {
         if (status) status.textContent = "Enter a Role / Archetype first.";
         return;
@@ -5287,8 +6673,8 @@ async function generateCharacterFromRoleForge() {
     const femaleNames = ["Maya", "Elena", "Priya", "Nina", "Leah", "Sarah", "Sofia", "Ava", "Clara", "Naomi", "Grace", "Isabel"];
     const surnames = ["Reed", "Morgan", "Hayes", "Kline", "Santos", "Bennett", "Patel", "Brooks", "Wright", "Kim", "Foster", "Morales"];
     const context = inferCharacterRoleContext(role);
-    const genderLabel = characterForgeGenderLabel();
-    const name = characterForgeValue("char-forge-name") || (pickRandom(characterForgeNamePool(neutralNames, maleNames, femaleNames)) + " " + pickRandom(surnames));
+    const genderLabel = characterCinesmithGenderLabel();
+    const name = characterCinesmithValue("char-cinesmith-name") || (pickRandom(characterCinesmithNamePool(neutralNames, maleNames, femaleNames)) + " " + pickRandom(surnames));
     const basePrompt = [
         "Photorealistic character portrait of " + name,
         pickRandom(context.ages),
@@ -5309,13 +6695,13 @@ async function generateCharacterFromRoleForge() {
         const el = document.getElementById(id);
         if (el) el.value = value;
     };
-    setValue("char-forge-name", name);
-    setValue("char-forge-base-prompt", withCharacterNoTextRule(basePrompt));
-    setValue("char-forge-locations", context.locations.join(", "));
-    setValue("char-forge-clothes", context.clothes.join(", "));
-    setValue("char-forge-angles", "front, 3/4 left, 3/4 right, side profile, rear, full body, portrait close-up, hands detail");
-    setValue("char-forge-seed", String(Math.floor(100000 + Math.random() * 899999)));
-    const workflow = document.getElementById("char-forge-workflow");
+    setValue("char-cinesmith-name", name);
+    setValue("char-cinesmith-base-prompt", withCharacterNoTextRule(basePrompt));
+    setValue("char-cinesmith-locations", context.locations.join(", "));
+    setValue("char-cinesmith-clothes", context.clothes.join(", "));
+    setValue("char-cinesmith-angles", "front, 3/4 left, 3/4 right, side profile, rear, full body, portrait close-up, hands detail");
+    setValue("char-cinesmith-seed", String(Math.floor(100000 + Math.random() * 899999)));
+    const workflow = document.getElementById("char-cinesmith-workflow");
     if (workflow) workflow.value = "01_flux2_text_to_image";
 
     composeCharacterPrompts();
@@ -5330,16 +6716,16 @@ async function generateCharacterFromRoleForge() {
 }
 
 function composeCharacterPrompts() {
-    const name = characterForgeValue("char-forge-name") || "the character";
-    const role = characterForgeValue("char-forge-role");
-    const base = characterForgeValue("char-forge-base-prompt") || [
+    const name = characterCinesmithValue("char-cinesmith-name") || "the character";
+    const role = characterCinesmithValue("char-cinesmith-role");
+    const base = characterCinesmithValue("char-cinesmith-base-prompt") || [
         name,
         role,
         "consistent face identity, fixed hair shape, fixed eye color, fixed body proportions, signature wardrobe details, production-ready character design",
     ].filter(Boolean).join(", ");
-    const locations = characterForgeValue("char-forge-locations") || "studio gray sweep, exterior daylight, interior practical lighting";
-    const clothes = characterForgeValue("char-forge-clothes") || "hero outfit, alternate travel outfit, formal outfit";
-    const angles = characterForgeValue("char-forge-angles") || "front, 3/4 left, 3/4 right, profile, rear";
+    const locations = characterCinesmithValue("char-cinesmith-locations") || "studio gray sweep, exterior daylight, interior practical lighting";
+    const clothes = characterCinesmithValue("char-cinesmith-clothes") || "hero outfit, alternate travel outfit, formal outfit";
+    const angles = characterCinesmithValue("char-cinesmith-angles") || "front, 3/4 left, 3/4 right, profile, rear";
 
     const sheetPrompt = withCharacterNoTextRule([
         "professional character reference turnaround sheet for " + name,
@@ -5365,24 +6751,24 @@ function composeCharacterPrompts() {
         "cinematic but consistent lighting, production stills, no identity drift",
     ].filter(Boolean).join(", "));
 
-    const sheetEl = document.getElementById("char-forge-sheet-prompt");
-    const variationEl = document.getElementById("char-forge-variation-prompt");
+    const sheetEl = document.getElementById("char-cinesmith-sheet-prompt");
+    const variationEl = document.getElementById("char-cinesmith-variation-prompt");
     if (sheetEl) sheetEl.value = sheetPrompt;
     if (variationEl) variationEl.value = variationPrompt;
     const status = document.getElementById("character-manager-status");
     if (status) status.textContent = "Prompts composed locally. Spark not required until generation.";
 }
 
-function selectCharacterForForge(charId) {
+function selectCharacterForCinesmith(charId) {
     const char = characterManagerCache.find((c) => characterId(c) === charId);
     if (!char) return;
-    characterForgeSelectedId = characterId(char);
-    if (shellState?.characters?.some((c) => characterId(c) === characterForgeSelectedId)) {
-        shellState.selectedCharacterId = characterForgeSelectedId;
+    characterCinesmithSelectedId = characterId(char);
+    if (shellState?.characters?.some((c) => characterId(c) === characterCinesmithSelectedId)) {
+        shellState.selectedCharacterId = characterCinesmithSelectedId;
     }
-    const nameEl = document.getElementById("char-forge-name");
-    const roleEl = document.getElementById("char-forge-role");
-    const baseEl = document.getElementById("char-forge-base-prompt");
+    const nameEl = document.getElementById("char-cinesmith-name");
+    const roleEl = document.getElementById("char-cinesmith-role");
+    const baseEl = document.getElementById("char-cinesmith-base-prompt");
     if (nameEl) nameEl.value = characterName(char);
     if (roleEl) roleEl.value = char.role || char.description || "Character";
     if (baseEl) {
@@ -5393,7 +6779,7 @@ function selectCharacterForForge(charId) {
         ].filter(Boolean).join(", ");
     }
     composeCharacterPrompts();
-    syncCharacterForgeSelectionUi();
+    syncCharacterCinesmithSelectionUi();
     const status = document.getElementById("character-manager-status");
     const refUrl = latestCharacterGeneratedImage(char);
     if (status) status.textContent = refUrl
@@ -5404,30 +6790,30 @@ function selectCharacterForForge(charId) {
 
 function promptForCharacterRender(kind) {
     const raw = kind === "sheet"
-        ? characterForgeValue("char-forge-sheet-prompt")
+        ? characterCinesmithValue("char-cinesmith-sheet-prompt")
         : kind === "variation"
-            ? characterForgeValue("char-forge-variation-prompt")
-            : characterForgeValue("char-forge-base-prompt");
+            ? characterCinesmithValue("char-cinesmith-variation-prompt")
+            : characterCinesmithValue("char-cinesmith-base-prompt");
     if (!raw) return "";
     return withCharacterNoTextRule(raw);
 }
 
 async function renderCharacterOnSpark(kind) {
     const status = document.getElementById("character-manager-status");
-    const selected = selectedCharacterForForge();
-    const selectedReferenceUrls = selected ? characterReferenceImageUrlsForForge(selected) : [];
+    const selected = selectedCharacterForCinesmith();
+    const selectedReferenceUrls = selected ? characterReferenceImageUrlsForCinesmith(selected) : [];
     const selectedReferenceUrl = selectedReferenceUrls[0] || "";
     if ((kind === "sheet" || kind === "variation") && !selected) {
         if (status) status.textContent = "Select one character before generating a " + kind + ".";
-        syncCharacterForgeSelectionUi();
+        syncCharacterCinesmithSelectionUi();
         return;
     }
     if ((kind === "sheet" || kind === "variation") && !selectedReferenceUrl) {
         if (status) status.textContent = "Selected character needs a generated character image before making a " + kind + ".";
-        syncCharacterForgeSelectionUi();
+        syncCharacterCinesmithSelectionUi();
         return;
     }
-    const name = (kind === "sheet" || kind === "variation") && selected ? characterName(selected) : characterForgeValue("char-forge-name");
+    const name = (kind === "sheet" || kind === "variation") && selected ? characterName(selected) : characterCinesmithValue("char-cinesmith-name");
     if (!name) {
         if (status) status.textContent = "Name is required before Spark generation.";
         return;
@@ -5442,9 +6828,9 @@ async function renderCharacterOnSpark(kind) {
         return;
     }
     const workflowId = (kind === "sheet" || kind === "variation")
-        ? "02_flux2_multi_reference_character_sheet"
-        : (characterForgeValue("char-forge-workflow") || "01_flux2_text_to_image");
-    const workflowEl = document.getElementById("char-forge-workflow");
+        ? "04_flux2_multi_reference_character_sheet"
+        : (characterCinesmithValue("char-cinesmith-workflow") || "01_flux2_text_to_image");
+    const workflowEl = document.getElementById("char-cinesmith-workflow");
     if (workflowEl && (kind === "sheet" || kind === "variation")) workflowEl.value = workflowId;
     if (status) status.textContent = "Sending " + kind + " prompt to Spark...";
     try {
@@ -5453,11 +6839,11 @@ async function renderCharacterOnSpark(kind) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 name,
-                role: selected?.role || characterForgeValue("char-forge-role"),
+                role: selected?.role || characterCinesmithValue("char-cinesmith-role"),
                 prompt,
                 render_type: kind,
                 workflow_id: workflowId,
-                seed: getCharacterForgeSeed(),
+                seed: getCharacterCinesmithSeed(),
                 save_character: true,
                 character_id: selected ? characterId(selected) : "",
                 reference_image_url: selectedReferenceUrl,
@@ -5472,15 +6858,15 @@ async function renderCharacterOnSpark(kind) {
                 : "Spark complete: " + (payload.prompt_id || "render saved");
         }
         if (payload?.character?.id) {
-            characterForgeSelectedId = characterId(payload.character);
-            if (shellState?.characters?.some((c) => characterId(c) === characterForgeSelectedId)) {
-                shellState.selectedCharacterId = characterForgeSelectedId;
+            characterCinesmithSelectedId = characterId(payload.character);
+            if (shellState?.characters?.some((c) => characterId(c) === characterCinesmithSelectedId)) {
+                shellState.selectedCharacterId = characterCinesmithSelectedId;
             }
         }
         renderCharacterResultTiles(payload, kind);
         await loadCharacters();
         await loadCharacterManager();
-        syncCharacterForgeSelectionUi();
+        syncCharacterCinesmithSelectionUi();
         updateCharacterFlowState();
     } catch (e) {
         if (status) status.textContent = "Spark generation unavailable: " + (e?.message || e);
@@ -5495,10 +6881,10 @@ function renderCharacterResultTiles(payload, kind) {
         gallery.innerHTML = '<div class="character-manager-status">Spark returned no image URLs.</div>';
         return;
     }
-    const characterIdValue = characterId(payload?.character || { id: characterForgeValue("char-forge-name") });
+    const characterIdValue = characterId(payload?.character || { id: characterCinesmithValue("char-cinesmith-name") });
     const prompt = payload?.character?.render_prompts?.[kind] || promptForCharacterRender(kind);
-    const seed = payload?.seed || getCharacterForgeSeed() || "Random";
-    const workflow = characterForgeValue("char-forge-workflow") || "01_flux2_text_to_image";
+    const seed = payload?.seed || getCharacterCinesmithSeed() || "Random";
+    const workflow = characterCinesmithValue("char-cinesmith-workflow") || "01_flux2_text_to_image";
     const displayKind = kind === "anchor" ? "character" : kind;
     const html = urls.map((url, i) => (
         '<figure class="character-render-tile" title="Double-click to view full size" ' +
@@ -5506,7 +6892,7 @@ function renderCharacterResultTiles(payload, kind) {
             'data-image-url="' + escapeHtml(url) + '" ' +
             'data-kind="' + escapeHtml(displayKind) + '" ' +
             'data-index="' + String(i + 1) + '" ' +
-            'data-character-name="' + escapeHtml(payload?.character?.name || characterForgeValue("char-forge-name") || "Character") + '" ' +
+            'data-character-name="' + escapeHtml(payload?.character?.name || characterCinesmithValue("char-cinesmith-name") || "Character") + '" ' +
             'data-prompt="' + escapeHtml(prompt) + '" ' +
             'data-prompt-id="' + escapeHtml(payload?.prompt_id || "") + '" ' +
             'data-seed="' + escapeHtml(String(seed)) + '" ' +
@@ -5534,7 +6920,7 @@ function openCharacterRenderLightboxFromTile(tile) {
         prompt_id: tile.dataset.promptId || "-",
         workflow_profile: "Character " + (tile.dataset.kind || "render"),
         identity_type: "character",
-        identity_name: tile.dataset.characterName || characterForgeValue("char-forge-name") || "",
+        identity_name: tile.dataset.characterName || characterCinesmithValue("char-cinesmith-name") || "",
     });
 }
 
@@ -5571,7 +6957,7 @@ async function extractCharacterSheetPanelsFromRender(charId, imageUrl, promptId)
 }
 
 async function prepareCharacterLoraPack() {
-    const selected = selectedCharacterForForge();
+    const selected = selectedCharacterForCinesmith();
     const status = document.getElementById("character-lora-status") || document.getElementById("character-manager-status");
     const output = document.getElementById("character-lora-pack-output");
     const btn = document.getElementById("character-lora-prepare-btn");
@@ -5611,7 +6997,7 @@ async function prepareCharacterLoraPack() {
                 trainer_status: payload.trainer_status,
             }, null, 2);
         }
-        if (payload?.character?.id) characterForgeSelectedId = characterId(payload.character);
+        if (payload?.character?.id) characterCinesmithSelectedId = characterId(payload.character);
         await loadCharacterManager();
         switchCharacterFlowStep("lora");
     } catch (e) {
@@ -5697,9 +7083,17 @@ async function loadShots() {
                 item.appendChild(img);
 
                 item.addEventListener("click", () => toggleDashboardSelect(s.id, item));
+                item.dataset.shotId = s.id || s.shot_id || "";
+                item.setAttribute("data-shot-id", s.id || s.shot_id || "");
+                if (String(s.review_status || s.client_status || "").toLowerCase() === "approved") item.classList.add("review-approved");
+                if (String(s.review_status || s.client_status || "").toLowerCase() === "rejected") item.classList.add("review-rejected");
+                if (String(s.review_status || s.client_status || "").toLowerCase() === "needs_changes") item.classList.add("review-changes");
                 item.addEventListener("dblclick", (event) => {
                     event.preventDefault();
                     openLightbox({
+                        id: s.id || s.shot_id || "",
+                        shot_id: s.shot_id || s.id || "",
+                        campaign_id: s.campaign_id || "",
                         image_url: s.image_url,
                         status: s.status || "complete",
                         prompt: s.prompt || "",
@@ -5728,6 +7122,7 @@ async function loadShots() {
                         retry_of: s.retry_of || s.parent_shot_id || "",
                         video_prompt: s.video_prompt || "",
                         video_prompt_source: s.video_prompt_source || "",
+                        review_status: s.review_status || s.client_status || "",
                         variant: "-",
                     });
                 });
@@ -6316,14 +7711,19 @@ async function remediateFailedSelected() {
 }
 
 async function processSelectedVideos() {
+    const promptOnly = !videoSelection.size && ($videoPrompt?.value || "").trim();
+    if (promptOnly) {
+        return processTextVideo();
+    }
     if (!videoSelection.size) {
-        alert("Select at least one image");
+        $sparkStatusText.textContent = "Enter a video prompt for text-to-video, or select images for image-to-video.";
         return;
     }
     const videoOptions = syncVideoQuickOptions();
     const duration = parseInt(String(videoOptions.duration || $videoDuration?.value || 5), 10);
     const fps = parseInt($videoFps?.value || "24", 10);
-    const workflowId = videoOptions.workflowId || getSelectedVideoWorkflow();
+    const workflowId = videoOptions.workflowId || DEFAULT_VIDEO_WORKFLOW_ID;
+    const promptRequest = ($videoPrompt?.value || "").trim();
     const videoPrompt = ($videoPrompt?.value || "").trim();
     const selectedForVideo = Array.from(videoSelection).filter(id => {
         const shot = videoShotsById[id];
@@ -6335,9 +7735,11 @@ async function processSelectedVideos() {
         $sparkProgress.textContent = skipped ? (skipped + " selected item(s) had no image") : "";
         return;
     }
+    const effectiveAspectRatio = effectiveVideoAspectRatioForSelected(selectedForVideo, videoOptions);
+    applyVideoAspectSummaryOverride(videoOptions, effectiveAspectRatio);
     $startBatchBtn.disabled = true;
     $startBatchBtn.textContent = "Processing...";
-    $sparkStatusText.textContent = "Processing " + selectedForVideo.length + " image(s) into videos via " + workflowId + (skipped ? " (" + skipped + " skipped)" : "") + "...";
+    $sparkStatusText.textContent = "Processing " + selectedForVideo.length + " image(s) into videos via " + workflowId + " at " + videoAspectSummaryLabel(effectiveAspectRatio) + (skipped ? " (" + skipped + " skipped)" : "") + "...";
     try {
         const resp = await fetch("/api/video/process", {
             method: "POST",
@@ -6349,9 +7751,9 @@ async function processSelectedVideos() {
                 workflow_id: workflowId,
                 mode: videoOptions.mode,
                 resolution: videoOptions.resolution,
-                aspect_ratio: videoOptions.aspectRatio,
+                aspect_ratio: effectiveAspectRatio,
                 prompt: videoPrompt,
-                platform_mode: document.getElementById("platform-mode")?.value || "auto",
+                platform_mode: getEffectiveModeState().platform.mode || "auto",
                 min_audit_score: 0,
                 min_audit_confidence: 0,
                 require_audit_pass: false,
@@ -6399,7 +7801,75 @@ async function processSelectedVideos() {
         $sparkStatusText.textContent = "Error: " + e.message;
     } finally {
         $startBatchBtn.disabled = false;
-        $startBatchBtn.textContent = "Process";
+        $startBatchBtn.textContent = "Produce motion";
+    }
+}
+
+async function processTextVideo() {
+    const videoOptions = syncVideoQuickOptions();
+    const duration = parseInt(String(videoOptions.duration || $videoDuration?.value || 5), 10);
+    const fps = parseInt($videoFps?.value || "24", 10);
+    const selectedWorkflow = videoOptions.workflowId || DEFAULT_VIDEO_WORKFLOW_ID;
+    const workflowId = videoOptions.textWorkflowId || (isTextVideoWorkflow(selectedWorkflow) ? selectedWorkflow : DEFAULT_TEXT_VIDEO_WORKFLOW_ID);
+    const videoPrompt = ($videoPrompt?.value || "").trim();
+    if (!videoPrompt) {
+        $sparkStatusText.textContent = "Enter a prompt before generating a text-only video.";
+        if ($videoPrompt) $videoPrompt.focus();
+        return;
+    }
+    if ($startBatchBtn) {
+        $startBatchBtn.disabled = true;
+        $startBatchBtn.textContent = "Queueing...";
+    }
+    $sparkStatusText.textContent = "Queueing text-to-video job via " + workflowId + "...";
+    $sparkProgress.textContent = "No start frame selected. Using the LTX text-to-video workflow.";
+    try {
+        const resp = await fetch("/api/video/process-text", {
+            method: "POST",
+            headers: {"Content-Type":"application/json"},
+            body: JSON.stringify({
+                prompt: videoPrompt,
+                duration,
+                fps,
+                workflow_id: workflowId,
+                mode: "text",
+                resolution: videoOptions.resolution,
+                aspect_ratio: videoOptions.aspectRatio,
+                platform_mode: getEffectiveModeState().platform.mode || "auto",
+            }),
+        });
+        const data = await resp.json();
+        if (!resp.ok || data.status !== "ok") throw new Error(data.detail || data.error || "Text-to-video failed");
+        const effectiveWorkflow = data.workflow_id || workflowId;
+        const jobs = (data.results || [])
+            .filter(r => r.status === "ok" && r.prompt_id)
+            .map(r => ({
+                shot_id: r.shot_id || data.shot_id,
+                prompt_id: r.prompt_id,
+                campaign_id: currentCampaignId || "text_video_batch",
+                workflow_id: r.workflow_id || effectiveWorkflow,
+                seed: r.seed,
+                duration,
+                fps,
+                host: r.host || "",
+                status: "queued",
+            }));
+        if (jobs.length) {
+            addPendingVideoJobs(jobs);
+            $sparkStatusText.textContent = "Text-to-video job queued (" + effectiveWorkflow + ").";
+            $sparkProgress.textContent = "Polling ComfyUI for the finished MP4...";
+            scheduleVideoJobPoll(2000);
+        } else {
+            $sparkStatusText.textContent = "Text-to-video submitted, but no prompt id was returned.";
+            $sparkProgress.textContent = data.output_dir || "";
+        }
+    } catch (e) {
+        $sparkStatusText.textContent = "Text-to-video error: " + (e?.message || e);
+    } finally {
+        if ($startBatchBtn) {
+            $startBatchBtn.disabled = false;
+            $startBatchBtn.textContent = "Produce motion";
+        }
     }
 }
 
@@ -6411,7 +7881,8 @@ async function generateVideoPromptsForSelected() {
     const videoOptions = syncVideoQuickOptions();
     const duration = parseInt(String(videoOptions.duration || $videoDuration?.value || 5), 10);
     const fps = parseInt($videoFps?.value || "24", 10);
-    const workflowId = videoOptions.workflowId || getSelectedVideoWorkflow();
+    const workflowId = videoOptions.workflowId || DEFAULT_VIDEO_WORKFLOW_ID;
+    const promptRequest = ($videoPrompt?.value || "").trim();
     const selectedForPrompt = Array.from(videoSelection).filter(id => {
         const shot = videoShotsById[id];
         return shot && evaluateShotForVideo(shot).eligible;
@@ -6422,6 +7893,8 @@ async function generateVideoPromptsForSelected() {
         $sparkProgress.textContent = skipped ? (skipped + " selected item(s) had no image") : "";
         return;
     }
+    const effectiveAspectRatio = effectiveVideoAspectRatioForSelected(selectedForPrompt, videoOptions);
+    applyVideoAspectSummaryOverride(videoOptions, effectiveAspectRatio);
 
     const btn = document.getElementById("video-generate-primary-btn");
     if (btn) {
@@ -6444,8 +7917,9 @@ async function generateVideoPromptsForSelected() {
                 workflow_id: workflowId,
                 mode: videoOptions.mode,
                 resolution: videoOptions.resolution,
-                aspect_ratio: videoOptions.aspectRatio,
-                platform_mode: document.getElementById("platform-mode")?.value || "auto",
+                aspect_ratio: effectiveAspectRatio,
+                prompt: promptRequest,
+                platform_mode: getEffectiveModeState().platform.mode || "auto",
             }),
         });
         if (!resp.ok) {
@@ -6505,7 +7979,7 @@ async function generateVideoPromptsForSelected() {
                     videoShotsById[id].video_prompt_source = "vision_prompt_agent";
                 }
             });
-            $sparkStatusText.textContent = "Generated " + Object.keys(prompts).length + " video prompt(s). Review/edit, then click Generate Videos.";
+            $sparkStatusText.textContent = "Generated " + Object.keys(prompts).length + " video prompt(s). Review/edit, then produce motion.";
             $sparkProgress.textContent = (saved ? (saved + " prompt(s) saved to selected media") : "Prompt ready") +
                 (streamErrors ? (" · " + streamErrors + " warning(s), fallback used where needed") : "");
             await loadVideoLibrary();
@@ -6542,7 +8016,7 @@ async function exportCarousel() {
             body: JSON.stringify({
                 shot_ids: selected,
                 campaign_id: currentCampaignId || "",
-                platform_mode: document.getElementById("platform-mode")?.value || "tiktok",
+                platform_mode: getEffectiveModeState().platform.mode || "auto",
             }),
         });
         const data = await resp.json();
@@ -7394,7 +8868,7 @@ async function runNexusQuery() {
     status.textContent = "Enter a question first.";
     return;
   }
-  status.textContent = "Querying Forge Nexus…";
+  status.textContent = "Querying Cinesmith Nexus…";
   try {
     const resp = await fetch("/api/nexus/query", {
       method: "POST",
@@ -8099,6 +9573,20 @@ function renderSettingsTab() {
                 </div>
             </section>
 
+            <section class="panel settings-panel">
+                <div class="panel-header"><div class="title">Guided Tooltips</div><div class="meta">workflow help</div></div>
+                <div class="panel-body settings-mode-row settings-help-row">
+                    <label class="settings-switch" data-tooltip="Turns on detailed hover and keyboard-focus instructions for buttons, navigation, toggles, and workflow step controls. This is saved immediately in this browser.">
+                        <input type="checkbox" id="cfg-tooltips-enabled-shell" onchange="setGuidedTooltips(this.checked)">
+                        <span></span>
+                    </label>
+                    <div>
+                        <strong>Show workflow tips on buttons</strong>
+                        <p class="card-desc">Adds instructional tooltips across Agency, Images, Videos, Characters, Stories, Assets, Memory, and Settings.</p>
+                    </div>
+                </div>
+            </section>
+
             <div class="settings-grid settings-flow-grid">
                 <section class="panel settings-panel settings-card-wide lmstudio-card">
                     <div class="panel-header"><div class="title"><span class="settings-step">1</span> Local Model Server</div><div class="meta">LM Studio</div></div>
@@ -8183,7 +9671,7 @@ function renderSettingsTab() {
                     <div class="panel-body">
                         <p class="card-desc">Used only by Script → Storyboard. Main Images, Characters, Videos, and remediation stay on Spark/ComfyUI.</p>
                         <div class="settings-form-grid settings-form-grid-single">
-                            <label class="form-row"><span>Default Storyboard Model</span><select class="select" id="cfg-storyboard-provider" onchange="markDirty('storyboard_images.default_provider')"><option value="spark:flux2_dev">Spark / Flux2.Dev</option><option value="spark:flux2_klein">Spark / Flux2 Klein</option><option value="spark:z_image">Spark / Z-Image</option><option value="spark:z_image_turbo">Spark / Z-Image Turbo</option><option value="openai">OpenAI Image</option><option value="gemini">Nano Banana</option></select></label>
+                            <label class="form-row"><span>Default Storyboard Model</span><select class="select" id="cfg-storyboard-provider" onchange="markDirty('storyboard_images.default_provider')"><option value="spark:flux2_dev">Spark / Flux2.Dev</option><option value="spark:flux2_klein">Spark / Flux2 Klein</option><option value="spark:z_image">Spark / Ernie Image</option><option value="spark:z_image_turbo">Spark / Ernie Turbo</option><option value="openai">OpenAI Image</option><option value="gemini">Nano Banana</option></select></label>
                             <label class="form-row"><span>OpenAI API Key</span><input class="input" type="password" id="cfg-openai-api-key" placeholder="OpenAI API key..." onchange="markDirty('storyboard_images.openai_api_key')"></label>
                             <label class="form-row advanced-only"><span>OpenAI Image Model</span><input class="input" type="text" id="cfg-openai-image-model" placeholder="gpt-image-2" onchange="markDirty('storyboard_images.openai_model')"></label>
 	                            <label class="form-row"><span>Gemini API Key</span><input class="input" type="password" id="cfg-gemini-api-key" placeholder="Google AI Studio key..." onchange="markDirty('storyboard_images.gemini_api_key')"></label>
@@ -8241,6 +9729,7 @@ beach</textarea></label>
             </div>
         </div>
     `;
+    setGuidedTooltips(isGuidedTooltipsEnabled());
 }
 
 async function fetchCharacters() {
@@ -8487,7 +9976,7 @@ function renderCharacterProductionActions(char) {
             '<button class="btn" type="button" onclick="auditSelectedCharacterPrompt()">Audit Current Prompt</button>' +
             '<button class="btn" type="button" onclick="lockSelectedCharacterAnchor()" ' + (anchor ? "" : "disabled") + '>Lock Anchor as Master</button>' +
             '<button class="btn" type="button" onclick="extractLatestCharacterSheetPanels()" ' + (latestSheet ? "" : "disabled") + '>Extract Latest Sheet</button>' +
-            '<button class="btn" type="button" onclick="selectCharacterForForge(\'' + escapeHtml(char.id) + '\')">Send to Forge</button>' +
+            '<button class="btn" type="button" onclick="selectCharacterForCinesmith(\'' + escapeHtml(char.id) + '\')">Send to Cinesmith</button>' +
         '</div>' +
         '<p class="t-meta">Character sheets can be split into reusable typed references. Training, video continuity, and collaboration are tracked in the profile schema until backing services exist.</p>'
     );
@@ -8495,9 +9984,9 @@ function renderCharacterProductionActions(char) {
 
 async function selectCharacter(charId) {
     shellState.selectedCharacterId = charId;
-    characterForgeSelectedId = charId;
+    characterCinesmithSelectedId = charId;
     await renderCharactersContent();
-    syncCharacterForgeSelectionUi();
+    syncCharacterCinesmithSelectionUi();
 }
 
 async function saveSelectedCharacterDna() {

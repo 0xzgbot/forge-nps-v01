@@ -1,6 +1,6 @@
 # Marketing Site Deployment
 
-The Forge NPS marketing site is a static website in this folder.
+The Cinesmith marketing site is a static website in this folder.
 
 ## Recommended Free Host
 
@@ -13,7 +13,7 @@ Cloudflare Pages works well here because the site is plain HTML, CSS, JavaScript
 | Setting | Value |
 | --- | --- |
 | Project type | Pages |
-| Repository | `0xzgbot/forge-nps-v01` |
+| Repository | `0xzgbot/cinesmith-v01` |
 | Production branch | `master` |
 | Build command | Leave blank |
 | Build output directory | `marketing` |
@@ -32,7 +32,7 @@ as the public site root.
 Open the HTML file directly:
 
 ```text
-~/Desktop/forge_nps_v01/marketing/index.html
+~/Desktop/cinesmith_v01/marketing/index.html
 ```
 
 Or serve it from the repository root:
@@ -58,5 +58,5 @@ http://localhost:8080/marketing/
 ## Notes
 
 - The site has no backend dependency.
-- The site does not modify the Forge dashboard or Hermes pipeline.
+- The site does not modify the Cinesmith dashboard or Hermes pipeline.
 - GitHub will show HTML files as source code unless the site is published through Pages, Cloudflare Pages, Netlify, or another static host.

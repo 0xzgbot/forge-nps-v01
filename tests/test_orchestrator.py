@@ -6,11 +6,12 @@ import asyncio
 # Since we are in a script context, we need to ensure paths are correct
 import sys
 import os
-sys.path.append("~/Desktop/forge_nps_v01")
+from pathlib import Path
+sys.path.append(str(Path(__file__).resolve().parents[1]))
 
-from core.orchestrator.forge_orchestrator import ForgeOrchestrator
+from core.orchestrator.cinesmith_orchestrator import CinesmithOrchestrator
 
-class TestForgeOrchestrator(unittest.IsolatedAsyncioTestCase):
+class TestCinesmithOrchestrator(unittest.IsolatedAsyncioTestCase):
 
     def setUp(self):
         # Mock dependencies
@@ -37,7 +38,7 @@ class TestForgeOrchestrator(unittest.IsolatedAsyncioTestCase):
         self.mock_config.get.return_value = MagicMock()
 
         # Instantiate orchestrator with mocks
-        self.orchestrator = ForgeOrchestrator(
+        self.orchestrator = CinesmithOrchestrator(
             config_manager=self.mock_config,
             session_manager=self.mock_session_manager,
             kimi_bridge=self.mock_kimi_bridge,

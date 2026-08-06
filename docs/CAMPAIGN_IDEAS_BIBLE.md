@@ -1,7 +1,7 @@
-# Forge NPS — Campaign Ideas Bible
+# Cinesmith — Campaign Ideas Bible
 ## 100+ Campaign Concepts to Fill the Pipeline
 
-> Every entry is designed as a Forge NPS campaign brief. Feed any of these into `POST /api/hermes/run-campaign`.
+> Every entry is designed as a Cinesmith campaign brief. Feed any of these into `POST /api/hermes/run-campaign`.
 
 ---
 
@@ -448,7 +448,7 @@
 
 ## 🎬 CINEMATIC TRAILERS
 
-### 69. "FORGE: The Documentary"
+### 69. "CINESMITH: The Documentary"
 **Format:** 2-Minute Trailer  
 **Genre:** Tech Documentary  
 **Visual Style:** Interviews, B-roll of servers, generated imagery, human faces reacting to AI art.  
@@ -586,13 +586,13 @@
 
 ---
 
-## 🎭 SPECIFIC FORGE NPS SHOWCASE CAMPAIGNS
+## 🎭 SPECIFIC CINESMITH NPS SHOWCASE CAMPAIGNS
 
 ### 89. "The Pipeline Creates Itself"
 **Format:** 2-Minute Meta-Film  
 **Genre:** Recursion / Tech Art  
-**Visual Style:** Each scene shows Forge NPS generating the next scene. Infinite regression, but beautiful.  
-**Brief:** Use Forge NPS to create a film about Forge NPS creating a film. The ultimate recursion. The pipeline promoting itself promoting itself.
+**Visual Style:** Each scene shows Cinesmith generating the next scene. Infinite regression, but beautiful.  
+**Brief:** Use Cinesmith to create a film about Cinesmith creating a film. The ultimate recursion. The pipeline promoting itself promoting itself.
 
 ### 90. "Five Minds, One Vision"
 **Format:** 60s Explainer  
@@ -610,12 +610,12 @@
 **Format:** 2-Minute Visualization  
 **Genre:** Data Art / Beautiful  
 **Visual Style:** Every past campaign as a room in an infinite palace. Walking through memories.  
-**Brief:** Visualize the Forge NPS memory system as architecture. Each campaign a room. Each shot a painting. The palace grows with every project.
+**Brief:** Visualize the Cinesmith memory system as architecture. Each campaign a room. Each shot a painting. The palace grows with every project.
 
 ### 93. "Event Stream"
 **Format:** 30s Motion Graphics  
 **Genre:** Abstract / Satisfying  
-**Visual Style:** The Forge event stream (kimi → hermes → spark → memory) as a Rube Goldberg machine.  
+**Visual Style:** The Cinesmith event stream (kimi → hermes → spark → memory) as a Rube Goldberg machine.  
 **Brief:** A creative brief enters the top of the machine. Each stage is a beautifully designed mechanism. The output emerges at the bottom. No words needed.
 
 ---
@@ -655,7 +655,7 @@
 ## 🚀 HOW TO USE THIS BIBLE
 
 1. **Pick a campaign** from any category
-2. **Write a Forge NPS brief** — the "Brief" section above is your starting point
+2. **Write a Cinesmith brief** — the "Brief" section above is your starting point
 3. **Feed to Kimi** via `POST /api/hermes/run-campaign`
 4. **Let Hermes compile** the prompt artifacts
 5. **Spark renders** the shots
@@ -682,9 +682,9 @@ data/campaigns/
 ├── 11_tv_openings/
 ├── 12_product_showcases/
 ├── 13_cultural/
-└── 14_forge_showcase/
+└── 14_cinesmith_showcase/
 ```
 
 ---
 
-*This bible is a living document. Add new campaigns as you discover them. The goal: never run out of ideas to feed the Forge.*
+*This bible is a living document. Add new campaigns as you discover them. The goal: never run out of ideas to feed the Cinesmith.*

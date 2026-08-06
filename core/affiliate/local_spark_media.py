@@ -1,8 +1,8 @@
-"""Local creative adapter backed by Forge/ComfyUI.
+"""Local creative adapter backed by Cinesmith/ComfyUI.
 
 This is an interoperability shim. It keeps the older endpoint contract for
 compatibility, but actual rendering is delegated to local Spark/ComfyUI
-workflows and visible output names should use Forge/Spark terminology.
+workflows and visible output names should use Cinesmith/Spark terminology.
 """
 
 from __future__ import annotations
@@ -51,22 +51,22 @@ class LocalSparkMediaAdapter:
 
     STYLE_PRESETS: List[Dict[str, Any]] = [
         {
-            "id": "forge-commercial-product",
+            "id": "cinesmith-commercial-product",
             "name": "Commercial Product Hero",
             "description": "Clean ecommerce product lighting, sharp packaging, controlled reflections.",
         },
         {
-            "id": "forge-ugc-natural",
+            "id": "cinesmith-ugc-natural",
             "name": "UGC Natural",
             "description": "Handheld creator-style realism with practical light and casual framing.",
         },
         {
-            "id": "forge-cinematic-premium",
+            "id": "cinesmith-cinematic-premium",
             "name": "Cinematic Premium",
             "description": "High-end ad cinematography, shaped light, shallow depth, dramatic contrast.",
         },
         {
-            "id": "forge-social-scrollstop",
+            "id": "cinesmith-social-scrollstop",
             "name": "Social Scroll Stopper",
             "description": "Bold composition, immediate focal point, high readability for short-form feeds.",
         },
@@ -226,7 +226,7 @@ class LocalSparkMediaAdapter:
             "created_at": _now_iso(),
             "updated_at": _now_iso(),
             "status": status,
-            "local_backend": "forge_comfyui",
+            "local_backend": "cinesmith_comfyui",
             "comfy_url": self.comfy_url,
             "local_output_dir": str(local_output_dir),
             "jobs": [
@@ -330,7 +330,7 @@ class LocalSparkMediaAdapter:
                 "seed": submit.get("seed", seed),
                 "custom_reference_id": custom_reference_id,
                 "image_reference_url": image_reference_url,
-                "local_equivalence_note": "Local adapter maps local image request to Forge Flux/ComfyUI workflow.",
+                "local_equivalence_note": "Local adapter maps local image request to Cinesmith Flux/ComfyUI workflow.",
             },
             local_output_dir=output_dir,
             error=str(submit.get("error") or ""),
@@ -376,8 +376,26 @@ class LocalSparkMediaAdapter:
         final_prompt = " ".join(part for part in prompt_parts if part)
 
         workflow = self.workflow_file_for_id("04_ltx2.3_image_to_video")
+        end_image_path = None
         if input_image_end_url:
             workflow = self.workflow_file_for_id("05_ltx2.3_first_last_frame_to_video") or workflow
+            end_image_path = await self._copy_or_download_reference(input_image_end_url, output_dir)
+            if not end_image_path:
+                job = self._make_job_set(
+                    job_set_id=job_set_id,
+                    job_type="image2video_local",
+                    prompt_id=None,
+                    status="failed",
+                    input_params={
+                        "input_image_url": input_image_url,
+                        "input_image_end_url": input_image_end_url,
+                        "prompt": prompt,
+                    },
+                    local_output_dir=output_dir,
+                    error="end_image_not_resolved",
+                )
+                self._write_json(self._job_path(job_set_id), job)
+                return job
         if not workflow:
             job = self._make_job_set(
                 job_set_id=job_set_id,
@@ -391,6 +409,11 @@ class LocalSparkMediaAdapter:
             self._write_json(self._job_path(job_set_id), job)
             return job
 
+        # LoadImage slot order: start frame first, end frame second (first/last workflows).
+        image_paths = [str(image_path)]
+        if end_image_path:
+            image_paths.append(str(end_image_path))
+
         comfy = ComfyUIClient(self.comfy_url)
         output_prefix = _safe_name(model or "video_model", fallback="video_model")
         submit = await comfy.submit_prompt_for_shot(
@@ -400,6 +423,7 @@ class LocalSparkMediaAdapter:
             seed=seed,
             output_dir=str(output_dir),
             image_path=str(image_path),
+            image_paths=image_paths,
             wait_for_output=wait_for_output,
         )
         status = "queued" if submit.get("queued") else ("completed" if submit.get("status") == "success" else "failed")
@@ -411,13 +435,15 @@ class LocalSparkMediaAdapter:
             input_params={
                 "input_image_url": input_image_url,
                 "local_input_image": str(image_path),
+                "local_input_image_end": str(end_image_path) if end_image_path else None,
                 "prompt": prompt,
                 "final_prompt": final_prompt,
                 "model": model,
                 "motions": motions or [],
                 "input_image_end_url": input_image_end_url,
+                "image_paths": image_paths,
                 "seed": submit.get("seed", seed),
-                "local_equivalence_note": "Local adapter maps local image-to-video request to Forge LTX/ComfyUI workflow.",
+                "local_equivalence_note": "Local adapter maps local image-to-video request to Cinesmith LTX/ComfyUI workflow.",
             },
             local_output_dir=output_dir,
             error=str(submit.get("error") or ""),

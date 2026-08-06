@@ -157,7 +157,7 @@ if __name__ == "__main__":
     # Simple manual test if run directly
     parser = ScriptParser()
     try:
-        data = parser.parse("./Desktop/forge_nps_v01/scripts/demo/pilot_script.md")
+        data = parser.parse("./Desktop/cinesmith_v01/scripts/demo/pilot_script.md")
         print("Parsed Successfully!")
         print(f"Title: {data['title']}")
         print(f"Characters: {data['character_registry']}")

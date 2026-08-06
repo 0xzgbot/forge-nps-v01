@@ -1,20 +1,20 @@
-# Forge NPS Architecture
+# Cinesmith Architecture
 
 ## Runtime Boundary
 
 Canonical runtime lives in:
 
 ```text
-~/Desktop/forge_nps_v01
+~/Desktop/cinesmith_v01
 ```
 
 Primary app:
 
-- Server: [dashboard/forge_dashboard.py](~/Desktop/forge_nps_v01/dashboard/forge_dashboard.py)
+- Server: [dashboard/cinesmith_dashboard.py](~/Desktop/cinesmith_v01/dashboard/cinesmith_dashboard.py)
 - Port: `7000`
 - UI: `http://127.0.0.1:7000`
 
-Forge NPS is a multi-service app. The dashboard coordinates external Kimi/NVIDIA, LM Studio, and ComfyUI/Spark services.
+Cinesmith is a multi-service app. The dashboard coordinates external Kimi/NVIDIA, LM Studio, and ComfyUI/Spark services.
 
 ## Service Roles
 
@@ -31,15 +31,15 @@ Forge NPS is a multi-service app. The dashboard coordinates external Kimi/NVIDIA
 
 | File | Responsibility |
 |------|----------------|
-| [core/hermes/pipeline/campaign_service.py](~/Desktop/forge_nps_v01/core/hermes/pipeline/campaign_service.py) | Main campaign orchestration and NDJSON stream events. |
-| [core/hermes/pipeline/director_service.py](~/Desktop/forge_nps_v01/core/hermes/pipeline/director_service.py) | Kimi shot planning, requested shot count, self-check. |
-| [core/hermes/pipeline/profile_cli.py](~/Desktop/forge_nps_v01/core/hermes/pipeline/profile_cli.py) | Hermes profile calls through LM Studio/OpenAI-compatible API. |
-| [core/hermes/pipeline/audit_service.py](~/Desktop/forge_nps_v01/core/hermes/pipeline/audit_service.py) | Re-audit and remediation orchestration. |
-| [core/hermes/pipeline/video_service.py](~/Desktop/forge_nps_v01/core/hermes/pipeline/video_service.py) | Image-to-video prompt/render support. |
-| [core/hermes/pipeline/state_machine.py](~/Desktop/forge_nps_v01/core/hermes/pipeline/state_machine.py) | Canonical shot state transitions. |
-| [core/prompts/prompt_compiler.py](~/Desktop/forge_nps_v01/core/prompts/prompt_compiler.py) | Workflow-aware prompt artifact compilation. |
-| [core/storyboard/image_providers.py](~/Desktop/forge_nps_v01/core/storyboard/image_providers.py) | Optional OpenAI and Gemini/Nano Banana storyboard image providers. |
-| [core/affiliate/local_spark_media.py](~/Desktop/forge_nps_v01/core/affiliate/local_spark_media.py) | Legacy-compatible local creative adapter backed by Spark/ComfyUI. New visible output names use the selected model prefix. |
+| [core/hermes/pipeline/campaign_service.py](~/Desktop/cinesmith_v01/core/hermes/pipeline/campaign_service.py) | Main campaign orchestration and NDJSON stream events. |
+| [core/hermes/pipeline/director_service.py](~/Desktop/cinesmith_v01/core/hermes/pipeline/director_service.py) | Kimi shot planning, requested shot count, self-check. |
+| [core/hermes/pipeline/profile_cli.py](~/Desktop/cinesmith_v01/core/hermes/pipeline/profile_cli.py) | Hermes profile calls through LM Studio/OpenAI-compatible API. |
+| [core/hermes/pipeline/audit_service.py](~/Desktop/cinesmith_v01/core/hermes/pipeline/audit_service.py) | Re-audit and remediation orchestration. |
+| [core/hermes/pipeline/video_service.py](~/Desktop/cinesmith_v01/core/hermes/pipeline/video_service.py) | Image-to-video prompt/render support. |
+| [core/hermes/pipeline/state_machine.py](~/Desktop/cinesmith_v01/core/hermes/pipeline/state_machine.py) | Canonical shot state transitions. |
+| [core/prompts/prompt_compiler.py](~/Desktop/cinesmith_v01/core/prompts/prompt_compiler.py) | Workflow-aware prompt artifact compilation. |
+| [core/storyboard/image_providers.py](~/Desktop/cinesmith_v01/core/storyboard/image_providers.py) | Optional OpenAI and Gemini/Nano Banana storyboard image providers. |
+| [core/affiliate/local_spark_media.py](~/Desktop/cinesmith_v01/core/affiliate/local_spark_media.py) | Legacy-compatible local creative adapter backed by Spark/ComfyUI. New visible output names use the selected model prefix. |
 
 ## Data Flow
 
@@ -121,7 +121,7 @@ Storyboard provider options:
 Media root:
 
 ```text
-~/Desktop/FORGE_NPS_MEDIA
+~/Desktop/CINESMITH_MEDIA
 ```
 
 Important folders:
@@ -137,7 +137,7 @@ Dashboard routes serve media through `/media-assets/*` and `/external-renders/*`
 
 Runtime config loads from `.env`, then overlays `data/config.json`. The Settings page writes to `data/config.json`.
 
-Important note: LM Studio load tuning is not controlled by Forge. `POST /api/lmstudio/load` sends the selected model and lets LM Studio use its own model defaults.
+Important note: LM Studio load tuning is not controlled by Cinesmith. `POST /api/lmstudio/load` sends the selected model and lets LM Studio use its own model defaults.
 
 ## Legacy Policy
 

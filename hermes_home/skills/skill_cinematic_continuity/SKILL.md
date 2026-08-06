@@ -1,7 +1,7 @@
 # SKILL: Cinematic Continuity
 ## Domain: Multi-Shot Sequences, Visual Coherence, Character Consistency, Pipeline Continuity
 ## Version: 1.0
-## For: Forge Hermes Agent — Scene Planning, Shot Lists, Character Locking
+## For: Cinesmith Hermes Agent — Scene Planning, Shot Lists, Character Locking
 
 ---
 
@@ -15,7 +15,7 @@ When this skill is active, the agent should:
 - Maintain lighting, color, and prop continuity across sequences
 - Apply AI-specific locking techniques (anchor frames, IP adapters, frame-to-frame chaining)
 - Build shot lists that prevent character drift and visual discontinuity
-- Understand how Forge Nexus graph relationships enforce continuity automatically
+- Understand how Cinesmith Nexus graph relationships enforce continuity automatically
 
 ---
 
@@ -38,10 +38,10 @@ Traditional continuity editing creates invisible cuts that preserve spatial geog
 
 Imagine a line connecting two characters. The camera must stay on ONE side of this line for the entire scene. Crossing the line reverses screen direction and disorients the viewer. [^46^]
 
-**Forge Application:**
+**Cinesmith Application:**
 - When generating a multi-shot scene, the agent must record which side of the axis each shot was generated from.
 - If Shot 1 has Character A on the left and Character B on the right, Shot 2 (reverse angle) must maintain this left/right relationship.
-- **Graph enforcement:** In Forge Nexus, the `axis_side` property on Scene nodes locks camera geography.
+- **Graph enforcement:** In Cinesmith Nexus, the `axis_side` property on Scene nodes locks camera geography.
 
 **Prompt Translation:**
 > "180-degree axis locked, Character A screen-left, Character B screen-right, over-shoulder reverse angle maintaining spatial geography"
@@ -63,7 +63,7 @@ Eyeline matching ensures that when Character A looks at Character B, the next sh
 
 Before generating any frames, the agent must build a shot list that enforces continuity at the planning stage.
 
-### The Forge Shot List Schema
+### The Cinesmith Shot List Schema
 
 | Field | Purpose | Example |
 |-------|---------|---------|
@@ -125,8 +125,8 @@ Lighting continuity ensures viewers remain immersed by maintaining consistent in
 - [ ] Fill level maintains contrast ratio (key:fill = 2:1 to 4:1 typically)
 - [ ] Practical lights (lamps, screens, fire) maintain consistent glow
 
-**Forge Application:**
-In Forge Nexus, each Scene node stores a `lighting_key` object. All shots linked to that scene inherit the lighting key automatically. Changing the scene's lighting key triggers `forge_impact` to show all affected shots.
+**Cinesmith Application:**
+In Cinesmith Nexus, each Scene node stores a `lighting_key` object. All shots linked to that scene inherit the lighting key automatically. Changing the scene's lighting key triggers `cinesmith_impact` to show all affected shots.
 
 **Prompt Translation:**
 > "lighting continuity locked: 3200K key from window-left, 5600K rim from practical lamp-right, 2:1 contrast ratio, shadow direction 45 degrees camera-left, fill level -2 stops, consistent across all shots in sequence"
@@ -169,8 +169,8 @@ The smallest prop inconsistency breaks immersion. [^44^]
 - **Position lock:** A coffee cup on the table stays in the same relative position unless a character moves it (and then the new position becomes the locked state).
 - **Costume lock:** Every outfit gets its own anchor pack. [^44^] Changing outfits requires a new character reference set.
 
-**Forge Application:**
-In Forge Nexus, Prop nodes have `state` and `position` properties. Edges track `HELD_BY` (which hand) and `LOCATED_AT` (which set position). `forge_detect_changes` flags any prop state drift between shots.
+**Cinesmith Application:**
+In Cinesmith Nexus, Prop nodes have `state` and `position` properties. Edges track `HELD_BY` (which hand) and `LOCATED_AT` (which set position). `cinesmith_detect_changes` flags any prop state drift between shots.
 
 ---
 
@@ -209,8 +209,8 @@ The most reliable technique for shot-to-shot continuity:
 
 This creates a "visual chain" where each shot inherits the previous shot's state. [^45^]
 
-**Forge Integration:**
-Forge Nexus stores the `anchor_frame` property on each Shot node. The graph automatically chains `PRECEDES` edges so the agent knows which frame to use as reference for the next shot.
+**Cinesmith Integration:**
+Cinesmith Nexus stores the `anchor_frame` property on each Shot node. The graph automatically chains `PRECEDES` edges so the agent knows which frame to use as reference for the next shot.
 
 **Prompt Template for Chained Generation:**
 ```
@@ -244,8 +244,8 @@ Advanced video models (LTX, Sora, Veo) understand frames as connected parts of a
 - Smooth transitions between poses and expressions
 - Environment continuity as scenes progress
 
-**Forge Application:**
-When using multi-frame aware models, the agent should generate entire sequences (not individual shots) and use Forge Nexus to verify that the generated sequence matches the planned graph structure.
+**Cinesmith Application:**
+When using multi-frame aware models, the agent should generate entire sequences (not individual shots) and use Cinesmith Nexus to verify that the generated sequence matches the planned graph structure.
 
 ---
 
@@ -256,7 +256,7 @@ A Continuity Bible is the single source of truth for all visual consistency acro
 ### Continuity Bible Structure
 
 ```yaml
-project: "The Forge Short"
+project: "The Cinesmith Short"
 version: 1.0
 
 characters:
@@ -470,16 +470,16 @@ When skills conflict:
 
 ---
 
-## 10. FORGE NEXUS INTEGRATION
+## 10. CINESMITH NEXUS INTEGRATION
 
-Cinematic Continuity is where Forge Nexus becomes essential. The graph database enforces continuity automatically.
+Cinematic Continuity is where Cinesmith Nexus becomes essential. The graph database enforces continuity automatically.
 
 ### Graph Enforcement Points
 
-| Continuity Rule | Forge Nexus Node/Edge | How It Enforces |
+| Continuity Rule | Cinesmith Nexus Node/Edge | How It Enforces |
 |-----------------|----------------------|-----------------|
 | Character identity | `Character` node + `HAS_EMBEDDING` edge | All shots linked to character must use same face embedding |
-| Costume state | `Character` → `WEARS` → `Outfit` edge | Outfit changes trigger `forge_impact` on all dependent shots |
+| Costume state | `Character` → `WEARS` → `Outfit` edge | Outfit changes trigger `cinesmith_impact` on all dependent shots |
 | Lighting key | `Scene` → `HAS_LIGHTING_KEY` → `LightingKey` node | All shots in scene inherit lighting parameters |
 | Axis of action | `Scene` → `HAS_AXIS` → `Axis` node | Camera side locked; crossing axis flags warning |
 | Prop state | `Prop` node + `LOCATED_AT` / `HELD_BY` edges | Position and state tracked across shots |
@@ -488,7 +488,7 @@ Cinematic Continuity is where Forge Nexus becomes essential. The graph database 
 
 ### MCP Tool Integration
 
-When the agent calls `forge_context` on a Scene node, it receives:
+When the agent calls `cinesmith_context` on a Scene node, it receives:
 ```json
 {
   "scene": "alley_night",
@@ -506,7 +506,7 @@ When the agent calls `forge_context` on a Scene node, it receives:
 }
 ```
 
-When the agent calls `forge_detect_changes` after modifying a prop:
+When the agent calls `cinesmith_detect_changes` after modifying a prop:
 ```json
 {
   "changed": ["coffee_cup"],
@@ -553,8 +553,8 @@ Use these shots to hide generation seams and reset viewer perception between cha
 After generating all shots for a scene:
 1. **Frame scrub:** Review every frame for facial drift, prop state, lighting pop.
 2. **Side-by-side:** Compare Shot N and Shot N+1 on screen simultaneously.
-3. **Drift log:** Document inconsistencies in `.forge-nexus/continuity_log.json`.
-4. **Regenerate list:** Use `forge_impact` to identify minimum shots to regenerate.
+3. **Drift log:** Document inconsistencies in `.cinesmith-nexus/continuity_log.json`.
+4. **Regenerate list:** Use `cinesmith_impact` to identify minimum shots to regenerate.
 5. **Color match:** Apply scene color bible as LUT across all shots in post.
 
 ### Temporal Coherence for Video Models
@@ -581,4 +581,4 @@ When using LTX 2.3 or similar video models:
 
 ## 14. VERSION HISTORY
 
-- **v1.0** (2026-04-24): Initial comprehensive skill covering traditional continuity editing (180-degree rule, eyeline match, match cuts), shot planning, lighting/color/prop continuity, AI-native anti-drift workflows (anchor frames, IP adapters, frame-to-frame chaining), continuity bible structure, and Forge Nexus graph enforcement.
+- **v1.0** (2026-04-24): Initial comprehensive skill covering traditional continuity editing (180-degree rule, eyeline match, match cuts), shot planning, lighting/color/prop continuity, AI-native anti-drift workflows (anchor frames, IP adapters, frame-to-frame chaining), continuity bible structure, and Cinesmith Nexus graph enforcement.

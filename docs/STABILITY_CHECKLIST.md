@@ -4,8 +4,8 @@ Run before each demo pass.
 
 ## 0) Hermes Engine Pointer
 - If you updated Hermes, run:
-  - `~/Desktop/forge_nps_v01/scripts/update_hermes_engine.sh`
-- In Forge repo, confirm submodule pointer is committed/pushed:
+  - `~/Desktop/cinesmith_v01/scripts/update_hermes_engine.sh`
+- In Cinesmith repo, confirm submodule pointer is committed/pushed:
   - `git status` should not show unintended `hermes_engine` drift.
 
 ## 1) Kimi Auth and Endpoint
@@ -23,22 +23,22 @@ Run before each demo pass.
 - Confirm host/model in Settings.
 - Confirm vision model exists if using local vision audit.
 - Use **Test & Detect Models** to verify the LM Studio server is reachable.
-- Use **Load Model** or **Reload Hermes/Vision** only to load the selected model. Forge does not override LM Studio load tuning; LM Studio uses its model defaults.
+- Use **Load Model** or **Reload Hermes/Vision** only to load the selected model. Cinesmith does not override LM Studio load tuning; LM Studio uses its model defaults.
 
 ## 4) Media Path
 - Confirm media root exists and is writable:
-  - `~/Desktop/FORGE_NPS_MEDIA/images`
+  - `~/Desktop/CINESMITH_MEDIA/images`
 - Confirm new renders appear under this folder.
 
 ## 5) Canonical API Health
 - `GET /api/shots` returns `shots`, `count`, `active_campaign_id`.
 - `GET /api/memory/health` returns health counts JSON.
 - Run the repeatable smoke suite while the dashboard is active:
-  - `python3 scripts/smoke_forge.py --base-url http://127.0.0.1:7000`
+  - `python3 scripts/smoke_cinesmith.py --base-url http://127.0.0.1:7000`
 - For live render validation, opt in explicitly:
-  - `python3 scripts/smoke_forge.py --base-url http://127.0.0.1:7000 --live-script`
-  - `python3 scripts/smoke_forge.py --base-url http://127.0.0.1:7000 --live-campaign`
-- `scripts/pre_push_hygiene.sh` runs the smoke suite automatically when Forge is already listening on `127.0.0.1:7000`.
+  - `python3 scripts/smoke_cinesmith.py --base-url http://127.0.0.1:7000 --live-script`
+  - `python3 scripts/smoke_cinesmith.py --base-url http://127.0.0.1:7000 --live-campaign`
+- `scripts/pre_push_hygiene.sh` runs the smoke suite automatically when Cinesmith is already listening on `127.0.0.1:7000`.
 
 ## 6) Campaign Stream Smoke
 - Run one short campaign.

@@ -1,5 +1,100 @@
 # Changelog
 
+## 2026-08-06 - Rebrand: Forge NPS → Cinesmith
+
+- **Full rename** across app, docs, skills, and marketing: `Forge NPS` → `Cinesmith` (formerly "Neural Production Studio").
+- Code/module renames: `forge_dashboard.py` → `cinesmith_dashboard.py`, `forge_env.py` → `cinesmith_env.py`, `forge_run.py` → `cinesmith_run.py`, `launch_forge.sh` → `launch_cinesmith.sh`, `smoke_forge.py` → `smoke_cinesmith.py`, `forge_nexus` → `cinesmith_nexus`, profile `forgehermes` → `cinesmith`, all `forge-*.js/css` → `cinesmith-*`, marketing assets → `cinesmith-*`.
+- Env vars: `FORGE_*` → `CINESMITH_*` (legacy `FORGE_*` values and `FORGE_NPS_MEDIA` sibling dir still honored for backward compatibility).
+- Skill renames: `forge-nps-evolution-plan` → `cinesmith-evolution-plan`, `forge-*-protocol` skill dirs → `cinesmith-*-protocol`.
+- MCP tool names: `forge_query/context/impact/trace` → `cinesmith_query/context/impact/trace`; `ForgeAPIError` → `CinesmithAPIError`; JS globals `ForgeCore` → `CinesmithCore` etc.
+- Repo folder `forge_nps_v01` intentionally unchanged (rename at your discretion); sibling media dir `FORGE_NPS_MEDIA` still auto-detected, new name `CINESMITH_MEDIA`.
+
+## 2026-07-16 - World-class ease: coach, samples, hang fixes, series
+
+- **Getting-started coach** on Agency (`cinesmith-coach.js` + `cinesmith-polish.css`): adaptive next steps from readiness + milestones, hide/restore, pulse targets
+- **Sample EP briefs** chips (neon courier, travel, product, short film) + ⌘K actions for sample brief / sheet from photo / First→Last / new episode / restore coach
+- **Onboarding** 3-step path card; Enter Agency lands on Agency home; richer keyboard help
+- **Create hub** 15-minute path + sample_briefs + tips from `/api/product/create-hub`
+- **F3 auto character sheet:** fix missing-character 404; sheet workflow `04_*` + alias for legacy `02_*`
+- **D3 first/last frame** E2E; **E5 multi-episode** series APIs + Stories UI
+- **Spark recovery docs** full guide at `/static/docs/DESKTOP_SPARK_PACKAGE.md`; preflight character-sheet check
+- Still **uncommitted** (no git commit per request)
+
+## 2026-07-09 - Multi-agent polish pass (isolation, upload, theme, compile, cost, A/B)
+
+- **A9 Hermes isolation:** vendored CLI launcher + `HERMES_HOME` isolation for profile CLI and dashboard profile chat; bare PATH `hermes`/`cinesmith` rewritten away
+- **F2 Multi-upload:** drag-drop multi-file refs on Characters + Asset Vault (`cinesmith-characters.js`, `cinesmith-assets.js`)
+- **F4 Package → campaign:** one-click attach package identity pack to active campaign
+- **H4/H5:** responsive mobile shell + dark/light theme toggle (`cinesmith-theme.*`, `cinesmith-responsive.css`)
+- **C7 Parallel compile:** bounded concurrent shot compile with structured per-shot errors + Failed shots UI panel
+- **J4 Failure memory:** auto-consolidate after N pipeline failures into durable Hermes memory summaries
+- **G5 Cost meter:** cloud image spend counter (OpenAI/Gemini) with readiness chips + Settings panel
+- **H9 A/B compare:** side-by-side frame compare, winner preference, review-log integration
+- Stories **Assemble / Export package** CTA polish; roadmap checkboxes synced
+- Tests: **161 passed** (full suite)
+
+## 2026-07-08 - Client review: approve / reject / Hermes remediate
+
+- Frame.io-style **client review** on lightbox: Approve · Needs changes · Reject + remediate
+- Keyboard: **A** approve · **R** reject+remediate · **C** needs changes · **←/→** frames
+- API: `POST /api/product/review`, `GET /api/product/review/queue`
+- Review state on shots (`review_status`, badges on filmstrip), log at `data/reviews/review_log.jsonl`
+- Reject can call existing Hermes audit remediation service
+
+## 2026-07-08 - Adobe-tier Agency: EP console, ⌘K, production timeline
+
+- **Executive Producer Console** on Agency home: production brief, Hermes chat (improve brief / shot list / story beats), live production timeline
+- **Command palette** (⌘/Ctrl+K): navigate desks, run campaign, produce story, export, scorecard, stack health
+- Production timeline stages: Brief → Plan → Critique → Compile → Render → Audit → Memory → Done
+- Pro handoff strip: export package + continuity score from Agency
+- Brand chrome: Cinesmith Agency sidebar mark; premium primary CTAs
+- API: `GET /api/product/agency-desk` desk summary
+- Scripts: `cinesmith-agency.js`
+
+## 2026-07-08 - Hermes-first product reframe (not a script app)
+
+- Product vision: [PRODUCT_VISION.md](PRODUCT_VISION.md) — agency runtime, not script runner
+- UI renames: **Script Studio → Stories**, Create → **Agency**, primary CTAs **Run with Hermes** / **Produce with Hermes**
+- Agency home: live brief box → one-click live image campaign or multi-beat story
+- Create hub / suggestions / wizard / help copy reframed around Hermes real-time work
+- Internal APIs may still use `/api/script/*` and `data/scripts/` for compatibility; users never see “script app” language
+
+## 2026-07-08 - Domain router split for dashboard API
+
+- Mounted domain APIRouters under `dashboard/routes/`:
+  `system`, `campaigns`, `script`, `hermes`, `characters`, `assets`, `memory`, `video`, `ideas`, `legacy` (+ existing `product`)
+- Handlers remain in `cinesmith_dashboard.py` (behavior-identical); routers only register paths/tags
+- `GET /` and WebSockets stay on the main app; static mounts unchanged
+- Docs: [DASHBOARD_ROUTERS.md](DASHBOARD_ROUTERS.md)
+
+## 2026-07-08 - Product surface: Create hub, export, scorecard, modular routes
+
+- Added modular package layout:
+  - `dashboard/routes/product.py` — Create hub, story export, media probe, scorecard, wizard, queue summary, suggestions
+  - `dashboard/errors.py` — structured `CinesmithAPIError` responses (`code`, `hint`, `recovery`)
+  - `core/script_projects.py`, `core/story_export.py`, `core/media_probe.py`, `core/consistency_scorecard.py`, `core/memory_suggestions.py`
+- Frontend modules: `cinesmith-core.js` (API + errors + toasts), `cinesmith-product.js` (hub, wizard, export, audio badges)
+- **Create** workspace: unified entry for Images / Full Story / Image→Video / Characters with queue strip + memory suggestions
+- **Export Story Package** ZIP (manifest, captions, frames, clips, audio honesty)
+- **Consistency Scorecard** for Script Studio projects
+- **Audio honesty** badges on video cells via `ffprobe`
+- Multi-step **setup wizard** (server-persisted in `data/first_run_wizard.json`)
+- Contract tests (`tests/test_api_contracts.py`) + product tests (`tests/test_product_surface.py`)
+- Smoke suite covers new product routes and export
+
+## 2026-07-08 - Polish pass: isolation, readiness, presets, onboarding
+
+- Added `core/cinesmith_env.py` for portable media roots and **Hermes isolation** (repo `hermes_home/` only; never silent `~/.hermes`).
+- Dashboard applies isolation at import; Hermes profile chat and profile CLI subprocesses use isolated env.
+- Added `GET /api/system/readiness` for first-run health (isolation, media, Spark, LM Studio).
+- Added `scripts/launch_cinesmith.sh` one-command launcher with isolation + media defaults.
+- Clarified env validation: `scripts/validate_env.py` (setup.py remains a compatibility wrapper).
+- UI: system readiness chips, first-run onboarding, image + story presets, keyboard shortcuts (⌘/Ctrl+Enter, `?`, 1–7), global toasts.
+- Portable media default: sibling `CINESMITH_MEDIA` or `<repo>/media`.
+- Tests: relative repo paths (no hard-coded `~/...`); new `tests/test_cinesmith_env.py`.
+- Smoke suite checks readiness + isolation.
+- Master backlog: [docs/POLISH_ROADMAP.md](POLISH_ROADMAP.md).
+
 ## 2026-05-13 - Goal validation pass, batch queueing, and demo-readiness report
 
 - Added [DEMO_READINESS_REPORT.md](DEMO_READINESS_REPORT.md) with live validation results for the full polish/testing goal.
@@ -12,13 +107,13 @@
 - Verified a one-click Script Studio run from short prompt to script package, coverage, Flux2.Dev storyboard start frames, and two LTX image-to-video clips.
 - Verified generated Script Studio clips contain H.264 video and AAC audio streams with `ffprobe`.
 - Verified Asset Vault package data is injected into Script Studio storyboard prompts.
-- Added `scripts/smoke_forge.py` for repeatable dashboard/API smoke checks.
+- Added `scripts/smoke_cinesmith.py` for repeatable dashboard/API smoke checks.
 - Updated `scripts/pre_push_hygiene.sh` to run the smoke suite when the local dashboard is already active.
 - Expanded the stability checklist with full demo rehearsal steps, smoke-suite commands, storyboard/video visibility checks, and ffprobe verification.
 - Validation completed:
   - `python3 -m pytest tests -q` -> `83 passed`
   - `python3 -m pytest tests/test_full_pipeline.py tests/test_script_studio_persistence.py tests/test_resilience.py -q` -> `9 passed`
-  - `python3 scripts/smoke_forge.py --base-url http://127.0.0.1:7000` -> passed
+  - `python3 scripts/smoke_cinesmith.py --base-url http://127.0.0.1:7000` -> passed
   - `node --check dashboard/static/js/app.js` -> passed
   - Python compile checks for changed backend files -> passed
 
@@ -44,7 +139,7 @@
 - The previous `local_spark_media_...` visible filename prefix is retained only on old files already rendered before this update.
 - Added/updated validation for this batch:
   - `node --check dashboard/static/js/app.js`
-  - `python3 -m py_compile dashboard/forge_dashboard.py core/affiliate/local_spark_media.py`
+  - `python3 -m py_compile dashboard/cinesmith_dashboard.py core/affiliate/local_spark_media.py`
   - `python3 -m pytest tests/test_local_spark_media_adapter.py -q`
 
 ## 2026-05-09 - Video controls, image-count clarity, and push hygiene
@@ -76,18 +171,18 @@
 
 ## 2026-05-05 / 2026-05-06 - Dashboard UI, profile tooling, and script fallback coverage
 
-This entry summarizes the Forge NPS workspace changes made in the current dashboard refresh session.
+This entry summarizes the Cinesmith workspace changes made in the current dashboard refresh session.
 
 Relevant commits:
 
-- `3716bcc` - Refresh Forge dashboard UI
+- `3716bcc` - Refresh Cinesmith dashboard UI
 - `798e7e5` - Update prompt generation labels
 - `4890e33` - Clean up dashboard controls
 - `829b827` - Update dashboard UI and profile tooling
 
 Current local workspace note:
 
-- `dashboard/forge_dashboard.py` also contains an unpushed director fallback coverage change. It is documented below because it is present in the current workspace.
+- `dashboard/cinesmith_dashboard.py` also contains an unpushed director fallback coverage change. It is documented below because it is present in the current workspace.
 
 ### Dashboard Navigation and Layout
 
@@ -148,7 +243,7 @@ Current local workspace note:
 
 ### Documentation and Design Assets
 
-- Added [DESIGN.md](DESIGN.md) for Forge NPS product-launch video visual identity.
+- Added [DESIGN.md](DESIGN.md) for Cinesmith product-launch video visual identity.
 - Added this changelog and linked it from the documentation index and README.
 
 ### Validation Run
@@ -157,7 +252,7 @@ The following checks were run before the latest pushed commit:
 
 ```bash
 node --check dashboard/static/js/app.js
-python3 -m py_compile core/hermes/pipeline/profile_cli.py dashboard/api/prompt_builder.py dashboard/forge_dashboard.py
+python3 -m py_compile core/hermes/pipeline/profile_cli.py dashboard/api/prompt_builder.py dashboard/cinesmith_dashboard.py
 python3 -m pytest tests/test_profile_cli.py
 ```
 

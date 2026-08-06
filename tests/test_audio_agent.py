@@ -1,9 +1,10 @@
 import json
 import os
+from pathlib import Path
 import sys
 
 # Add the project root to sys.path so we can import core modules if needed
-project_root = "~/Desktop/forge_nps_v01"
+project_root = str(Path(__file__).resolve().parents[1])
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 

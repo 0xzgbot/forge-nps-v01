@@ -1,7 +1,7 @@
 # SKILL: Baroque / Caravaggio Specialist
 ## Domain: Dramatic Chiaroscuro, Tenebrism, Emotional Intensity, Religious Ecstasy
 ## Version: 1.0
-## For: Forge Hermes Agent — Prompt Engineering & Scene Planning
+## For: Cinesmith Hermes Agent — Prompt Engineering & Scene Planning
 
 ---
 

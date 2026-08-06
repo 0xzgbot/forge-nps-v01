@@ -59,7 +59,7 @@ Wan 2.1 ComfyUI node parameters seed motion strength frame interpolation LTX Vid
 13 results
 
 
-The Forge Architecture JSON Schemas and FLUX 2 Text Rendering Fix
+The Cinesmith Architecture JSON Schemas and FLUX 2 Text Rendering Fix
 
 
 
@@ -118,7 +118,7 @@ The Forge Architecture JSON Schemas and FLUX 2 Text Rendering Fix
 
 
 
-Here is the technical deep-dive for The Forge production engine. These schemas are designed for the Router → Dispatcher → Remediation loop, with each payload being machine-executable by ComfyUI nodes across your GPU hosts.
+Here is the technical deep-dive for The Cinesmith production engine. These schemas are designed for the Router → Dispatcher → Remediation loop, with each payload being machine-executable by ComfyUI nodes across your GPU hosts.
 
 1. Architecture Philosophy
 The core design principle is semantic isolation: cinematic intent is decomposed into non-conflicting instruction planes before JSON serialization. The Router layer assembles high-level intent into model-specific dialects; the Dispatcher validates node compatibility; the Remediation loop adjusts guidance parameters based on artifact detection.
@@ -130,9 +130,9 @@ JSON
 
 Copy
 {
-  "forge_metadata": {
+  "cinesmith_metadata": {
     "model_host": "flux2-dev-01",
-    "job_id": "forge-img-uuid",
+    "job_id": "cinesmith-img-uuid",
     "remediation_count": 0,
     "priority": "high"
   },
@@ -262,9 +262,9 @@ JSON
 
 Copy
 {
-  "forge_metadata": {
+  "cinesmith_metadata": {
     "model_host": "wan21-video-01",
-    "job_id": "forge-vid-uuid",
+    "job_id": "cinesmith-vid-uuid",
     "pipeline_type": "i2v",
     "remediation_count": 0
   },
@@ -358,9 +358,9 @@ JSON
 
 Copy
 {
-  "forge_metadata": {
+  "cinesmith_metadata": {
     "model_host": "ltx23-video-02",
-    "job_id": "forge-vid-uuid",
+    "job_id": "cinesmith-vid-uuid",
     "pipeline_type": "t2v",
     "remediation_count": 0
   },
@@ -485,9 +485,9 @@ JSON
 
 Copy
 {
-  "forge_metadata": {
+  "cinesmith_metadata": {
     "model_host": "zimage-turbo-01",
-    "job_id": "forge-fast-uuid",
+    "job_id": "cinesmith-fast-uuid",
     "track": "rapid_prototype",
     "max_latency_ms": 15000
   },
@@ -669,4 +669,4 @@ N/A
 N/A
 Distilled: 4–8 steps 
 8 steps, FP8 
-These schemas provide The Forge with type-safe, model-specific dialects that map directly to ComfyUI node parameters while preserving cinematic intent across the distributed GPU farm.
+These schemas provide Cinesmith with type-safe, model-specific dialects that map directly to ComfyUI node parameters while preserving cinematic intent across the distributed GPU farm.

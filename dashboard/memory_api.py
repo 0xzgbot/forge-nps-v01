@@ -1,5 +1,5 @@
 """
-Memory API endpoints for the Forge NPS Dashboard.
+Memory API endpoints for the Cinesmith Dashboard.
 Provides structured data for visualizing Hermes memory:
 - Stats overview
 - Event timeline
@@ -340,4 +340,4 @@ def search_memory(query: str) -> Dict[str, List[Dict[str, Any]]]:
 # --- API ROUTES ---
 
 # NOTE: These are pure utility functions.
-# FastAPI routes are defined in forge_dashboard.py which imports and calls these directly.
+# FastAPI routes are defined in cinesmith_dashboard.py which imports and calls these directly.

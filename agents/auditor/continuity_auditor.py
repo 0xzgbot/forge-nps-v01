@@ -18,7 +18,7 @@ class ErrorCategory(str, Enum):
 
 class ContinuityAuditor:
     """
-    The Intelligence Auditor component of Forge NPS.
+    The Intelligence Auditor component of Cinesmith.
     Uses Kimi's reasoning capabilities to compare visual descriptions 
     and rendered images against the established Lore Bible/World Bible.
     """

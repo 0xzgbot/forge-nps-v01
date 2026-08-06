@@ -6,7 +6,11 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from core.skills.skill_loader import SkillLoader
 from core.hermes.platform_skills import platform_prompt_clause
-from core.prompts.prompt_standards import apply_model_prompt_standard, prompt_standard_skills_for_workflow
+from core.prompts.prompt_standards import (
+    apply_model_prompt_standard,
+    flux_dev_ignores_negative_prompts,
+    prompt_standard_skills_for_workflow,
+)
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -436,15 +440,22 @@ def compile_prompt_artifact(
     if was_truncated:
         warnings.append("compiled_prompt_truncated")
 
+    suppress_negative_prompt = flux_dev_ignores_negative_prompts(workflow_id, model_family)
+
     return {
         "raw_concept": _safe_text(raw_concept),
         "workflow_id": _safe_text(workflow_id),
+        "model_family": _safe_text(model_family),
         "role_key": _safe_text(role_key),
         "profile_name": _safe_text(profile.get("profile_name")),
         "skills_used": skills_used,
         "compiled_prompt": compiled,
-        "negative_prompt": _safe_text(profile.get("negative_prompt")),
-        "identity_negative_prompt": ", ".join([_safe_text(x) for x in negative_tokens if _safe_text(x)]),
+        "negative_prompt": "" if suppress_negative_prompt else _safe_text(profile.get("negative_prompt")),
+        "identity_negative_prompt": (
+            ""
+            if suppress_negative_prompt
+            else ", ".join([_safe_text(x) for x in negative_tokens if _safe_text(x)])
+        ),
         "compiler_version": COMPILER_VERSION,
         "model_standard_name": _safe_text(model_standard.get("name")),
         "model_standard_version": _safe_text(model_standard.get("version")),

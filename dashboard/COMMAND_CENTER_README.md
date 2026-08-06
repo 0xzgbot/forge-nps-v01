@@ -1,8 +1,8 @@
-# Forge NPS Dashboard Reference
+# Cinesmith Dashboard Reference
 
-The dashboard is the FastAPI UI/API surface for Forge NPS.
+The dashboard is the FastAPI UI/API surface for Cinesmith.
 
-- App file: [dashboard/forge_dashboard.py](~/Desktop/forge_nps_v01/dashboard/forge_dashboard.py)
+- App file: [dashboard/cinesmith_dashboard.py](~/Desktop/cinesmith_v01/dashboard/cinesmith_dashboard.py)
 - Default port: `7000`
 - UI: `http://localhost:7000`
 
@@ -15,15 +15,15 @@ On startup the dashboard:
 1. Loads `.env`.
 2. Overlays `data/config.json`.
 3. Ensures media directories exist.
-4. Reindexes media from `FORGE_MEDIA_ROOT`.
+4. Reindexes media from `CINESMITH_MEDIA_ROOT`.
 5. Queries LM Studio `/v1/models`.
 6. Emits LM Studio status events.
 
 Expected log signs:
 
 ```text
-[FORGE] Media shots reindexed at startup: ...
-[FORGE] LM Studio auto-detected model: ...
+[CINESMITH] Media shots reindexed at startup: ...
+[CINESMITH] LM Studio auto-detected model: ...
 Uvicorn running on http://0.0.0.0:7000
 ```
 
@@ -119,7 +119,7 @@ LM Studio behavior:
 
 - **Test & Detect Models** calls status/model-list endpoints.
 - **Load Model** and **Reload Hermes/Vision** call `POST /api/lmstudio/load` with the selected model only.
-- Forge does not send context length, eval batch size, flash attention, or KV-cache overrides.
+- Cinesmith does not send context length, eval batch size, flash attention, or KV-cache overrides.
 
 ## Local Checks
 

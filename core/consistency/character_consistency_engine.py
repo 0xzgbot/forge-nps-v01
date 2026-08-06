@@ -1,5 +1,5 @@
 """
-Character Consistency Engine — Visual Identity Lock for Forge NPS.
+Character Consistency Engine — Visual Identity Lock for Cinesmith.
 
 Problem: FLUX/SD models generate different faces, clothing, and proportions
 for the same character across shots.

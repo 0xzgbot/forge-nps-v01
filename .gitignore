@@ -19,6 +19,13 @@ venv/
 # macOS
 .DS_Store
 
+# Local media (when using portable <repo>/media default)
+media/
+
+# Nexus runtime index (sqlite + local manifests)
+.cinesmith-nexus/
+.forge-nexus/
+
 # Logs & outputs
 logs/
 dashboard.log
@@ -52,7 +59,7 @@ docs/archive/
 SUBMISSION_MAY_03/
 promo video attempts/
 dashboard/_archived_repo_ui/
-forge_nps_publish_cleanup_bundle*/
+cinesmith_publish_cleanup_bundle*/
 
 # Claude worktrees
 .claude/worktrees/

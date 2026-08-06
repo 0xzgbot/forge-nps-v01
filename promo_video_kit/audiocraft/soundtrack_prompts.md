@@ -1,4 +1,4 @@
-# Forge NPS Promo Video — Soundtrack Prompts
+# Cinesmith Promo Video — Soundtrack Prompts
 
 > Use these with **AudioCraft-audio-generation** or **audiocraft** skill.
 > Each segment is designed to match a specific part of the 90-second promo.
@@ -129,7 +129,7 @@ Load the audiocraft-audio-generation skill, then:
 generate_music(
     description="<prompt above>",
     duration=15,
-    output_path="/tmp/forge_promo_seg1.wav"
+    output_path="/tmp/cinesmith_promo_seg1.wav"
 )
 ```
 

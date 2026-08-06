@@ -1,7 +1,7 @@
 # SKILL: Sound Design
 ## Domain: Foley, Diegetic/Non-Diegetic Audio, Music Cues, Audio-Visual Correlation
 ## Version: 1.0
-## For: Forge Hermes Agent — Audio Planning & Visual-Audio Synchronization
+## For: Cinesmith Hermes Agent — Audio Planning & Visual-Audio Synchronization
 
 ---
 
@@ -14,7 +14,7 @@ When this skill is active, the agent should:
 - Distinguish diegetic from non-diegetic sources and exploit the grey area
 - Map visual elements to specific sonic signatures
 - Use sound as a narrative device, not just decoration
-- Integrate audio planning into Forge shot lists and scene bibles
+- Integrate audio planning into Cinesmith shot lists and scene bibles
 
 ---
 
@@ -161,7 +161,7 @@ Silence is not the absence of sound — it is **the most powerful sound**. [^77^
 
 AI video generation currently produces silent output. Sound design must be **planned in parallel** and added in post.
 
-### The Forge Sound Pipeline
+### The Cinesmith Sound Pipeline
 
 ```
 Visual Generation (ComfyUI/Flux/LTX)
@@ -211,9 +211,9 @@ sound_layers:
 
 ---
 
-## 9. FORGE NEXUS INTEGRATION
+## 9. CINESMITH NEXUS INTEGRATION
 
-| Sound Element | Forge Nexus Node |
+| Sound Element | Cinesmith Nexus Node |
 |---------------|------------------|
 | Sound bible | `Scene` → `HAS_SOUND_BIBLE` → `SoundBible` node |
 | Music cue | `Shot` → `HAS_MUSIC_CUE` → `MusicCue` node |
@@ -222,9 +222,9 @@ sound_layers:
 | Sound transition | `Shot` → `PRECEDES` → `Shot` edge with `sound_transition` |
 
 **MCP Tool Integration:**
-- `forge_context` on Scene returns full sound bible
-- `forge_trace` from Shot A to Shot B includes sound continuity check
-- `forge_detect_changes` on sound layer changes flags affected shots
+- `cinesmith_context` on Scene returns full sound bible
+- `cinesmith_trace` from Shot A to Shot B includes sound continuity check
+- `cinesmith_detect_changes` on sound layer changes flags affected shots
 
 ---
 

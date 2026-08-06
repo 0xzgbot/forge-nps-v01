@@ -1,13 +1,13 @@
 # Demo Readiness Report
 
-This report records the live validation pass for the current Forge NPS Script Studio, campaign image pipeline, Asset Vault continuity, and failure recovery work.
+This report records the live validation pass for the current Cinesmith Script Studio, campaign image pipeline, Asset Vault continuity, and failure recovery work.
 
 ## Runtime Stack
 
 - Dashboard: `http://127.0.0.1:7000`
 - Director: LM Studio, model auto-detected as `qwen3.6-35b-a3b@q6_k`
 - Comfy/Spark: configured private Spark endpoint, verified live
-- Media root: `~/Desktop/FORGE_NPS_MEDIA`
+- Media root: `~/Desktop/CINESMITH_MEDIA`
 - Reindex: startup reindexed existing media records successfully during the validation pass.
 
 ## Storyboard Provider Status
@@ -38,13 +38,13 @@ The UI/backend now report unavailable local models before render submission inst
 
 Generated start frames:
 
-- `~/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/08397414-15b4-47a5-8642-902f9e844e66/flux2_dev_08397414_00001_.png`
-- `~/Desktop/FORGE_NPS_MEDIA/local_spark_media/results/2bbd0a51-c319-424e-bf20-8b6ddded57b1/flux2_dev_2bbd0a51_00001_.png`
+- `~/Desktop/CINESMITH_MEDIA/local_spark_media/results/08397414-15b4-47a5-8642-902f9e844e66/flux2_dev_08397414_00001_.png`
+- `~/Desktop/CINESMITH_MEDIA/local_spark_media/results/2bbd0a51-c319-424e-bf20-8b6ddded57b1/flux2_dev_2bbd0a51_00001_.png`
 
 Generated video clips:
 
-- `~/Desktop/FORGE_NPS_MEDIA/videos/script_demo_one_click_asset_vault_001/script_demo_one_click_asset_vault_001__SB_001__video_00001_.mp4`
-- `~/Desktop/FORGE_NPS_MEDIA/videos/script_demo_one_click_asset_vault_001/script_demo_one_click_asset_vault_001__SB_002__video_00001_.mp4`
+- `~/Desktop/CINESMITH_MEDIA/videos/script_demo_one_click_asset_vault_001/script_demo_one_click_asset_vault_001__SB_001__video_00001_.mp4`
+- `~/Desktop/CINESMITH_MEDIA/videos/script_demo_one_click_asset_vault_001/script_demo_one_click_asset_vault_001__SB_002__video_00001_.mp4`
 
 `ffprobe` confirmed both clips contain:
 
@@ -143,9 +143,9 @@ Validated Script Studio in browser automation at desktop, laptop, and mobile wid
 
 Screenshots from the UI pass:
 
-- `/tmp/forge_script_1440x1000.png`
-- `/tmp/forge_script_1024x768.png`
-- `/tmp/forge_script_390x844.png`
+- `/tmp/cinesmith_script_1440x1000.png`
+- `/tmp/cinesmith_script_1024x768.png`
+- `/tmp/cinesmith_script_390x844.png`
 
 ## Automated Checks
 
@@ -155,7 +155,7 @@ Passed checks during this pass:
 - Result: `83 passed`
 - `python3 -m pytest tests/test_full_pipeline.py tests/test_script_studio_persistence.py tests/test_resilience.py -q`
 - Result: `9 passed`
-- `python3 scripts/smoke_forge.py --base-url http://127.0.0.1:7000`
+- `python3 scripts/smoke_cinesmith.py --base-url http://127.0.0.1:7000`
 - Result: all smoke checks passed
 - `node --check dashboard/static/js/app.js`
 - Result: passed
@@ -172,7 +172,7 @@ Passed checks during this pass:
 
 ## Demo-Ready Proof Points
 
-- Main Forge campaign can run 5, 12, and 20 image jobs with grouped Comfy queue submission.
+- Main Cinesmith campaign can run 5, 12, and 20 image jobs with grouped Comfy queue submission.
 - Script Studio can take one short brief and produce saved script state, storyboard start frames, and individual video shots.
 - Asset Vault continuity data is injected into storyboard prompts.
 - Local storyboard model availability now reflects the real Spark/Comfy model inventory.

@@ -1,20 +1,20 @@
 # SKILL: Character Consistency
 ## Domain: Face Embeddings, LoRA Training, IP Adapters, Wardrobe Locking, Anchor Frames
 ## Version: 1.0
-## For: Forge Hermes Agent — Technical Execution & Pipeline Control
+## For: Cinesmith Hermes Agent — Technical Execution & Pipeline Control
 
 ---
 
 ## 1. EXECUTIVE SUMMARY
 
-This skill encodes the complete technical workflow for maintaining character identity across AI-generated images and video sequences. It covers the four-layer anti-drift architecture (Character DNA → Character Pack → Shot Keyframes → Animation), IP Adapter/LoRA/DreamBooth training workflows, face embedding extraction, wardrobe locking, and the specific Forge Nexus graph enforcement that prevents character drift automatically.
+This skill encodes the complete technical workflow for maintaining character identity across AI-generated images and video sequences. It covers the four-layer anti-drift architecture (Character DNA → Character Pack → Shot Keyframes → Animation), IP Adapter/LoRA/DreamBooth training workflows, face embedding extraction, wardrobe locking, and the specific Cinesmith Nexus graph enforcement that prevents character drift automatically.
 
 When this skill is active, the agent should:
 - Build Character DNA specs with precise visual feature definitions
 - Generate anchor packs (front, 3/4, profile, expressions)
 - Select the appropriate consistency method (IP-Adapter for speed, LoRA for strength)
 - Apply frame-to-frame chaining with temporal coherence
-- Use Forge Nexus to track character embeddings, outfit states, and prop relationships
+- Use Cinesmith Nexus to track character embeddings, outfit states, and prop relationships
 
 ---
 
@@ -35,7 +35,7 @@ AI models process each generation independently without memory of previous outpu
 
 ## 3. THE FOUR-LAYER ANTI-DRIFT ARCHITECTURE [^61^]
 
-| Layer | What It Is | Why It Matters | Forge Nexus Node |
+| Layer | What It Is | Why It Matters | Cinesmith Nexus Node |
 |-------|-----------|----------------|------------------|
 | **1. Character DNA (Spec)** | Written definition of every visual feature | Creates constraints that prevent AI creativity from ruining consistency | `Character` node with `attributes` JSON |
 | **2. Character Pack (Visual Ground Truth)** | Reference images: front, 3/4, profile, expressions | Gives AI a visual anchor to maintain identity | `Asset` nodes linked via `HAS_REFERENCE` edges |
@@ -119,7 +119,7 @@ LoRA (Low-Rank Adaptation) trains small matrices in the model's attention/convol
 ### How It Works
 DreamBooth binds a subject to a unique token through fine-tuning the entire base model. The model learns to associate the trigger word with the visual identity. [^61^]
 
-**Use only when LoRA is insufficient.** For most Forge workflows, LoRA + IP-Adapter is the optimal stack.
+**Use only when LoRA is insufficient.** For most Cinesmith workflows, LoRA + IP-Adapter is the optimal stack.
 
 ---
 
@@ -180,9 +180,9 @@ When generating video sequences (LTX 2.3, etc.):
 
 ---
 
-## 10. FORGE NEXUS INTEGRATION
+## 10. CINESMITH NEXUS INTEGRATION
 
-| Consistency Element | Forge Nexus Implementation |
+| Consistency Element | Cinesmith Nexus Implementation |
 |---------------------|---------------------------|
 | Face embedding | `Character` → `HAS_EMBEDDING` → `Embedding` node (ArcFace vector) |
 | Reference images | `Character` → `HAS_REFERENCE` → `Asset` nodes (front, 3/4, profile) |
@@ -192,9 +192,9 @@ When generating video sequences (LTX 2.3, etc.):
 | Shot anchor | `Shot` node with `anchor_frame` property |
 
 **MCP Tool Integration:**
-- `forge_context` on Character node returns: DNA spec, reference assets, current outfit, LoRA path
-- `forge_impact` on Outfit change shows all affected shots
-- `forge_detect_changes` flags prop state drift between shots
+- `cinesmith_context` on Character node returns: DNA spec, reference assets, current outfit, LoRA path
+- `cinesmith_impact` on Outfit change shows all affected shots
+- `cinesmith_detect_changes` flags prop state drift between shots
 
 ---
 
@@ -262,4 +262,4 @@ TECH SKILL: ComfyUI/Flux/LTX Pipeline
 
 ## 15. VERSION HISTORY
 
-- **v1.0** (2026-04-24): Initial comprehensive skill covering IP-Adapter, LoRA, DreamBooth, the four-layer architecture, wardrobe locking, temporal coherence, and Forge Nexus integration.
+- **v1.0** (2026-04-24): Initial comprehensive skill covering IP-Adapter, LoRA, DreamBooth, the four-layer architecture, wardrobe locking, temporal coherence, and Cinesmith Nexus integration.

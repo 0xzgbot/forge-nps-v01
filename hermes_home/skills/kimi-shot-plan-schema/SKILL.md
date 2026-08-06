@@ -1,6 +1,6 @@
 ---
 name: kimi-shot-plan-schema
-description: Pydantic schema definition for structured Kimi shot plans in the Forge Hermes agent.
+description: Pydantic schema definition for structured Kimi shot plans in the Cinesmith Hermes agent.
 version: 1.0
 tags:
   - pydantic

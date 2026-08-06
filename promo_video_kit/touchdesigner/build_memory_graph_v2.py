@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Forge NPS — TouchDesigner Memory Graph Visualizer V2
+Cinesmith — TouchDesigner Memory Graph Visualizer V2
 =======================================================
 
 Enhanced living memory graph with:
@@ -11,8 +11,8 @@ Enhanced living memory graph with:
 - Audio-reactive wave displacement
 - Event type labels floating in 3D space
 
-Output: /tmp/forge_memory_graph_v2.toe
-Record: /tmp/forge_memory_graph_v2_output.mov
+Output: /tmp/cinesmith_memory_graph_v2.toe
+Record: /tmp/cinesmith_memory_graph_v2_output.mov
 """
 
 import json
@@ -23,9 +23,9 @@ from datetime import datetime
 
 TD_MCP_PORT = 40404
 TD_MCP_URL = f"http://127.0.0.1:{TD_MCP_PORT}/mcp"
-FORGE_ROOT = Path("~/Desktop/forge_nps_v01")
-EVENTS_PATH = FORGE_ROOT / "data" / "hermes_memory" / "episodic" / "events.jsonl"
-OUTPUT_TOE = Path("/tmp/forge_memory_graph_v2.toe")
+CINESMITH_ROOT = Path("~/Desktop/cinesmith_v01")
+EVENTS_PATH = CINESMITH_ROOT / "data" / "hermes_memory" / "episodic" / "events.jsonl"
+OUTPUT_TOE = Path("/tmp/cinesmith_memory_graph_v2.toe")
 
 COLORS = {
     "attempt":        (0.0, 1.0, 1.0),
@@ -91,7 +91,7 @@ def generate_demo_events():
 
 def build_td_network(events):
     print("=" * 60)
-    print("Forge NPS — Memory Graph Visualizer V2")
+    print("Cinesmith — Memory Graph Visualizer V2")
     print("=" * 60)
 
     health = td_call("td_test_session")
@@ -148,7 +148,7 @@ result = {{'rows': {len(rows)}}}
     })
 
     print("[3/10] Creating advanced GLSL shader...")
-    shader_path = Path("/tmp/forge_memory_graph_v2.glsl")
+    shader_path = Path("/tmp/cinesmith_memory_graph_v2.glsl")
     shader_path.write_text(generate_glsl_shader())
 
     td_call("td_execute_python", {
@@ -317,7 +317,7 @@ win.par.winopen = False
 
 recorder = root.create(moviefileoutTOP, 'recorder')
 recorder.par.type = 'movie'
-recorder.par.file = '/tmp/forge_memory_graph_v2_output.mov'
+recorder.par.file = '/tmp/cinesmith_memory_graph_v2_output.mov'
 recorder.par.videocodec = 'prores'
 recorder.par.fps = 30
 recorder.inputConnectors[0].connect(out_null.outputConnectors[0])
@@ -367,11 +367,11 @@ result = {{'saved_to': '{OUTPUT_TOE}'}}
     print("  5. Click 'recorder' TOP, set 'Record' to ON")
     print("  6. Let it run for 30-60 seconds")
     print("  7. Set 'Record' to OFF")
-    print(f"  8. Video saved to: /tmp/forge_memory_graph_v2_output.mov")
+    print(f"  8. Video saved to: /tmp/cinesmith_memory_graph_v2_output.mov")
 
 
 def generate_glsl_shader():
-    return '''// Forge NPS Memory Graph V2 — Advanced GLSL Visualization
+    return '''// Cinesmith Memory Graph V2 — Advanced GLSL Visualization
 // Instanced particles, organic movement, chromatic bloom
 
 uniform float uTime;

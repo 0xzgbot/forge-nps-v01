@@ -38,7 +38,7 @@ while IFS= read -r path; do
       ;;
     *.mp4|*.webm|*.mov)
       case "$path" in
-        marketing/assets/the-forge-demo.mp4) ;;
+        marketing/assets/the-cinesmith-demo.mp4) ;;
         *)
           warn "tracked video asset outside the approved demo path: $path"
           ;;
@@ -81,7 +81,7 @@ if [[ -n "$ip_matches" ]]; then
   warn "private/local IP address references need review before pushing public changes"
 fi
 
-info "Running local dashboard smoke suite when Forge is listening on 127.0.0.1:7000"
+info "Running local dashboard smoke suite when Cinesmith is listening on 127.0.0.1:7000"
 
 if python3 - <<'PY'
 import socket
@@ -95,9 +95,9 @@ finally:
     sock.close()
 PY
 then
-  python3 "$ROOT/scripts/smoke_forge.py" --base-url http://127.0.0.1:7000
+  python3 "$ROOT/scripts/smoke_cinesmith.py" --base-url http://127.0.0.1:7000
 else
-  warn "dashboard not listening on 127.0.0.1:7000; skipped scripts/smoke_forge.py"
+  warn "dashboard not listening on 127.0.0.1:7000; skipped scripts/smoke_cinesmith.py"
 fi
 
 if (( failures > 0 )); then

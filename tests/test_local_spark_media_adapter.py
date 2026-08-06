@@ -40,14 +40,14 @@ async def test_generate_image_returns_spark_media_shaped_job_set(tmp_path, monke
 
     job = await adapter.generate_image(
         prompt="A clean product hero shot",
-        style_id="forge-commercial-product",
+        style_id="cinesmith-commercial-product",
         seed=42,
     )
 
     assert job["type"] == "text2image_local"
     assert job["status"] == "queued"
     assert job["jobs"][0]["prompt_id"] == "prompt_fake_123"
-    assert job["input_params"]["style_id"] == "forge-commercial-product"
+    assert job["input_params"]["style_id"] == "cinesmith-commercial-product"
     assert Path(job["local_output_dir"]).exists()
     assert (tmp_path / "media" / "local_spark_media" / "jobs" / f"{job['id']}.json").exists()
 
@@ -71,5 +71,5 @@ async def test_create_character_stores_local_reference(tmp_path, monkeypatch):
 def test_style_and_motion_presets_are_available(tmp_path, monkeypatch):
     adapter = _adapter(tmp_path, monkeypatch)
 
-    assert any(item["id"] == "forge-commercial-product" for item in adapter.list_styles())
+    assert any(item["id"] == "cinesmith-commercial-product" for item in adapter.list_styles())
     assert any(item["id"] == "subtle_push_in" for item in adapter.list_motions())

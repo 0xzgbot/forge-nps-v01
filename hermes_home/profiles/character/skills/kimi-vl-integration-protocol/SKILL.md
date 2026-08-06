@@ -5,7 +5,7 @@ description: Standardized workflow for implementing and utilizing Kimi-VL multi-
 
 # Kimi-VL Multi-Modal Integration Protocol
 
-This skill provides the standardized workflow for implementing and utilizing multi-modal (visual) reasoning capabilities via the Kimi-VL client within the Forge NPS intelligence stack.
+This skill provides the standardized workflow for implementing and utilizing multi-modal (visual) reasoning capabilities via the Kimi-VL client within the Cinesmith intelligence stack.
 
 ## Overview
 The `KimiVLClient` is a specialized extension of the `KimiBridge`. It is designed to handle visual assets (images/video frames) by encoding them into Base64 and injecting them into an OpenAI-compatible multi-modal message payload. This enables high-precision visual audits, consistency checks, and cinematic quality verification.

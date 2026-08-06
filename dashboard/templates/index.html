@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Forge — Hermes Command Center</title>
+    <title>The Cinesmith — Hermes Command Center</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="/static/js/cinesmith-theme.js?v=20260709-h45"></script>
     <script src="https://unpkg.com/cytoscape@3.26.0/dist/cytoscape.min.js"></script>
     <style>
         /* Reset & Base */
@@ -110,6 +111,8 @@
         body.advanced-mode .advanced-only { display: revert !important; }
         body.advanced-mode .advanced-flex { display: flex !important; }
         body.advanced-mode .advanced-grid { display: grid !important; }
+        body.advanced-mode .page-view.advanced-only:not(.active) { display: none !important; }
+        body.advanced-mode .page-view.active { display: flex !important; flex-direction: column; flex: 1; }
         body.advanced-mode .page-view.active.advanced-only { display: flex !important; }
         .creator-only { display: revert; }
         body.advanced-mode .creator-only { display: none !important; }
@@ -591,6 +594,145 @@
             font-family: 'Inter', sans-serif;
         }
         #chat-input:focus { outline: none; border-color: #3D5AFE; }
+        .creator-hermes-panel {
+            margin-top: 12px;
+            border: 1px solid rgba(74, 102, 148, 0.55);
+            border-radius: 8px;
+            background: rgba(9, 17, 31, 0.58);
+            overflow: hidden;
+        }
+        .creator-hermes-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 10px 12px;
+            border-bottom: 1px solid rgba(74, 102, 148, 0.38);
+            color: #dce8ff;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+        }
+        .creator-hermes-head span:last-child {
+            color: #7f8ba3;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            font-weight: 500;
+        }
+        .creator-hermes-head span:last-child.thinking {
+            color: #9be564;
+            animation: hermesStatusPulse 1.2s ease-in-out infinite;
+        }
+        .creator-hermes-log {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 180px;
+            overflow-y: auto;
+            padding: 10px 12px;
+        }
+        .creator-hermes-empty {
+            color: #8f98aa;
+            font-size: 12px;
+            line-height: 1.45;
+        }
+        .creator-hermes-row {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+        .creator-hermes-row.user { align-items: flex-end; }
+        .creator-hermes-row.hermes,
+        .creator-hermes-row.error { align-items: flex-start; }
+        .creator-hermes-agent {
+            color: #7f8ba3;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            text-transform: uppercase;
+        }
+        .creator-hermes-bubble {
+            max-width: min(760px, 92%);
+            padding: 9px 11px;
+            border-radius: 8px;
+            background: rgba(20, 28, 42, 0.94);
+            color: #dce8ff;
+            border: 1px solid rgba(74, 102, 148, 0.44);
+            font-size: 12px;
+            line-height: 1.45;
+            white-space: pre-wrap;
+        }
+        .creator-hermes-row.user .creator-hermes-bubble {
+            background: rgba(61, 90, 254, 0.18);
+            border-color: rgba(97, 121, 255, 0.55);
+        }
+        .creator-hermes-row.error .creator-hermes-bubble {
+            color: #ffb3b3;
+            border-color: rgba(255, 69, 58, 0.45);
+            background: rgba(80, 20, 20, 0.35);
+        }
+        .creator-hermes-bubble.thinking {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 118px;
+            color: #c9f7bc;
+            border-color: rgba(155, 229, 100, 0.42);
+            background: rgba(20, 42, 28, 0.58);
+        }
+        .creator-hermes-bubble.thinking::before {
+            content: "";
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #9be564;
+            box-shadow: 16px 0 0 rgba(155, 229, 100, 0.65), 32px 0 0 rgba(155, 229, 100, 0.35);
+            animation: hermesThinkingDots 0.9s infinite ease-in-out;
+        }
+        @keyframes hermesThinkingDots {
+            0%, 100% {
+                box-shadow: 16px 0 0 rgba(155, 229, 100, 0.65), 32px 0 0 rgba(155, 229, 100, 0.35);
+                transform: translateY(0);
+            }
+            50% {
+                box-shadow: 16px 0 0 rgba(155, 229, 100, 1), 32px 0 0 rgba(155, 229, 100, 0.65);
+                transform: translateY(-2px);
+            }
+        }
+        @keyframes hermesStatusPulse {
+            0%, 100% { opacity: 0.72; }
+            50% { opacity: 1; }
+        }
+        .creator-hermes-quick {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 0 12px 10px;
+        }
+        .creator-hermes-quick button {
+            padding: 6px 9px;
+            font-size: 11px;
+        }
+        .creator-hermes-input-row {
+            display: flex;
+            gap: 8px;
+            padding: 10px 12px 12px;
+            border-top: 1px solid rgba(74, 102, 148, 0.32);
+        }
+        #creator-hermes-input {
+            flex: 1;
+            min-width: 0;
+            background: #111827;
+            border: 1px solid #34415a;
+            border-radius: 6px;
+            color: #e8eefc;
+            padding: 9px 10px;
+            font-size: 13px;
+            font-family: 'Inter', sans-serif;
+        }
+        #creator-hermes-input:focus {
+            outline: none;
+            border-color: #5d7cff;
+        }
         #chat-status {
             font-size: 11px;
             color: #666;
@@ -988,6 +1130,56 @@
             transition: color 0.2s;
         }
         .backend-label.active { color: #00D4FF; }
+        .settings-help-card {
+            margin: 16px 0;
+        }
+        .settings-help-row {
+            align-items: center;
+        }
+        .settings-help-copy {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .settings-help-copy strong {
+            color: #fff;
+            font-size: 13px;
+        }
+        .settings-help-copy span {
+            color: #8f98aa;
+            font-size: 12px;
+            line-height: 1.45;
+        }
+        #cinesmith-help-tooltip {
+            position: fixed;
+            z-index: 10050;
+            max-width: 380px;
+            pointer-events: none;
+            opacity: 0;
+            transform: translateY(4px);
+            transition: opacity 120ms ease, transform 120ms ease;
+            padding: 12px 14px;
+            border-radius: 8px;
+            border: 1px solid rgba(68, 133, 255, 0.55);
+            background: rgba(9, 17, 31, 0.98);
+            color: #dce8ff;
+            box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255,255,255,0.04) inset;
+            font-size: 12px;
+            line-height: 1.45;
+        }
+        #cinesmith-help-tooltip.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        body.guided-tooltips button:hover,
+        body.guided-tooltips .nav-tab:hover,
+        body.guided-tooltips summary:hover,
+        body.guided-tooltips label.model-checkbox:hover,
+        body.guided-tooltips label.toggle:hover,
+        body.guided-tooltips label.settings-switch:hover {
+            outline: 1px solid rgba(68, 133, 255, 0.55);
+            outline-offset: 2px;
+        }
         .settings-grid {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2875,30 +3067,32 @@
         #spark-view {
             flex: 1;
             overflow-y: auto;
-            padding: 24px;
-            gap: 16px;
+            padding: 12px 16px 16px;
+            gap: 12px;
             background: #0A0A0A;
         }
         .spark-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding-bottom: 16px;
-            border-bottom: 1px solid #333;
+            min-height: 44px;
+            padding: 8px 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
         }
         .spark-header h2 {
-            font-size: 20px;
+            font-size: 16px;
             font-weight: 700;
             color: #fff;
+            margin: 0;
         }
         .spark-toolbar {
             background: #1A1A1A;
             border: 1px solid #333;
             border-radius: 8px;
-            padding: 16px;
+            padding: 10px;
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 8px;
         }
         .toolbar-row {
             display: flex;
@@ -2944,13 +3138,13 @@
             grid-template-columns: repeat(4, minmax(150px, 1fr));
             margin-bottom: 14px;
         }
-        .character-forge-grid {
+        .character-cinesmith-grid {
             display: grid;
             grid-template-columns: minmax(320px, 0.9fr) minmax(360px, 1.1fr);
             gap: 14px;
             align-items: stretch;
         }
-        .character-forge-grid > .character-step-panel {
+        .character-cinesmith-grid > .character-step-panel {
             grid-column: 1 / -1;
         }
         .character-step-panel {
@@ -2959,13 +3153,13 @@
         .character-step-panel.active {
             display: block !important;
         }
-        .character-forge-panel.character-step-panel.active {
+        .character-cinesmith-panel.character-step-panel.active {
             display: flex !important;
         }
         .character-roster-wrap.character-step-panel.active {
             display: grid !important;
         }
-        .character-forge-panel {
+        .character-cinesmith-panel {
             background: #111;
             border: 1px solid #333;
             border-radius: 8px;
@@ -2975,23 +3169,23 @@
             gap: 12px;
             min-width: 0;
         }
-        .character-forge-panel h3 {
+        .character-cinesmith-panel h3 {
             color: #fff;
             font-size: 13px;
             margin: 0;
             text-transform: uppercase;
             letter-spacing: 0.06em;
         }
-        .character-forge-row {
+        .character-cinesmith-row {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 10px;
         }
-        .character-forge-panel textarea {
+        .character-cinesmith-panel textarea {
             width: 100%;
             min-height: 128px;
         }
-        .character-forge-panel textarea.prompt-large {
+        .character-cinesmith-panel textarea.prompt-large {
             min-height: 210px;
         }
         .character-action-bar {
@@ -3227,7 +3421,7 @@
             line-height: 1;
         }
         @media (max-width: 1180px) {
-            .character-forge-grid,
+            .character-cinesmith-grid,
             .character-roster-wrap,
             .character-roster-wrap.roster-collapsed,
             .character-lora-summary {
@@ -3421,10 +3615,242 @@
             flex-direction: column;
             gap: 12px;
             width: 100%;
-            padding: 12px;
-            border: 1px solid rgba(95, 139, 255, 0.22);
+            padding: 12px 14px 14px;
+            border: 1px solid rgba(79, 209, 197, 0.32);
             border-radius: 8px;
-            background: rgba(10, 21, 38, 0.78);
+            background: linear-gradient(180deg, rgba(8, 30, 42, 0.86), rgba(8, 20, 34, 0.8));
+            box-shadow: inset 0 1px 0 rgba(141, 255, 224, 0.06), 0 0 0 1px rgba(58, 122, 150, 0.08);
+        }
+        .video-generate-panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            color: #c9fff2;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .video-generate-panel-head strong {
+            font-size: 12px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+        .video-generate-panel-head span {
+            color: #8fbdb7;
+            font-size: 10px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+        .video-generate-prompt-block {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .video-generate-prompt-block > label {
+            color: #9ed9d0;
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+        .video-custom-prompt-panel {
+            display: grid;
+            grid-template-columns: minmax(280px, 0.9fr) minmax(320px, 1.1fr);
+            grid-template-areas:
+                "request output"
+                "requestActions outputActions";
+            gap: 10px 24px;
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid rgba(255, 191, 0, 0.24);
+            border-radius: 8px;
+            background: rgba(24, 18, 9, 0.72);
+            position: relative;
+        }
+        .video-custom-prompt-panel::after {
+            content: "";
+            position: absolute;
+            top: 14px;
+            bottom: 14px;
+            left: calc(47.4% + 6px);
+            width: 1px;
+            background: linear-gradient(180deg, transparent, rgba(255, 191, 0, 0.3), rgba(95, 139, 255, 0.28), transparent);
+            pointer-events: none;
+        }
+        .video-custom-prompt-head {
+            grid-column: 1 / -1;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            color: #f4e3ba;
+        }
+        .video-custom-prompt-head strong {
+            font-size: 12px;
+            letter-spacing: 0.02em;
+        }
+        .video-custom-prompt-head span {
+            color: #a99a7a;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            text-transform: uppercase;
+        }
+        .video-custom-prompt-controls {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 6px;
+        }
+        .video-custom-prompt-control {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            min-width: 0;
+        }
+        .video-custom-prompt-control span {
+            color: #a99a7a;
+            font-size: 9px;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+        .video-custom-prompt-control select {
+            width: 100%;
+            min-width: 0;
+            border: 1px solid rgba(255, 191, 0, 0.24);
+            border-radius: 7px;
+            background: rgba(8, 12, 18, 0.9);
+            color: #f7f0df;
+            padding: 7px 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+        }
+        .video-custom-prompt-field {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 0;
+        }
+        .video-custom-prompt-field label {
+            color: #b9a77e;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+        .video-custom-prompt-field textarea {
+            min-height: 88px;
+            resize: vertical;
+            border: 1px solid rgba(255, 191, 0, 0.24);
+            border-radius: 8px;
+            background: rgba(8, 12, 18, 0.88);
+            color: #f7f0df;
+            padding: 8px 9px;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            line-height: 1.45;
+        }
+        .video-custom-prompt-field textarea:focus {
+            outline: none;
+            border-color: rgba(255, 191, 0, 0.55);
+        }
+        .video-custom-prompt-output {
+            min-height: 138px;
+            max-height: 240px;
+            overflow: auto;
+            user-select: text;
+            white-space: pre-wrap;
+            word-break: break-word;
+            border: 1px solid rgba(255, 191, 0, 0.24);
+            border-radius: 8px;
+            background: rgba(8, 12, 18, 0.88);
+            color: #f7f0df;
+            padding: 8px 9px;
+            font-family: 'JetBrains Mono', monospace !important;
+            font-size: 11px !important;
+            line-height: 1.45;
+            margin: 0;
+        }
+        .video-custom-prompt-output:focus {
+            outline: none;
+            border-color: rgba(255, 191, 0, 0.55);
+        }
+        .video-custom-prompt-output:empty::before {
+            content: attr(data-placeholder);
+            color: rgba(247, 240, 223, 0.48);
+        }
+        .video-custom-prompt-actions {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 6px;
+        }
+        .video-custom-request-field,
+        .video-custom-request-actions {
+            grid-column: auto;
+        }
+        .video-custom-output-field,
+        .video-custom-output-actions {
+            grid-column: auto;
+        }
+        .video-custom-request-field {
+            grid-area: request;
+        }
+        .video-custom-request-actions {
+            grid-area: requestActions;
+        }
+        .video-custom-output-field {
+            grid-area: output;
+        }
+        .video-custom-output-actions {
+            grid-area: outputActions;
+        }
+        .video-custom-request-actions {
+            align-self: start;
+        }
+        .video-custom-output-actions {
+            align-self: start;
+        }
+        .video-custom-prompt-status {
+            color: #a99a7a;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            margin-left: auto;
+        }
+        .video-custom-request-actions .video-custom-prompt-status {
+            margin-left: 8px;
+        }
+        .video-custom-action-control {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            min-height: 34px;
+            padding: 0 10px;
+            border: 1px solid rgba(255, 191, 0, 0.22);
+            border-radius: 7px;
+            background: rgba(8, 12, 18, 0.72);
+            color: #a99a7a;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+        .video-custom-action-control select {
+            min-height: 28px;
+            border: 0;
+            background: transparent;
+            color: #f7f0df;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            font-weight: 700;
+        }
+        .video-custom-count {
+            color: #a99a7a;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+        }
+        .video-custom-count.over {
+            color: #ff8a80;
         }
         .video-generate-prompt-row {
             display: flex;
@@ -3432,15 +3858,17 @@
             gap: 10px;
             width: 100%;
         }
-        .video-generate-prompt-row input {
+        .video-generate-prompt-row input,
+        .video-generate-prompt-row textarea {
             flex: 1;
             min-width: 220px;
-            height: 42px;
-            border-color: rgba(112, 153, 255, 0.35);
-            background: #132844;
-            color: #f3f7ff;
+            min-height: 72px;
+            border-color: rgba(79, 209, 197, 0.42);
+            background: #092134;
+            color: #ecfffb;
             font-size: 15px;
             font-weight: 700;
+            resize: vertical;
         }
         .video-option-strip {
             display: flex;
@@ -3455,7 +3883,7 @@
             min-width: 124px;
         }
         .video-option label {
-            color: #8ea4c5;
+            color: #9ed9d0;
             font-size: 10px;
             font-weight: 700;
             letter-spacing: 0;
@@ -3463,10 +3891,10 @@
         }
         .video-option select {
             min-height: 36px;
-            border: 1px solid rgba(112, 153, 255, 0.28);
+            border: 1px solid rgba(79, 209, 197, 0.3);
             border-radius: 8px;
-            background: #0d1d33;
-            color: #eef4ff;
+            background: #0b2435;
+            color: #ecfffb;
             font-size: 13px;
             font-weight: 700;
             padding: 0 30px 0 10px;
@@ -3477,7 +3905,7 @@
             padding: 0 18px;
         }
         .video-option-summary {
-            color: #91a8c8;
+            color: #8fbdb7;
             font-size: 11px;
             min-height: 14px;
         }
@@ -3506,6 +3934,7 @@
             display: none;
         }
         @media (max-width: 780px) {
+            .video-custom-prompt-panel,
             .video-generate-prompt-row,
             .video-option-strip,
             .video-workflow-strip {
@@ -3516,6 +3945,15 @@
             .video-option,
             .video-generate-primary {
                 width: 100%;
+            }
+            .video-custom-prompt-panel {
+                display: flex;
+            }
+            .video-custom-prompt-panel::after {
+                display: none;
+            }
+            .video-custom-prompt-controls {
+                grid-template-columns: 1fr;
             }
         }
         .audit-badge {
@@ -3670,7 +4108,7 @@
             }
         }
         /* ============================================================
-           Forge NPS 2035 Studio Refresh
+           Cinesmith 2035 Studio Refresh
            Overrides the legacy command-center skin while preserving
            the FastAPI adapter IDs and existing JavaScript hooks.
            ============================================================ */
@@ -3739,20 +4177,6 @@
             text-transform: uppercase;
             color: var(--text-primary);
             text-shadow: 0 0 18px rgba(255, 106, 42, 0.2);
-        }
-        #sidebar h1 span {
-            background: linear-gradient(90deg, var(--ember), var(--brass), var(--steel));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        #sidebar h1::after {
-            content: "Hermes pipeline brain";
-            display: block;
-            margin-top: 6px;
-            font-size: 10px;
-            font-weight: 500;
-            letter-spacing: 0.18em;
-            color: var(--text-secondary);
         }
         #sidebar h3,
         #brief-panel label,
@@ -4245,8 +4669,16 @@
 
         .settings-header,
         .spark-header {
-            margin: 16px;
-            padding: 16px 18px;
+            margin: 0;
+            padding: 8px 12px;
+        }
+        #spark-view .spark-header {
+            box-shadow: none;
+        }
+        #spark-view .spark-header h2 {
+            margin: 0;
+            font-size: 16px;
+            line-height: 1;
         }
         .settings-grid {
             padding: 0 16px 16px;
@@ -4498,19 +4930,589 @@
             font-size: 11px;
             color: #c6d4f4;
         }
+
+        /* ── Polish pass: readiness, presets, onboarding ── */
+        #system-readiness {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            padding: 8px 10px;
+            margin: 0 0 10px;
+            border: 1px solid #2a3344;
+            border-radius: 10px;
+            background: linear-gradient(180deg, #121820 0%, #0d1118 100%);
+        }
+        #system-readiness .ready-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 8px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.01em;
+            border: 1px solid #333;
+            color: #b8c0d0;
+            background: #151a22;
+        }
+        #system-readiness .ready-chip .dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #666;
+            box-shadow: 0 0 0 2px rgba(0,0,0,.25);
+        }
+        #system-readiness .ready-chip.ok .dot { background: #35f0d0; }
+        #system-readiness .ready-chip.warn .dot { background: #ffb45f; }
+        #system-readiness .ready-chip.bad .dot { background: #ff6b6b; }
+        #system-readiness .ready-chip.ok { border-color: rgba(53,240,208,.35); color: #d7fff6; }
+        #system-readiness .ready-chip.warn { border-color: rgba(255,180,95,.4); color: #ffe8c8; }
+        #system-readiness .ready-chip.bad { border-color: rgba(255,107,107,.4); color: #ffd0d0; }
+        #system-readiness .ready-actions {
+            margin-left: auto;
+            display: inline-flex;
+            gap: 6px;
+            align-items: center;
+        }
+        #system-readiness .ready-actions button {
+            font-size: 11px;
+            padding: 4px 10px;
+            border-radius: 6px;
+            border: 1px solid #3d4a63;
+            background: #1a2333;
+            color: #dce6ff;
+            cursor: pointer;
+        }
+        #system-readiness .ready-actions button:hover { border-color: #3D5AFE; color: #fff; }
+        .preset-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin: 8px 0 4px;
+        }
+        .preset-chip {
+            border: 1px solid #2f3a4d;
+            background: #121820;
+            color: #c5d0e6;
+            border-radius: 999px;
+            padding: 5px 10px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: border-color .15s, background .15s, color .15s;
+        }
+        .preset-chip:hover, .preset-chip:focus {
+            border-color: #3D5AFE;
+            background: #182038;
+            color: #fff;
+            outline: none;
+        }
+        .preset-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            color: #6C7278;
+            margin-top: 4px;
+        }
+        #cinesmith-onboarding {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(4, 6, 10, 0.78);
+            backdrop-filter: blur(6px);
+            padding: 24px;
+        }
+        #cinesmith-onboarding.active { display: flex; }
+        #cinesmith-onboarding .onboard-card {
+            width: min(560px, 100%);
+            background: #111722;
+            border: 1px solid #2c3a55;
+            border-radius: 16px;
+            box-shadow: 0 24px 80px rgba(0,0,0,.55);
+            padding: 24px;
+            color: #e8eefc;
+        }
+        #cinesmith-onboarding h2 {
+            font-size: 20px;
+            margin-bottom: 8px;
+            letter-spacing: -0.02em;
+        }
+        #cinesmith-onboarding p {
+            color: #9aa8c2;
+            line-height: 1.5;
+            margin-bottom: 14px;
+            font-size: 13px;
+        }
+        #cinesmith-onboarding ol {
+            margin: 0 0 18px 18px;
+            color: #c9d4ea;
+            font-size: 13px;
+            line-height: 1.55;
+        }
+        #cinesmith-onboarding .onboard-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+        #cinesmith-onboarding .onboard-actions button {
+            border-radius: 8px;
+            padding: 9px 14px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid #3d4a63;
+            background: #1a2333;
+            color: #e8eefc;
+        }
+        #cinesmith-onboarding .onboard-actions button.primary {
+            background: #3D5AFE;
+            border-color: #3D5AFE;
+            color: #fff;
+        }
+        #keyboard-help {
+            position: fixed;
+            right: 18px;
+            bottom: 18px;
+            z-index: 9000;
+            display: none;
+            width: min(320px, calc(100vw - 32px));
+            background: #111722;
+            border: 1px solid #2c3a55;
+            border-radius: 12px;
+            padding: 14px 16px;
+            color: #d7e0f4;
+            box-shadow: 0 12px 40px rgba(0,0,0,.45);
+            font-size: 12px;
+            line-height: 1.5;
+        }
+        #keyboard-help.active { display: block; }
+        #keyboard-help h3 { font-size: 13px; margin-bottom: 8px; color: #fff; }
+        #keyboard-help kbd {
+            display: inline-block;
+            min-width: 1.4em;
+            padding: 1px 6px;
+            border-radius: 4px;
+            border: 1px solid #3d4a63;
+            background: #1a2333;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            margin-right: 4px;
+        }
+        #global-toast-host {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            pointer-events: none;
+        }
+        #global-toast-host .g-toast {
+            pointer-events: auto;
+            min-width: 220px;
+            max-width: 360px;
+            padding: 10px 14px;
+            border-radius: 10px;
+            border: 1px solid #334;
+            background: #151b28;
+            color: #e8eefc;
+            font-size: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,.4);
+            animation: cinesmithToastIn .18s ease-out;
+        }
+        #global-toast-host .g-toast.success { border-color: rgba(53,240,208,.45); }
+        #global-toast-host .g-toast.error { border-color: rgba(255,107,107,.5); }
+        #global-toast-host .g-toast.warn { border-color: rgba(255,180,95,.5); }
+        @keyframes cinesmithToastIn {
+            from { opacity: 0; transform: translateY(-6px); }
+            to { opacity: 1; transform: none; }
+        }
+        #create-hub-panel { margin: 0 0 12px; }
+        .create-hub-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 8px;
+        }
+        .create-hub-card {
+            text-align: left;
+            border: 1px solid #2c3a55;
+            background: linear-gradient(180deg, #141b28 0%, #0f141d 100%);
+            border-radius: 12px;
+            padding: 12px;
+            color: #dce6ff;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-height: 110px;
+        }
+        .create-hub-card:hover { border-color: #3D5AFE; }
+        .create-hub-card strong { font-size: 13px; color: #fff; }
+        .create-hub-card span { font-size: 11px; color: #9aa8c2; line-height: 1.35; flex: 1; }
+        .create-hub-card em { font-style: normal; font-size: 11px; color: #8eb0ff; font-weight: 600; }
+        .create-hub-recent { margin-top: 10px; }
+        #memory-suggestions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 8px;
+            margin: 8px 0 12px;
+        }
+        .suggest-card {
+            text-align: left;
+            border: 1px solid #2a3344;
+            background: #121820;
+            border-radius: 10px;
+            padding: 10px;
+            color: #c9d4ea;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .suggest-card:hover { border-color: #3d5afe88; }
+        .suggest-card strong { font-size: 12px; color: #fff; }
+        .suggest-card span { font-size: 11px; color: #8f98aa; line-height: 1.35; }
+        .suggest-empty { color: #666; font-size: 12px; }
+        #queue-progress-strip {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin: 0 0 10px;
+            padding: 8px 10px;
+            border: 1px solid #243044;
+            border-radius: 10px;
+            background: #0e131b;
+        }
+        #queue-progress-strip .queue-idle { color: #6C7278; font-size: 11px; }
+        #queue-progress-strip .queue-item {
+            display: grid;
+            grid-template-columns: 1fr 90px 36px;
+            gap: 8px;
+            align-items: center;
+            font-size: 11px;
+            color: #c5d0e6;
+        }
+        #queue-progress-strip .queue-bar {
+            height: 6px;
+            border-radius: 99px;
+            background: #1c2433;
+            overflow: hidden;
+        }
+        #queue-progress-strip .queue-bar i {
+            display: block;
+            height: 100%;
+            background: linear-gradient(90deg, #3D5AFE, #35f0d0);
+        }
+        .audio-honesty-badge {
+            position: absolute;
+            top: 6px;
+            left: 6px;
+            z-index: 2;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 999px;
+            background: #222;
+            color: #ccc;
+            border: 1px solid #444;
+        }
+        .audio-honesty-badge.ok { background: #0d2a24; color: #35f0d0; border-color: #1d6b5a; }
+        .audio-honesty-badge.silent { background: #2a1a10; color: #ffb45f; border-color: #6b4a1d; }
+        .video-library-cell, .script-video-card { position: relative; }
+        #story-scorecard-panel {
+            margin: 8px 0 12px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid #2c3a55;
+            background: #121820;
+            color: #c9d4ea;
+            font-size: 12px;
+            line-height: 1.45;
+        }
+        #story-scorecard-panel strong { color: #fff; display: block; margin-bottom: 4px; }
+        #story-scorecard-panel ul { margin: 6px 0 0 16px; }
+        #cinesmith-setup-wizard {
+            position: fixed;
+            inset: 0;
+            z-index: 10001;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(4, 6, 10, 0.82);
+            backdrop-filter: blur(6px);
+            padding: 24px;
+        }
+        #cinesmith-setup-wizard.active { display: flex; }
+        #cinesmith-setup-wizard .wizard-progress {
+            font-size: 11px;
+            color: #8eb0ff;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+        .agency-live-brief {
+            border: 1px solid #2c3a55;
+            border-radius: 14px;
+            padding: 14px;
+            background: linear-gradient(180deg, #141c2c 0%, #0e131c 100%);
+            margin-bottom: 6px;
+        }
+        .agency-live-brief textarea {
+            width: 100%;
+            min-height: 72px;
+            resize: vertical;
+            background: #0a0e16;
+            border: 1px solid #2f3a4d;
+            border-radius: 10px;
+            color: #e8eefc;
+            padding: 10px 12px;
+            font: inherit;
+            line-height: 1.4;
+        }
+        .agency-live-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+        .agency-live-note { margin: 10px 0 0; color: #8f98aa; font-size: 12px; line-height: 1.4; max-width: 760px; }
+        .nav-tab.create-tab {
+            border: 1px solid #3D5AFE55;
+            background: #15203a;
+        }
+        /* Adobe-tier agency chrome */
+        #sidebar h1 { display: flex; align-items: baseline; gap: 8px; }
+        #sidebar h1 .brand-sub {
+            font-size: 11px; font-weight: 600; letter-spacing: 0.12em;
+            text-transform: uppercase; color: #6f86c9;
+        }
+        .agency-topbar {
+            display: flex; align-items: flex-start; justify-content: space-between;
+            gap: 16px; flex-wrap: wrap; margin-bottom: 4px;
+        }
+        .agency-topbar h2 {
+            margin: 0 0 4px; font-size: 22px; letter-spacing: -0.03em;
+            background: linear-gradient(90deg, #fff 0%, #b8c8ff 100%);
+            -webkit-background-clip: text; background-clip: text; color: transparent;
+        }
+        .agency-top-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+        .agency-top-actions .ghost-btn {
+            border: 1px solid #2f3a4d; background: #121820; color: #c5d0e6;
+            border-radius: 8px; padding: 7px 10px; font-size: 12px; font-weight: 600; cursor: pointer;
+        }
+        .agency-top-actions .ghost-btn:hover { border-color: #3D5AFE; color: #fff; }
+        .agency-top-actions kbd {
+            font-family: 'JetBrains Mono', monospace; font-size: 10px;
+            border: 1px solid #3d4a63; border-radius: 4px; padding: 1px 5px; margin-left: 4px; color: #8eb0ff;
+        }
+        .agency-console-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+            gap: 12px;
+            margin: 4px 0 8px;
+        }
+        @media (max-width: 980px) {
+            .agency-console-grid { grid-template-columns: 1fr; }
+        }
+        .ep-console {
+            border: 1px solid #2c3a55;
+            border-radius: 14px;
+            background: linear-gradient(165deg, #121a2a 0%, #0c1018 55%, #0a0d14 100%);
+            padding: 12px 14px;
+            display: flex; flex-direction: column; min-height: 280px;
+            box-shadow: 0 12px 40px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.03);
+        }
+        .ep-console-head {
+            display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px;
+        }
+        .ep-console-head strong { font-size: 13px; color: #fff; letter-spacing: -0.01em; }
+        #ep-console-status {
+            font-size: 11px; color: #8f98aa; max-width: 55%; text-align: right;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        #ep-console-status.live { color: #35f0d0; }
+        #ep-hermes-log {
+            flex: 1; overflow: auto; min-height: 140px; max-height: 220px;
+            border: 1px solid #1e2838; border-radius: 10px; background: #080b11;
+            padding: 10px; margin-bottom: 8px;
+        }
+        .ep-empty { color: #667086; font-size: 12px; line-height: 1.45; }
+        .ep-row { margin-bottom: 8px; }
+        .ep-who { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: #6f86c9; margin-bottom: 2px; }
+        .ep-row.you .ep-who { color: #8f98aa; }
+        .ep-bubble {
+            font-size: 12.5px; line-height: 1.45; color: #dce6ff;
+            background: #121820; border: 1px solid #243044; border-radius: 10px; padding: 8px 10px;
+        }
+        .ep-row.you .ep-bubble { background: #151c2c; }
+        .ep-quick { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+        .ep-quick button {
+            border: 1px solid #2f3a4d; background: #111827; color: #b8c4dc;
+            border-radius: 999px; padding: 4px 10px; font-size: 11px; font-weight: 600; cursor: pointer;
+        }
+        .ep-quick button:hover { border-color: #3D5AFE; color: #fff; }
+        .ep-input-row { display: flex; gap: 8px; }
+        .ep-input-row input {
+            flex: 1; background: #0a0e16; border: 1px solid #2f3a4d; border-radius: 8px;
+            color: #e8eefc; padding: 9px 11px; font: inherit; font-size: 13px;
+        }
+        #agency-production-timeline {
+            border: 1px solid #2c3a55; border-radius: 14px; padding: 12px 14px;
+            background: #0e131b; min-height: 280px;
+        }
+        .pt-head { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+        .pt-head strong { display: block; color: #fff; font-size: 13px; margin-bottom: 2px; }
+        .pt-head span { color: #8f98aa; font-size: 12px; line-height: 1.35; }
+        .pt-pct { font-family: 'JetBrains Mono', monospace; color: #8eb0ff; font-size: 16px; font-weight: 700; }
+        .pt-track { height: 6px; border-radius: 99px; background: #1a2230; overflow: hidden; margin-bottom: 14px; }
+        .pt-track i { display: block; height: 100%; background: linear-gradient(90deg, #3D5AFE, #35f0d0); border-radius: 99px; transition: width .35s ease; }
+        .pt-steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px 6px; margin-bottom: 10px; }
+        .pt-step { display: flex; align-items: center; gap: 6px; font-size: 10px; color: #667086; text-transform: uppercase; letter-spacing: .04em; }
+        .pt-dot { width: 8px; height: 8px; border-radius: 50%; background: #2a3344; flex: 0 0 auto; }
+        .pt-step.done { color: #9fd6c8; }
+        .pt-step.done .pt-dot { background: #35f0d0; }
+        .pt-step.active, .pt-step.current { color: #dce6ff; }
+        .pt-step.active .pt-dot, .pt-step.current .pt-dot {
+            background: #3D5AFE; box-shadow: 0 0 0 3px rgba(61,90,254,.25);
+        }
+        .pt-events { border-top: 1px solid #1e2838; padding-top: 8px; max-height: 96px; overflow: auto; }
+        .pt-event { font-size: 11px; color: #9aa8c2; margin-bottom: 4px; line-height: 1.35; }
+        .pt-event em { color: #6f86c9; font-style: normal; text-transform: uppercase; font-size: 10px; margin-right: 4px; }
+        .pro-handoff {
+            display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+            border: 1px solid #243044; border-radius: 12px; padding: 10px 12px;
+            background: #10161f; margin: 4px 0 8px;
+        }
+        .pro-handoff strong { color: #fff; font-size: 12px; margin-right: 4px; }
+        .pro-handoff span { color: #8f98aa; font-size: 12px; flex: 1; min-width: 180px; }
+        /* Command palette */
+        #cinesmith-cmdk {
+            position: fixed; inset: 0; z-index: 10050; display: none;
+            align-items: flex-start; justify-content: center; padding: 12vh 16px 16px;
+        }
+        #cinesmith-cmdk.open { display: flex; }
+        #cinesmith-cmdk .cmdk-backdrop {
+            position: absolute; inset: 0; background: rgba(4,6,10,.72); backdrop-filter: blur(8px);
+        }
+        #cinesmith-cmdk .cmdk-panel {
+            position: relative; width: min(560px, 100%);
+            background: #111722; border: 1px solid #2c3a55; border-radius: 14px;
+            box-shadow: 0 28px 80px rgba(0,0,0,.55); overflow: hidden;
+        }
+        .cmdk-input-row {
+            display: flex; align-items: center; gap: 10px;
+            padding: 12px 14px; border-bottom: 1px solid #1e2838;
+        }
+        .cmdk-kicker {
+            font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #6f86c9;
+        }
+        #cmdk-input {
+            flex: 1; background: transparent; border: 0; outline: none;
+            color: #fff; font: inherit; font-size: 15px;
+        }
+        .cmdk-input-row kbd {
+            font-family: 'JetBrains Mono', monospace; font-size: 10px;
+            border: 1px solid #3d4a63; border-radius: 4px; padding: 2px 6px; color: #8f98aa;
+        }
+        .cmdk-results { max-height: 360px; overflow: auto; padding: 6px; }
+        .cmdk-item {
+            width: 100%; text-align: left; display: grid;
+            grid-template-columns: 1fr auto; gap: 2px 12px;
+            border: 0; background: transparent; color: #c9d4ea;
+            border-radius: 10px; padding: 10px 12px; cursor: pointer;
+        }
+        .cmdk-item strong { grid-column: 1; font-size: 13px; color: #fff; }
+        .cmdk-item span { grid-column: 1; font-size: 11px; color: #8f98aa; }
+        .cmdk-item kbd {
+            grid-row: 1 / span 2; align-self: center;
+            font-family: 'JetBrains Mono', monospace; font-size: 10px;
+            border: 1px solid #3d4a63; border-radius: 4px; padding: 2px 6px; color: #8eb0ff;
+        }
+        .cmdk-item:hover, .cmdk-item.active { background: #1a2438; }
+        .cmdk-empty { padding: 20px; text-align: center; color: #667086; font-size: 13px; }
+        .cmdk-foot {
+            border-top: 1px solid #1e2838; padding: 8px 14px;
+            font-size: 11px; color: #667086;
+        }
+        /* Primary buttons more premium */
+        .btn {
+            box-shadow: 0 1px 0 rgba(255,255,255,.06) inset;
+        }
+        #run-campaign-btn, .script-primary-action {
+            background: linear-gradient(180deg, #4a67ff 0%, #3D5AFE 100%) !important;
+            border-color: #4a67ff !important;
+        }
     </style>
+    <!-- Theme + mobile polish (after inline styles so overrides win) -->
+    <link rel="stylesheet" href="/static/css/cinesmith-theme.css?v=20260709-h45">
+    <link rel="stylesheet" href="/static/css/cinesmith-responsive.css?v=20260709-h45">
+    <link rel="stylesheet" href="/static/css/cinesmith-empty.css?v=20260709-empty">
+    <link rel="stylesheet" href="/static/css/cinesmith-polish.css?v=20260716-polish">
 </head>
 <body>
+    <div id="global-toast-host" aria-live="polite"></div>
+    <div id="cinesmith-onboarding" role="dialog" aria-modal="true" aria-labelledby="onboard-title">
+        <div class="onboard-card">
+            <h2 id="onboard-title">Welcome to Cinesmith Agency</h2>
+            <p>Hermes is your production brain in real time: it plans shots, compiles prompts, drives Spark, audits quality, and learns in memory. You brief the agency — not a fixed script runner. Cinesmith never touches anyone’s global Hermes install.</p>
+            <div class="onboard-path" aria-hidden="false">
+                <div><span>01</span><strong>Connect</strong>Spark + Director in Settings (or draft offline)</div>
+                <div><span>02</span><strong>Brief</strong>Sample EP brief on Agency → Run with Hermes</div>
+                <div><span>03</span><strong>Ship</strong>Lock characters · Stories · First→Last motion · Export</div>
+            </div>
+            <ol>
+                <li><strong>Images</strong> — brief Hermes → live campaign (plan → render → audit)</li>
+                <li><strong>Stories</strong> — multi-beat narrative Hermes produces as frames and clips</li>
+                <li><strong>Videos</strong> — turn stills into motion (including First → Last pairs)</li>
+                <li><strong>Characters</strong> — one photo → continuity sheet when Spark is up</li>
+            </ol>
+            <p style="margin-top:-6px">Hermes runs from this repo’s <code>hermes_home/</code> only. Press <kbd>?</kbd> for shortcuts · <kbd>⌘K</kbd> command palette.</p>
+            <div class="onboard-actions">
+                <button type="button" onclick="dismissOnboarding(true)">Skip</button>
+                <button type="button" class="primary" onclick="finishOnboardingGoSettings()">Connect Stack</button>
+                <button type="button" class="primary" onclick="dismissOnboarding(true); switchPage('create-view')">Enter Agency</button>
+            </div>
+        </div>
+    </div>
+    <div id="keyboard-help">
+        <h3>Keyboard shortcuts</h3>
+        <div><kbd>⌘/Ctrl</kbd>+<kbd>K</kbd> Command palette</div>
+        <div><kbd>⌘/Ctrl</kbd>+<kbd>Enter</kbd> Run with Hermes (Images / Stories)</div>
+        <div><kbd>?</kbd> Toggle this help</div>
+        <div><kbd>1</kbd>–<kbd>8</kbd> Jump workspaces (Agency, Images, Videos…)</div>
+        <div><kbd>A</kbd> / <kbd>R</kbd> / <kbd>C</kbd> Review: approve · reject · needs changes</div>
+        <div><kbd>1</kbd>/<kbd>2</kbd>/<kbd>T</kbd> A/B compare pick (when open)</div>
+        <div><kbd>Esc</kbd> Close overlays / cancel focus</div>
+    </div>
+
     <!-- Sidebar -->
     <div id="sidebar">
-        <h1>Forge <span>NPS</span></h1>
+        <div class="cinesmith-theme-row">
+            <h1>Cinesmith</h1>
+            <button type="button" id="cinesmith-theme-toggle" class="cinesmith-theme-toggle" aria-pressed="false" aria-label="Switch to light theme" title="Light theme">
+                <span class="theme-icon" aria-hidden="true">☀</span>
+                <span class="theme-label">Light</span>
+            </button>
+        </div>
+
+        <div id="system-readiness" title="System readiness">
+            <span class="ready-chip" id="ready-isolation" data-key="isolation"><span class="dot"></span>Hermes</span>
+            <span class="ready-chip" id="ready-spark" data-key="spark"><span class="dot"></span>Spark</span>
+            <span class="ready-chip" id="ready-lm" data-key="lmstudio"><span class="dot"></span>Director</span>
+            <span class="ready-chip" id="ready-media" data-key="media"><span class="dot"></span>Media</span>
+            <div class="ready-actions">
+                <button type="button" onclick="refreshSystemReadiness(true)" title="Re-check services">Refresh</button>
+                <button type="button" onclick="switchPage('settings-view')" title="Spark URL, Director keys, LM Studio">Connect</button>
+            </div>
+        </div>
 
         <div class="nav-tabs">
-            <div class="nav-tab active" data-page="dashboard-view" onclick="switchPage('dashboard-view')">Images</div>
+            <div class="nav-tab create-tab active" data-page="create-view" onclick="switchPage('create-view')">Agency</div>
+            <div class="nav-tab" data-page="dashboard-view" onclick="switchPage('dashboard-view')">Images</div>
             <div class="nav-tab" data-page="spark-view" onclick="switchPage('spark-view')">Videos</div>
             <div class="nav-tab" data-page="identity-view" onclick="switchPage('identity-view')">Characters</div>
             <div class="nav-tab advanced-only" data-page="ideas-view" onclick="switchPage('ideas-view')">Ideas</div>
-            <div class="nav-tab" data-page="script-view" onclick="switchPage('script-view')">Script Studio</div>
+            <div class="nav-tab" data-page="script-view" onclick="switchPage('script-view')">Stories</div>
             <div class="nav-tab" data-page="products-view" onclick="switchPage('products-view')">Assets</div>
             <div class="nav-tab advanced-only" data-page="memory-view" onclick="switchPage('memory-view'); loadMemoryTab()">Memory</div>
             <div class="nav-tab" data-page="settings-view" onclick="switchPage('settings-view')">Settings</div>
@@ -4524,8 +5526,8 @@
                     <span></span>
                 </label>
             </div>
-            <div class="advanced-toggle-copy creator-only">Simple creator UI. Turn on for endpoints, prompt banks, logs, filters, and fine-tuning controls.</div>
-            <div class="advanced-toggle-copy advanced-only">Technical mode: route controls, diagnostics, debug panels, filters, and prompt-bank editors are visible.</div>
+            <div class="advanced-toggle-copy creator-only">Agency UI. Turn on for technical endpoints, logs, pipeline knobs, and fine-tuning.</div>
+            <div class="advanced-toggle-copy advanced-only">Technical mode: Hermes routing, diagnostics, pipeline controls, and prompt banks.</div>
         </div>
 
         <div class="sidebar-section advanced-only">
@@ -4560,11 +5562,75 @@
 
     <!-- Main Content Area -->
     <div style="flex:1;display:flex;flex-direction:column;overflow:auto;min-width:0;">
+        <!-- Agency home — EP console -->
+        <div id="create-view" class="page-view create-view active" style="display:flex;flex-direction:column;flex:1;overflow:auto;padding:20px 22px;gap:8px;">
+            <div class="agency-topbar">
+                <div>
+                    <h2>Executive Producer Console</h2>
+                    <p style="margin:0;color:#8f98aa;font-size:13px;max-width:640px;">Brief Hermes. Watch production stages. Ship frames and clips. Start with a sample brief below — or press <kbd style="font-size:11px;padding:1px 5px;border:1px solid #333;border-radius:4px;">⌘K</kbd>.</p>
+                </div>
+                <div class="agency-top-actions">
+                    <button type="button" class="ghost-btn" onclick="window.CinesmithAgency && CinesmithAgency.openPalette()">Command palette <kbd>⌘K</kbd></button>
+                    <button type="button" class="ghost-btn" onclick="window.CinesmithCoach && CinesmithCoach.runAction('restore'); switchPage('create-view')">Guide</button>
+                    <button type="button" class="ghost-btn" onclick="refreshSystemReadiness && refreshSystemReadiness(true)">Stack health</button>
+                </div>
+            </div>
+
+            <div id="agency-live-brief" class="agency-live-brief">
+                <div class="preset-label">Production brief</div>
+                <textarea id="agency-brief-input" rows="3" placeholder="Brief Hermes like an EP: mood, subject, count, format… e.g. 8 cinematic stills of a courier in neon rain, anamorphic, no text"></textarea>
+                <div class="agency-live-actions">
+                    <button class="btn" type="button" id="agency-run-images-btn">Run live image campaign</button>
+                    <button class="btn btn-secondary" type="button" id="agency-run-story-btn">Produce multi-beat story</button>
+                    <button class="btn btn-secondary" type="button" onclick="switchPage('spark-view')">Stills → motion</button>
+                </div>
+                <p class="agency-live-note">Images = real-time Hermes campaign (plan → compile → Spark → audit → memory). Stories = multi-beat narrative Hermes orchestrates into frames and clips.</p>
+            </div>
+
+            <div class="agency-console-grid">
+                <section class="ep-console" aria-label="Hermes EP chat">
+                    <div class="ep-console-head">
+                        <strong>Talk to Hermes</strong>
+                        <span id="ep-console-status">Hermes standing by</span>
+                    </div>
+                    <div class="ep-quick">
+                        <button type="button" data-ep-quick="improve">Improve brief</button>
+                        <button type="button" data-ep-quick="shotlist">Shot list</button>
+                        <button type="button" data-ep-quick="story-beats">Story beats</button>
+                    </div>
+                    <div id="ep-hermes-log">
+                        <div class="ep-empty">Ask Hermes to tighten the brief, propose coverage, pick a platform, or decide images vs story. Then run production.</div>
+                    </div>
+                    <div class="ep-input-row">
+                        <input id="ep-hermes-input" type="text" placeholder="Ask Hermes… (Enter to send)" />
+                        <button class="btn" type="button" id="ep-hermes-send">Send</button>
+                    </div>
+                </section>
+                <div id="agency-production-timeline" aria-label="Production timeline"></div>
+            </div>
+
+            <div id="queue-progress-strip" aria-label="Active Hermes jobs"></div>
+
+            <div class="pro-handoff">
+                <strong>Pro handoff</strong>
+                <span>Export packages with frames, clips, captions, and audio honesty when production finishes.</span>
+                <button class="btn btn-secondary" type="button" onclick="switchPage('script-view'); setTimeout(function(){ var b=document.getElementById('export-story-package-btn'); if(b) b.click(); }, 200)">Export story package</button>
+                <button class="btn btn-secondary" type="button" onclick="switchPage('script-view'); setTimeout(function(){ var b=document.getElementById('story-scorecard-btn'); if(b) b.click(); }, 200)">Continuity score</button>
+            </div>
+
+            <div class="preset-label">Agency desks</div>
+            <div id="create-hub-panel"></div>
+            <div class="preset-label">Intelligence from memory</div>
+            <div id="memory-suggestions"></div>
+        </div>
+
         <!-- Dashboard View -->
-        <div id="main" class="page-view active dashboard-view" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
+        <div id="main" class="page-view dashboard-view" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
             <!-- Brief -->
             <div id="brief-panel">
             <label>Prompt</label>
+                <div class="preset-label">Quick starts</div>
+                <div class="preset-row" id="image-preset-row" aria-label="Image prompt presets"></div>
                 <textarea id="brief-input" placeholder="Describe your cinematic vision... (e.g. A lone astronaut discovers a glowing garden on an alien moon, bathed in twin-sunset light)"></textarea>
                 <div class="platform-detect-row">
                     <span id="platform-status-pill" class="platform-status-pill off">Platform skill: Auto</span>
@@ -4581,7 +5647,7 @@
                     <label class="model-checkbox advanced-only"><input type="checkbox" id="series-continuity" onchange="updatePlatformDetection()"> Series Continuity</label>
                 </div>
                 <div id="brief-actions">
-                    <button class="btn" id="run-campaign-btn" onclick="runCampaign()">Generate Images</button>
+                    <button class="btn" id="run-campaign-btn" onclick="runCampaign()">Run with Hermes</button>
                     <input class="advanced-only" type="text" id="dashboard-selected-count" value="0 selected" readonly style="width:120px;background:#222;border:1px solid #444;border-radius:4px;color:#ccc;padding:8px 10px;font-size:12px;">
                     <label class="model-checkbox advanced-only"><input type="checkbox" id="append-campaign" checked> Append To Selected Campaign</label>
                     <button class="btn btn-cancel" id="cancel-campaign-btn" onclick="cancelCampaign()" style="display:none;">✕ Cancel</button>
@@ -4594,10 +5660,30 @@
                     <input class="advanced-only" type="text" id="filter-campaign-id" placeholder="Campaign ID" style="width:130px;background:#222;border:1px solid #444;border-radius:4px;color:#ccc;padding:8px 10px;font-size:12px;">
                 </div>
             <div id="campaign-status-box">
-                <span class="status-role">Pipeline</span>
-                <span class="status-message">Ready.</span>
+                <span class="status-role">Hermes</span>
+                <span class="status-message">Ready for a live campaign.</span>
                 <span class="status-meta">idle</span>
             </div>
+            <div id="images-production-timeline" class="images-inline-timeline advanced-only" style="display:none;"></div>
+            <section id="creator-hermes-panel" class="creator-hermes-panel creator-only">
+                <div class="creator-hermes-head">
+                    <span>Hermes Prompt Coach</span>
+                    <span id="creator-hermes-status">Ready</span>
+                </div>
+                <div id="creator-hermes-log" class="creator-hermes-log">
+                    <div class="creator-hermes-empty">Ask Hermes for ideas, prompt rewrites, visual directions, shot concepts, or what to try next. It will use the current Images prompt as context.</div>
+                </div>
+                <div class="creator-hermes-quick">
+                    <button class="btn btn-secondary" type="button" onclick="askHermesPromptCoach('improve')">Improve Prompt</button>
+                    <button class="btn btn-secondary" type="button" onclick="askHermesPromptCoach('ideas')">Give Me Ideas</button>
+                    <button class="btn btn-secondary" type="button" onclick="askHermesPromptCoach('variations')">Suggest Variations</button>
+                    <button class="btn btn-secondary" type="button" onclick="askHermesPromptCoach('workflow')">What Next?</button>
+                </div>
+                <div class="creator-hermes-input-row">
+                    <input type="text" id="creator-hermes-input" placeholder="Ask Hermes about this idea or prompt..." onkeydown="if(event.key==='Enter')sendCreatorHermesChat()">
+                    <button class="btn" id="creator-hermes-send-btn" type="button" onclick="sendCreatorHermesChat()">Send</button>
+                </div>
+            </section>
         </div>
 
         <div class="dashboard-workspace">
@@ -4687,6 +5773,22 @@
             <button class="btn" onclick="saveAllSettings()">Save All</button>
         </div>
         <div id="settings-toast" class="test-result" style="position:fixed;top:16px;right:16px;z-index:999;"></div>
+        <div class="settings-card settings-help-card">
+            <h3><span class="settings-step">?</span> Guided Tooltips</h3>
+            <p class="card-desc">Instructional hover and keyboard-focus help for buttons, navigation, toggles, and workflow controls.</p>
+            <div class="settings-mode-row settings-help-row">
+                <span class="backend-label">Off</span>
+                <label class="toggle" data-tooltip="Turns on detailed workflow instructions across the app. This setting is saved immediately in this browser.">
+                    <input type="checkbox" id="cfg-tooltips-enabled" onchange="setGuidedTooltips(this.checked)">
+                    <span class="slider"></span>
+                </label>
+                <span class="backend-label">On</span>
+                <div class="settings-help-copy">
+                    <strong>Show workflow tips on buttons</strong>
+                    <span>Agency path: Images = Hermes live campaign. Stories = multi-beat narrative production. Videos = motion control. Characters/Assets lock continuity. Memory is how the agency learns.</span>
+                </div>
+            </div>
+        </div>
         <div class="settings-grid settings-flow-grid">
 
             <div class="settings-card settings-card-wide lmstudio-card">
@@ -4809,8 +5911,8 @@
                         <select id="cfg-storyboard-provider" onchange="markDirty('storyboard_images.default_provider')">
                             <option value="spark:flux2_dev">Spark / Flux2.Dev</option>
                             <option value="spark:flux2_klein">Spark / Flux2 Klein</option>
-                            <option value="spark:z_image">Spark / Z-Image</option>
-                            <option value="spark:z_image_turbo">Spark / Z-Image Turbo</option>
+                            <option value="spark:z_image">Spark / Ernie Image</option>
+                            <option value="spark:z_image_turbo">Spark / Ernie Turbo</option>
                             <option value="openai">OpenAI Image</option>
                             <option value="gemini">Nano Banana</option>
                         </select>
@@ -4898,13 +6000,13 @@ beach</textarea>
         </div>
         </div>  <!-- /#settings-view -->
 
-        <!-- Script View (Director) -->
+        <!-- Stories (Hermes multi-beat production) -->
         <div id="script-view" class="page-view script-view">
             <div class="script-director-header">
                 <div>
-                    <div class="script-kicker">Hermes Script Pipeline</div>
-                    <h2>Script Studio</h2>
-                    <p>One prompt to script, storyboard frames, and individual video shots.</p>
+                    <div class="script-kicker">Hermes · multi-beat production</div>
+                    <h2>Stories</h2>
+                    <p>Brief Hermes once. It structures the narrative, produces start frames, and generates individual clips — as agency work, not a fixed screenplay script.</p>
                 </div>
                 <div class="script-header-actions">
                     <button class="btn btn-secondary" onclick="clearShotList()">Reset</button>
@@ -4913,7 +6015,7 @@ beach</textarea>
                     <button class="btn btn-secondary" onclick="switchScriptFlowStep('videos')">Videos</button>
                 </div>
             </div>
-            <div class="script-flow-guide" aria-label="Script Studio workspace">
+            <div class="script-flow-guide" aria-label="Stories workspace">
                 <button class="script-flow-step active" type="button" data-script-step="brief" onclick="switchScriptFlowStep('brief')"><span>01</span><div><strong>Brief</strong><em id="script-step-status-brief">Ready</em></div></button>
                 <button class="script-flow-step" type="button" data-script-step="jobs" onclick="switchScriptFlowStep('jobs')"><span>02</span><div><strong>Progress</strong><em id="script-step-status-jobs">Idle</em></div></button>
                 <button class="script-flow-step" type="button" data-script-step="storyboard" onclick="switchScriptFlowStep('storyboard')"><span>03</span><div><strong>Storyboard</strong><em id="script-step-status-storyboard">Waiting</em></div></button>
@@ -4928,19 +6030,20 @@ beach</textarea>
                 <section class="script-panel script-project-panel script-step-panel" data-script-step-panel="projects">
                         <div class="script-panel-head">
                             <span>00</span>
-                            <h3>Saved Scripts</h3>
+                            <h3>Story projects</h3>
                         </div>
                         <div id="script-project-list" class="script-project-list">
-                            <div class="script-empty-mini">No saved scripts yet.</div>
+                            <div class="script-empty-mini">No story projects yet.</div>
                         </div>
-                        <div class="script-next-action"><strong>Next:</strong> Load a script project or open Brief to create a new one.</div>
+                        <div id="script-series-list" class="script-series-list" aria-live="polite"></div>
+                        <div class="script-next-action"><strong>Next:</strong> Load a story project or open Brief to start a new one. Set Series + Episode on Brief for multi-episode continuity.</div>
                 </section>
                 <section class="script-panel script-project-panel script-step-panel" data-script-step-panel="jobs">
                         <div class="script-panel-head">
                             <span>JOB</span>
                             <div class="script-panel-title">
                                 <h3>Progress</h3>
-                                <p>The full script-to-video job runs here after Generate Videos.</p>
+                                <p>Hermes production progress appears here after you run story production.</p>
                             </div>
                         </div>
                         <div class="script-pipeline-grid script-pipeline-advanced" style="display:none;">
@@ -4955,7 +6058,7 @@ beach</textarea>
                                     <option value="frames">Start Frames</option>
                                     <option value="storyboard">Storyboard</option>
                                     <option value="coverage">Coverage</option>
-                                    <option value="script">Script</option>
+                                    <option value="script">Narrative package</option>
                                 </select>
                             </div>
                             <div class="script-inline-field">
@@ -4969,7 +6072,7 @@ beach</textarea>
                                 <span><input type="checkbox" id="script-pipeline-wait-video" checked> collect completed clips</span>
                             </label>
                             <button class="btn btn-secondary" type="button" onclick="saveScriptProject()">Save Script</button>
-                            <button class="btn script-primary-action" type="button" id="run-script-pipeline-btn" onclick="runScriptPipeline()">Generate Videos</button>
+                            <button class="btn script-primary-action" type="button" id="run-script-pipeline-btn" onclick="runScriptPipeline()">Produce with Hermes</button>
                         </div>
                         <div id="script-pipeline-status" class="script-next-action">No pipeline job running.</div>
                         <div id="script-pipeline-log" class="script-pipeline-log">
@@ -4998,10 +6101,34 @@ beach</textarea>
                             <label>Scenes</label>
                             <input type="number" id="script-scenes" value="4" min="1" max="12">
                         </div>
+                        <div class="script-field">
+                            <label>Series</label>
+                            <input type="text" id="script-series-title" placeholder="Optional series name (multi-episode)">
+                        </div>
+                        <div class="script-field">
+                            <label>Episode #</label>
+                            <input type="number" id="script-episode-number" min="0" max="9999" value="0" title="0 = not part of a numbered series">
+                        </div>
+                        <div class="script-field">
+                            <label>Episode title</label>
+                            <input type="text" id="script-episode-title" placeholder="e.g. Pilot, Harbor night">
+                        </div>
+                        <div class="script-field script-series-actions">
+                            <label>&nbsp;</label>
+                            <button class="btn btn-secondary" type="button" id="script-new-episode-btn" onclick="createNextSeriesEpisode()" title="Start next episode in this series with continuity flags">New episode in series</button>
+                        </div>
                     </div>
+                    <input type="hidden" id="script-series-id" value="">
                     <div class="script-field">
                         <label>Prompt / Brief</label>
-                        <textarea id="script-brief" placeholder="Paste the concept, client brief, story premise, or raw script..." rows="9"></textarea>
+                        <div class="preset-label">Story briefs Hermes can run</div>
+                        <div class="preset-row" id="story-preset-row" aria-label="Story brief presets"></div>
+                        <div style="display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 8px;">
+                            <button class="btn btn-secondary" type="button" id="export-story-package-btn" title="ZIP: script, frames, clips, captions, audio honesty">Export story package</button>
+                            <button class="btn btn-secondary" type="button" id="story-scorecard-btn" title="Consistency score across shots">Continuity scorecard</button>
+                        </div>
+                        <div id="story-scorecard-panel" hidden></div>
+                        <textarea id="script-brief" placeholder="Describe the story you want Hermes to produce — premise, tone, characters, length..." rows="9"></textarea>
                     </div>
                     <div class="script-action-row">
                         <label class="storyboard-checkbox">Hook Dialogue
@@ -5012,8 +6139,8 @@ beach</textarea>
                             <select id="storyboard-image-model">
                                 <option value="spark:flux2_dev">Spark / Flux2.Dev</option>
                                 <option value="spark:flux2_klein">Spark / Flux2 Klein</option>
-                                <option value="spark:z_image">Spark / Z-Image</option>
-                                <option value="spark:z_image_turbo">Spark / Z-Image Turbo</option>
+                                <option value="spark:z_image">Spark / Ernie Image</option>
+                                <option value="spark:z_image_turbo">Spark / Ernie Turbo</option>
                                 <option value="openai">OpenAI Image</option>
                                 <option value="gemini">Nano Banana</option>
                             </select>
@@ -5024,7 +6151,7 @@ beach</textarea>
                                 <option value="">No Asset Vault package</option>
                             </select>
                         </label>
-                        <button class="btn script-primary-action" id="develop-script-btn" onclick="runScriptPipeline()">Generate Videos</button>
+                        <button class="btn script-primary-action" id="develop-script-btn" onclick="runScriptPipeline()">Produce with Hermes</button>
                     </div>
                     <details class="script-upload-details advanced-only">
                         <summary>Upload brief file</summary>
@@ -5033,7 +6160,7 @@ beach</textarea>
                             <input type="file" id="brief-file-input" accept=".md,.txt,.pdf" onchange="uploadBrief()">
                         </label>
                     </details>
-                    <div class="script-next-action"><strong>Output:</strong> Generate Videos writes the script, builds storyboard start frames, and queues individual LTX clips automatically.</div>
+                    <div class="script-next-action"><strong>Output:</strong> Hermes locks the narrative package, produces storyboard start frames, and queues individual motion clips.</div>
                 </section>
 
                 <section class="script-panel script-package-panel script-step-panel advanced-only" data-script-step-panel="package">
@@ -5071,7 +6198,7 @@ beach</textarea>
                         <span>02C</span>
                         <h3>Package JSON</h3>
                     </div>
-                    <textarea id="script-package-json" spellcheck="false" placeholder="The locked script package appears here. You can edit it before generating coverage."></textarea>
+                    <textarea id="script-package-json" spellcheck="false" placeholder="Hermes locks a narrative package here. Advanced users can edit before coverage."></textarea>
                     <div class="script-next-action"><strong>Next:</strong> Any edits here are used by Build Coverage and Storyboard.</div>
                 </section>
 
@@ -5086,7 +6213,7 @@ beach</textarea>
                     <div class="script-control-surface">
                         <div id="script-coverage-source" class="script-coverage-source">
                             <strong>No locked package loaded.</strong>
-                            Build or load a script package before generating coverage.
+                            Let Hermes produce a narrative package (or load a project) before coverage.
                         </div>
                         <div class="script-control-grid">
                             <div class="script-inline-field">
@@ -5175,7 +6302,7 @@ beach</textarea>
                             <p>Generate 9-panel 4K storyboard board(s) from the locked package or raw script.</p>
                         </div>
                     </div>
-                    <div class="script-next-action"><strong>Automatic:</strong> Generate Videos handles storyboard frames and video queueing; this page is for review.</div>
+                    <div class="script-next-action"><strong>Automatic:</strong> Hermes handles frames and clip queueing; this page is for review and overrides.</div>
                 </section>
 
                 <section class="script-panel script-video-handoff-panel script-step-panel" data-script-step-panel="videos">
@@ -5194,7 +6321,7 @@ beach</textarea>
                             </div>
                             <div class="script-video-actions">
                                 <button class="btn btn-secondary" type="button" onclick="switchScriptFlowStep('storyboard')">Storyboard</button>
-                                <button class="btn script-primary-action" type="button" onclick="runScriptPipeline()">Generate Videos</button>
+                                <button class="btn script-primary-action" type="button" onclick="runScriptPipeline()">Produce with Hermes</button>
                             </div>
                         </div>
                         <div id="script-video-output-list" class="script-video-output-list">
@@ -5235,16 +6362,95 @@ beach</textarea>
 
         <!-- Toolbar -->
         <div class="spark-toolbar">
+            <div class="video-custom-prompt-panel">
+                <div class="video-custom-prompt-field video-custom-request-field">
+                    <label for="video-custom-brief">Prompt request</label>
+                    <div class="video-custom-prompt-controls">
+                        <label class="video-custom-prompt-control">
+                            <span>Mode</span>
+                            <select id="video-custom-mode-select">
+                                <option value="balanced" selected>Hermes Balanced</option>
+                                <option value="cinematic">Cinematic</option>
+                                <option value="dialogue">Dialogue Heavy</option>
+                                <option value="ambient">Ambient Audio</option>
+                                <option value="comedy">Comedy Timing</option>
+                            </select>
+                        </label>
+                        <label class="video-custom-prompt-control">
+                            <span>Duration</span>
+                            <select id="video-custom-duration-select">
+                                <option value="8">8 Sec</option>
+                                <option value="10">10 Sec</option>
+                                <option value="12">12 Sec</option>
+                                <option value="15">15 Sec</option>
+                                <option value="20">20 Sec</option>
+                                <option value="25" selected>25 Sec</option>
+                            </select>
+                        </label>
+                        <label class="video-custom-prompt-control">
+                            <span>Scenes</span>
+                            <select id="video-custom-scenes-select">
+                                <option value="1">1 Scene</option>
+                                <option value="3">3 Scenes</option>
+                                <option value="4">4 Scenes</option>
+                                <option value="5" selected>5 Scenes</option>
+                                <option value="6">6 Scenes</option>
+                                <option value="8">8 Scenes</option>
+                            </select>
+                        </label>
+                    </div>
+                    <textarea id="video-custom-brief" placeholder="Describe the video prompt you want Hermes to build for LTX."></textarea>
+                </div>
+                <div class="video-custom-prompt-actions video-custom-request-actions">
+                    <button class="btn btn-primary" type="button" id="video-custom-generate-btn" onclick="generateCustomLtxPrompt()">Generate Custom LTX Prompt</button>
+                    <label class="video-custom-action-control" for="video-custom-aspect-select">
+                        <span>Format</span>
+                        <select id="video-custom-aspect-select">
+                            <option value="16:9" selected>16:9 Wide</option>
+                            <option value="9:16">9:16 Vertical</option>
+                            <option value="1:1">1:1 Square</option>
+                        </select>
+                    </label>
+                    <span id="video-custom-status" class="video-custom-prompt-status">Ready</span>
+                </div>
+                <div class="video-custom-prompt-field video-custom-output-field">
+                    <label for="video-custom-output">Hermes LTX2 output</label>
+                    <pre id="video-custom-output" class="video-custom-prompt-output" tabindex="0" aria-live="polite" data-placeholder="Generate a custom LTX2 prompt here, then use it in the Image-to-Video prompt field below."></pre>
+                </div>
+                <div class="video-custom-prompt-actions video-custom-output-actions">
+                    <button class="btn btn-secondary" type="button" onclick="applyCustomLtxPrompt()">Use</button>
+                    <button class="btn btn-secondary" type="button" onclick="applyCustomLtxPrompt(); processTextVideo();">Generate Text Video</button>
+                    <span id="video-custom-count" class="video-custom-count">0 / 5000</span>
+                </div>
+            </div>
             <div class="video-generate-panel">
-                <div class="video-generate-prompt-row">
-                    <input type="text" id="video-prompt" placeholder="Motion prompt for selected start frames">
-                    <button class="btn video-generate-primary advanced-only" id="video-generate-primary-btn" onclick="generateVideoPromptsForSelected()">Build Prompt</button>
+                <div class="video-generate-panel-head">
+                    <strong>Image-to-Video Controls</strong>
+                    <span id="video-generate-panel-hint">selected start frames</span>
+                </div>
+                <div class="video-mode-chips filter-chips" id="video-mode-chips" role="tablist" aria-label="Video generation mode">
+                    <button type="button" class="chip active" data-video-mode="start_frames" id="video-mode-start">Start frames</button>
+                    <button type="button" class="chip" data-video-mode="first_last" id="video-mode-first-last">First → Last</button>
+                    <button type="button" class="chip" data-video-mode="text" id="video-mode-text">Text</button>
+                </div>
+                <p class="video-mode-empty-state" id="video-mode-empty-state" hidden>
+                    First → Last needs two stills: select a start frame, then an end frame (selection order matters).
+                </p>
+                <div class="video-generate-prompt-block">
+                    <label for="video-prompt">Image-to-video prompt</label>
+                    <div class="video-generate-prompt-row">
+                        <textarea id="video-prompt" rows="3" placeholder="Motion prompt for selected start frames"></textarea>
+                        <button class="btn video-generate-primary advanced-only" id="video-generate-primary-btn" onclick="generateVideoPromptsForSelected()">Build Prompt</button>
+                    </div>
                 </div>
                 <div class="video-option-strip advanced-only advanced-flex">
                     <div class="video-option">
                         <label for="video-model-select">Model</label>
                         <select id="video-model-select">
-                            <option value="04_ltx2.3_image_to_video" selected>LTX 2.3 Fast</option>
+                            <option value="04_ltx2.3_image_to_video" selected>LTX 2.3 Image-to-Video</option>
+                            <option value="05_ltx2.3_first_last_frame_to_video">LTX 2.3 First/Last Frame</option>
+                            <option value="02_ltx2.3_T2V_I2V_distilled">LTX 2.3 Text-to-Video</option>
+                            <option value="03_ltx2.3_T2V_two_stage">LTX 2.3 Text-to-Video Two Stage</option>
                         </select>
                     </div>
                     <div class="video-option">
@@ -5255,6 +6461,7 @@ beach</textarea>
                             <option value="8">8 Sec</option>
                             <option value="10">10 Sec</option>
                             <option value="12">12 Sec</option>
+                            <option value="15">15 Sec</option>
                             <option value="20">20 Sec</option>
                             <option value="25">25 Sec</option>
                         </select>
@@ -5272,22 +6479,23 @@ beach</textarea>
                         <select id="video-aspect-select">
                             <option value="16:9" selected>16:9</option>
                             <option value="9:16">9:16</option>
+                            <option value="1:1">1:1</option>
                         </select>
                     </div>
                 </div>
-                <div class="video-option-summary advanced-only" id="video-option-summary">LTX 2.3 Fast / 5 Sec / 540p / 16:9</div>
+                <div class="video-option-summary advanced-only" id="video-option-summary">LTX 2.3 Image-to-Video / 5 Sec / 540p / 16:9</div>
                 <div class="video-workflow-strip advanced-only advanced-flex" aria-label="Video workflow">
-                    <div class="video-workflow-step"><strong>01 Select</strong>Choose rendered image cards.</div>
+                    <div class="video-workflow-step"><strong>01 Source</strong>Select images or write a text prompt.</div>
                     <div class="video-workflow-step"><strong>02 Prompt</strong>Generate motion prompts.</div>
                     <div class="video-workflow-step"><strong>03 Review</strong>Edit the prompt field if needed.</div>
-                    <div class="video-workflow-step"><strong>04 Generate</strong>Queue LTX video jobs.</div>
+                    <div class="video-workflow-step"><strong>04 Generate</strong>Queue LTX image or text video jobs.</div>
                     <div class="video-workflow-step"><strong>05 Complete</strong>Finished MP4s appear here.</div>
                 </div>
             </div>
                 <div class="toolbar-row advanced-only advanced-flex">
                     <div class="toolbar-group" style="flex:1;min-width:260px;">
                         <label>Import Folder / Report</label>
-                        <input type="text" id="video-import-path" placeholder="~/Desktop/FORGE_NPS_MEDIA/imports">
+                        <input type="text" id="video-import-path" placeholder="~/Desktop/CINESMITH_MEDIA/imports">
                     </div>
                     <div class="toolbar-group">
                         <label>Import</label>
@@ -5316,7 +6524,7 @@ beach</textarea>
                 </div>
                 <div class="toolbar-group">
                     <label>Action</label>
-                    <button class="btn btn-primary" id="start-batch-btn" onclick="processSelectedVideos()">Generate Videos</button>
+                    <button class="btn btn-primary" id="start-batch-btn" onclick="processSelectedVideos()">Produce motion</button>
                     <button class="btn btn-secondary advanced-only" id="carousel-export-btn" onclick="exportCarousel()">Export Carousel</button>
                 </div>
             </div>
@@ -5324,7 +6532,7 @@ beach</textarea>
 
         <!-- Status Bar -->
         <div class="spark-status" id="spark-status">
-            <span id="spark-status-text">Ready — select start frames, then Generate Videos.</span>
+            <span id="spark-status-text">Ready — select start frames, then produce motion.</span>
             <span id="spark-progress"></span>
         </div>
 
@@ -5335,7 +6543,7 @@ beach</textarea>
                 <div class="spark-grid" id="spark-grid" style="flex:1;min-height:0;overflow:auto;">
                     <!-- Grid cells will be dynamically inserted here -->
                     <div class="grid-placeholder">
-                        <p>Select start frames, then click <strong>Generate Videos</strong>.</p>
+                        <p>Select start frames, then produce motion with Hermes routing.</p>
                     </div>
                 </div>
             </div>
@@ -5359,76 +6567,80 @@ beach</textarea>
                 <button class="script-flow-step advanced-only" type="button" data-character-step="lora" onclick="switchCharacterFlowStep('lora')"><span>04</span><div><strong>LoRA</strong><em id="character-step-status-lora">Not ready</em></div></button>
             </div>
             <div class="spark-toolbar character-library">
-                <div class="character-forge-grid">
-                    <section class="character-forge-panel character-step-panel active" data-character-step-panel="design">
+                <div class="character-cinesmith-grid">
+                    <section class="character-cinesmith-panel character-step-panel active" data-character-step-panel="design">
                         <h3>New Character</h3>
-                        <div class="character-forge-row">
+                        <div class="character-cinesmith-row">
                             <div class="toolbar-group">
                                 <label>Name</label>
-                                <input id="char-forge-name" type="text" placeholder="Sienna Vale">
+                                <input id="char-cinesmith-name" type="text" placeholder="Sienna Vale">
                             </div>
                             <div class="toolbar-group">
                                 <label>Role / Archetype</label>
-                                <input id="char-forge-role" type="text" placeholder="nomad pilot, antagonist, mascot">
+                                <input id="char-cinesmith-role" type="text" placeholder="nomad pilot, antagonist, mascot">
                             </div>
                         </div>
                         <div class="toolbar-group">
                             <label>Base Character Prompt</label>
-                            <textarea id="char-forge-base-prompt" class="prompt-large" placeholder="Full character identity: face, hair, build, wardrobe, palette, signature details, camera style, quality terms."></textarea>
+                            <textarea id="char-cinesmith-base-prompt" class="prompt-large" placeholder="Full character identity: face, hair, build, wardrobe, palette, signature details, camera style, quality terms."></textarea>
                         </div>
-                        <div class="character-forge-row">
+                        <div class="character-cinesmith-row">
                             <div class="toolbar-group">
                                 <label>Workflow</label>
-                                <select id="char-forge-workflow">
+                                <select id="char-cinesmith-workflow">
                                     <option value="01_flux2_text_to_image">FLUX2 Text to Image</option>
-                                    <option value="02_flux2_multi_reference_character_sheet">FLUX2 Multi-Reference Sheet</option>
+                                    <option value="04_flux2_multi_reference_character_sheet" selected>FLUX2 Multi-Reference Sheet</option>
                                     <option value="08_flux2_klein_9b_text_to_image">FLUX2 Klein 9B</option>
                                 </select>
                             </div>
                             <div class="toolbar-group">
                                 <label>Seed</label>
-                                <input id="char-forge-seed" type="number" placeholder="random">
+                                <input id="char-cinesmith-seed" type="number" placeholder="random">
                             </div>
                         </div>
                         <div class="character-action-bar">
-                            <button class="btn btn-secondary" type="button" onclick="randomizeCharacterForge()">Randomize</button>
-                            <button class="btn btn-secondary" type="button" onclick="groundCharacterForge()">Regular Person</button>
-                            <button class="btn btn-secondary" type="button" onclick="generateCharacterFromRoleForge()">From Role</button>
-                            <button id="char-forge-gender-male" class="btn btn-secondary character-gender-btn" type="button" aria-pressed="false" onclick="setCharacterForgeGender('male')">Male</button>
+                            <button class="btn btn-secondary" type="button" onclick="randomizeCharacterCinesmith()">Randomize</button>
+                            <button class="btn btn-secondary" type="button" onclick="groundCharacterCinesmith()">Regular Person</button>
+                            <button class="btn btn-secondary" type="button" onclick="generateCharacterFromRoleCinesmith()">From Role</button>
+                            <button id="char-cinesmith-gender-male" class="btn btn-secondary character-gender-btn" type="button" aria-pressed="false" onclick="setCharacterCinesmithGender('male')">Male</button>
                             <button class="btn btn-secondary" type="button" onclick="composeCharacterPrompts()">Compose Sheet + Variations</button>
                             <button class="btn" type="button" onclick="createCharacterFromManager(event)">Save Metadata</button>
-                            <button id="char-forge-gender-female" class="btn btn-secondary character-gender-btn" type="button" aria-pressed="false" onclick="setCharacterForgeGender('female')">Female</button>
+                            <button id="char-cinesmith-gender-female" class="btn btn-secondary character-gender-btn" type="button" aria-pressed="false" onclick="setCharacterCinesmithGender('female')">Female</button>
                             <button class="btn" type="button" onclick="renderCharacterOnSpark('character')">Generate Character on Spark</button>
+                            <input id="char-sheet-from-photo-file" type="file" accept="image/png,image/jpeg,image/webp" hidden>
+                            <button class="btn btn-primary" type="button" id="char-sheet-from-photo-btn" title="One face/body photo → master reference + multi-panel continuity sheet when Spark is up">Sheet from photo</button>
                         </div>
-                        <div id="character-manager-status" class="character-manager-status">Spark is optional until you click a generate button.</div>
+                        <div id="character-auto-sheet-status" class="character-manager-status t-meta" aria-live="polite"></div>
+                        <div id="character-auto-sheet-result" class="character-auto-sheet-result" aria-live="polite"></div>
+                        <div id="character-manager-status" class="character-manager-status">Spark is optional until you click a generate button. Sheet from photo still locks identity offline.</div>
                     </section>
-                    <section class="character-forge-panel character-step-panel" data-character-step-panel="render">
+                    <section class="character-cinesmith-panel character-step-panel" data-character-step-panel="render">
                         <h3>Sheet + Variation Prompts</h3>
-                        <div class="character-forge-row">
+                        <div class="character-cinesmith-row">
                             <div class="toolbar-group">
                                 <label>Locations</label>
-                                <input id="char-forge-locations" type="text" value="studio gray sweep, desert highway, neon market, rain-soaked alley">
+                                <input id="char-cinesmith-locations" type="text" value="studio gray sweep, desert highway, neon market, rain-soaked alley">
                             </div>
                             <div class="toolbar-group">
                                 <label>Clothes</label>
-                                <input id="char-forge-clothes" type="text" value="hero outfit, travel coat, formal variant, tactical utility layer">
+                                <input id="char-cinesmith-clothes" type="text" value="hero outfit, travel coat, formal variant, tactical utility layer">
                             </div>
                         </div>
                         <div class="toolbar-group">
                             <label>Angles / Framing</label>
-                            <input id="char-forge-angles" type="text" value="front, 3/4 left, 3/4 right, profile, rear, full body, portrait close-up, hands detail">
+                            <input id="char-cinesmith-angles" type="text" value="front, 3/4 left, 3/4 right, profile, rear, full body, portrait close-up, hands detail">
                         </div>
                         <div class="toolbar-group">
                             <label>Multi-Angle Character Sheet Prompt</label>
-                            <textarea id="char-forge-sheet-prompt" placeholder="Click Compose Sheet + Variations or write your own sheet prompt."></textarea>
+                            <textarea id="char-cinesmith-sheet-prompt" placeholder="Click Compose Sheet + Variations or write your own sheet prompt."></textarea>
                         </div>
                         <div class="toolbar-group">
                             <label>Multi-Location / Outfit Variation Prompt</label>
-                            <textarea id="char-forge-variation-prompt" placeholder="Click Compose Sheet + Variations or write your own variation prompt."></textarea>
+                            <textarea id="char-cinesmith-variation-prompt" placeholder="Click Compose Sheet + Variations or write your own variation prompt."></textarea>
                         </div>
                         <div class="character-action-bar">
-                            <button class="btn" id="char-forge-sheet-btn" type="button" onclick="renderCharacterOnSpark('sheet')" disabled>Generate Character Sheet on Spark</button>
-                            <button class="btn" id="char-forge-variation-btn" type="button" onclick="renderCharacterOnSpark('variation')" disabled>Generate Variation Set on Spark</button>
+                            <button class="btn" id="char-cinesmith-sheet-btn" type="button" onclick="renderCharacterOnSpark('sheet')" disabled>Generate Character Sheet on Spark</button>
+                            <button class="btn" id="char-cinesmith-variation-btn" type="button" onclick="renderCharacterOnSpark('variation')" disabled>Generate Variation Set on Spark</button>
                         </div>
                         <div class="character-manager-status">Latest Spark Results</div>
                         <div id="character-render-gallery" class="character-render-gallery">
@@ -5444,7 +6656,7 @@ beach</textarea>
                         </div>
                     </section>
                 </div>
-                <section class="character-forge-panel character-lora-panel character-step-panel advanced-only" data-character-step-panel="lora">
+                <section class="character-cinesmith-panel character-lora-panel character-step-panel advanced-only" data-character-step-panel="lora">
                     <h3>Character LoRA Pack</h3>
                     <div class="character-lora-summary">
                         <div class="character-lora-stat"><span>Selected</span><strong id="character-lora-selected">No character selected</strong></div>
@@ -5646,7 +6858,7 @@ beach</textarea>
     </div>
     <div class="mem-side">
       <div class="rulebook">
-        <h3>Forge Nexus</h3>
+        <h3>Cinesmith Nexus</h3>
         <div class="nexus-query-row">
           <input id="nexus-query-input" type="text" placeholder="What workflows use Elena?" />
           <button class="memory-inline-btn" onclick="runNexusQuery()">Query</button>
@@ -5706,6 +6918,22 @@ beach</textarea>
         </div>
     </div>  <!-- /main content area wrapper -->
 
-    <script src="/static/js/app.js"></script>
+    <script src="/static/js/cinesmith-core.js?v=20260709-ab"></script>
+    <script src="/static/js/app.js?v=20260709-ab"></script>
+    <script src="/static/js/cinesmith-video-modes.js?v=20260709-d3"></script>
+    <script src="/static/js/cinesmith-product.js?v=20260709-ab"></script>
+    <script src="/static/js/cinesmith-agency.js?v=20260716-polish"></script>
+    <script src="/static/js/cinesmith-campaign-errors.js?v=20260709-c7"></script>
+    <script src="/static/js/cinesmith-review.js?v=20260709-ab"></script>
+    <script src="/static/js/cinesmith-ab-compare.js?v=20260709-ab"></script>
+    <!-- F2/F4: multi-upload drag-drop + package→campaign identity -->
+    <script src="/static/js/cinesmith-characters.js?v=20260709-f3"></script>
+    <script src="/static/js/cinesmith-assets.js?v=20260709-f2f4"></script>
+    <!-- J4/G5: cloud spend meter + failure auto-memory chips -->
+    <script src="/static/js/cinesmith-cost.js?v=20260709-j4g5"></script>
+    <!-- C5/D2/H10/J1: empty states, Assemble/Export discoverability, Spark recovery, Memory agency learning -->
+    <script src="/static/js/cinesmith-empty-states.js?v=20260709-empty"></script>
+    <!-- Getting-started coach + sample briefs -->
+    <script src="/static/js/cinesmith-coach.js?v=20260716-polish"></script>
 </body>
 </html>

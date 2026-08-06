@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Forge NPS — TouchDesigner Pipeline Flow Visualizer
+Cinesmith — TouchDesigner Pipeline Flow Visualizer
 ====================================================
 
-A cinematic visualization of the Forge NPS 5-model pipeline:
+A cinematic visualization of the Cinesmith 5-model pipeline:
   KIMI (Director) → HERMES (Engineer) → SPARK (Renderer) → VISION (Audit) → MEMORY
 
 Features:
@@ -14,8 +14,8 @@ Features:
 - Scan-line post-processing
 - Text overlays for each role
 
-Output: /tmp/forge_pipeline_flow.toe
-Record: /tmp/forge_pipeline_flow_output.mov
+Output: /tmp/cinesmith_pipeline_flow.toe
+Record: /tmp/cinesmith_pipeline_flow_output.mov
 """
 
 import json
@@ -25,7 +25,7 @@ from pathlib import Path
 
 TD_MCP_PORT = 40404
 TD_MCP_URL = f"http://127.0.0.1:{TD_MCP_PORT}/mcp"
-OUTPUT_TOE = Path("/tmp/forge_pipeline_flow.toe")
+OUTPUT_TOE = Path("/tmp/cinesmith_pipeline_flow.toe")
 
 NODES = [
     {"name": "KIMI", "role": "DIRECTOR", "color": (0.0, 0.8, 1.0), "angle": 0.0},
@@ -74,7 +74,7 @@ result = {'cleaned': True}
 
     print("[2/9] Creating GLSL shader...")
     shader = generate_glsl()
-    shader_path = Path("/tmp/forge_pipeline_flow.glsl")
+    shader_path = Path("/tmp/cinesmith_pipeline_flow.glsl")
     shader_path.write_text(shader)
 
     td_call("td_execute_python", {
@@ -246,7 +246,7 @@ win.par.winopen = False
 
 recorder = root.create(moviefileoutTOP, 'recorder')
 recorder.par.type = 'movie'
-recorder.par.file = '/tmp/forge_pipeline_flow_output.mov'
+recorder.par.file = '/tmp/cinesmith_pipeline_flow_output.mov'
 recorder.par.videocodec = 'prores'
 recorder.par.fps = 30
 recorder.inputConnectors[0].connect(out_null.outputConnectors[0])
@@ -265,13 +265,13 @@ result = {{'saved_to': '{OUTPUT_TOE}'}}
 
     print("[9/9] DONE")
     print(f"\nOpen: {OUTPUT_TOE}")
-    print("Record output: /tmp/forge_pipeline_flow_output.mov")
+    print("Record output: /tmp/cinesmith_pipeline_flow_output.mov")
     print("\nPro tip: Add AudioFileIn CHOP → AudioSpectrum → Math (gain=10) → CHOPtoTOP")
     print("         and connect to audio_input for audio-reactive particles.")
 
 
 def generate_glsl():
-    return '''// Forge NPS Pipeline Flow — GLSL Visualization
+    return '''// Cinesmith Pipeline Flow — GLSL Visualization
 // 5-model orbital pipeline with particle streams
 
 uniform float uTime;

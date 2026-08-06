@@ -99,7 +99,7 @@ class KernelFactory:
 
 class ArchitectRouter:
     """
-    The central intelligence node of the Forge Multi-Kernel Prompt Compiler.
+    The central intelligence node of the Cinesmith Multi-Kernel Prompt Compiler.
     Translates high-level concepts into model-specific payload instructions.
     """
     def __init__(self):

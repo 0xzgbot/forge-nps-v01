@@ -13,6 +13,7 @@ def test_flux_standard_removes_generic_quality_and_adds_specificity():
     assert "best quality" not in low
     assert "negative prompt" not in low
     assert "material specificity" in low
+    assert "skin imperfections" in low
     assert "optics:" in low
     assert "lighting source:" in low
     assert "flux-ltx-prompt-engineering-standard" in skills
@@ -36,6 +37,8 @@ def test_prompt_compiler_records_and_enforces_model_prompt_skills():
     assert "flux-ltx-prompt-engineering-standard" in artifact["skills_used"]
     assert "prompt standard enforcement" in prompt
     assert "material specificity" in prompt
+    assert "skin imperfections" in prompt
+    assert artifact["negative_prompt"] == ""
 
 
 def test_fitness_prompts_lock_role_without_unrequested_variation_assumptions():
@@ -80,6 +83,24 @@ def test_product_and_brand_prompts_block_invented_details():
     assert "preserve the exact requested product category" in low
     assert "brand/text fidelity" in low
     assert "do not invent readable words" in low
+    assert "skin imperfections" not in low
+
+
+def test_flux_dev_negative_prompts_are_suppressed_but_klein_keeps_them():
+    dev_artifact = compile_prompt_artifact(
+        raw_concept="Photorealistic portrait of a weathered restaurant chef.",
+        workflow_id="01_flux2_text_to_image",
+        kimi_plan={"visual_brief": "Photorealistic portrait of a weathered restaurant chef."},
+    )
+    klein_artifact = compile_prompt_artifact(
+        raw_concept="Photorealistic portrait of a weathered restaurant chef.",
+        workflow_id="08_flux2_klein_9b_text_to_image",
+        kimi_plan={"visual_brief": "Photorealistic portrait of a weathered restaurant chef."},
+    )
+    assert dev_artifact["negative_prompt"] == ""
+    assert dev_artifact["identity_negative_prompt"] == ""
+    assert "skin imperfections" in dev_artifact["compiled_prompt"].lower()
+    assert klein_artifact["negative_prompt"]
 
 
 def test_prompt_hole_audit_locks_professional_athlete_food_location_and_age_roles():

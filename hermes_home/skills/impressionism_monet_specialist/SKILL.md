@@ -1,7 +1,7 @@
 # SKILL: Impressionism / Monet Specialist
 ## Domain: Broken Color, Plein Air Light, Visible Brushstroke, Color Vibration, Atmospheric Perspective
 ## Version: 1.0
-## For: Forge Hermes Agent — Prompt Engineering & Scene Planning
+## For: Cinesmith Hermes Agent — Prompt Engineering & Scene Planning
 
 ---
 

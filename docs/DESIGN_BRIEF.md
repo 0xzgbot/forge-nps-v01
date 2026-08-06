@@ -1,4 +1,4 @@
-# Forge NPS — UI/UX Design Brief
+# Cinesmith — UI/UX Design Brief
 
 > **Goal:** Transform the current functional dashboard into a **professional, cohesive, easy-to-use interface** that looks like a high-end creative production tool.
 >
@@ -55,7 +55,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  [LOGO]  FORGE NPS        Home  Characters  Script  Products  Renders  Memory  Models  Settings  │
+│  [LOGO]  CINESMITH NPS        Home  Characters  Script  Products  Renders  Memory  Models  Settings  │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
 │  [CONTENT AREA — changes per tab]                          │
@@ -65,7 +65,7 @@
 
 ### Top Bar
 
-- **Left:** Logo + project name "FORGE NPS" in gradient text (cyan → magenta)
+- **Left:** Logo + project name "CINESMITH NPS" in gradient text (cyan → magenta)
 - **Center:** Tab navigation (pill-style, active tab has cyan underline glow)
 - **Right:** Spark status indicator (green pulsing dot = online), quick actions dropdown
 
@@ -359,7 +359,7 @@ Label:      text-secondary, 11px, above or inside
 
 | Asset | Format | Notes |
 |---|---|---|
-| Logo | SVG | "FORGE NPS" wordmark or abstract forge/anvil icon |
+| Logo | SVG | "CINESMITH NPS" wordmark or abstract cinesmith/anvil icon |
 | Favicon | ICO/PNG | 32x32, cyan accent on dark |
 | Empty States | SVG | Illustrations for "no renders yet", "no characters" |
 | Icons | SVG/IconFont | System, characters, script, products, renders, memory, models, settings, play, stop, refresh, download, copy, search, filter, expand, collapse |
@@ -404,7 +404,7 @@ dashboard/
 │       ├── logo.svg
 │       ├── icons/
 │       └── empty-states/
-├── forge_dashboard.py      ← FastAPI app
+├── cinesmith_dashboard.py      ← FastAPI app
 └── memory_api.py           ← Backend API (already built)
 ```
 

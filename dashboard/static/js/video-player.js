@@ -1,4 +1,4 @@
-class ForgeVideoPlayer {
+class CinesmithVideoPlayer {
     constructor(containerId, videoSrc, shotData) {
         this.container = document.getElementById(containerId);
         this.videoSrc = videoSrc;
@@ -11,8 +11,8 @@ class ForgeVideoPlayer {
     render() {
         this.container.innerHTML = `
             <div class="video-wrapper">
-                <video id="forge-video" src="${this.videoSrc}" controls></video>
-                <canvas id="forge-canvas" style="display:none;"></canvas>
+                <video id="cinesmith-video" src="${this.videoSrc}" controls></video>
+                <canvas id="cinesmith-canvas" style="display:none;"></canvas>
             </div>
             <div class="video-controls">
                 <button id="analyze-frame-btn" class="btn-primary">
@@ -34,8 +34,8 @@ class ForgeVideoPlayer {
         if (this.isAnalyzing) return;
         this.isAnalyzing = true;
         
-        const video = this.container.querySelector("#forge-video");
-        const canvas = this.container.querySelector("#forge-canvas");
+        const video = this.container.querySelector("#cinesmith-video");
+        const canvas = this.container.querySelector("#cinesmith-canvas");
         const status = this.container.querySelector("#analysis-status");
         const resultPanel = this.container.querySelector("#analysis-result");
         

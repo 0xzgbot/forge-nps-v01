@@ -1,6 +1,6 @@
 Prompt for Claude Design Agent
 Context
-You are designing the UI for Forge NPS, an AI-powered creative production pipeline that generates consistent character and product renders at scale. The user is a creative director who drops in a lore bible (character descriptions) and seed images, then batches out 24-30 variations using FLUX2 NVFP4 Turbo on a remote GPU cluster ("the Spark").
+You are designing the UI for Cinesmith, an AI-powered creative production pipeline that generates consistent character and product renders at scale. The user is a creative director who drops in a lore bible (character descriptions) and seed images, then batches out 24-30 variations using FLUX2 NVFP4 Turbo on a remote GPU cluster ("the Spark").
 The system has a backend in Python (FastAPI) and currently has a functional but bare-bones dashboard on port 7000. The backend is fully working. Your job is to design and build the frontend UI.
 Design Vibe: "The Creative Studio of 2035"
 Think: DaVinci Resolve's precision meets Spline's playfulness meets a living, breathing creative intelligence. The interface should feel like a tool you want to spend hours in — responsive, luminous, and alive. Dark mode is the canvas; neon accents are the energy. Every panel has depth (glassmorphism + subtle glow), every number updates in real-time, and the system feels like it's working with you, not monitoring you.
@@ -93,7 +93,7 @@ dashboard/static/
 │   ├── api.js              ← Fetch wrappers for all endpoints
 │   └── memory-graph.js     ← Cytoscape setup (reference existing memory.html)
 Assets You Can Generate
-Logo SVG: "FORGE NPS" wordmark or an abstract anvil/forge icon in cyan
+Logo SVG: "CINESMITH NPS" wordmark or an abstract anvil/cinesmith icon in cyan
 Favicon: 32x32 dark with cyan accent
 Empty state illustrations: simple geometric line art in the neon color palette
 Critical UI Behaviors

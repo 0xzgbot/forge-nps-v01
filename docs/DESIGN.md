@@ -1,7 +1,7 @@
-# Visual Identity: Forge NPS Product Launch Video
+# Visual Identity: Cinesmith Product Launch Video
 
 ## Style Prompt
-Cinematic, professional, tech-forward, modern, sleek, intelligent, controlled, premium, agency-grade. The video should feel like a high-end production showcase with smooth animations, sophisticated typography, and a dark, atmospheric aesthetic that emphasizes the technological sophistication of the Forge NPS system.
+Cinematic, professional, tech-forward, modern, sleek, intelligent, controlled, premium, agency-grade. The video should feel like a high-end production showcase with smooth animations, sophisticated typography, and a dark, atmospheric aesthetic that emphasizes the technological sophistication of the Cinesmith system.
 
 ## Colors
 

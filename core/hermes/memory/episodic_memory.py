@@ -52,6 +52,23 @@ class EpisodicMemory:
             entry["source"] = source
         with open(self.log_path, "a", encoding="utf-8") as f:
             f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+        # J4: after N failures, auto-consolidate durable failure summary.
+        # Only when memory_dir looks like <root>/data/hermes_memory/episodic so
+        # ad-hoc temp logs never write into the real repo.
+        try:
+            import os as _os
+
+            if (_os.getenv("CINESMITH_FAILURE_AUTO_CONSOLIDATE") or "1").strip().lower() not in {
+                "0", "false", "no", "off",
+            }:
+                from .failure_auto_consolidate import maybe_auto_consolidate_from_event
+
+                md = self.memory_dir.resolve()
+                if md.name == "episodic" and md.parent.name == "hermes_memory":
+                    # .../<root>/data/hermes_memory/episodic → parents[2] = <root>
+                    maybe_auto_consolidate_from_event(entry, root=md.parents[2])
+        except Exception:
+            pass
         return event_id
 
     def query_similar(

@@ -1,7 +1,7 @@
 # SKILL: 1970s Italian Giallo Specialist
 ## Domain: Stylized Horror, Baroque Cinematography, Saturated Color Gels, Black Leather, Synth Atmosphere
 ## Version: 1.0
-## For: Forge Hermes Agent — Prompt Engineering & Scene Planning
+## For: Cinesmith Hermes Agent — Prompt Engineering & Scene Planning
 
 ---
 

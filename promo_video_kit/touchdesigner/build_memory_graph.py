@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
 """
-Forge NPS — TouchDesigner Memory Graph Visualizer Builder
+Cinesmith — TouchDesigner Memory Graph Visualizer Builder
 ============================================================
 
 This script builds a complete TouchDesigner network that visualizes
-Forge NPS memory events as a living, pulsing, audio-reactive graph.
+Cinesmith memory events as a living, pulsing, audio-reactive graph.
 
 PREREQUISITES (for you to set up):
 ------------------------------------
 1. Install TouchDesigner (Non-Commercial is FREE):
    https://derivative.ca/download
 
-2. Install the twozero MCP plugin:
-   bash "${HERMES_HOME:-$HOME/.hermes}/skills/creative/touchdesigner-mcp/scripts/setup.sh"
+2. Install the twozero MCP plugin (repo-local hermes_home — never ~/.hermes):
+   bash "${HERMES_HOME:-$(cd "$(dirname "$0")/../.." && pwd)/hermes_home}/skills/creative/touchdesigner-mcp/scripts/setup.sh"
    Then drag ~/Downloads/twozero.tox into TD and enable MCP.
 
 3. Verify MCP is running:
@@ -21,8 +21,8 @@ PREREQUISITES (for you to set up):
 4. Install td-mcp Python client (if not already):
    pip install mcp  # or uv add mcp
 
-5. Ensure Forge NPS events.jsonl exists:
-   ~/Desktop/forge_nps_v01/data/hermes_memory/episodic/events.jsonl
+5. Ensure Cinesmith events.jsonl exists:
+   ~/Desktop/cinesmith_v01/data/hermes_memory/episodic/events.jsonl
 
 USAGE:
 ------
@@ -36,7 +36,7 @@ This will:
 
 OUTPUT:
 -------
-The network writes to /tmp/forge_memory_visualizer.toe
+The network writes to /tmp/cinesmith_memory_visualizer.toe
 Open it in TouchDesigner, then press F1 to enter perform mode and record.
 
 RECORDING:
@@ -54,11 +54,11 @@ from datetime import datetime
 # ── Configuration ──────────────────────────────────────────────────────────
 TD_MCP_PORT = 40404
 TD_MCP_URL = f"http://127.0.0.1:{TD_MCP_PORT}/mcp"
-FORGE_ROOT = Path("~/Desktop/forge_nps_v01")
-EVENTS_PATH = FORGE_ROOT / "data" / "hermes_memory" / "episodic" / "events.jsonl"
-OUTPUT_TOE = Path("/tmp/forge_memory_visualizer.toe")
+CINESMITH_ROOT = Path("~/Desktop/cinesmith_v01")
+EVENTS_PATH = CINESMITH_ROOT / "data" / "hermes_memory" / "episodic" / "events.jsonl"
+OUTPUT_TOE = Path("/tmp/cinesmith_memory_visualizer.toe")
 
-# Color palette matching Forge NPS UI
+# Color palette matching Cinesmith UI
 COLORS = {
     "attempt":        (0.0, 1.0, 1.0),      # cyan #00FFFF
     "outcome_success":(0.0, 1.0, 0.25),     # green #00FF41
@@ -91,7 +91,7 @@ def td_call(method: str, params: dict = None):
         print(f"[ERROR] MCP call failed: {e}")
         return {}
 
-# ── Load Forge Memory Events ───────────────────────────────────────────────
+# ── Load Cinesmith Memory Events ───────────────────────────────────────────────
 
 def load_events():
     events = []
@@ -129,11 +129,11 @@ def generate_demo_events():
 
 def build_td_network(events):
     """
-    Build a TouchDesigner network that visualizes Forge NPS memory events.
+    Build a TouchDesigner network that visualizes Cinesmith memory events.
     Uses GLSL TOP for main rendering, Feedback TOP for trails, Bloom for glow.
     """
     print("=" * 60)
-    print("Forge NPS — TouchDesigner Memory Graph Builder")
+    print("Cinesmith — TouchDesigner Memory Graph Builder")
     print("=" * 60)
 
     # Check MCP is alive
@@ -209,7 +209,7 @@ result = {{'rows': {len(rows)}}}
     print("[3/8] Creating GLSL shader...")
 
     # Write shader to a file first, then load into TD
-    shader_path = Path("/tmp/forge_memory_graph.glsl")
+    shader_path = Path("/tmp/cinesmith_memory_graph.glsl")
     shader_path.write_text(generate_glsl_shader())
 
     td_call("td_execute_python", {
@@ -329,7 +329,7 @@ win.par.winopen = False  # User opens manually
 # MovieFileOut for recording
 recorder = root.create(moviefileoutTOP, 'recorder')
 recorder.par.type = 'movie'
-recorder.par.file = '/tmp/forge_memory_graph_output.mov'
+recorder.par.file = '/tmp/cinesmith_memory_graph_output.mov'
 recorder.par.videocodec = 'prores'
 recorder.par.fps = 30
 recorder.inputConnectors[0].connect(out_null.outputConnectors[0])
@@ -382,7 +382,7 @@ result = {{'saved_to': '{OUTPUT_TOE}'}}
     print("  5. Click the 'recorder' TOP, set 'Record' to ON")
     print("  6. Let it run for 30-60 seconds")
     print("  7. Set 'Record' to OFF")
-    print(f"  8. Video saved to: /tmp/forge_memory_graph_output.mov")
+    print(f"  8. Video saved to: /tmp/cinesmith_memory_graph_output.mov")
     print("\nTIPS:")
     print("  - Non-Commercial TD caps at 1280x1280 (we use 1280x720)")
     print("  - ProRes codec works without a commercial license on macOS")
@@ -393,7 +393,7 @@ result = {{'saved_to': '{OUTPUT_TOE}'}}
 
 def generate_glsl_shader():
     """Generate the GLSL shader for the memory graph visualization."""
-    return '''// Forge NPS Memory Graph — GLSL Visualization
+    return '''// Cinesmith Memory Graph — GLSL Visualization
 // Visualizes episodic memory events as a living, breathing node network
 
 uniform float uTime;

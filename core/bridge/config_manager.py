@@ -3,7 +3,7 @@ from typing import Any, Dict, Optional
 
 class ConfigManager:
     """
-    Centralized configuration for Forge NPS.
+    Centralized configuration for Cinesmith.
     Handles loading from .env and provides typed access to API credentials.
     """
     def __init__(self, env_path: str = ".env"):

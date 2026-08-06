@@ -1,16 +1,17 @@
 import pytest
 import asyncio
 import os
+from pathlib import Path
 import json
 import shutil
 from unittest.mock import AsyncMock, MagicMock, patch
 
 # Add project root to sys.path for imports
-PROJECT_ROOT = "~/Desktop/forge_nps_v01"
+PROJECT_ROOT = str(Path(__file__).resolve().parents[1])
 if PROJECT_ROOT not in os.sys.path:
     os.sys.path.insert(0, PROJECT_ROOT)
 
-from core.orchestrator.forge_orchestrator import ForgeOrchestrator
+from core.orchestrator.cinesmith_orchestrator import CinesmithOrchestrator
 from core.state.session_manager import SessionManager
 from core.bridge.config_manager import ConfigManager
 from core.bridge.kimi_bridge import KimiBridge
@@ -74,7 +75,7 @@ async def test_full_pipeline_success(clean_test_dir, mock_config, mock_kimi, moc
     session_manager = SessionManager(TEST_SESSION_ID, output_dir=TEST_OUTPUT_DIR)
     hermes = HermesAgent(kimi_bridge=mock_kimi, session_manager=session_manager)
     
-    orchestrator = ForgeOrchestrator(
+    orchestrator = CinesmithOrchestrator(
         config_manager=mock_config,
         session_manager=session_manager,
         kimi_bridge=mock_kimi,
@@ -115,7 +116,7 @@ async def test_remediation_loop_fail_then_fix(clean_test_dir, mock_config, mock_
 
     mock_auditor.audit_asset.side_effect = side_effect_audit
 
-    orchestrator = ForgeOrchestrator(
+    orchestrator = CinesmithOrchestrator(
         config_manager=mock_config,
         session_manager=session_manager,
         kimi_bridge=mock_kimi,

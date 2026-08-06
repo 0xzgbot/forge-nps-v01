@@ -1,5 +1,5 @@
 """
-Real-Time Spark Monitor for Forge NPS Dashboard.
+Real-Time Spark Monitor for Cinesmith Dashboard.
 
 Polls ComfyUI queue/history server-side and pushes updates
 to all connected WebSocket clients.

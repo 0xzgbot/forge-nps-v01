@@ -1,4 +1,4 @@
-# Forge — 60-Second Twitter Demo Video
+# Cinesmith — 60-Second Twitter Demo Video
 **Target Duration:** 60 Seconds (Twitter sweet spot)  
 **Format:** 9:16 vertical OR 16:9 horizontal  
 **Tone:** Warm, energetic, confident — "Your creative director just got a memory upgrade"  
@@ -45,7 +45,7 @@
 
 **Visual:** Dashboard. Cursor types brief: *"Sienna Nomad — outdoor lifestyle, earth tones, adventure vibe."* Clicks **Generate Campaign**. Instagram carousel generates (12 posts). Then Script Studio appears. Cursor types a short film prompt and clicks **Generate Videos** once. Start frames and clips appear in the Script Studio Videos panel.
 
-**Narration:** *"Feed Forge a brief. It writes the campaign. And now Script Studio goes from one short prompt to script, storyboard, start frames, and individual video shots in one click."*
+**Narration:** *"Feed Cinesmith a brief. It writes the campaign. And now Script Studio goes from one short prompt to script, storyboard, start frames, and individual video shots in one click."*
 
 **Text overlay:** ✅ 12 posts  
 **Text overlay:** ✅ 3 formats  
@@ -78,11 +78,11 @@
 
 ## VII. THE CLOSE (0:50–0:60)
 
-**Visual:** Export Brain button clicked. JSON downloads. Preview shows episodic traces, semantic insights, learned rules. Fade to Forge logo.
+**Visual:** Export Brain button clicked. JSON downloads. Preview shows episodic traces, semantic insights, learned rules. Fade to Cinesmith logo.
 
-**Narration:** *"Export everything your campaign learned. A portable brain for your next project. Forge — the creative studio with a memory."*
+**Narration:** *"Export everything your campaign learned. A portable brain for your next project. Cinesmith — the creative studio with a memory."*
 
-**Text overlay:** Forge · The Creative Studio with a Memory 🧠
+**Text overlay:** Cinesmith · The Creative Studio with a Memory 🧠
 
 ---
 

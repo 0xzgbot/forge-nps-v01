@@ -1,4 +1,4 @@
-# Forge — Hermes Agent Creative Hackathon Submission
+# Cinesmith — Hermes Agent Creative Hackathon Submission
 
 ## 1. THE HOOK (10 seconds)
 
@@ -36,9 +36,9 @@
 
 ## 4. THE SOLUTION — HERMES (15 seconds)
 
-**Visual:** The Forge dashboard. Home tab. Hermes Live panel streams events. Cursor clicks **Generate Campaign**, types a brief.
+**Visual:** The Cinesmith dashboard. Home tab. Hermes Live panel streams events. Cursor clicks **Generate Campaign**, types a brief.
 
-**Narration:** *"Meet Hermes — the learning agent inside Forge. Before every asset, Hermes checks its memory. Found a similar failure? It injects the fix automatically. Your campaign gets smarter with every post."*
+**Narration:** *"Meet Hermes — the learning agent inside Cinesmith. Before every asset, Hermes checks its memory. Found a similar failure? It injects the fix automatically. Your campaign gets smarter with every post."*
 
 **On-screen text:** ✅ Remembers every asset  
 **On-screen text:** ✅ Injects learned fixes  
@@ -50,7 +50,7 @@
 
 **Visual:** Dashboard. Cursor types: *"Sienna Nomad — outdoor lifestyle, earth tones."* Clicks generate. Instagram carousel appears (12 posts). Then Script Studio: cursor types a one-line story prompt, clicks **Generate Videos**, and the job log moves through package, coverage, storyboard, frames, and videos. Start frames and clips appear inside Script Studio.
 
-**Narration:** *"Feed Forge a brief. It writes the campaign. And Script Studio now turns one short prompt into script, storyboard, start frames, and individual video shots in one click."*
+**Narration:** *"Feed Cinesmith a brief. It writes the campaign. And Script Studio now turns one short prompt into script, storyboard, start frames, and individual video shots in one click."*
 
 **On-screen text:** 12 posts · Script to video · One job runner
 
@@ -68,11 +68,11 @@
 
 ## 7. THE CLOSE (5 seconds)
 
-**Visual:** Export Brain button. JSON downloads. Fade to Forge logo.
+**Visual:** Export Brain button. JSON downloads. Fade to Cinesmith logo.
 
-**Narration:** *"Export everything your campaign learned. A portable brain for your next project. Forge — the creative studio with a memory."*
+**Narration:** *"Export everything your campaign learned. A portable brain for your next project. Cinesmith — the creative studio with a memory."*
 
-**On-screen text:** Forge · The Creative Studio with a Memory
+**On-screen text:** Cinesmith · The Creative Studio with a Memory
 
 ---
 

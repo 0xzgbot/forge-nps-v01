@@ -59,6 +59,7 @@ LORA_PRESETS: Dict[str, LoraPreset] = {
 
 WORKFLOW_LORA_DEFAULTS = {
     "02_flux2_multi_reference_character_sheet": "flux2_multi_angle",
+    "04_flux2_multi_reference_character_sheet": "flux2_multi_angle",
     "07_ltx2.3_id_lora": "ltx23_id_talkvid",
 }
 
@@ -68,7 +69,14 @@ def infer_lora_profile(workflow_path: str | Path | None, prompt: str = "") -> st
     if name in WORKFLOW_LORA_DEFAULTS:
         return WORKFLOW_LORA_DEFAULTS[name]
     text = f"{name} {prompt or ''}".lower()
-    if "storyboard" in text or "turnaround" in text or "multi-angle" in text or "multi angle" in text:
+    if (
+        "storyboard" in text
+        or "turnaround" in text
+        or "multi-angle" in text
+        or "multi angle" in text
+        or "multi_reference_character_sheet" in text
+        or "character_sheet" in text
+    ):
         return "flux2_multi_angle"
     return ""
 

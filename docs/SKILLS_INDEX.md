@@ -1,8 +1,8 @@
-# Forge NPS — Skills Library Index
+# Cinesmith — Skills Library Index
 
-> The Hermes Agent in Forge NPS ships with a curated, multi-layer skills library. This index catalogs every skill so judges, reviewers, and contributors can see what's in the box without grepping the repo.
+> The Hermes Agent in Cinesmith ships with a curated, multi-layer skills library. This index catalogs every skill so judges, reviewers, and contributors can see what's in the box without grepping the repo.
 
-**Total skill directories:** 155 at the top level, plus profile-mounted skill sets for `live`, `character`, `product`, `script`, `forgehermes`, and `trading` profiles.
+**Total skill directories:** 155 at the top level, plus profile-mounted skill sets for `live`, `character`, `product`, `script`, `cinesmith`, and `trading` profiles.
 
 **Skills root:** [hermes_home/skills/](hermes_home/skills/)
 **Profile mounts:** [hermes_home/profiles/](hermes_home/profiles/)
@@ -12,9 +12,9 @@
 
 ## How to read this index
 
-- **🔥 Forge Protocol** — Original Forge agent skill, defines closed-loop pipeline behavior.
-- **🎬 Cinematic Original** — Forge-authored creative knowledge (style, camera, lighting, narrative).
-- **🛠 ComfyUI Operating** — Forge-authored skills for orchestrating Spark / ComfyUI render execution.
+- **🔥 Cinesmith Protocol** — Original Cinesmith agent skill, defines closed-loop pipeline behavior.
+- **🎬 Cinematic Original** — Cinesmith-authored creative knowledge (style, camera, lighting, narrative).
+- **🛠 ComfyUI Operating** — Cinesmith-authored skills for orchestrating Spark / ComfyUI render execution.
 - **🎯 Diagnostic** — Failure-mode knowledge consumed by audit + remediation.
 - **📦 Bundled (Hermes Default)** — Stock Hermes Agent skills shipped with the framework, retained for completeness.
 
@@ -28,25 +28,25 @@ This update adds the 28 root skills that were present under [hermes_home/skills/
 
 ---
 
-## 🔥 Forge Agent Protocols (the closed loop)
+## 🔥 Cinesmith Agent Protocols (the closed loop)
 
-These are the skills that *make Forge agentic*. They live under [hermes_home/profiles/live/skills/](hermes_home/profiles/live/skills/) and define the Sense → Think → Act → Correct loop that turns a brief into a finished, audited campaign.
+These are the skills that *make Cinesmith agentic*. They live under [hermes_home/profiles/live/skills/](hermes_home/profiles/live/skills/) and define the Sense → Think → Act → Correct loop that turns a brief into a finished, audited campaign.
 
 | Skill | Purpose |
 |---|---|
-| **forge-intelligence-loop-protocol** | High-agency Sense-Think-Act-Correct loop used in the Forge NPS pipeline to achieve autonomous visual quality. |
-| **forge-nps-intelligence-loop** | The Sense-Think-Act-Correct closed-loop architecture for the Forge NPS filmmaking pipeline; moves agents from passive dispatchers to active creative directors. |
-| **forge-remediation-loop-protocol** | J8/J9 closed-loop remediation — integrates automated quality auditing (J9) with autonomous remediation loops (J8) so generation errors are systematically detected *and* repaired. |
-| **forge-remediation-protocol** | Operational rules for triggering, scoping, and bounding remediation retries. |
-| **forge-visual-audit-protocol** | Vision-audit skill (KimiVL integration) for stamping pass/fail with scored issues. |
-| **forge-production-orchestrator** | A standardized protocol for executing the complete Forge production pipeline from a single entry point — governs the transition from creative concept to ready-to-render ComfyUI payloads. |
-| **forge-production-protocol** | Forge MediaEngine Production Protocol (FMEPP) — high-level production rules. |
-| **forge-onboarding-pipeline** | Metadata-driven captioning workflow for training-dataset generation, ensuring image generation and automated captioning are architecturally aligned. |
-| **forge-batch-training-image-gen** | Generates large batches (100+) of high-quality, diverse training images for character consistency in LoRA / Flux Redux workflows. |
-| **forge-live-production-test-protocol** | FLPTP — live production self-test before each demo / campaign. |
-| **forge-nps-reconstruction-protocol** | Process for rebuilding a functional AI filmmaking pipeline from "functional stubs" to an integrated agentic loop. |
-| **forge-nps-agentic-integration-protocol** | How Forge NPS skills integrate with external agent frameworks. |
-| **forge-nexus-architecture-protocol** | Validated 4-phase architectural pattern for the "Cognitive Operating System" that turns raw creative assets into an agentic knowledge graph. |
+| **cinesmith-intelligence-loop-protocol** | High-agency Sense-Think-Act-Correct loop used in the Cinesmith pipeline to achieve autonomous visual quality. |
+| **cinesmith-intelligence-loop** | The Sense-Think-Act-Correct closed-loop architecture for the Cinesmith filmmaking pipeline; moves agents from passive dispatchers to active creative directors. |
+| **cinesmith-remediation-loop-protocol** | J8/J9 closed-loop remediation — integrates automated quality auditing (J9) with autonomous remediation loops (J8) so generation errors are systematically detected *and* repaired. |
+| **cinesmith-remediation-protocol** | Operational rules for triggering, scoping, and bounding remediation retries. |
+| **cinesmith-visual-audit-protocol** | Vision-audit skill (KimiVL integration) for stamping pass/fail with scored issues. |
+| **cinesmith-production-orchestrator** | A standardized protocol for executing the complete Cinesmith production pipeline from a single entry point — governs the transition from creative concept to ready-to-render ComfyUI payloads. |
+| **cinesmith-production-protocol** | Cinesmith MediaEngine Production Protocol (FMEPP) — high-level production rules. |
+| **cinesmith-onboarding-pipeline** | Metadata-driven captioning workflow for training-dataset generation, ensuring image generation and automated captioning are architecturally aligned. |
+| **cinesmith-batch-training-image-gen** | Generates large batches (100+) of high-quality, diverse training images for character consistency in LoRA / Flux Redux workflows. |
+| **cinesmith-live-production-test-protocol** | FLPTP — live production self-test before each demo / campaign. |
+| **cinesmith-reconstruction-protocol** | Process for rebuilding a functional AI filmmaking pipeline from "functional stubs" to an integrated agentic loop. |
+| **cinesmith-agentic-integration-protocol** | How Cinesmith skills integrate with external agent frameworks. |
+| **cinesmith-nexus-architecture-protocol** | Validated 4-phase architectural pattern for the "Cognitive Operating System" that turns raw creative assets into an agentic knowledge graph. |
 | **expert-image-submitter-agent** | Precise execution engine — translates generation parameters into validated, injected JSON payloads and manages their lifecycle on remote ComfyUI instances. |
 
 **Why this matters for the hackathon:** these skills are the visible evidence that Hermes is *the pipeline brain*, not just a chat layer. Every claim in the submission about "closed learning loop" routes through these files.
@@ -55,7 +55,7 @@ These are the skills that *make Forge agentic*. They live under [hermes_home/pro
 
 ## 🛠 ComfyUI / Spark Operating Skills
 
-Forge-authored render-execution skills under [hermes_home/profiles/live/skills/](hermes_home/profiles/live/skills/). They are how Hermes drives Spark.
+Cinesmith-authored render-execution skills under [hermes_home/profiles/live/skills/](hermes_home/profiles/live/skills/). They are how Hermes drives Spark.
 
 | Skill | Purpose |
 |---|---|
@@ -77,7 +77,7 @@ Forge-authored render-execution skills under [hermes_home/profiles/live/skills/]
 
 ## 🎬 Style Specialists (cinema-literate creative library)
 
-Fifteen deep style skills, each a film-school-quality treatment of a visual movement. These are what gives Forge its visual range.
+Fifteen deep style skills, each a film-school-quality treatment of a visual movement. These are what gives Cinesmith its visual range.
 
 | Skill | What it encodes | Twin |
 |---|---|---|
@@ -95,9 +95,9 @@ Fifteen deep style skills, each a film-school-quality treatment of a visual move
 | **ukiyo_e_specialist** | Edo-period (1603–1868) Japanese woodblock print: flat color, bold black outlines, Prussian blue, asymmetric composition. | twin: `skill_ukiyo_e_specialist` |
 | **wes_anderson_specialist** | Symmetry, the 60-30-10 color rule, planimetric composition, Futura/Archer typography. | twin: `skill_wes_anderson_specialist` |
 | **stop_motion_claymation_aesthetic** | Frame-by-frame animation grammar: tactile materials, slight jitter, physical lighting, handmade imperfection. | — |
-| **neural_aesthetic** | Forge's *system-level* style DNA framework — lighting constants, mood descriptors, structured prompt injection. | twin: `skill_neural_aesthetic` |
+| **neural_aesthetic** | Cinesmith's *system-level* style DNA framework — lighting constants, mood descriptors, structured prompt injection. | twin: `skill_neural_aesthetic` |
 
-Companion: **neural_aesthetic_brand_bible** — Forge Architect Router Injection Standard (v1.0).
+Companion: **neural_aesthetic_brand_bible** — Cinesmith Architect Router Injection Standard (v1.0).
 
 ---
 
@@ -146,7 +146,7 @@ Companion: **neural_aesthetic_brand_bible** — Forge Architect Router Injection
 
 ## 🎯 Diagnostic / Failure-Mode Knowledge
 
-These skills encode *what goes wrong* in AI generation. They feed audit reasoning and remediation rewriting. This is where Forge's "failure as a feature" ethos lives.
+These skills encode *what goes wrong* in AI generation. They feed audit reasoning and remediation rewriting. This is where Cinesmith's "failure as a feature" ethos lives.
 
 | Skill | What it diagnoses |
 |---|---|
@@ -277,7 +277,7 @@ Domain-specific prompting doctrine for FLUX.2 Dev. These skills make model behav
 
 | Skill | Purpose |
 |---|---|
-| **forge-nps-evolution-plan** | Forge NPS Evolution Sprint (hackathon strategy doc, codified as a skill the agent can read). |
+| **cinesmith-evolution-plan** | Cinesmith Evolution Sprint (hackathon strategy doc, codified as a skill the agent can read). |
 | **visual-ai-marketing-team-setup** | Team-setup playbook for visual-AI marketing. |
 
 ---
@@ -299,7 +299,7 @@ Specialty: character-DNA continuity for AI-influencer / character-driven product
 - **image-generation-polish-agent**
 - **tiered-audit-remediation-workflow**
 - **sienna-nomad-i2v-anchor-generator**
-- **forge-visual-audit-protocol**
+- **cinesmith-visual-audit-protocol**
 
 ### Profile: `product` ([hermes_home/profiles/product/skills/](hermes_home/profiles/product/skills/))
 Specialty: product-launch creative direction.
@@ -322,8 +322,8 @@ Specialty: script → shot list → motion-prompt translation.
 - **flux-ltx-prompt-engineering-standard**
 - **grok-video-prompting-standard**
 
-### Profile: `forgehermes` ([hermes_home/profiles/forgehermes/skills/](hermes_home/profiles/forgehermes/skills/))
-The default Forge-Hermes operator profile — mounts the bundled Hermes default set (see "Bundled" below) for general-purpose work.
+### Profile: `cinesmith` ([hermes_home/profiles/cinesmith/skills/](hermes_home/profiles/cinesmith/skills/))
+The default Cinesmith-Hermes operator profile — mounts the bundled Hermes default set (see "Bundled" below) for general-purpose work.
 
 ### Profile: `trading` ([hermes_home/profiles/trading/skills/](hermes_home/profiles/trading/skills/))
 Specialty: market-intelligence workflows layered on top of the bundled Hermes default set.
@@ -339,7 +339,7 @@ Specialty: market-intelligence workflows layered on top of the bundled Hermes de
 
 ## 📦 Bundled (Hermes Default)
 
-These are the stock skills shipped with the Hermes Agent framework (see [`.bundled_manifest`](hermes_home/skills/.bundled_manifest)). Forge retains them for completeness and general-purpose tasks; they are not Forge-original creative skills.
+These are the stock skills shipped with the Hermes Agent framework (see [`.bundled_manifest`](hermes_home/skills/.bundled_manifest)). Cinesmith retains them for completeness and general-purpose tasks; they are not Cinesmith-original creative skills.
 
 `apple` · `autonomous-ai-agents` · `creative` · `data-science` · `devops` · `diagramming` · `dogfood` · `domain` · `email` · `feeds` · `gaming` · `gifs` · `github` · `inference-sh` · `mcp` · `media` · `mlops` · `note-taking` · `productivity` · `red-teaming` · `research` · `smart-home` · `social-media` · `software-development` · `yuanbao`
 
@@ -351,9 +351,9 @@ The `.bundled_manifest` lists 76 underlying upstream skills (apple-notes, github
 
 | Category | Count |
 |---|---|
-| Forge Agent Protocols (live profile) | **14** |
+| Cinesmith Agent Protocols (live profile) | **14** |
 | ComfyUI / Spark Operating Skills | **13** |
-| Style Specialists (Forge-original cinema) | **15** (12 have duplicate twins) |
+| Style Specialists (Cinesmith-original cinema) | **15** (12 have duplicate twins) |
 | Cinematography & Camera | **16** |
 | Lighting | **13** |
 | Diagnostic / Failure-Mode | **10** |
@@ -367,7 +367,7 @@ The `.bundled_manifest` lists 76 underlying upstream skills (apple-notes, github
 | Schemas & Workflow Reference | **5** |
 | Sound | **3** |
 | Strategic / Meta | **2** |
-| Profile-Mounted active libraries | `live` **108**, `character` **92**, `product` **86**, `script` **89**, `forgehermes` **81**, `trading` **98** |
+| Profile-Mounted active libraries | `live` **108**, `character` **92**, `product` **86**, `script` **89**, `cinesmith` **81**, `trading` **98** |
 | Bundled Hermes Default | **25** directories (76 upstream) |
 | **Top-level skill directories** | **155** |
 
@@ -376,6 +376,6 @@ The `.bundled_manifest` lists 76 underlying upstream skills (apple-notes, github
 ## Status notes
 
 - `skill_*`-prefixed twins of 16 style, continuity, and sound skills exist as loadable compatibility aliases of their bare-named counterparts. They are kept in place for runtime stability; canonical name is the bare form.
-- The Forge agent protocols (the closed loop) live primarily under [hermes_home/profiles/live/skills/](hermes_home/profiles/live/skills/), not under the top-level [hermes_home/skills/](hermes_home/skills/) library. This is by design — they are *operator* skills, not *creative* skills.
+- The Cinesmith agent protocols (the closed loop) live primarily under [hermes_home/profiles/live/skills/](hermes_home/profiles/live/skills/), not under the top-level [hermes_home/skills/](hermes_home/skills/) library. This is by design — they are *operator* skills, not *creative* skills.
 - Skills that emit machine-readable schemas (`flux2_json_schema`, `kimi-shot-plan-schema`) include an `__init__.py` so they can be referenced from Python orchestration code.
 - All skill directories are validated at runtime by the Hermes profile loader. Production-critical required skills should be treated as configuration failures if missing; hidden fallback behavior should not be used in production.

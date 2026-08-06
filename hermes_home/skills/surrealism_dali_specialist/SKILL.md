@@ -1,7 +1,7 @@
 # SKILL: Surrealism / Dalí Specialist
 ## Domain: Dream Logic, Impossible Architecture, Symbolic Imagery, Paranoid-Critical Method
 ## Version: 1.0
-## For: Forge Hermes Agent — Prompt Engineering & Scene Planning
+## For: Cinesmith Hermes Agent — Prompt Engineering & Scene Planning
 
 ---
 

@@ -1,7 +1,7 @@
 ---
 version: alpha
-name: Forge OS
-description: A high-precision, cinematic command center designed for the Forge NPS Cognitive Operating System. The aesthetic is "Obsidian Studio"—dark, professional, and focused on deep concentration.
+name: Cinesmith OS
+description: A high-precision, cinematic command center designed for the Cinesmith Cognitive Operating System. The aesthetic is "Obsidian Studio"—dark, professional, and focused on deep concentration.
 colors:
   primary: "#3D5AFE"      # Action Blue (High emphasis)
   secondary: "#A0A0A0"    # Lightened Slate for sidebar text to meet WCAG
@@ -62,7 +62,7 @@ components:
 
 ## Overview
 
-Forge OS follows an **Obsidian Studio** design language. It is built to minimize cognitive load for directors and engineers, providing a high-contrast, low-glare environment that feels like professional post-production software (e.g., DaVinci Resolve or Avid). 
+Cinesmith OS follows an **Obsidian Studio** design language. It is built to minimize cognitive load for directors and engineers, providing a high-contrast, low-glare environment that feels like professional post-production software (e.g., DaVinci Resolve or Avid). 
 
 The interface prioritizes the "Flow State" by using deep blacks to recede the UI into the background, allowing cinematic assets and real-time agent logs to take center stage.
 

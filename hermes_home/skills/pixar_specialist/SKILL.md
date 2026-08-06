@@ -1,7 +1,7 @@
 # SKILL: Pixar Specialist
 ## Domain: Animation, Character Design, Lighting, Rendering, Storytelling
 ## Version: 1.0
-## For: Forge Hermes Agent — Prompt Engineering & Scene Planning
+## For: Cinesmith Hermes Agent — Prompt Engineering & Scene Planning
 
 ---
 
@@ -292,7 +292,7 @@ STYLE SKILL: Pixar Specialist (this file)
 TECHNICAL SKILL: ComfyUI/Flux Pipeline
     └── PARAMETERS: sampler, steps, CFG, model selection, conditioning
 
-OUTPUT: Pixar-style prompts optimized for the Forge pipeline
+OUTPUT: Pixar-style prompts optimized for the Cinesmith pipeline
 ```
 
 ### Example Stack Execution

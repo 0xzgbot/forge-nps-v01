@@ -1,0 +1,72 @@
+# Cinesmith — paths to exclude when zipping a Desktop + Spark distribution.
+# Use with: zip / tar / rsync --exclude-from=scripts/cinesmith_ship_excludes.txt
+# See docs/SHIP_BUNDLE.md
+
+# Secrets & local runtime config
+.env
+.env.local
+**/.env
+**/secrets*
+data/config.json
+data/config.json.bak
+
+# Python / cache
+.venv/
+**/venv/
+**/__pycache__/
+**/*.py[cod]
+**/*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Hermes engine bulk (not required for dashboard + Spark path)
+hermes_engine/node_modules/
+hermes_engine/ui-tui/
+hermes_engine/web/
+hermes_engine/website/node_modules/
+hermes_engine/.venv/
+hermes_engine/venv/
+hermes_engine/**/__pycache__/
+hermes_engine/tests/
+hermes_engine/.git/
+
+# Large or private hermes_home state (recreated / user-specific)
+hermes_home/**/*.db
+hermes_home/**/*.db-*
+hermes_home/auth.json
+hermes_home/auth.lock
+hermes_home/logs/
+hermes_home/sessions/
+hermes_home/interrupt_debug.log
+hermes_home/models_dev_cache.json
+# Optional: drop profile dumps if shipping a clean tree
+# hermes_home/profiles/
+
+# Generated / session dumps
+data/sessions/
+data/renders/
+data/reasoning_logs/
+data/reports/
+dashboard.log
+**/outputs/
+hermes_outputs/
+
+# Media blobs (use sibling CINESMITH_MEDIA or local media/ outside the zip)
+media/
+../CINESMITH_MEDIA/
+
+# Git / IDE / OS junk
+.git/
+**/.DS_Store
+**/.idea/
+**/.vscode/
+*.swp
+*~
+
+# Nested package locks not needed at runtime for Cinesmith dashboard
+hermes_engine/package-lock.json
+hermes_engine/ui-tui/**/node_modules/
+hermes_engine/web/**/node_modules/

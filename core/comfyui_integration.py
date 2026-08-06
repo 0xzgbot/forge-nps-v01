@@ -11,7 +11,7 @@ class ComfyUIBatchSubmitter:
     """
     J8: ComfyUI API Integration & Submission Layer.
     Handles dual-host load balancing, payload submission, 
-    and polling/retrieval for the Forge production pipeline.
+    and polling/retrieval for the Cinesmith production pipeline.
     """
 
     def __init__(self, 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Forge NPS — Master TouchDesigner Scene Builder
+Cinesmith — Master TouchDesigner Scene Builder
 ================================================
 
 Builds ALL TouchDesigner scenes for the marketing video in sequence.
@@ -10,11 +10,11 @@ Usage:
     python3 assemble_all_td.py
 
 Scenes built:
-  1. forge_memory_graph_v2.toe      — Enhanced living memory graph
-  2. forge_pipeline_flow.toe        — 5-model orbital pipeline
-  3. forge_audit_gate.toe           — Dramatic PASS/FAIL portal
-  4. forge_command_center.toe       — HUD dashboard visualization
-  5. forge_provenance_web.toe       — 3D retry lineage web
+  1. cinesmith_memory_graph_v2.toe      — Enhanced living memory graph
+  2. cinesmith_pipeline_flow.toe        — 5-model orbital pipeline
+  3. cinesmith_audit_gate.toe           — Dramatic PASS/FAIL portal
+  4. cinesmith_command_center.toe       — HUD dashboard visualization
+  5. cinesmith_provenance_web.toe       — 3D retry lineage web
 
 Each scene outputs a .toe file and has a pre-wired MovieFileOut TOP
 ready for recording.
@@ -25,23 +25,23 @@ import sys
 from pathlib import Path
 
 SCENES = [
-    ("Memory Graph V2", "build_memory_graph_v2.py", "/tmp/forge_memory_graph_v2.toe", "/tmp/forge_memory_graph_v2_output.mov"),
+    ("Memory Graph V2", "build_memory_graph_v2.py", "/tmp/cinesmith_memory_graph_v2.toe", "/tmp/cinesmith_memory_graph_v2_output.mov"),
     ("Pipeline Flow", "build_pipeline_flow.py",
-     "/tmp/forge_pipeline_flow.toe", "/tmp/forge_pipeline_flow_output.mov"),
+     "/tmp/cinesmith_pipeline_flow.toe", "/tmp/cinesmith_pipeline_flow_output.mov"),
     ("Audit Gate", "build_audit_gate.py",
-     "/tmp/forge_audit_gate.toe", "/tmp/forge_audit_gate_output.mov"),
+     "/tmp/cinesmith_audit_gate.toe", "/tmp/cinesmith_audit_gate_output.mov"),
     ("Command Center", "build_command_center.py",
-     "/tmp/forge_command_center.toe", "/tmp/forge_command_center_output.mov"),
+     "/tmp/cinesmith_command_center.toe", "/tmp/cinesmith_command_center_output.mov"),
     ("Provenance Web", "build_provenance_web.py",
-     "/tmp/forge_provenance_web.toe", "/tmp/forge_provenance_web_output.mov"),
+     "/tmp/cinesmith_provenance_web.toe", "/tmp/cinesmith_provenance_web_output.mov"),
 ]
 
-SCRIPT_DIR = Path("~/Desktop/forge_nps_v01/promo_video_kit/touchdesigner")
+SCRIPT_DIR = Path("~/Desktop/cinesmith_v01/promo_video_kit/touchdesigner")
 
 
 def main():
     print("=" * 70)
-    print("  Forge NPS — Master TouchDesigner Scene Builder")
+    print("  Cinesmith — Master TouchDesigner Scene Builder")
     print("=" * 70)
     print()
     print("This will build 5 complete TD scenes for your marketing video.")
@@ -76,7 +76,7 @@ def main():
     print("  4. Record 15-30 seconds per scene")
     print("  5. Set 'Record' to OFF")
     print("\nThen run the assembly script to stitch everything together:")
-    print("  cd ~/Desktop/forge_nps_v01/promo_video_kit/scripts")
+    print("  cd ~/Desktop/cinesmith_v01/promo_video_kit/scripts")
     print("  ./assemble_promo.sh")
 
 

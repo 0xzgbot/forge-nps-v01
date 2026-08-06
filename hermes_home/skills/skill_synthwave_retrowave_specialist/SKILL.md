@@ -1,7 +1,7 @@
 # SKILL: Synthwave / Retrowave Specialist
 ## Domain: 1980s Nostalgia, Neon Grid Landscapes, Chrome Typography, Sunset Gradients
 ## Version: 1.0
-## For: Forge Hermes Agent — Prompt Engineering & Scene Planning
+## For: Cinesmith Hermes Agent — Prompt Engineering & Scene Planning
 
 ---
 

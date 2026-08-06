@@ -1,7 +1,7 @@
 # SKILL: Cyberpunk / Neon Noir Specialist
 ## Domain: Dystopian Futurism, Neon Cinematography, Volumetric Atmosphere, Holographic UI
 ## Version: 1.0
-## For: Forge Hermes Agent — Prompt Engineering & Scene Planning
+## For: Cinesmith Hermes Agent — Prompt Engineering & Scene Planning
 
 ---
 

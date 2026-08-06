@@ -11,6 +11,7 @@ from typing import Any, AsyncIterator, Awaitable, Callable, Dict, List, Optional
 
 from core.dispatch.comfy_client import ComfyUIClient
 from core.prompts.prompt_compiler import compile_prompt_artifact
+from core.prompts.prompt_standards import apply_model_prompt_standard, flux_dev_ignores_negative_prompts
 from core.bridge.runtime_config import get_raw_config
 from core.hermes.platform_skills import (
     apply_viral_hook_remediation_to_first_shot,
@@ -401,6 +402,411 @@ class HermesCampaignService:
             return f"{cls}: {rep}"
         return cls or "unknown_error"
 
+    @staticmethod
+    def compile_concurrency(default: int = 3) -> int:
+        """Bounded concurrency for Hermes prompt compile/refine (env: CINESMITH_COMPILE_CONCURRENCY)."""
+        try:
+            n = int(os.getenv("CINESMITH_COMPILE_CONCURRENCY", str(default)) or default)
+        except Exception:
+            n = default
+        return max(1, min(n, 16))
+
+    @staticmethod
+    def format_shot_error(
+        *,
+        shot_id: str,
+        stage: str,
+        message: str,
+        recoverable: bool = True,
+        hint: str = "",
+        workflow_id: str = "",
+        **extra: Any,
+    ) -> Dict[str, Any]:
+        """
+        Structured per-shot error for campaign streaming UI.
+
+        Compatible with existing clients: keeps type=error and text=... while
+        adding shot_id, stage, message, recoverable, hint.
+        """
+        msg = str(message or "").strip() or "Shot failed"
+        hint_text = str(hint or "").strip()
+        text = msg if not hint_text or hint_text in msg else f"{msg} — {hint_text}"
+        payload: Dict[str, Any] = {
+            "type": "error",
+            "shot_id": str(shot_id or ""),
+            "stage": str(stage or "compile"),
+            "message": msg,
+            "recoverable": bool(recoverable),
+            "hint": hint_text,
+            "text": text,
+        }
+        if workflow_id:
+            payload["workflow_id"] = str(workflow_id)
+        for key, value in extra.items():
+            if value is not None and key not in payload:
+                payload[key] = value
+        return payload
+
+    async def _compile_one_unit(
+        self,
+        *,
+        effective_shot: Dict[str, Any],
+        workflow_id: str,
+        campaign_id: str,
+        platform_brief: str,
+        platform_skill: Dict[str, Any],
+        identity_pack: Optional[Dict[str, Any]],
+        raw_content: str,
+        review: Any,
+        source: str,
+    ) -> Dict[str, Any]:
+        """
+        Compile + Hermes-refine a single shot/workflow unit.
+
+        Does not mutate shared campaign state (shots_store / exchange file);
+        the caller applies successful results on the main stream coroutine.
+        """
+        events: List[Dict[str, Any]] = []
+        shot_id = str(effective_shot.get("shot_id") or "")
+        record_id = f"{campaign_id}__{shot_id}__{workflow_id}"
+        events.append({
+            "type": "hermes",
+            "shot_id": shot_id,
+            "text": f"Writing prompt for {shot_id}...",
+        })
+
+        compiler_scope = role_skill_scope("prompt_compiler")
+        try:
+            artifact = compile_prompt_artifact(
+                raw_concept=platform_brief,
+                workflow_id=workflow_id,
+                kimi_plan=effective_shot,
+                character_names=effective_shot.get("characters", []),
+                shot_meta={
+                    "campaign_id": campaign_id,
+                    "shot_id": shot_id,
+                    "sequence": effective_shot.get("sequence"),
+                    "identity_pack": identity_pack or {},
+                    "platform_skill": platform_skill,
+                },
+                role_key="prompt_compiler",
+                allowed_skill_patterns=compiler_scope.get("patterns", []),
+            )
+        except Exception as e:
+            err = self.format_shot_error(
+                shot_id=shot_id,
+                stage="compile",
+                message=f"Prompt compile failed for {shot_id}: {self._exc_reason(e)}",
+                recoverable=True,
+                hint="Retry this shot after adjusting the brief, or re-run the campaign.",
+                workflow_id=workflow_id,
+            )
+            events.append(err)
+            return {
+                "ok": False,
+                "events": events,
+                "error": err,
+                "shot_id": shot_id,
+                "workflow_id": workflow_id,
+                "record_id": record_id,
+            }
+
+        suppress_negative_prompt = flux_dev_ignores_negative_prompts(
+            workflow_id=workflow_id,
+            model_family=str(artifact.get("model_family") or ""),
+        )
+        if suppress_negative_prompt:
+            artifact["negative_prompt"] = ""
+            artifact["identity_negative_prompt"] = ""
+
+        refinement_task = {
+            "task": "refine_compiled_prompt",
+            "workflow_id": workflow_id,
+            "campaign_id": campaign_id,
+            "shot_id": shot_id,
+            "visual_brief": effective_shot.get("visual_brief", ""),
+            "constraints": effective_shot.get("constraints", ""),
+            "compiled_prompt": artifact.get("compiled_prompt", ""),
+            "negative_prompt": "" if suppress_negative_prompt else artifact.get("negative_prompt", ""),
+            "platform_skill": platform_skill,
+        }
+        try:
+            refined = await self.profile_cli.run_json("compiler", refinement_task)
+        except Exception as e:
+            err = self.format_shot_error(
+                shot_id=shot_id,
+                stage="refine",
+                message=f"Hermes prompt refine failed for {shot_id}: {self._exc_reason(e)}",
+                recoverable=True,
+                hint="Check Settings → Hermes / LM Studio, then re-run failed shots.",
+                workflow_id=workflow_id,
+            )
+            events.append(err)
+            return {
+                "ok": False,
+                "events": events,
+                "error": err,
+                "shot_id": shot_id,
+                "workflow_id": workflow_id,
+                "record_id": record_id,
+            }
+
+        if not isinstance(refined, dict):
+            err = self.format_shot_error(
+                shot_id=shot_id,
+                stage="refine",
+                message=f"Hermes prompt compile unavailable for {shot_id}.",
+                recoverable=True,
+                hint="Check Settings → Hermes / LM Studio, then re-run failed shots.",
+                workflow_id=workflow_id,
+            )
+            events.append(err)
+            return {
+                "ok": False,
+                "events": events,
+                "error": err,
+                "shot_id": shot_id,
+                "workflow_id": workflow_id,
+                "record_id": record_id,
+            }
+
+        exchange = refined.get("__exchange")
+        refined_prompt = str(refined.get("compiled_prompt") or refined.get("prompt") or "").strip()
+        if not refined_prompt:
+            err = self.format_shot_error(
+                shot_id=shot_id,
+                stage="refine",
+                message=f"Hermes returned no compiled_prompt for {shot_id}.",
+                recoverable=True,
+                hint="Re-run the campaign or retry this shot after Hermes is responding with JSON prompts.",
+                workflow_id=workflow_id,
+            )
+            events.append(err)
+            return {
+                "ok": False,
+                "events": events,
+                "error": err,
+                "shot_id": shot_id,
+                "workflow_id": workflow_id,
+                "record_id": record_id,
+                "exchange": exchange,
+            }
+
+        refined_prompt = self._enforce_full_body_generation_prompt(refined_prompt)
+        refined_prompt, enforced_standard_skills = apply_model_prompt_standard(
+            refined_prompt,
+            workflow_id=workflow_id,
+            model_family=str(artifact.get("model_family") or ""),
+            render_type=str((artifact.get("sections") or {}).get("Render Type") or ""),
+        )
+        for standard_skill in enforced_standard_skills:
+            if standard_skill and standard_skill not in artifact.get("skills_used", []):
+                artifact.setdefault("skills_used", []).append(standard_skill)
+        artifact["compiled_prompt"] = refined_prompt
+        refined_negative = str(refined.get("negative_prompt") or "").strip()
+        if suppress_negative_prompt:
+            artifact["negative_prompt"] = ""
+            artifact["identity_negative_prompt"] = ""
+        elif refined_negative:
+            artifact["negative_prompt"] = refined_negative
+
+        events.append({
+            "type": "profile",
+            "profile_color_key": "profile_compiler_lmstudio",
+            "shot_id": shot_id,
+            "text": f"Hermes / Prompt Compiler refined {shot_id}.",
+        })
+        events.append({
+            "type": "compiler",
+            "shot_id": shot_id,
+            "workflow_id": workflow_id,
+            "profile_name": artifact.get("profile_name"),
+            "model_standard_name": artifact.get("model_standard_name"),
+            "model_standard_version": artifact.get("model_standard_version"),
+            "skills_used": artifact.get("skills_used", []),
+            "text": (
+                f"profile={artifact.get('profile_name')} "
+                f"standard={artifact.get('model_standard_name')}@{artifact.get('model_standard_version')} "
+                f"skills={','.join(artifact.get('skills_used', [])) or 'none'} "
+                f"scope={','.join(compiler_scope.get('patterns', [])[:4]) or 'global'}"
+            ),
+        })
+
+        compiled_text = str(artifact.get("compiled_prompt", "") or "").strip()
+        negative_prompt = str(artifact.get("negative_prompt", "") or "").strip()
+        identity_negative = str(artifact.get("identity_negative_prompt", "") or "").strip()
+        if suppress_negative_prompt:
+            negative_prompt = ""
+        elif identity_negative:
+            negative_prompt = ", ".join([x for x in [negative_prompt, identity_negative] if x])
+        if compiled_text:
+            events.append({
+                "type": "hermes",
+                "shot_id": shot_id,
+                "text": f"Compiled prompt ({workflow_id}): {compiled_text}",
+            })
+
+        shot_record: Dict[str, Any] = {
+            "id": record_id,
+            "campaign_id": campaign_id,
+            "platform_skill": platform_skill if platform_skill.get("active") else {},
+            "platform_id": platform_skill.get("id", "") if platform_skill.get("active") else "",
+            "platform_constraints": platform_skill.get("constraints", {}) if platform_skill.get("active") else {},
+            "shot_id": shot_id,
+            "sequence": effective_shot.get("sequence"),
+            "workflow_id": workflow_id,
+            "state": "planned",
+            "status": "planned",
+            "seed": random.randint(100000, 999999),
+            "prompt": artifact.get("compiled_prompt", ""),
+            "compiled_prompt": artifact.get("compiled_prompt", ""),
+            "negative_prompt": negative_prompt,
+            "workflow_profile": artifact.get("profile_name", ""),
+            "skills_used": artifact.get("skills_used", []),
+            "skills_scope_role": "prompt_compiler",
+            "skills_scope_patterns": compiler_scope.get("patterns", []),
+            "skills_scope_version": compiler_scope.get("map_version", "unknown"),
+            "compiler_version": artifact.get("compiler_version", ""),
+            "model_standard_name": artifact.get("model_standard_name", ""),
+            "model_standard_version": artifact.get("model_standard_version", ""),
+            "model_standard_source": artifact.get("model_standard_source", ""),
+            "model_standard_rules": artifact.get("model_standard_rules", []),
+            "sections": artifact.get("sections", {}),
+            "kimi_plan": effective_shot,
+            "raw_kimi_prompt": effective_shot.get("visual_brief", ""),
+            "kimi_rationale": effective_shot.get("rationale", ""),
+            "kimi_constraints": effective_shot.get("constraints", ""),
+            "kimi_raw_response": raw_content,
+            "kimi_review_score": review.get("score") if isinstance(review, dict) else None,
+            "identity_pack": identity_pack or {},
+            "identity_type": str((identity_pack or {}).get("type", "") or ""),
+            "identity_name": str((identity_pack or {}).get("name", "") or ""),
+            "identity_score": None,
+            "identity_fail_reasons": [],
+            "audit_status": "",
+            "source": source,
+            "profile_used": "prompt_compiler",
+            "profile_backend": "lmstudio",
+            "created_at": self.now_iso(),
+        }
+        # campaign_brief is set by caller with full req.brief to avoid capturing req here
+
+        if os.getenv("CINESMITH_AUTO_VIDEO_PROMPT", "true").lower() == "true":
+            try:
+                video_prompt = await self._build_auto_video_prompt(shot_record)
+            except Exception as e:
+                events.append({
+                    "type": "warning",
+                    "shot_id": shot_id,
+                    "text": f"Auto video prompt skipped for {shot_id}: {self._exc_reason(e)}",
+                })
+                video_prompt = ""
+            if video_prompt:
+                shot_record["video_prompt"] = video_prompt
+                shot_record["video_prompt_source"] = "auto_compiler"
+            else:
+                shot_record["video_prompt"] = ""
+                shot_record["video_prompt_source"] = ""
+
+        return {
+            "ok": True,
+            "events": events,
+            "shot_record": shot_record,
+            "artifact": artifact,
+            "exchange": exchange,
+            "shot_id": shot_id,
+            "workflow_id": workflow_id,
+            "record_id": record_id,
+            "prompt": str(artifact.get("compiled_prompt", "") or ""),
+        }
+
+    async def _iter_parallel_compile(
+        self,
+        jobs: List[Dict[str, Any]],
+        *,
+        results_out: List[Dict[str, Any]],
+    ) -> AsyncIterator[Dict[str, Any]]:
+        """Run compile jobs with bounded concurrency; yield stream events as each finishes."""
+        if not jobs:
+            return
+        concurrency = self.compile_concurrency()
+        yield {
+            "type": "hermes",
+            "text": f"Compiling {len(jobs)} shot prompt(s) in parallel (concurrency={concurrency})...",
+        }
+        yield {
+            "type": "pipeline_timing",
+            "stage": "compile_parallel_start",
+            "text": f"parallel_compile jobs={len(jobs)} concurrency={concurrency}",
+            "job_count": len(jobs),
+            "concurrency": concurrency,
+        }
+
+        sem = asyncio.Semaphore(concurrency)
+        queue: asyncio.Queue = asyncio.Queue()
+
+        async def _run(job: Dict[str, Any]) -> None:
+            async with sem:
+                if self.is_cancelled():
+                    shot_id = str((job.get("effective_shot") or {}).get("shot_id") or "")
+                    err = self.format_shot_error(
+                        shot_id=shot_id,
+                        stage="compile",
+                        message=f"Compile cancelled for {shot_id or 'shot'}.",
+                        recoverable=True,
+                        hint="Re-run the campaign when ready.",
+                        workflow_id=str(job.get("workflow_id") or ""),
+                    )
+                    await queue.put({
+                        "ok": False,
+                        "cancelled": True,
+                        "events": [err],
+                        "error": err,
+                        "shot_id": shot_id,
+                        "workflow_id": str(job.get("workflow_id") or ""),
+                        "record_id": "",
+                    })
+                    return
+                result = await self._compile_one_unit(
+                    effective_shot=job["effective_shot"],
+                    workflow_id=job["workflow_id"],
+                    campaign_id=job["campaign_id"],
+                    platform_brief=job["platform_brief"],
+                    platform_skill=job["platform_skill"],
+                    identity_pack=job.get("identity_pack"),
+                    raw_content=job.get("raw_content") or "",
+                    review=job.get("review"),
+                    source=job.get("source") or "campaign",
+                )
+                await queue.put(result)
+
+        tasks = [asyncio.create_task(_run(job)) for job in jobs]
+        remaining = len(jobs)
+        try:
+            while remaining > 0:
+                result = await queue.get()
+                remaining -= 1
+                for event in result.get("events") or []:
+                    yield event
+                results_out.append(result)
+        finally:
+            # Ensure workers are not left hanging if consumer stops early.
+            for t in tasks:
+                if not t.done():
+                    t.cancel()
+            if tasks:
+                await asyncio.gather(*tasks, return_exceptions=True)
+
+        ok_count = sum(1 for r in results_out if r.get("ok"))
+        fail_count = len(results_out) - ok_count
+        yield {
+            "type": "pipeline_timing",
+            "stage": "compile_parallel_done",
+            "text": f"parallel_compile done ok={ok_count} failed={fail_count}",
+            "ok_count": ok_count,
+            "failed_count": fail_count,
+        }
+
     async def _audit_completed_shot(self, shot_record: Dict[str, Any]) -> AsyncIterator[Dict[str, Any]]:
         record_id = str(shot_record.get("id") or "")
         campaign_id = str(shot_record.get("campaign_id") or "")
@@ -505,7 +911,7 @@ class HermesCampaignService:
         reason_text = "; ".join([t for t in top if t]) or "no_reason_returned"
         yield {"type": "error", "shot_id": shot_id, "text": f"Audit fail for {shot_id} ({score:.1f}): {reason_text}"}
         yield {"type": "memory", "shot_id": shot_id, "text": f"Audit fail ({score:.1f})"}
-        auto_remediate = os.getenv("FORGE_AUTO_REMEDIATE_ON_FAIL", "true").lower() == "true"
+        auto_remediate = os.getenv("CINESMITH_AUTO_REMEDIATE_ON_FAIL", "true").lower() == "true"
         if auto_remediate and self.remediate_failed:
             yield {"type": "hermes", "shot_id": shot_id, "text": f"Auto-remediation queued for {shot_id}..."}
             try:
@@ -671,7 +1077,7 @@ class HermesCampaignService:
             planning_brief = f"{platform_brief}\n\nHermes campaign intake:\n{intake_context[:4000]}"
 
         yield {"type": "kimi", "profile_color_key": director_profile_key, "role_label": director_role, "text": "Generating shot list..."}
-        use_fallback = os.getenv("FORGE_DEV_FALLBACK", "false").lower() == "true"
+        use_fallback = os.getenv("CINESMITH_DEV_FALLBACK", "false").lower() == "true"
 
         kimi_plan_t0 = time.perf_counter()
         try:
@@ -689,7 +1095,7 @@ class HermesCampaignService:
                 yield {"type": "done", "text": f"Campaign stopped: {director_provider} failure before Spark dispatch."}
                 return
             plan = self.director.build_dev_fallback_plan(req.brief, campaign_id, target_shots=target_shots)
-            yield {"type": "error", "text": "Falling back to local synthetic shot list (FORGE_DEV_FALLBACK=true)"}
+            yield {"type": "error", "text": "Falling back to local synthetic shot list (CINESMITH_DEV_FALLBACK=true)"}
 
         raw_content = plan.get("__raw_content", "")
         self.campaigns[campaign_id]["kimi_raw_response"] = raw_content
@@ -774,7 +1180,7 @@ class HermesCampaignService:
                 "director_notes": review.get("director_notes", ""),
                 "coverage_gaps": review.get("coverage_gaps", []),
             }
-            min_score = int(os.getenv("FORGE_KIMI_MIN_DIRECTOR_SCORE", "45"))
+            min_score = int(os.getenv("CINESMITH_KIMI_MIN_DIRECTOR_SCORE", "45"))
             score = self.director.score_from_review(review)
             if score is not None and score < min_score and not use_fallback:
                 yield {
@@ -837,7 +1243,7 @@ class HermesCampaignService:
                     self.campaigns[campaign_id]["kimi_revision_applied"] = False
                     yield {"type": "warning", "text": f"Director revision unavailable: {self._exc_reason(e)}"}
         except Exception as e:
-            if os.getenv("FORGE_KIMI_REQUIRE_SELF_CHECK", "true").lower() != "false":
+            if os.getenv("CINESMITH_KIMI_REQUIRE_SELF_CHECK", "true").lower() != "false":
                 yield {"type": "error", "text": f"{director_provider} self-check failed: {e}"}
                 yield {"type": "done", "text": f"Campaign stopped: {director_provider} self-check unavailable."}
                 return
@@ -860,415 +1266,288 @@ class HermesCampaignService:
         source = "fallback" if use_fallback else "campaign"
         pending_render_jobs: List[Dict[str, Any]] = []
         deferred_render_submissions: List[Dict[str, Any]] = []
-        defer_render_submit = os.getenv("FORGE_DEFER_CAMPAIGN_RENDER_SUBMIT", "true").lower() != "false"
+        defer_render_submit = os.getenv("CINESMITH_DEFER_CAMPAIGN_RENDER_SUBMIT", "true").lower() != "false"
 
+        # --- Parallel Hermes compile (bounded concurrency), then render queue ---
+        compile_jobs: List[Dict[str, Any]] = []
         for i, shot in enumerate(kimi_shots, start=1):
-            if self.is_cancelled():
-                yield {"type": "error", "text": "Campaign cancelled by user."}
-                break
             effective_shot = dict(shot)
             if shot_index_offset > 0:
                 n = shot_index_offset + i
                 effective_shot["shot_id"] = f"SHOT_{n:03d}"
                 effective_shot["sequence"] = n
             for workflow_id in workflow_ids:
-                if self.is_cancelled():
-                    break
-
-                record_id = f"{campaign_id}__{effective_shot['shot_id']}__{workflow_id}"
-                yield {"type": "hermes", "shot_id": effective_shot["shot_id"], "text": f"Writing prompt for {effective_shot['shot_id']}..."}
-
-                compiler_scope = role_skill_scope("prompt_compiler")
-                artifact = compile_prompt_artifact(
-                    raw_concept=platform_brief,
-                    workflow_id=workflow_id,
-                    kimi_plan=effective_shot,
-                    character_names=effective_shot.get("characters", []),
-                    shot_meta={
-                        "campaign_id": campaign_id,
-                        "shot_id": effective_shot["shot_id"],
-                        "sequence": effective_shot["sequence"],
-                        "identity_pack": req.identity_pack or {},
-                        "platform_skill": platform_skill,
-                    },
-                    role_key="prompt_compiler",
-                    allowed_skill_patterns=compiler_scope.get("patterns", []),
-                )
-                # Hermes Prompt Compiler is required in production; no hidden local fallback.
-                refinement_task = {
-                    "task": "refine_compiled_prompt",
+                compile_jobs.append({
+                    "effective_shot": effective_shot,
                     "workflow_id": workflow_id,
                     "campaign_id": campaign_id,
-                    "shot_id": effective_shot["shot_id"],
-                    "visual_brief": effective_shot.get("visual_brief", ""),
-                    "constraints": effective_shot.get("constraints", ""),
-                    "compiled_prompt": artifact.get("compiled_prompt", ""),
-                    "negative_prompt": artifact.get("negative_prompt", ""),
+                    "platform_brief": platform_brief,
                     "platform_skill": platform_skill,
-                }
-                refined = await self.profile_cli.run_json("compiler", refinement_task)
-                if not isinstance(refined, dict):
-                    yield {"type": "error", "shot_id": effective_shot["shot_id"], "text": "Campaign stopped: Hermes / Prompt Compiler unavailable."}
-                    yield {"type": "done", "text": "Campaign stopped before Spark dispatch."}
-                    return
-                self._record_agent_exchange(campaign_id, refined.get("__exchange"))
-                refined_prompt = str(refined.get("compiled_prompt") or refined.get("prompt") or "").strip()
-                if not refined_prompt:
-                    yield {"type": "error", "shot_id": effective_shot["shot_id"], "text": "Campaign stopped: Hermes / Prompt Compiler returned no compiled_prompt."}
-                    yield {"type": "done", "text": "Campaign stopped before Spark dispatch."}
-                    return
-                refined_prompt = self._enforce_full_body_generation_prompt(refined_prompt)
-                artifact["compiled_prompt"] = refined_prompt
-                refined_negative = str(refined.get("negative_prompt") or "").strip()
-                if refined_negative:
-                    artifact["negative_prompt"] = refined_negative
-                yield {
-                    "type": "profile",
-                    "profile_color_key": "profile_compiler_lmstudio",
-                    "shot_id": effective_shot["shot_id"],
-                    "text": f"Hermes / Prompt Compiler refined {effective_shot['shot_id']}.",
-                }
-                yield {
-                    "type": "compiler",
-                    "shot_id": effective_shot["shot_id"],
-                    "workflow_id": workflow_id,
-                    "profile_name": artifact.get("profile_name"),
-                    "model_standard_name": artifact.get("model_standard_name"),
-                    "model_standard_version": artifact.get("model_standard_version"),
-                    "skills_used": artifact.get("skills_used", []),
-                    "text": (
-                        f"profile={artifact.get('profile_name')} "
-                        f"standard={artifact.get('model_standard_name')}@{artifact.get('model_standard_version')} "
-                        f"skills={','.join(artifact.get('skills_used', [])) or 'none'} "
-                        f"scope={','.join(compiler_scope.get('patterns', [])[:4]) or 'global'}"
-                    ),
-                }
-                compiled_text = str(artifact.get("compiled_prompt", "") or "").strip()
-                negative_prompt = str(artifact.get("negative_prompt", "") or "").strip()
-                identity_negative = str(artifact.get("identity_negative_prompt", "") or "").strip()
-                if identity_negative:
-                    negative_prompt = ", ".join([x for x in [negative_prompt, identity_negative] if x])
-                if compiled_text:
-                    yield {
-                        "type": "hermes",
-                        "shot_id": effective_shot["shot_id"],
-                        "text": f"Compiled prompt ({workflow_id}): {compiled_text}",
-                    }
-
-                shot_record = {
-                    "id": record_id,
-                    "campaign_id": campaign_id,
-                    "campaign_brief": req.brief,
-                    "platform_skill": platform_skill if platform_skill.get("active") else {},
-                    "platform_id": platform_skill.get("id", "") if platform_skill.get("active") else "",
-                    "platform_constraints": platform_skill.get("constraints", {}) if platform_skill.get("active") else {},
-                    "shot_id": effective_shot["shot_id"],
-                    "sequence": effective_shot["sequence"],
-                    "workflow_id": workflow_id,
-                    "state": "planned",
-                    "status": "planned",
-                    "seed": random.randint(100000, 999999),
-                    "prompt": artifact.get("compiled_prompt", ""),
-                    "compiled_prompt": artifact.get("compiled_prompt", ""),
-                    "negative_prompt": negative_prompt,
-                    "workflow_profile": artifact.get("profile_name", ""),
-                    "skills_used": artifact.get("skills_used", []),
-                    "skills_scope_role": "prompt_compiler",
-                    "skills_scope_patterns": compiler_scope.get("patterns", []),
-                    "skills_scope_version": compiler_scope.get("map_version", "unknown"),
-                    "compiler_version": artifact.get("compiler_version", ""),
-                    "model_standard_name": artifact.get("model_standard_name", ""),
-                    "model_standard_version": artifact.get("model_standard_version", ""),
-                    "model_standard_source": artifact.get("model_standard_source", ""),
-                    "model_standard_rules": artifact.get("model_standard_rules", []),
-                    "sections": artifact.get("sections", {}),
-                    "kimi_plan": effective_shot,
-                    "raw_kimi_prompt": effective_shot.get("visual_brief", ""),
-                    "kimi_rationale": effective_shot.get("rationale", ""),
-                    "kimi_constraints": effective_shot.get("constraints", ""),
-                    "kimi_raw_response": raw_content,
-                    "kimi_review_score": review.get("score") if isinstance(review, dict) else None,
                     "identity_pack": req.identity_pack or {},
-                    "identity_type": str((req.identity_pack or {}).get("type", "") or ""),
-                    "identity_name": str((req.identity_pack or {}).get("name", "") or ""),
-                    "identity_score": None,
-                    "identity_fail_reasons": [],
-                    "audit_status": "",
+                    "raw_content": raw_content,
+                    "review": review,
                     "source": source,
-                    "profile_used": "prompt_compiler",
-                    "profile_backend": "lmstudio",
-                    "created_at": self.now_iso(),
-                }
-                if os.getenv("FORGE_AUTO_VIDEO_PROMPT", "true").lower() == "true":
-                    video_prompt = await self._build_auto_video_prompt(shot_record)
-                    if video_prompt:
-                        shot_record["video_prompt"] = video_prompt
-                        shot_record["video_prompt_source"] = "auto_compiler"
-                    else:
-                        shot_record["video_prompt"] = ""
-                        shot_record["video_prompt_source"] = ""
-                self.shots_store.append(shot_record)
-                self.record_event("shot_planned", shot_id=record_id, campaign_id=campaign_id, workflow_id=workflow_id, source=source)
+                })
 
-                wf = self.workflow_file_for_id(workflow_id)
-                if not wf:
-                    transition_shot(shot_record, "final_fail")
-                    yield {"type": "error", "shot_id": effective_shot["shot_id"], "text": f"Workflow not found: {workflow_id}"}
-                    self.record_event("render_result", shot_id=record_id, campaign_id=campaign_id, workflow_id=workflow_id, source=source, success=False, extra={"reason": "workflow_missing"})
-                    continue
+        compile_results: List[Dict[str, Any]] = []
+        if self.is_cancelled():
+            yield {"type": "error", "text": "Campaign cancelled by user."}
+            yield {"type": "done", "text": "Campaign cancelled before compile."}
+            return
 
-                if defer_render_submit:
-                    deferred_render_submissions.append({
-                        "record_id": record_id,
-                        "shot_record": shot_record,
-                        "shot_id": effective_shot["shot_id"],
-                        "workflow_id": workflow_id,
-                        "workflow_path": str(wf),
-                        "prompt": artifact.get("compiled_prompt", ""),
-                        "platform_skill": platform_skill,
-                    })
-                    yield {
-                        "type": "spark",
-                        "campaign_id": campaign_id,
-                        "id": record_id,
-                        "shot_id": effective_shot["shot_id"],
-                        "status": "compiled_pending_batch",
-                        "image_url": "",
-                        "text": f"Prepared {effective_shot['shot_id']} ({workflow_id}) for batch ComfyUI queue",
-                    }
-                    continue
+        async for event in self._iter_parallel_compile(compile_jobs, results_out=compile_results):
+            yield event
+            if self.is_cancelled() and event.get("type") in ("error", "warning"):
+                # Keep draining events so workers finish cleanly; stop after loop.
+                pass
 
-                yield {"type": "spark", "shot_id": effective_shot["shot_id"], "text": f"Dispatching {effective_shot['shot_id']} to ComfyUI..."}
-                transition_shot(shot_record, "queued")
-                self.record_event("render_attempt", shot_id=record_id, campaign_id=campaign_id, workflow_id=workflow_id, source=source)
-                try:
-                    submit = await comfy.submit_prompt_for_shot(
-                        shot_id=record_id,
-                        prompt=artifact.get("compiled_prompt", ""),
-                        workflow_path=str(wf),
-                        seed=shot_record["seed"],
-                        output_dir=str(self.media_images / campaign_id),
-                        width=(platform_skill.get("constraints") or {}).get("width") if platform_skill.get("active") else None,
-                        height=(platform_skill.get("constraints") or {}).get("height") if platform_skill.get("active") else None,
-                        wait_for_output=False,
-                    )
-                except Exception as e:
-                    transition_shot(shot_record, "final_fail")
-                    msg = f"submit_exception:{e}"
-                    yield {"type": "error", "shot_id": effective_shot["shot_id"], "text": f"ComfyUI submission failed for {effective_shot['shot_id']}: {msg}"}
-                    self.record_event("render_result", shot_id=record_id, campaign_id=campaign_id, workflow_id=workflow_id, source=source, success=False, extra={"reason": msg})
-                    continue
-                if submit.get("status") != "success":
-                    transition_shot(shot_record, "final_fail")
-                    msg = submit.get("error", "ComfyUI submission failed")
-                    yield {"type": "error", "shot_id": effective_shot["shot_id"], "text": f"ComfyUI submission failed for {effective_shot['shot_id']}: {msg}"}
-                    self.record_event("render_result", shot_id=record_id, campaign_id=campaign_id, workflow_id=workflow_id, source=source, success=False, extra={"reason": msg})
-                    continue
+        if self.is_cancelled():
+            yield {"type": "error", "text": "Campaign cancelled by user."}
+            yield {"type": "done", "text": "Campaign cancelled during compile."}
+            return
 
-                if isinstance(submit.get("lora"), dict):
-                    shot_record["lora"] = submit["lora"]
-                    if submit["lora"].get("requested"):
-                        lora_state = "applied" if submit["lora"].get("applied") else submit["lora"].get("reason", "not applied")
-                        yield {
-                            "type": "compiler",
-                            "shot_id": effective_shot["shot_id"],
-                            "workflow_id": workflow_id,
-                            "text": f"LoRA preset {submit['lora'].get('requested')}: {lora_state}",
-                        }
+        compile_errors: List[Dict[str, Any]] = []
+        successful_units: List[Dict[str, Any]] = []
+        for result in compile_results:
+            if result.get("ok"):
+                successful_units.append(result)
+            else:
+                err = result.get("error")
+                if isinstance(err, dict):
+                    compile_errors.append(err)
 
-                prompt_id = submit.get("prompt_id", "")
-                saved = submit.get("saved_files", [])
-                image_path = saved[0] if saved else ""
-                shot_record["prompt_id"] = prompt_id
-                if not image_path:
-                    self._write_queued_render_record(
-                        campaign_id=campaign_id,
-                        shot_record=shot_record,
-                        prompt_id=str(prompt_id),
-                        status="queued",
-                    )
-                    pending_render_jobs.append({
-                        "record_id": record_id,
-                        "shot_record": shot_record,
-                        "shot_id": effective_shot["shot_id"],
-                        "workflow_id": workflow_id,
-                        "prompt_id": prompt_id,
-                        "output_dir": str(self.media_images / campaign_id),
-                    })
-                    yield {
-                        "type": "spark",
-                        "campaign_id": campaign_id,
-                        "id": record_id,
-                        "shot_id": effective_shot["shot_id"],
-                        "status": "queued",
-                        "prompt_id": prompt_id,
-                        "image_url": "",
-                        "text": f"Queued {effective_shot['shot_id']} ({workflow_id})",
-                    }
-                    self.record_event("render_queued", shot_id=record_id, campaign_id=campaign_id, workflow_id=workflow_id, source=source, success=True, extra={"prompt_id": prompt_id})
-                    continue
+        if compile_errors:
+            yield {
+                "type": "compile_errors",
+                "errors": compile_errors,
+                "failed_count": len(compile_errors),
+                "ok_count": len(successful_units),
+                "campaign_id": campaign_id,
+                "text": (
+                    f"{len(compile_errors)} shot compile(s) failed; "
+                    f"{len(successful_units)} ready for Spark."
+                ),
+            }
 
-                rendered_count += 1
-                transition_shot(shot_record, "rendered")
-                if image_path:
-                    self._attach_rendered_image(shot_record, image_path)
-                    self._write_queued_render_record(
-                        campaign_id=campaign_id,
-                        shot_record=shot_record,
-                        prompt_id=str(prompt_id),
-                        status="rendered",
-                    )
+        if not successful_units:
+            yield self.format_shot_error(
+                shot_id="",
+                stage="compile",
+                message="All shot compiles failed. Campaign stopped before Spark dispatch.",
+                recoverable=True,
+                hint="Fix Hermes / LM Studio in Settings, then re-run the campaign.",
+            )
+            yield {"type": "done", "text": "Campaign stopped: no prompts compiled."}
+            return
+
+        for result in successful_units:
+            shot_record = dict(result.get("shot_record") or {})
+            shot_record["campaign_brief"] = req.brief
+            record_id = str(result.get("record_id") or shot_record.get("id") or "")
+            workflow_id = str(result.get("workflow_id") or shot_record.get("workflow_id") or "")
+            shot_id = str(result.get("shot_id") or shot_record.get("shot_id") or "")
+            prompt_text = str(result.get("prompt") or shot_record.get("compiled_prompt") or "")
+            exchange = result.get("exchange")
+            if exchange:
+                self._record_agent_exchange(campaign_id, exchange if isinstance(exchange, dict) else None)
+
+            self.shots_store.append(shot_record)
+            self.record_event(
+                "shot_planned",
+                shot_id=record_id,
+                campaign_id=campaign_id,
+                workflow_id=workflow_id,
+                source=source,
+            )
+
+            wf = self.workflow_file_for_id(workflow_id)
+            if not wf:
+                transition_shot(shot_record, "final_fail")
+                yield self.format_shot_error(
+                    shot_id=shot_id,
+                    stage="render",
+                    message=f"Workflow not found: {workflow_id}",
+                    recoverable=True,
+                    hint="Select a valid image model (Flux2 / Klein) and re-run failed shots.",
+                    workflow_id=workflow_id,
+                )
+                self.record_event(
+                    "render_result",
+                    shot_id=record_id,
+                    campaign_id=campaign_id,
+                    workflow_id=workflow_id,
+                    source=source,
+                    success=False,
+                    extra={"reason": "workflow_missing"},
+                )
+                continue
+
+            if defer_render_submit:
+                deferred_render_submissions.append({
+                    "record_id": record_id,
+                    "shot_record": shot_record,
+                    "shot_id": shot_id,
+                    "workflow_id": workflow_id,
+                    "workflow_path": str(wf),
+                    "prompt": prompt_text,
+                    "platform_skill": platform_skill,
+                })
                 yield {
                     "type": "spark",
                     "campaign_id": campaign_id,
                     "id": record_id,
-                    "shot_id": effective_shot["shot_id"],
-                    "status": "rendered" if image_path else "queued",
-                    "prompt_id": prompt_id,
-                    "image_url": shot_record.get("image_url", ""),
-                    "text": f"{'Rendered and stored' if image_path else 'Queued'} {effective_shot['shot_id']} ({workflow_id})",
+                    "shot_id": shot_id,
+                    "status": "compiled_pending_batch",
+                    "image_url": "",
+                    "text": f"Prepared {shot_id} ({workflow_id}) for batch ComfyUI queue",
                 }
-                self.record_event("render_result", shot_id=record_id, campaign_id=campaign_id, workflow_id=workflow_id, source=source, success=True, extra={"prompt_id": prompt_id})
+                continue
 
-                if image_path:
-                    transition_shot(shot_record, "audit_started")
-                    self.record_event("audit_started", shot_id=record_id, campaign_id=campaign_id, workflow_id=workflow_id, source=source)
-                    try:
-                        audit = await self.audit_render(image_path, shot_record["compiled_prompt"], campaign_id)
-                    except Exception as e:
-                        transition_shot(shot_record, "final_fail")
-                        self.record_event("audit_result", shot_id=record_id, campaign_id=campaign_id, workflow_id=workflow_id, source=source, success=False, extra={"reason": f"audit_exception:{e}"})
-                        yield {"type": "error", "shot_id": effective_shot["shot_id"], "text": f"Audit failed for {effective_shot['shot_id']}: {e}"}
-                        continue
-                    score = float(audit.get("score", 0) or 0)
-                    passed = bool(audit.get("passed", False))
-                    shot_record["audit_model"] = os.getenv("KIMI_VISUAL_MODEL", os.getenv("LMSTUDIO_VISION_MODEL", "qwen3.6-35b-a3b"))
-                    shot_record["audit_status"] = "pass" if passed else "fail"
-                    shot_record["audit_score"] = score
-                    shot_record["audit_issues"] = audit.get("issues", [])
-                    shot_record["audit_model_score"] = float(audit.get("model_score", score) or 0)
-                    shot_record["audit_checks_score"] = float(audit.get("checks_score", 0) or 0)
-                    shot_record["audit_confidence"] = float(audit.get("confidence", 0) or 0)
-                    shot_record["audit_model_passed"] = bool(audit.get("model_passed", passed))
-                    shot_record["audit_final_passed"] = bool(audit.get("final_passed", passed))
-                    shot_record["audit_checks"] = audit.get("checks", {})
-                    shot_record["audit_critical_failures"] = audit.get("critical_failures", [])
-                    shot_record["audit_noncritical_issues"] = audit.get("noncritical_issues", [])
-                    shot_record["audit_decision_reasons"] = audit.get("audit_decision_reasons", [])
-                    shot_record["audit_raw_response"] = audit
-                    shot_record["audit_timestamp"] = self.now_iso()
-                    expected_traits = ((shot_record.get("identity_pack") or {}).get("identity_tokens") or []) if isinstance(shot_record.get("identity_pack"), dict) else []
-                    shot_record["identity_expected_traits"] = expected_traits
-                    detected_notes = []
-                    detected_notes.extend([str(x) for x in (shot_record.get("audit_decision_reasons") or [])[:4]])
-                    detected_notes.extend([str(x) for x in (shot_record.get("audit_issues") or [])[:4]])
-                    shot_record["identity_detected_notes"] = detected_notes[:6]
-                    if shot_record.get("identity_type"):
-                        shot_record["identity_status"] = "pass" if passed else "fail"
-                        shot_record["identity_score"] = score
-                        shot_record["identity_fail_reasons"] = [] if passed else detected_notes[:4]
-                    transition_shot(shot_record, "audited_pass" if passed else "audited_fail")
-                    try:
-                        self._persist_media_shot_metadata(shot_record)
-                    except Exception as e:
-                        self.record_event(
-                            "audit_metadata_persist_failed",
-                            shot_id=record_id,
-                            campaign_id=campaign_id,
-                            workflow_id=workflow_id,
-                            source=source,
-                            success=False,
-                            extra={"reason": str(e)},
-                        )
-                        yield {
-                            "type": "error",
-                            "shot_id": effective_shot["shot_id"],
-                            "text": f"Audit metadata persist failed for {effective_shot['shot_id']}: {e}",
-                        }
-                    self.record_event(
-                        "audit_result",
-                        shot_id=record_id,
-                        campaign_id=campaign_id,
-                        workflow_id=workflow_id,
-                        source=source,
-                        success=passed,
-                        extra={
-                            "audit_score": score,
-                            "audit_model_score": shot_record.get("audit_model_score"),
-                            "audit_checks_score": shot_record.get("audit_checks_score"),
-                            "audit_issues": shot_record.get("audit_issues") or [],
-                            "audit_critical_failures": shot_record.get("audit_critical_failures") or [],
-                            "audit_noncritical_issues": shot_record.get("audit_noncritical_issues") or [],
-                            "audit_decision_reasons": shot_record.get("audit_decision_reasons") or [],
-                        },
-                    )
-                    if passed:
-                        yield {"type": "memory", "shot_id": effective_shot["shot_id"], "text": f"Audit pass ({score:.1f})"}
-                    else:
-                        issues = shot_record.get("audit_issues") or []
-                        reasons = shot_record.get("audit_decision_reasons") or []
-                        critical = shot_record.get("audit_critical_failures") or []
-                        feedback = str(audit.get("feedback", "") or "")
-                        audit_error = str(audit.get("error", "") or "")
-                        top = []
-                        top.extend([str(x) for x in critical[:2]])
-                        top.extend([str(x) for x in reasons[:2]])
-                        if not top:
-                            top.extend([str(x) for x in issues[:2]])
-                        if not top and feedback:
-                            top.append(feedback[:220])
-                        if not top and audit_error:
-                            top.append(audit_error[:220])
-                        if not top and isinstance(audit, dict):
-                            raw_hint = str(audit.get("detail") or audit.get("message") or "")
-                            if raw_hint:
-                                top.append(raw_hint[:220])
-                        reason_text = "; ".join([t for t in top if t]) or "no_reason_returned"
-                        yield {
-                            "type": "error",
-                            "shot_id": effective_shot["shot_id"],
-                            "text": f"Audit fail for {effective_shot['shot_id']} ({score:.1f}): {reason_text}",
-                        }
-                        yield {"type": "memory", "shot_id": effective_shot["shot_id"], "text": f"Audit fail ({score:.1f})"}
-                        auto_remediate = os.getenv("FORGE_AUTO_REMEDIATE_ON_FAIL", "true").lower() == "true"
-                        if auto_remediate and self.remediate_failed:
-                            yield {"type": "hermes", "shot_id": effective_shot["shot_id"], "text": f"Auto-remediation queued for {effective_shot['shot_id']}..."}
-                            try:
-                                rem_task = asyncio.create_task(self.remediate_failed([record_id]))
-                                self._detached_tasks.add(rem_task)
-                                rem_task.add_done_callback(self._detached_tasks.discard)
-                                try:
-                                    rem = await asyncio.shield(rem_task)
-                                except asyncio.CancelledError:
-                                    self.record_event(
-                                        "remediation_detached",
-                                        shot_id=record_id,
-                                        campaign_id=campaign_id,
-                                        workflow_id=workflow_id,
-                                        source=source,
-                                        success=True,
-                                        extra={"reason": "stream_cancelled_task_continues"},
-                                    )
-                                    raise
-                                rlist = rem.get("results", []) if isinstance(rem, dict) else []
-                                if rlist:
-                                    r0 = rlist[0] or {}
-                                    if r0.get("status") == "ok":
-                                        yield {
-                                            "type": "memory",
-                                            "shot_id": effective_shot["shot_id"],
-                                            "text": f"Auto-remediation complete: retry={r0.get('retry_shot_id', 'n/a')} status={r0.get('retry_audit_status', 'n/a')}",
-                                        }
-                                    else:
-                                        yield {
-                                            "type": "error",
-                                            "shot_id": effective_shot["shot_id"],
-                                            "text": f"Auto-remediation failed for {effective_shot['shot_id']}: {r0.get('reason', r0.get('status', 'unknown'))}",
-                                        }
-                                else:
-                                    yield {"type": "warning", "shot_id": effective_shot["shot_id"], "text": f"Auto-remediation returned no result for {effective_shot['shot_id']}"}
-                            except Exception as e:
-                                yield {"type": "error", "shot_id": effective_shot["shot_id"], "text": f"Auto-remediation exception for {effective_shot['shot_id']}: {self._exc_reason(e)}"}
+            # Immediate (non-deferred) render path — sequential ComfyUI submit
+            yield {"type": "spark", "shot_id": shot_id, "text": f"Dispatching {shot_id} to ComfyUI..."}
+            transition_shot(shot_record, "queued")
+            self.record_event(
+                "render_attempt",
+                shot_id=record_id,
+                campaign_id=campaign_id,
+                workflow_id=workflow_id,
+                source=source,
+            )
+            try:
+                submit = await comfy.submit_prompt_for_shot(
+                    shot_id=record_id,
+                    prompt=prompt_text,
+                    workflow_path=str(wf),
+                    seed=shot_record["seed"],
+                    output_dir=str(self.media_images / campaign_id),
+                    width=(platform_skill.get("constraints") or {}).get("width") if platform_skill.get("active") else None,
+                    height=(platform_skill.get("constraints") or {}).get("height") if platform_skill.get("active") else None,
+                    wait_for_output=False,
+                )
+            except Exception as e:
+                transition_shot(shot_record, "final_fail")
+                msg = f"submit_exception:{e}"
+                yield self.format_shot_error(
+                    shot_id=shot_id,
+                    stage="render",
+                    message=f"ComfyUI submission failed for {shot_id}: {msg}",
+                    recoverable=True,
+                    hint="Check Spark / ComfyUI connectivity, then re-run failed shots.",
+                    workflow_id=workflow_id,
+                )
+                self.record_event(
+                    "render_result",
+                    shot_id=record_id,
+                    campaign_id=campaign_id,
+                    workflow_id=workflow_id,
+                    source=source,
+                    success=False,
+                    extra={"reason": msg},
+                )
+                continue
+            if submit.get("status") != "success":
+                transition_shot(shot_record, "final_fail")
+                msg = submit.get("error", "ComfyUI submission failed")
+                yield self.format_shot_error(
+                    shot_id=shot_id,
+                    stage="render",
+                    message=f"ComfyUI submission failed for {shot_id}: {msg}",
+                    recoverable=True,
+                    hint="Check Spark / ComfyUI connectivity, then re-run failed shots.",
+                    workflow_id=workflow_id,
+                )
+                self.record_event(
+                    "render_result",
+                    shot_id=record_id,
+                    campaign_id=campaign_id,
+                    workflow_id=workflow_id,
+                    source=source,
+                    success=False,
+                    extra={"reason": msg},
+                )
+                continue
+
+            if isinstance(submit.get("lora"), dict):
+                shot_record["lora"] = submit["lora"]
+                if submit["lora"].get("requested"):
+                    lora_state = "applied" if submit["lora"].get("applied") else submit["lora"].get("reason", "not applied")
+                    yield {
+                        "type": "compiler",
+                        "shot_id": shot_id,
+                        "workflow_id": workflow_id,
+                        "text": f"LoRA preset {submit['lora'].get('requested')}: {lora_state}",
+                    }
+
+            prompt_id = submit.get("prompt_id", "")
+            saved = submit.get("saved_files", [])
+            image_path = saved[0] if saved else ""
+            shot_record["prompt_id"] = prompt_id
+            if not image_path:
+                self._write_queued_render_record(
+                    campaign_id=campaign_id,
+                    shot_record=shot_record,
+                    prompt_id=str(prompt_id),
+                    status="queued",
+                )
+                pending_render_jobs.append({
+                    "record_id": record_id,
+                    "shot_record": shot_record,
+                    "shot_id": shot_id,
+                    "workflow_id": workflow_id,
+                    "prompt_id": prompt_id,
+                    "output_dir": str(self.media_images / campaign_id),
+                })
+                yield {
+                    "type": "spark",
+                    "campaign_id": campaign_id,
+                    "id": record_id,
+                    "shot_id": shot_id,
+                    "status": "queued",
+                    "prompt_id": prompt_id,
+                    "image_url": "",
+                    "text": f"Queued {shot_id} ({workflow_id})",
+                }
+                self.record_event(
+                    "render_queued",
+                    shot_id=record_id,
+                    campaign_id=campaign_id,
+                    workflow_id=workflow_id,
+                    source=source,
+                    success=True,
+                    extra={"prompt_id": prompt_id},
+                )
+                continue
+
+            rendered_count += 1
+            transition_shot(shot_record, "rendered")
+            self._attach_rendered_image(shot_record, image_path)
+            self._write_queued_render_record(
+                campaign_id=campaign_id,
+                shot_record=shot_record,
+                prompt_id=str(prompt_id),
+                status="rendered",
+            )
+            yield {
+                "type": "spark",
+                "campaign_id": campaign_id,
+                "id": record_id,
+                "shot_id": shot_id,
+                "status": "rendered",
+                "prompt_id": prompt_id,
+                "image_url": shot_record.get("image_url", ""),
+                "text": f"Rendered and stored {shot_id} ({workflow_id})",
+            }
+            self.record_event(
+                "render_result",
+                shot_id=record_id,
+                campaign_id=campaign_id,
+                workflow_id=workflow_id,
+                source=source,
+                success=True,
+                extra={"prompt_id": prompt_id},
+            )
+            async for audit_event in self._audit_completed_shot(shot_record):
+                yield audit_event
 
         if deferred_render_submissions:
             yield {"type": "spark", "text": f"Batch submitting {len(deferred_render_submissions)} compiled image render(s) to ComfyUI..."}
@@ -1299,13 +1578,27 @@ class HermesCampaignService:
             except Exception as e:
                 transition_shot(shot_record, "final_fail")
                 msg = f"submit_exception:{e}"
-                yield {"type": "error", "shot_id": shot_id, "text": f"ComfyUI submission failed for {shot_id}: {msg}"}
+                yield self.format_shot_error(
+                    shot_id=shot_id,
+                    stage="render",
+                    message=f"ComfyUI submission failed for {shot_id}: {msg}",
+                    recoverable=True,
+                    hint="Check Spark / ComfyUI connectivity, then re-run failed shots.",
+                    workflow_id=workflow_id,
+                )
                 self.record_event("render_result", shot_id=record_id, campaign_id=campaign_id, workflow_id=workflow_id, source=source, success=False, extra={"reason": msg})
                 continue
             if submit.get("status") != "success":
                 transition_shot(shot_record, "final_fail")
                 msg = submit.get("error", "ComfyUI submission failed")
-                yield {"type": "error", "shot_id": shot_id, "text": f"ComfyUI submission failed for {shot_id}: {msg}"}
+                yield self.format_shot_error(
+                    shot_id=shot_id,
+                    stage="render",
+                    message=f"ComfyUI submission failed for {shot_id}: {msg}",
+                    recoverable=True,
+                    hint="Check Spark / ComfyUI connectivity, then re-run failed shots.",
+                    workflow_id=workflow_id,
+                )
                 self.record_event("render_result", shot_id=record_id, campaign_id=campaign_id, workflow_id=workflow_id, source=source, success=False, extra={"reason": msg})
                 continue
 
@@ -1377,7 +1670,7 @@ class HermesCampaignService:
 
         if pending_render_jobs:
             yield {"type": "spark", "text": f"Polling {len(pending_render_jobs)} queued ComfyUI image render(s)..."}
-        render_deadline = time.time() + max(21600, int(os.getenv("FORGE_RENDER_BATCH_WAIT_SEC", "21600") or "21600"))
+        render_deadline = time.time() + max(21600, int(os.getenv("CINESMITH_RENDER_BATCH_WAIT_SEC", "21600") or "21600"))
         cancelled_while_polling = False
         while pending_render_jobs and time.time() < render_deadline:
             if self.is_cancelled():
@@ -1439,7 +1732,18 @@ class HermesCampaignService:
                     if cancelled_while_polling
                     else f"Render timed out before image output was available for {shot_id}."
                 )
-                yield {"type": "error", "shot_id": shot_id, "text": text}
+                yield self.format_shot_error(
+                    shot_id=shot_id,
+                    stage="render",
+                    message=text,
+                    recoverable=True,
+                    hint="Re-run the campaign or retry this shot once Spark is free.",
+                    workflow_id=workflow_id,
+                    reason=reason,
+                )
                 self.record_event("render_result", shot_id=record_id, campaign_id=campaign_id, workflow_id=workflow_id, source=source, success=False, extra={"reason": reason})
 
-        yield {"type": "done", "text": f"Campaign complete. {rendered_count} shots processed."}
+        done_bits = [f"Campaign complete. {rendered_count} shots processed."]
+        if compile_errors:
+            done_bits.append(f"{len(compile_errors)} compile failure(s) — see failed shots list to retry.")
+        yield {"type": "done", "text": " ".join(done_bits), "compile_failed": len(compile_errors), "compile_ok": len(successful_units)}

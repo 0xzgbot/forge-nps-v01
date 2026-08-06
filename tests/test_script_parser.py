@@ -1,9 +1,10 @@
 import sys
 import os
+from pathlib import Path
 import json
 
 # Add project root to path to ensure imports work
-project_root = "~/Desktop/forge_nps_v01"
+project_root = str(Path(__file__).resolve().parents[1])
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
@@ -12,7 +13,7 @@ from core.script.script_parser import ScriptParser
 def test_script_parser():
     print("--- Running J10 Verification Test ---")
     parser = ScriptParser()
-    script_path = "~/Desktop/forge_nps_v01/scripts/demo/pilot_script.md"
+    script_path = str(Path(__file__).resolve().parents[1] / "scripts/demo/pilot_script.md")
     
     try:
         parsed = parser.parse(script_path)

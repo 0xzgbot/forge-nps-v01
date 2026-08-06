@@ -126,7 +126,7 @@ class KimiVLClient(KimiBridge):
                         user_prompt += part["text"]
 
         remediation_system_prompt = (
-            "You are the FORGE Visual Remediation Engine. Your task is to correct a JSON formatting error "
+            "You are the CINESMITH Visual Remediation Engine. Your task is to correct a JSON formatting error "
             "that occurred during a visual analysis task. You must strictly adhere to the requested schema."
         )
 

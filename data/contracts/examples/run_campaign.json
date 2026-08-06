@@ -1,7 +1,7 @@
 {
   "request": {
     "brief": "Moab Utah Jeep commercial, cinematic dust trails, golden hour.",
-    "bible_path": "~/Desktop/forge_nps_v01/data/lore_bible/world_bible.md",
+    "bible_path": "~/Desktop/cinesmith_v01/data/lore_bible/world_bible.md",
     "length": "30s",
     "workflow_ids": [
       "spark_image_z_image",

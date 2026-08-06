@@ -1,7 +1,7 @@
 # SKILL: Art Nouveau / Art Deco Specialist
 ## Domain: Ornate Organic Design, Geometric Elegance, Gold Leaf, Streamlined Modernism
 ## Version: 1.0
-## For: Forge Hermes Agent — Prompt Engineering & Scene Planning
+## For: Cinesmith Hermes Agent — Prompt Engineering & Scene Planning
 
 ---
 

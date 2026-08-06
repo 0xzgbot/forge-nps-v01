@@ -6,7 +6,7 @@ from agents.auditor.continuity_auditor import ContinuityAuditor
 from core.bridge.config_manager import ConfigManager
 from core.bridge.kimi_bridge import KimiBridge
 from core.hermes.hermes_agent import HermesAgent
-from core.orchestrator.forge_orchestrator import ForgeOrchestrator
+from core.orchestrator.cinesmith_orchestrator import CinesmithOrchestrator
 from core.state.session_manager import SessionManager
 
 
@@ -26,7 +26,7 @@ async def _run_mock(script_path: str) -> None:
     remediation = AsyncMock()
     session = SessionManager("demo_mock_session", output_dir="data/sessions_test")
     hermes = HermesAgent(kimi_bridge=kimi, session_manager=session)
-    orchestrator = ForgeOrchestrator(
+    orchestrator = CinesmithOrchestrator(
         config_manager=config,
         session_manager=session,
         kimi_bridge=kimi,
@@ -39,7 +39,7 @@ async def _run_mock(script_path: str) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Run the Forge demo pipeline.")
+    parser = argparse.ArgumentParser(description="Run the Cinesmith demo pipeline.")
     parser.add_argument("--script", default="scripts/demo/pilot_script.md")
     parser.add_argument("--mock", action="store_true")
     args = parser.parse_args()

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Forge NPS — TouchDesigner Provenance Web Visualizer
+Cinesmith — TouchDesigner Provenance Web Visualizer
 =====================================================
 
 A 3D visualization of shot retry lineage and audit provenance:
@@ -11,8 +11,8 @@ A 3D visualization of shot retry lineage and audit provenance:
 - Time axis flowing from left to right
 - Floating text labels for shot IDs
 
-Output: /tmp/forge_provenance_web.toe
-Record: /tmp/forge_provenance_web_output.mov
+Output: /tmp/cinesmith_provenance_web.toe
+Record: /tmp/cinesmith_provenance_web_output.mov
 """
 
 import json
@@ -22,7 +22,7 @@ from pathlib import Path
 
 TD_MCP_PORT = 40404
 TD_MCP_URL = f"http://127.0.0.1:{TD_MCP_PORT}/mcp"
-OUTPUT_TOE = Path("/tmp/forge_provenance_web.toe")
+OUTPUT_TOE = Path("/tmp/cinesmith_provenance_web.toe")
 
 
 def td_call(method: str, params: dict = None):
@@ -63,7 +63,7 @@ result = {'cleaned': True}
 
     print("[2/9] Creating GLSL shader...")
     shader = generate_glsl()
-    shader_path = Path("/tmp/forge_provenance_web.glsl")
+    shader_path = Path("/tmp/cinesmith_provenance_web.glsl")
     shader_path.write_text(shader)
 
     td_call("td_execute_python", {
@@ -195,7 +195,7 @@ win.par.winopen = False
 
 recorder = root.create(moviefileoutTOP, 'recorder')
 recorder.par.type = 'movie'
-recorder.par.file = '/tmp/forge_provenance_web_output.mov'
+recorder.par.file = '/tmp/cinesmith_provenance_web_output.mov'
 recorder.par.videocodec = 'prores'
 recorder.par.fps = 30
 recorder.inputConnectors[0].connect(out_null.outputConnectors[0])
@@ -214,11 +214,11 @@ result = {{'saved_to': '{OUTPUT_TOE}'}}
 
     print("[9/9] DONE")
     print(f"\nOpen: {OUTPUT_TOE}")
-    print("Record: /tmp/forge_provenance_web_output.mov")
+    print("Record: /tmp/cinesmith_provenance_web_output.mov")
 
 
 def generate_glsl():
-    return '''// Forge NPS Provenance Web — GLSL Visualization
+    return '''// Cinesmith Provenance Web — GLSL Visualization
 // 3D retry lineage and audit trail
 
 uniform float uTime;

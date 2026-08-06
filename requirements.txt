@@ -1,4 +1,4 @@
-# Forge NPS — Neural Production Studio
+# Cinesmith — Neural Production Studio
 # Core dependencies for hackathon judges
 
 # Async HTTP client for ComfyUI cluster communication
@@ -21,6 +21,9 @@ pytest-asyncio>=0.23.0
 fastapi>=0.110.0
 uvicorn>=0.27.0
 python-multipart>=0.0.9
+
+# Nexus graph engine (dashboard MCP tooling)
+networkx>=3.0
 
 # Image metadata/thumbnail handling
 Pillow>=10.0.0

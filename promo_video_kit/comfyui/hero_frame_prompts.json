@@ -79,8 +79,8 @@
       "cfg": 7.0
     },
     {
-      "id": "hero_forge_logo",
-      "title": "Forge NPS Logo Concept",
+      "id": "hero_cinesmith_logo",
+      "title": "Cinesmith Logo Concept",
       "description": "Abstract mark for the brand — use as title card background",
       "workflow": "wf_flux2_turbo_api",
       "positive_prompt": "abstract minimal logo mark made of intersecting light beams forming an F shape, glowing cyan and white lines against pure black background, geometric precision, light trails, long exposure photography aesthetic, clean lines, modern tech branding, subtle purple accent glow at intersections, 8k, crisp, sharp, professional logo design",
@@ -94,7 +94,7 @@
   ],
   "notes": {
     "workflow_selection": "Use wf_flux2_turbo_api for speed during production. Switch to wf_flux2_dev for final quality if time permits.",
-    "identity_pack": "Add these images to your Identity Pack with mode='Product' and name='Forge NPS Promo' to maintain visual consistency across frames.",
+    "identity_pack": "Add these images to your Identity Pack with mode='Product' and name='Cinesmith Promo' to maintain visual consistency across frames.",
     "batch_render": "Use your existing batch_flux2_turbo_hackathon.py script with these prompts injected.",
     "render_tip": "Render at 1280x720 for video compatibility. Upscaling can be done later if needed."
   }

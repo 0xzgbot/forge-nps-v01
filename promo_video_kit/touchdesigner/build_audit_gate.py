@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Forge NPS — TouchDesigner Audit Gate Visualizer
+Cinesmith — TouchDesigner Audit Gate Visualizer
 =================================================
 
-A dramatic sci-fi visualization of the Forge NPS visual truth audit gate:
+A dramatic sci-fi visualization of the Cinesmith visual truth audit gate:
 - Central scanning portal with rotating hexagon
 - Data packets entering from left
 - Green PASS burst with particle explosion
@@ -11,8 +11,8 @@ A dramatic sci-fi visualization of the Forge NPS visual truth audit gate:
 - Score readout as glowing numbers
 - Scan-line sweep effect
 
-Output: /tmp/forge_audit_gate.toe
-Record: /tmp/forge_audit_gate_output.mov
+Output: /tmp/cinesmith_audit_gate.toe
+Record: /tmp/cinesmith_audit_gate_output.mov
 """
 
 import json
@@ -22,7 +22,7 @@ from pathlib import Path
 
 TD_MCP_PORT = 40404
 TD_MCP_URL = f"http://127.0.0.1:{TD_MCP_PORT}/mcp"
-OUTPUT_TOE = Path("/tmp/forge_audit_gate.toe")
+OUTPUT_TOE = Path("/tmp/cinesmith_audit_gate.toe")
 
 
 def td_call(method: str, params: dict = None):
@@ -63,7 +63,7 @@ result = {'cleaned': True}
 
     print("[2/9] Creating GLSL shader...")
     shader = generate_glsl()
-    shader_path = Path("/tmp/forge_audit_gate.glsl")
+    shader_path = Path("/tmp/cinesmith_audit_gate.glsl")
     shader_path.write_text(shader)
 
     td_call("td_execute_python", {
@@ -247,7 +247,7 @@ win.par.winopen = False
 
 recorder = root.create(moviefileoutTOP, 'recorder')
 recorder.par.type = 'movie'
-recorder.par.file = '/tmp/forge_audit_gate_output.mov'
+recorder.par.file = '/tmp/cinesmith_audit_gate_output.mov'
 recorder.par.videocodec = 'prores'
 recorder.par.fps = 30
 recorder.inputConnectors[0].connect(out_null.outputConnectors[0])
@@ -266,11 +266,11 @@ result = {{'saved_to': '{OUTPUT_TOE}'}}
 
     print("[9/9] DONE")
     print(f"\nOpen: {OUTPUT_TOE}")
-    print("Record: /tmp/forge_audit_gate_output.mov")
+    print("Record: /tmp/cinesmith_audit_gate_output.mov")
 
 
 def generate_glsl():
-    return '''// Forge NPS Audit Gate — GLSL Visualization
+    return '''// Cinesmith Audit Gate — GLSL Visualization
 // Dramatic sci-fi portal with PASS/FAIL particle explosions
 
 uniform float uTime;

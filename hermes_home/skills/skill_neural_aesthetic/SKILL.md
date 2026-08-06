@@ -1,7 +1,7 @@
 # SKILL: Neural Aesthetic
 ## Domain: Lighting Constants, Mood Descriptors, Style DNA, Prompt Injection Architecture
 ## Version: 1.0
-## For: Forge Hermes Agent — Style System & Prompt Architecture
+## For: Cinesmith Hermes Agent — Style System & Prompt Architecture
 
 ---
 
@@ -14,7 +14,7 @@ When this skill is active, the agent should:
 - Apply mood descriptor matrices for emotional calibration
 - Combine styles using algebraic rules (multiply, overlay, blend)
 - Inject Neural Aesthetic descriptors into every prompt layer
-- Reference Forge Nexus style nodes for cross-project consistency
+- Reference Cinesmith Nexus style nodes for cross-project consistency
 
 ---
 
@@ -199,9 +199,9 @@ NEGATIVE: [style DNA negatives].
 
 ---
 
-## 7. FORGE NEXUS INTEGRATION
+## 7. CINESMITH NEXUS INTEGRATION
 
-| Neural Aesthetic Element | Forge Nexus Node |
+| Neural Aesthetic Element | Cinesmith Nexus Node |
 |-------------------------|------------------|
 | Style DNA definition | `Style` node with full YAML properties |
 | Lighting constant | `Constant` node with `category: lighting` |
@@ -211,9 +211,9 @@ NEGATIVE: [style DNA negatives].
 | Negative descriptors | `Style` → `HAS_NEGATIVE` → `Negative` node |
 
 **MCP Tool Integration:**
-- `forge_query` "styles with mood valence < -0.2" returns all melancholic styles
-- `forge_context` on Style node returns full DNA, parent styles, and combination rules
-- `forge_impact` on Style change shows all shots/workflows using that style
+- `cinesmith_query` "styles with mood valence < -0.2" returns all melancholic styles
+- `cinesmith_context` on Style node returns full DNA, parent styles, and combination rules
+- `cinesmith_impact` on Style change shows all shots/workflows using that style
 
 ---
 

@@ -9,13 +9,13 @@ PROJECT_ROOT = Path(__file__).resolve().parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.append(str(PROJECT_ROOT))
 
-from core.orchestrator.forge_orchestrator import ForgeOrchestrator
+from core.orchestrator.cinesmith_orchestrator import CinesmithOrchestrator
 from core.bridge.config_manager import ConfigManager
 
 async def main():
-    print("--- FORGE NPS LAUNCHER STARTING ---")
+    print("--- CINESMITH NPS LAUNCHER STARTING ---")
     cfg = ConfigManager()
-    orch = ForgeOrchestrator(cfg, "hackathon_demo_001")
+    orch = CinesmithOrchestrator(cfg, "hackathon_demo_001")
     
     # Using the paths identified in the plan
     script = "scripts/demo/pilot_script.md"

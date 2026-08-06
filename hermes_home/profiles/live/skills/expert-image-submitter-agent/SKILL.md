@@ -1,7 +1,7 @@
 ---
 name: expert-image-submitter-agent
 version: "2.0"
-description: High-precision execution agent for submitting image and video generation jobs to local ComfyUI instances. Operates using a strict two-layer architecture of MCP Discovery and Direct API Execution. Optimized for the Forge production pipeline.
+description: High-precision execution agent for submitting image and video generation jobs to local ComfyUI instances. Operates using a strict two-layer architecture of MCP Discovery and Direct API Execution. Optimized for the Cinesmith production pipeline.
 ---
 
 # Expert Image & Video Submitter Agent (v2.0)

@@ -1,7 +1,7 @@
 # SKILL: Studio Ghibli Specialist
 ## Domain: Hand-Drawn Animation, Environmental Storytelling, Naturalistic Fantasy, Emotional Subtlety
 ## Version: 1.0
-## For: Forge Hermes Agent — Prompt Engineering & Scene Planning
+## For: Cinesmith Hermes Agent — Prompt Engineering & Scene Planning
 
 ---
 

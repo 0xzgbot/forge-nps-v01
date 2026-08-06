@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import AsyncMock, MagicMock, patch
 import os
+from pathlib import Path
 import json
 import asyncio
 from pydantic import BaseModel
@@ -35,7 +36,7 @@ class TestKimiNarrativeMode(unittest.IsolatedAsyncioTestCase):
         if os.path.exists(self.lore_path):
             os.remove(self.lore_path)
         # Clean up reasoning logs if created
-        log_dir = f"~/Desktop/forge_nps_v01/data/reasoning_logs/{self.session_id}"
+        log_dir = str(Path(__file__).resolve().parents[1] / f"data/reasoning_logs/{self.session_id}")
         if os.path.exists(log_dir):
             import shutil
             shutil.rmtree(log_dir)
@@ -76,7 +77,7 @@ class TestKimiNarrativeMode(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(len(result["shots"]) > 0)
 
         # Verify Reasoning Log creation
-        expected_log = f"~/Desktop/forge_nps_v01/data/reasoning_logs/{self.session_id}/full_analysis_reasoning.md"
+        expected_log = str(Path(__file__).resolve().parents[1] / f"data/reasoning_logs/{self.session_id}/full_analysis_reasoning.md")
         self.assertTrue(os.path.exists(expected_log))
         with open(expected_log, "r", encoding="utf-8") as f:
             content = f.read()

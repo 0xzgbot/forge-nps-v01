@@ -4,7 +4,7 @@ from typing import Dict, List, Any
 
 class AudioAgent:
     """
-    Audio Agent for the FORGE NPS project.
+    Audio Agent for the CINESMITH NPS project.
     Generates audio manifests based on Director Schema audio directives.
     """
 
@@ -31,7 +31,7 @@ class AudioAgent:
             return {
                 "shot_id": shot_id,
                 "status": "success",
-                "media_url": f"https://cdn.forge-nps.ai/audio/{shot_id}_generated.mp3",
+                "media_url": f"https://cdn.cinesmith.ai/audio/{shot_id}_generated.mp3",
                 "metadata": audio_directive
             }
         else:

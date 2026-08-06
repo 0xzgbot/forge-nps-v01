@@ -522,6 +522,15 @@ class ComfyUIClient:
                 if key in widget_map:
                     converted["inputs"][key] = widget_map[key]
 
+            # Subgraph interface links can point at pseudo input nodes (-10)
+            # that have no concrete top-level source. In that case the WebUI
+            # export still carries the selected widget values on the runtime
+            # node itself. Preserve those values even when object_info is absent
+            # or incomplete, otherwise model/CLIP loaders become empty and later
+            # hydration may choose an incompatible first available model.
+            for key, value in widget_map.items():
+                converted["inputs"].setdefault(key, value)
+
             # Comfy dynamic widgets are exported as a compact widgets_values
             # list, not named node inputs. Preserve the actual selected runtime
             # values for ResizeImageMaskNode instead of letting object_info
@@ -806,11 +815,11 @@ class ComfyUIClient:
             for idx, slot in enumerate(load_image_slots):
                 slot["image"] = uploaded_names[idx] if idx < len(uploaded_names) else uploaded_names[0]
 
-        if target_width or target_height:
+        if target_width or target_height or target_fps or target_frames or target_duration:
             # Some WebUI/subgraph exports route dimensions through PrimitiveInt
             # nodes instead of storing them directly on the latent/scheduler node.
-            # Rewrite those upstream primitives so workflows like Flux2 Klein do
-            # not silently fall back to their baked-in square defaults.
+            # Rewrite those upstream primitives so workflows do not silently fall
+            # back to their baked-in dimensions, frame rates, or durations.
             for node in nodes.values():
                 if not isinstance(node, dict):
                     continue
@@ -833,6 +842,24 @@ class ComfyUIClient:
                             primitive_inputs = primitive.setdefault("inputs", {})
                             if isinstance(primitive_inputs, dict):
                                 primitive_inputs["value"] = target_height
+                    elif target_fps and lower_key in {"fps", "frame_rate", "framerate", "video_fps"}:
+                        primitive = nodes.get(str(current[0]))
+                        if isinstance(primitive, dict):
+                            primitive_inputs = primitive.setdefault("inputs", {})
+                            if isinstance(primitive_inputs, dict):
+                                primitive_inputs["value"] = target_fps
+                    elif target_frames and lower_key in {"frames", "num_frames", "frame_count", "length"}:
+                        primitive = nodes.get(str(current[0]))
+                        if isinstance(primitive, dict):
+                            primitive_inputs = primitive.setdefault("inputs", {})
+                            if isinstance(primitive_inputs, dict):
+                                primitive_inputs["value"] = target_frames
+                    elif target_duration and lower_key in {"duration", "duration_sec", "duration_seconds", "seconds", "clip_duration"}:
+                        primitive = nodes.get(str(current[0]))
+                        if isinstance(primitive, dict):
+                            primitive_inputs = primitive.setdefault("inputs", {})
+                            if isinstance(primitive_inputs, dict):
+                                primitive_inputs["value"] = target_duration
 
         submit_result = await self.submit_prompt(nodes)
         if not submit_result.get("ok"):

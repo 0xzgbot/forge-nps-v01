@@ -6,10 +6,10 @@
       <stop offset="100%" style="stop-color:#FF00FF;stop-opacity:1" />
     </linearGradient>
   </defs>
-  <!-- Anvil/Forge Icon -->
+  <!-- Anvil/Cinesmith Icon -->
   <path d="M40 70 L60 70 L65 50 L35 50 Z" fill="url(#grad1)" />
   <rect x="30" y="70" width="40" height="10" rx="2" fill="#E6EDF3" />
   <!-- Text -->
-  <text x="80" y="65" font-family="monospace" font-size="32" font-weight="bold" fill="url(#grad1)">FORGE NPS</text>
+  <text x="80" y="65" font-family="monospace" font-size="32" font-weight="bold" fill="url(#grad1)">CINESMITH NPS</text>
   <text x="80" y="85" font-family="monospace" font-size="12" fill="#8B949E">THE AI THAT REMEMBERS</text>
 </svg>

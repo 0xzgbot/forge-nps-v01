@@ -1,7 +1,7 @@
 # SKILL: Film Noir Classic Specialist
 ## Domain: Low-Key Lighting, Venetian Blind Shadows, Femme Fatale, Hard-Boiled Detective, Urban Dread
 ## Version: 1.0
-## For: Forge Hermes Agent — Prompt Engineering & Scene Planning
+## For: Cinesmith Hermes Agent — Prompt Engineering & Scene Planning
 
 ---
 

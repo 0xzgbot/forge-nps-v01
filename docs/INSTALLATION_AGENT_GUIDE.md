@@ -1,6 +1,6 @@
-# Forge NPS Installation Guide for Agents
+# Cinesmith Installation Guide for Agents
 
-This guide is for an agent or engineer bringing Forge NPS up on a new machine or restoring it on the current machine.
+This guide is for an agent or engineer bringing Cinesmith up on a new machine or restoring it on the current machine.
 
 ## Non-Negotiable Runtime Contract
 
@@ -8,28 +8,27 @@ This guide is for an agent or engineer bringing Forge NPS up on a new machine or
 - Kimi is used at max capability for planning and critique.
 - FastAPI routes are thin adapters around pipeline services.
 - Production must not hide broken behavior behind silent fallbacks.
-- LM Studio load tuning is not controlled by Forge. Forge loads the selected model and lets LM Studio apply its model defaults.
+- LM Studio load tuning is not controlled by Cinesmith. Cinesmith loads the selected model and lets LM Studio apply its model defaults.
 
 ## What Must Be Running
 
-Forge NPS is not a standalone single-process app. It expects these services:
+Cinesmith is not a standalone single-process app. It expects these services:
 
 | Component | Purpose | Default |
 |-----------|---------|---------|
-| Forge dashboard | FastAPI UI and pipeline API | `http://localhost:7000` |
+| Cinesmith dashboard | FastAPI UI and pipeline API | `http://localhost:7000` |
 | NVIDIA/Kimi-compatible API | Director planning and critique | `https://integrate.api.nvidia.com/v1/chat/completions` |
 | LM Studio | Hermes local chat/profile calls and optional local vision | `http://localhost:1234` |
 | ComfyUI/Spark | Image/video render execution | `http://localhost:8188` |
-| Media root | Rendered images/videos served by dashboard | `~/Desktop/FORGE_NPS_MEDIA` |
+| Media root | Rendered images/videos served by dashboard | Sibling `../CINESMITH_MEDIA` if present, else `<repo>/media`, or `CINESMITH_MEDIA_ROOT` |
 
 ## Repository Setup
 
 Clone with submodules:
 
 ```bash
-cd ~/Desktop
-git clone --recurse-submodules https://github.com/0xzgbot/forge-nps-v01.git forge_nps_v01
-cd ~/Desktop/forge_nps_v01
+git clone --recurse-submodules https://github.com/0xzgbot/cinesmith-v01.git cinesmith_v01
+cd cinesmith_v01
 ```
 
 If the repo is already cloned, repair submodules:
@@ -45,7 +44,7 @@ The `hermes_engine` directory is a submodule. Do not make ad-hoc product fixes i
 Use Python 3.11 or newer.
 
 ```bash
-cd ~/Desktop/forge_nps_v01
+cd /path/to/cinesmith_v01   # repository root
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
@@ -55,7 +54,7 @@ python -m pip install -r requirements.txt
 Quick import check:
 
 ```bash
-python -m py_compile dashboard/forge_dashboard.py core/hermes/pipeline/campaign_service.py
+python -m py_compile dashboard/cinesmith_dashboard.py core/hermes/pipeline/campaign_service.py
 ```
 
 ## Required Configuration
@@ -83,7 +82,8 @@ LMSTUDIO_VISION_MODEL=qwen3.6-35b-a3b@q6_k
 
 COMFYUI_PRIMARY=http://localhost:8188
 COMFYUI_SECONDARY=http://localhost:8189
-FORGE_MEDIA_ROOT=~/Desktop/FORGE_NPS_MEDIA
+# Optional override; leave empty to auto-pick sibling ../CINESMITH_MEDIA or <repo>/media
+# CINESMITH_MEDIA_ROOT=/absolute/or/relative/path/to/media
 
 STORYBOARD_IMAGE_PROVIDER=spark:flux2_dev
 OPENAI_IMAGE_MODEL=gpt-image-2
@@ -95,25 +95,38 @@ GEMINI_IMAGE_MODEL=gemini-2.5-flash-image
 Notes:
 
 - `data/config.json` can override `.env` values because the Settings page persists there.
-- `data/config.json` is ignored by git; [data/config.example.json](data/config.example.json) is the tracked reference shape.
+- `data/config.json` is ignored by git; [data/config.example.json](../data/config.example.json) is the tracked reference shape.
 - Do not commit real API keys, private IPs, or machine-specific endpoint URLs unless the repo owner explicitly accepts that risk.
 - If settings appear wrong in the UI, inspect both `.env` and `data/config.json`.
 - The LM Studio host can be saved as `http://host` plus `LMSTUDIO_PORT=1234`; the app normalizes it.
 - The Director backend can be switched to local LM Studio with `USE_LOCAL_DIRECTOR=true` or the Settings toggle. When local Director is enabled, NVIDIA/Kimi API fields are greyed out in the UI and planning uses the configured LM Studio chat model.
 - Storyboard image generation has its own provider setting. Use `spark:*` providers for local Spark/ComfyUI rendering, or set OpenAI/Gemini keys if storyboard-only cloud image generation is desired.
+- Desktop + Spark creators: prefer [DESKTOP_SPARK_PACKAGE.md](DESKTOP_SPARK_PACKAGE.md) and `./scripts/launch_cinesmith.sh --package`.
 
 ## Media Directories
 
-Create the media root:
+Media root is **portable** (see `core.cinesmith_env.default_media_root`):
+
+1. `CINESMITH_MEDIA_ROOT` if set  
+2. Sibling folder `../CINESMITH_MEDIA` if it exists  
+3. Otherwise `<repo>/media` (created automatically by the launcher)
+
+Optional sibling layout (keeps large renders outside the git tree):
 
 ```bash
-mkdir -p ~/Desktop/FORGE_NPS_MEDIA/images
-mkdir -p ~/Desktop/FORGE_NPS_MEDIA/videos
-mkdir -p ~/Desktop/FORGE_NPS_MEDIA/imports
-mkdir -p ~/Desktop/FORGE_NPS_MEDIA/legacy
+# From parent of the repo:
+mkdir -p CINESMITH_MEDIA/{images,videos,imports,legacy}
+# Or force a path:
+# export CINESMITH_MEDIA_ROOT=/path/to/your/media
 ```
 
-Forge reindexes media at dashboard startup. If ComfyUI produced files that are missing from the UI, restart the dashboard or use the import/reindex controls in the UI.
+Repo-local fallback:
+
+```bash
+mkdir -p media/{images,videos,imports,legacy}
+```
+
+Cinesmith reindexes media at dashboard startup. If ComfyUI produced files that are missing from the UI, restart the dashboard or use the import/reindex controls in the UI.
 
 ## LM Studio Setup
 
@@ -123,7 +136,7 @@ Required behavior:
 
 - `GET /v1/models` must return loaded models.
 - `POST /v1/chat/completions` must accept the selected `LMSTUDIO_CHAT_MODEL`.
-- Forge does not send context length, eval batch size, flash attention, or KV-cache overrides.
+- Cinesmith does not send context length, eval batch size, flash attention, or KV-cache overrides.
 
 Health check:
 
@@ -131,7 +144,7 @@ Health check:
 curl -sS http://localhost:1234/v1/models | python3 -m json.tool
 ```
 
-Load model through Forge:
+Load model through Cinesmith:
 
 ```bash
 curl -sS -X POST http://localhost:7000/api/lmstudio/load \
@@ -165,10 +178,10 @@ curl -sS -X POST http://localhost:7000/api/test/comfyui \
   | python3 -m json.tool
 ```
 
-Workflows live under:
+Workflows live under the repo-relative directory:
 
 ```text
-~/Desktop/forge_nps_v01/workflows/
+workflows/
 ```
 
 Campaign render flow expects `COMFYUI_PRIMARY` to be reachable before Spark dispatch.
@@ -199,27 +212,30 @@ Operational notes:
 
 ## Start the Dashboard
 
-From repo root:
+From repo root (recommended — isolation + portable media):
 
 ```bash
-cd ~/Desktop/forge_nps_v01
+cd /path/to/cinesmith_v01
 source .venv/bin/activate
-python3 -m dashboard.forge_dashboard
+./scripts/launch_cinesmith.sh --package
+# dev with reload: ./scripts/launch_cinesmith.sh
+```
+
+Or directly:
+
+```bash
+python3 -m dashboard.cinesmith_dashboard
 ```
 
 Expected startup signs:
 
 ```text
-[FORGE] Media shots reindexed at startup: ...
-[FORGE] LM Studio auto-detected model: ...
-Uvicorn running on http://0.0.0.0:7000
+[CINESMITH] Media shots reindexed at startup: ...
+[CINESMITH] LM Studio auto-detected model: ...
+Uvicorn running on http://127.0.0.1:7000
 ```
 
-Open:
-
-```text
-http://localhost:7000
-```
+Open the URL printed by the launcher (default `http://127.0.0.1:7000`).
 
 If port `7000` is busy:
 
@@ -247,17 +263,17 @@ In the Settings panel:
 Repeatable API smoke suite:
 
 ```bash
-python3 scripts/smoke_forge.py --base-url http://127.0.0.1:7000
+python3 scripts/smoke_cinesmith.py --base-url http://127.0.0.1:7000
 ```
 
 The default suite checks stats, config, Hermes chat, storyboard model discovery, memory health, media reindex, config persistence, saved Script Studio project persistence, and disabled legacy routes. Live render checks are opt-in because they consume Spark queue time:
 
 ```bash
-python3 scripts/smoke_forge.py --base-url http://127.0.0.1:7000 --live-script
-python3 scripts/smoke_forge.py --base-url http://127.0.0.1:7000 --live-campaign
+python3 scripts/smoke_cinesmith.py --base-url http://127.0.0.1:7000 --live-script
+python3 scripts/smoke_cinesmith.py --base-url http://127.0.0.1:7000 --live-campaign
 ```
 
-`scripts/pre_push_hygiene.sh` runs the default smoke suite automatically when Forge is already listening on `127.0.0.1:7000`.
+`scripts/pre_push_hygiene.sh` runs the default smoke suite automatically when Cinesmith is already listening on `127.0.0.1:7000`.
 
 Stats:
 
@@ -375,10 +391,10 @@ Common causes:
 
 ### Settings Do Not Stick
 
-Inspect:
+Inspect (from repo root):
 
 ```bash
-cat ~/Desktop/forge_nps_v01/data/config.json
+cat data/config.json
 ```
 
 The Settings page writes to `data/config.json`; runtime config overlays that on top of `.env`.
@@ -391,10 +407,14 @@ cp data/config.example.json data/config.json
 
 ### ComfyUI Renders Exist But Are Missing In App
 
-Check media root:
+Check media root (sibling layout or repo-local / `CINESMITH_MEDIA_ROOT`):
 
 ```bash
-find ~/Desktop/FORGE_NPS_MEDIA -maxdepth 3 -type f | head
+# If using sibling media:
+find ../CINESMITH_MEDIA -maxdepth 3 -type f | head
+# Or repo-local:
+find media -maxdepth 3 -type f | head
+# Or whatever CINESMITH_MEDIA_ROOT points at
 ```
 
 Restart the dashboard so startup reindex runs, then refresh the UI.
@@ -445,7 +465,7 @@ Keep generated local outputs, secrets, logs, and scratch files untracked unless 
 
 Run before submission/demo:
 
-1. `python3 -m py_compile dashboard/forge_dashboard.py core/hermes/pipeline/campaign_service.py core/hermes/pipeline/profile_cli.py`
+1. `python3 -m py_compile dashboard/cinesmith_dashboard.py core/hermes/pipeline/campaign_service.py core/hermes/pipeline/profile_cli.py`
 2. `GET /api/stats` succeeds.
 3. Kimi **Test Connection** succeeds.
 4. LM Studio **Test & Detect Models** succeeds.

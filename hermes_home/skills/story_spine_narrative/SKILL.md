@@ -1,20 +1,20 @@
 # SKILL: Story Spine / Narrative
 ## Domain: Three-Act Structure, Emotional Beats, Scene Sequencing, Character Arcs
 ## Version: 1.0
-## For: Forge Hermes Agent — Plot Architecture & Scene Planning
+## For: Cinesmith Hermes Agent — Plot Architecture & Scene Planning
 
 ---
 
 ## 1. EXECUTIVE SUMMARY
 
-This skill encodes the complete narrative architecture system — from the three-act structure and 11 story beats to emotional character arcs, scene sequencing logic, and the specific translation of plot into visual shots. It covers the Pixar Story Spine, Save the Cat beat sheet, Hero's Journey, and the practical workflow for turning a story into a Forge shot list.
+This skill encodes the complete narrative architecture system — from the three-act structure and 11 story beats to emotional character arcs, scene sequencing logic, and the specific translation of plot into visual shots. It covers the Pixar Story Spine, Save the Cat beat sheet, Hero's Journey, and the practical workflow for turning a story into a Cinesmith shot list.
 
 When this skill is active, the agent should:
 - Build stories using proven structural templates (3-act, 11 beats, Hero's Journey)
 - Map emotional arcs to visual color/lighting shifts
 - Sequence scenes using cause-and-effect logic
 - Translate plot beats into specific shot types and camera movements
-- Use Forge Nexus to track story state across the project graph
+- Use Cinesmith Nexus to track story state across the project graph
 
 ---
 
@@ -134,7 +134,7 @@ Scene B: Character now wants Y (consequence of failure) → tries to get Y → p
 Scene C: Character now faces Z (consequence of partial success) → tries to solve Z → ...
 ```
 
-### Forge Shot List Generation
+### Cinesmith Shot List Generation
 
 For each scene, generate shots in this order:
 1. **Establishing shot** — Where are we? What time? What mood?
@@ -145,9 +145,9 @@ For each scene, generate shots in this order:
 
 ---
 
-## 7. FORGE NEXUS INTEGRATION
+## 7. CINESMITH NEXUS INTEGRATION
 
-| Narrative Element | Forge Nexus Node |
+| Narrative Element | Cinesmith Nexus Node |
 |-------------------|------------------|
 | Story spine | `Project` → `HAS_STORY` → `Story` node with 7 beats |
 | Character arc | `Character` → `HAS_ARC` → `Arc` node with emotional states |
@@ -157,9 +157,9 @@ For each scene, generate shots in this order:
 | Transition | `Shot` → `PRECEDES` → `Shot` edge with `transition_type` |
 
 **MCP Tool Integration:**
-- `forge_context` on Story node returns full spine, color arc, and scene list
-- `forge_trace` from Scene A to Scene Z shows the causal chain
-- `forge_impact` on emotional beat change shows all affected shots
+- `cinesmith_context` on Story node returns full spine, color arc, and scene list
+- `cinesmith_trace` from Scene A to Scene Z shows the causal chain
+- `cinesmith_impact` on emotional beat change shows all affected shots
 
 ---
 
@@ -204,4 +204,4 @@ TECH SKILL: ComfyUI/Flux Pipeline
 
 ## 11. VERSION HISTORY
 
-- **v1.0** (2026-04-24): Initial comprehensive skill covering three-act structure, 11 beats, Pixar Story Spine, Hero's Journey, emotional beat visual translation, scene sequencing, and Forge Nexus integration.
+- **v1.0** (2026-04-24): Initial comprehensive skill covering three-act structure, 11 beats, Pixar Story Spine, Hero's Journey, emotional beat visual translation, scene sequencing, and Cinesmith Nexus integration.

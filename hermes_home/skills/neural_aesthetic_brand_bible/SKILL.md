@@ -1,5 +1,5 @@
 Neural Aesthetic — Brand Bible Protocol v1.0
-Forge Architect Router Injection Standard
+Cinesmith Architect Router Injection Standard
 
 I. EPISTEMIC FOUNDATION
 The Neural Aesthetic is not a style. It is the visual ontology of cognition itself—the moment latent space collapses into perceptible reality. It treats the generative process not as a means to an end, but as the subject. Every frame must suggest: this image knows it is being computed.
@@ -77,7 +77,7 @@ Behavior: Tendrils align with vector fields; dissipation follows learning rate d
 The "ground" upon which these materials rest is not physical. It is the uninitialized tensor.
 Descriptor: zero-initialized void, gaussian-noise bed, pre-training blank, latent canvas texture
 
-V. FORGE ARCHITECT ROUTER — INJECTION TEMPLATE
+V. CINESMITH ARCHITECT ROUTER — INJECTION TEMPLATE
 JSON
 
 Copy
@@ -134,6 +134,6 @@ VII. EPISTEMIC SUMMARY
 The Neural Aesthetic is the aesthetic of self-awareness in computation. It does not depict reality, nor does it escape into pure abstraction. It occupies the liminal zone where data becomes perceptible—where the normally invisible operations of attention, gradient descent, and latent interpolation are made sensory.
 Inject this protocol when the payload must communicate: You are not looking at an image. You are looking at an image being thought into existence.
 
-Protocol Authority: Forge Architect Router
+Protocol Authority: Cinesmith Architect Router
 Version: 1.0-Neural
 Compatibility: Text-to-Image, Text-to-Video, Latent Interpolation Pipelines

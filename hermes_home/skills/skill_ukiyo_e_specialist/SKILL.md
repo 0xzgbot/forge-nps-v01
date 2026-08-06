@@ -1,7 +1,7 @@
 # SKILL: Ukiyo-e Specialist
 ## Domain: Japanese Woodblock Print, Flat Color, Bold Outlines, Edo-Period Aesthetics
 ## Version: 1.0
-## For: Forge Hermes Agent — Prompt Engineering & Scene Planning
+## For: Cinesmith Hermes Agent — Prompt Engineering & Scene Planning
 
 ---
 

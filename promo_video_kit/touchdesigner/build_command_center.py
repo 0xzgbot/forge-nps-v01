@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Forge NPS — TouchDesigner Command Center HUD
+Cinesmith — TouchDesigner Command Center HUD
 ===============================================
 
-A futuristic HUD visualization inspired by the Forge NPS dashboard:
+A futuristic HUD visualization inspired by the Cinesmith dashboard:
 - Floating data panels with scrolling text
 - Waveform/audio spectrum visualization
 - Circular progress rings for campaign stats
@@ -11,8 +11,8 @@ A futuristic HUD visualization inspired by the Forge NPS dashboard:
 - Grid layout mimicking the dashboard UI
 - Pulsing connection lines between panels
 
-Output: /tmp/forge_command_center.toe
-Record: /tmp/forge_command_center_output.mov
+Output: /tmp/cinesmith_command_center.toe
+Record: /tmp/cinesmith_command_center_output.mov
 """
 
 import json
@@ -22,7 +22,7 @@ from pathlib import Path
 
 TD_MCP_PORT = 40404
 TD_MCP_URL = f"http://127.0.0.1:{TD_MCP_PORT}/mcp"
-OUTPUT_TOE = Path("/tmp/forge_command_center.toe")
+OUTPUT_TOE = Path("/tmp/cinesmith_command_center.toe")
 
 
 def td_call(method: str, params: dict = None):
@@ -63,7 +63,7 @@ result = {'cleaned': True}
 
     print("[2/10] Creating GLSL shader...")
     shader = generate_glsl()
-    shader_path = Path("/tmp/forge_command_center.glsl")
+    shader_path = Path("/tmp/cinesmith_command_center.glsl")
     shader_path.write_text(shader)
 
     td_call("td_execute_python", {
@@ -97,7 +97,7 @@ result = {{'glsl_created': True}}
 
     print("[3/10] Creating HUD text overlays...")
     labels = [
-        ("FORGE NPS", 48, 0.0, 0.8, 1.0, 640, 60),
+        ("CINESMITH NPS", 48, 0.0, 0.8, 1.0, 640, 60),
         ("CAMPAIGN: EP15_HERO", 22, 0.74, 0.0, 1.0, 300, 40),
         ("SHOTS: 24", 20, 0.0, 1.0, 0.4, 150, 40),
         ("AUDIT: 87%", 20, 1.0, 0.9, 0.0, 150, 40),
@@ -202,7 +202,7 @@ win.par.winopen = False
 
 recorder = root.create(moviefileoutTOP, 'recorder')
 recorder.par.type = 'movie'
-recorder.par.file = '/tmp/forge_command_center_output.mov'
+recorder.par.file = '/tmp/cinesmith_command_center_output.mov'
 recorder.par.videocodec = 'prores'
 recorder.par.fps = 30
 recorder.inputConnectors[0].connect(out_null.outputConnectors[0])
@@ -221,11 +221,11 @@ result = {{'saved_to': '{OUTPUT_TOE}'}}
 
     print("[9/10] DONE")
     print(f"\nOpen: {OUTPUT_TOE}")
-    print("Record: /tmp/forge_command_center_output.mov")
+    print("Record: /tmp/cinesmith_command_center_output.mov")
 
 
 def generate_glsl():
-    return '''// Forge NPS Command Center — HUD Visualization
+    return '''// Cinesmith Command Center — HUD Visualization
 // Futuristic dashboard-inspired data visualization
 
 uniform float uTime;

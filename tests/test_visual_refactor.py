@@ -30,7 +30,7 @@ async def test():
     print("Testing C4 (Workflow loading)...")
     wf = await agent.load_workflow("z_image_turbo")
     # Since B1 might not be fully completed in this environment's file system 
-    # (we didn't copy files from forge), it might return empty dict.
+    # (we didn't copy files from cinesmith), it might return empty dict.
     # We check if the method itself works without crashing.
     print(f"C4 PASS - Workflow load returned: {type(wf)}")
 

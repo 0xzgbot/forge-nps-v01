@@ -56,6 +56,18 @@ def prompt_standard_skills_for_workflow(workflow_id: str = "", model_family: str
     return skills
 
 
+def flux_dev_ignores_negative_prompts(workflow_id: str = "", model_family: str = "") -> bool:
+    wf = str(workflow_id or "").lower()
+    family = str(model_family or "").lower()
+    if "klein" in wf or "klein" in family:
+        return False
+    return family == "flux2-dev" or wf in {
+        "01_flux2_text_to_image",
+        "spark_image_flux2_text_to_image",
+        "spark_image_flux2_text_to_image_turbo",
+    }
+
+
 def _has_any(text: str, patterns: List[str]) -> bool:
     low = text.lower()
     return any(p in low for p in patterns)
@@ -222,12 +234,25 @@ def _composition_fidelity_clauses(prompt: str, render_type: str = "") -> List[st
     return parts
 
 
+def _looks_like_realistic_human_prompt(prompt: str) -> bool:
+    low = str(prompt or "").lower()
+    human_terms = re.search(
+        r"\b(?:human|person|people|portrait|headshot|selfie|face|skin|woman|women|man|men|male|female|girl|boy|adult|model|actor|actress|cast|doctor|nurse|chef|barista|athlete|trainer|coach|teacher|student|ceo|founder|lawyer|parent|mother|father)\b",
+        low,
+    )
+    if not human_terms:
+        return False
+    if re.search(r"\b(?:photoreal|photo[- ]?real|realistic|realism|documentary|editorial|lifestyle|cinematic|street photo|fashion photo|portrait photo|natural light|studio portrait|headshot)\b", low):
+        return True
+    return bool(re.search(r"\b(?:portrait|headshot|selfie|model|actor|actress|face|skin|people|person|woman|man|female|male)\b", low))
+
+
 def _flux_positive_specificity(prompt: str, render_type: str = "") -> List[str]:
     kind = str(render_type or "").lower()
     parts: List[str] = []
     if kind == "sheet":
         parts.append(
-            "visible natural skin texture, individual hair strands, fabric weave, seam stitching, shoe material grain, accurate hand anatomy"
+            "visible natural skin texture, skin imperfections, individual hair strands, fabric weave, seam stitching, shoe material grain, accurate hand anatomy"
         )
         parts.append(
             "controlled studio optics, 70mm portrait lens for face panels, 50mm full-body lens for turnaround panels, even softbox catchlights"
@@ -263,6 +288,13 @@ def _flux_positive_specificity(prompt: str, render_type: str = "") -> List[str]:
         "lighting source: motivated real light source with direction, color temperature, catchlights, practical reflections, grounded shadows",
         ["softbox", "window light", "tungsten", "sunlight", "rim light", "practical", "color temperature", "catchlight"],
     )
+    if _looks_like_realistic_human_prompt(prompt):
+        _append_missing(
+            parts,
+            prompt,
+            "realistic human skin detail: skin imperfections, visible pores, faint blemishes, subtle under-eye texture, tiny asymmetries, natural non-plastic facial planes",
+            ["skin imperfections", "realistic human skin detail"],
+        )
     _append_missing(
         parts,
         prompt,
