@@ -1,5 +1,4 @@
-from typing import Any, Dict, List, Optional
-from pathlib import Path
+from typing import Any, Dict
 
 class MCPToolDefinition:
     """Standardized structure for defining tools to be exposed via MCP."""

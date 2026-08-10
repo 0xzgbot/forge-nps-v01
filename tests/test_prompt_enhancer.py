@@ -1,5 +1,4 @@
 import sys
-import os
 from pathlib import Path
 
 # Add project root to sys.path so we can import core modules
@@ -74,7 +73,7 @@ def test_prompt_enhancer():
 if __name__ == "__main__":
     try:
         test_prompt_enhancer()
-    except Exception as e:
+    except Exception:
         import traceback
         traceback.print_exc()
         sys.exit(1)

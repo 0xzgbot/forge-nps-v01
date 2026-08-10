@@ -288,7 +288,6 @@ async def api_wizard_state():
 
 @router.post("/api/product/wizard-state")
 async def api_wizard_save(req: WizardSaveRequest):
-    import json
     from core.script_projects import now_iso, write_json_atomic
 
     path = repo_root() / "data" / "first_run_wizard.json"
@@ -381,7 +380,7 @@ async def api_product_review(req: ReviewDecisionRequest):
             recovery="Refresh the gallery, then open the frame again.",
         )
 
-    from core.script_projects import now_iso, write_json_atomic
+    from core.script_projects import now_iso
     from pathlib import Path
     import json
 
@@ -525,7 +524,7 @@ async def api_failure_auto_status():
 @router.post("/api/product/failure-auto-consolidate")
 async def api_failure_auto_run(force: bool = Query(False)):
     """Trigger failure consolidation now (force=1) or note-only status."""
-    from core.hermes.memory.failure_auto_consolidate import consolidate_failures, get_status, note_failure
+    from core.hermes.memory.failure_auto_consolidate import consolidate_failures, get_status
 
     if force:
         result = consolidate_failures(reason="manual_api")

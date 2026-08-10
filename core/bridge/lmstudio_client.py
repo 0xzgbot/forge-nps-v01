@@ -86,7 +86,7 @@ class LMStudioClient:
             with urllib.request.urlopen(req, timeout=self.timeout) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
                 return [m.get("id", "") for m in data.get("data", [])]
-        except Exception as e:
+        except Exception:
             return []
 
     async def auto_detect_model(self) -> Tuple[bool, List[str], str]:
@@ -178,7 +178,6 @@ class LMStudioClient:
         json_mode: bool = False,
     ) -> Dict[str, Any]:
         """Async wrapper — runs sync chat in thread pool."""
-        import asyncio
         return await asyncio.get_event_loop().run_in_executor(
             None,
             self.chat,

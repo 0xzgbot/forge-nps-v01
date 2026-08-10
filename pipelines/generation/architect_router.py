@@ -1,4 +1,3 @@
-import os
 import json
 from typing import Dict, Any
 from abc import ABC, abstractmethod
@@ -59,7 +58,7 @@ class LTX23Generator(BaseKernelGenerator):
         video_prompt = f"{concept}, {motion_descriptors}, 4k resolution quality, consistent textures, high dynamic range."
         
         return {
-            "prompt": f"{concept}, {motion_descriptors}, 4k resolution quality, consistent textures, high dynamic range.",
+            "prompt": video_prompt,
             "parameters": {
                 "fps": 24, 
                 "motion_bucket": 127, 
@@ -81,7 +80,7 @@ class Wan21Generator(BaseKernelGenerator):
         
 
         return {
-            "prompt": f"{concept}, {motion_descriptors}, extremely detailed textures, consistent temporal stability.",
+            "prompt": video_prompt,
             "parameters": {
                 "fps": 30, 
                 "motion_strength": 0.8, 
@@ -130,7 +129,7 @@ class ArchitectRouter:
         kernel_id = self.intent_to_kernel.get(intent, "flux_2_dev")
         print(f"[ARCHITECT] Routing intent '{intent}' -> Kernel ID '{kernel_id}'")
         if anchor_data:
-            print(f"[ARCHITECT] Applying Anchor Data for visual continuity.")
+            print("[ARCHITECT] Applying Anchor Data for visual continuity.")
 
         try:
             generator = KernelFactory.get_generator(kernel_id)

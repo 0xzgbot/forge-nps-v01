@@ -464,7 +464,7 @@ class KimiDirectorService:
                     if attempt < retries:
                         await asyncio.sleep(1.5 * (attempt + 1))
                         continue
-                    raise RuntimeError(last_error)
+                    raise RuntimeError(last_error) from e
         raise RuntimeError(last_error or "self_check_failed")
 
     async def revise_plan(

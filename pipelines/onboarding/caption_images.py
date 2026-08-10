@@ -1,5 +1,4 @@
 import os
-import sys
 import argparse
 import re
 from pathlib import Path
@@ -40,7 +39,6 @@ def caption_images(slug):
     count = 0
 
     for png in png_files:
-        img_path = os.path.join(images_dir, png)
         txt_path = os.path.join(images_dir, os.path.splitext(png)[0] + ".txt")
 
         # 3. Robust Metadata Extraction via Regex from filename

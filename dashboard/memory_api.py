@@ -10,7 +10,6 @@ Provides structured data for visualizing Hermes memory:
 import json
 from pathlib import Path
 from typing import Dict, List, Any
-from datetime import datetime
 from collections import Counter
 
 REPO_ROOT = Path(__file__).parent.parent.resolve()

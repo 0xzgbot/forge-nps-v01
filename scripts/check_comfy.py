@@ -26,7 +26,7 @@ def run_health_check():
         # 1. Health check
         is_online, stats = client.check_health(HOST, port)
         if is_online:
-            print(f"  STATUS: [ONLINE]")
+            print("  STATUS: [ONLINE]")
             # Print some basic system info if available
             if 'system_stats' in stats:
                 print(f"  System Info: {stats['system_stats']}")
@@ -36,7 +36,7 @@ def run_health_check():
 
         # 2. Model check
         # Note: list_models is tricky; we'll try to find if required models are in the object_info or similar
-        print(f"  Searching for required models...")
+        print("  Searching for required models...")
         available_models = client.list_models(HOST, port)
         
         # The plan implies checking specific filenames. 

@@ -9,12 +9,11 @@ from pathlib import Path
 import pytest
 
 from core.consistency_scorecard import score_story_consistency
-from core.cinesmith_env import repo_root
 from core.media_probe import probe_media, resolve_media_path
 from core.memory_suggestions import build_suggestions
-from core.script_projects import load_script_project, safe_script_id, script_projects_dir, write_json_atomic
+from core.script_projects import write_json_atomic
 from core.story_export import build_story_package_zip
-from dashboard.errors import CinesmithAPIError, error_payload
+from dashboard.errors import error_payload
 
 
 def test_error_payload_shape():

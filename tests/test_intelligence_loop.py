@@ -1,6 +1,5 @@
 import pytest
-import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 from core.orchestrator.cinesmith_orchestrator import CinesmithOrchestrator
 
 @pytest.mark.asyncio

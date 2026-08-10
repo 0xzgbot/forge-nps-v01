@@ -1,7 +1,6 @@
 import asyncio
 import argparse
 import logging
-import os
 import sys
 from pathlib import Path
 
@@ -103,7 +102,7 @@ class CinesmithOrchestrator:
         success_count = sum(1 for r in submission_results if r['status'] == 'success')
         fail_count = len(submission_results) - success_count
         
-        print(f"\nSummary:")
+        print("\nSummary:")
         print(f"  - Project:      {project_name or idea}")
         print(f"  - Shots Total:  {len(prompt_batch)}")
         print(f"  - Successful:   {success_count}")

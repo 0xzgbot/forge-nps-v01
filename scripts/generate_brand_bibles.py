@@ -3,7 +3,6 @@
 Generate brand bibles for all 7 hackathon campaigns via Kimi K2.5 (NVIDIA NIM).
 """
 import asyncio
-import json
 import logging
 import sys
 from pathlib import Path

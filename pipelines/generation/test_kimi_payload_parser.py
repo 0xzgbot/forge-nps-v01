@@ -1,5 +1,5 @@
 import unittest
-from kimi_payload_parser import KimiPayloadParser
+from core.parsing.kimi_payload_parser import KimiPayloadParser
 
 class TestKimiPayloadParser(unittest.TestCase):
     def setUp(self):

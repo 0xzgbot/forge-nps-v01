@@ -1,11 +1,9 @@
 import unittest
-from unittest.mock import AsyncMock, MagicMock, patch
-import asyncio
+from unittest.mock import AsyncMock, MagicMock
 
 # Import the class to test
 # Since we are in a script context, we need to ensure paths are correct
 import sys
-import os
 from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 

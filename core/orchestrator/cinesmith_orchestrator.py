@@ -10,7 +10,6 @@ from core.hermes.hermes_agent import HermesAgent
 from agents.auditor.continuity_auditor import ContinuityAuditor
 from core.feedback.remediation_loop import RemediationLoop
 from core.consistency.character_consistency_engine import CharacterConsistencyEngine
-from core.prompts.director_system_prompt import DIRECTOR_SYSTEM_PROMPT
 
 class CinesmithOrchestrator:
     """
@@ -93,8 +92,12 @@ class CinesmithOrchestrator:
                 print(f"[ERROR] Hermes dispatch failed: {e}")
                 hermes_results = []
 
-            for shot, result in zip(shots, hermes_results):
+            # Join dispatch results to shots by shot_id — position-based zip silently
+            # drops shots when dispatch returns fewer results (e.g. after a failure).
+            results_by_id = {str(r.get("shot_id")): r for r in hermes_results}
+            for shot in shots:
                 shot_id = shot.get("shot_id", "UNKNOWN")
+                result = results_by_id.get(str(shot_id), {})
                 asset_path = result.get("asset_path", "")
                 description = result.get("description", "")
 
@@ -187,7 +190,7 @@ class CinesmithOrchestrator:
                 print(f"[WARNING] Memory consolidation skipped: {e}")
 
         summary = self.sm.get_session_summary()
-        print(f"--- PIPELINE COMPLETE ---")
+        print("--- PIPELINE COMPLETE ---")
         return summary
 
     async def run_idea_workflow(self, idea: str) -> Dict[str, Any]:
@@ -209,7 +212,7 @@ class CinesmithOrchestrator:
         await self.sm.update_shot_status("SHOT_001", "complete", {"asset_path": "data/outputs/mock_shot.png"})
         
         summary = self.sm.get_session_summary()
-        print(f"--- IDEA WORKFLOW COMPLETE ---")
+        print("--- IDEA WORKFLOW COMPLETE ---")
         return summary
 
 

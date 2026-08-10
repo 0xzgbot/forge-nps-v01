@@ -1,14 +1,14 @@
 from core.parsing.kimi_payload_parser import KimiPayloadParser
 from core.bridge.kimi_model_router import KimiModelRouter, ModelTier
 from core.prompts.director_system_prompt import DIRECTOR_SYSTEM_PROMPT, PREDICTION_ADDENDUM
+from core.skills.skill_registry import SkillRegistry
 
 import os
 import json
 import httpx
 import logging
 import base64
-from pathlib import Path
-from typing import Dict, List, Any, Optional, Type, TypeVar
+from typing import Dict, Any, Optional, Type, TypeVar
 from pydantic import BaseModel, ValidationError
 
 logging.basicConfig(level=logging.INFO)
@@ -27,7 +27,7 @@ class StrictSchemaGuard:
             try:
                 data = json.loads(data)
             except json.JSONDecodeError as e:
-                raise ValueError(f"Invalid JSON string: {e}")
+                raise ValueError(f"Invalid JSON string: {e}") from e
         
         return schema.model_validate(data)
 
@@ -192,8 +192,7 @@ class KimiBridge:
                     logger.error(f"Failed to read context file {file_path}: {e}")
 
         full_prompt = f"{context_text}\n\n{user_input}"
-        json_payload = {"response_format": {"type": "json_object"}} if json_mode else None
-        kwargs_for_execute = {"retry_on_validation_error": retry_on_validation_error, "task_description": task_description, "has_visuals": has_visuals}
+        kwargs_for_execute = {"retry_on_validation_error": retry_on_validation_error, "task_description": task_description, "has_visuals": has_visuals, "json_mode": json_mode}
         if model_name is not None:
             kwargs_for_execute["model_name_override"] = model_name
         if temperature is not None:
@@ -214,7 +213,6 @@ class KimiBridge:
         Constructs a mega-prompt following the critical [WORLD BIBLE] -> [CHARACTER REGISTRY] -> [FULL SCRIPT] -> [HISTORICAL SKILL LEARNINGS] -> [DIRECTOR TASK v2] order.
         """
         from core.script.script_parser import ScriptParser
-        from core.skills.skill_registry import SkillRegistry
 
         try:
             # 1. Parse the full script using ScriptParser (J10)
@@ -355,9 +353,9 @@ class KimiBridge:
         task_description: Optional[str] = None,
         has_visuals: bool = False,
         model_name_override: Optional[str] = None,
-        temp_override: Optional[float] = None
+        temp_override: Optional[float] = None,
+        json_mode: bool = False
     ) -> Dict[str, Any]:
-        from core.bridge.kimi_model_router import KimiModelRouter
         
         # 1. Routing Decision
         router = KimiModelRouter(self.config_manager) # Note: requires config_manager to be passed in __init__
@@ -376,8 +374,8 @@ class KimiBridge:
             "chat_template_kwargs": {"thinking": False, "enable_thinking": False}
         }
         
-        # Only enforce JSON output when a schema is provided
-        if schema is not None:
+        # Only enforce JSON output when a schema is provided (or JSON mode explicitly requested)
+        if schema is not None or json_mode:
             payload["response_format"] = {"type": "json_object"}
         
         async with httpx.AsyncClient(timeout=600.0) as client:

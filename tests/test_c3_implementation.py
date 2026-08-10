@@ -1,4 +1,3 @@
-from core.bridge.kimi_bridge import KimiBridge
 from pydantic import BaseModel
 
 class MockSchema(BaseModel):

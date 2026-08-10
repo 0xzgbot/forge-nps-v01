@@ -1,8 +1,7 @@
 import asyncio
 import logging
 import re
-from typing import List, Dict, Any, Optional
-from pathlib import Path
+from typing import List, Dict, Any
 
 logger = logging.getLogger("AssetPromptGenerator")
 

@@ -196,11 +196,12 @@ result = {'cleaned': True}
 
     table_text = "\n".join(rows)
 
+    triple_quote = '"""'
     td_call("td_execute_python", {
         "script": f"""
 root = op('/project1')
 tbl = root.create(tableDAT, 'event_data')
-tbl.text = """{table_text}"""
+tbl.text = {triple_quote}{table_text}{triple_quote}
 result = {{'rows': {len(rows)}}}
 """
     })
@@ -382,7 +383,7 @@ result = {{'saved_to': '{OUTPUT_TOE}'}}
     print("  5. Click the 'recorder' TOP, set 'Record' to ON")
     print("  6. Let it run for 30-60 seconds")
     print("  7. Set 'Record' to OFF")
-    print(f"  8. Video saved to: /tmp/cinesmith_memory_graph_output.mov")
+    print("  8. Video saved to: /tmp/cinesmith_memory_graph_output.mov")
     print("\nTIPS:")
     print("  - Non-Commercial TD caps at 1280x1280 (we use 1280x720)")
     print("  - ProRes codec works without a commercial license on macOS")

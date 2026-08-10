@@ -19,7 +19,7 @@ import json
 import logging
 from pathlib import Path
 from dataclasses import dataclass, field
-from typing import Dict, List, Set, Optional, Any
+from typing import Dict, List, Optional, Any
 
 logger = logging.getLogger("ComfyPayloadValidator")
 
@@ -298,7 +298,7 @@ def print_scan_summary(results: Dict[str, ValidationReport]):
     invalid = total - valid
 
     print(f"\n{'='*60}")
-    print(f"  Payload Validation Scan")
+    print("  Payload Validation Scan")
     print(f"{'='*60}")
     print(f"  Total files scanned: {total}")
     print(f"  Valid:   {valid}")

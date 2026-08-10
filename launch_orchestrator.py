@@ -1,6 +1,5 @@
 
 import sys
-import os
 import asyncio
 from pathlib import Path
 
@@ -15,7 +14,7 @@ from core.bridge.config_manager import ConfigManager
 async def main():
     print("--- CINESMITH NPS LAUNCHER STARTING ---")
     cfg = ConfigManager()
-    orch = CinesmithOrchestrator(cfg, "hackathon_demo_001")
+    orch = CinesmithOrchestrator(config_manager=cfg, session_id="hackathon_demo_001")
     
     # Using the paths identified in the plan
     script = "scripts/demo/pilot_script.md"

@@ -167,8 +167,6 @@ class KimiVLClient(KimiBridge):
         image_base64: Raw base64 string (NO data: URI prefix)
         mime_type: image/jpeg or image/png
         """
-        import json
-        import re
         import logging
         from pydantic import BaseModel
 

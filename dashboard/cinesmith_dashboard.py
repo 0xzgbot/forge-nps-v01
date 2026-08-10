@@ -45,7 +45,7 @@ from .memory_api import (
     search_memory,
     get_memory_health,
 )
-from .api.prompt_builder import load_banks, build_recipe, generate_random_recipe, save_banks
+from .api.prompt_builder import load_banks, build_recipe, save_banks
 from .api.spark_monitor import monitor as spark_monitor
 from core.dispatch.comfy_client import ComfyUIClient
 from core.affiliate.local_spark_media import LocalSparkMediaAdapter
@@ -2808,7 +2808,7 @@ def _persist_shots(source_path: Path, shots: List[Dict[str, Any]]) -> None:
         shots_path = source_dir / "shots.json"
         with open(shots_path, "w") as f:
             json.dump(shots, f, indent=2)
-    except Exception as e:
+    except Exception:
         # Also try project-level directory
         try:
             shots_path = source_path.parent.parent / "shots.json"
@@ -4184,6 +4184,7 @@ async def _run_script_pipeline_job(job_id: str, req: ScriptPipelineStartRequest)
 
         panel_jobs: Dict[str, Any] = {}
         _pipeline_log(job, "frames", "Queueing storyboard panel start frames")
+        asset_vault_package = _asset_vault_package_by_id(req.asset_vault_package_id) if (req.asset_vault_package_id or "").strip() else None
         adapter = _make_local_spark_media_adapter()
         for board in storyboard_plan.get("boards", []) if isinstance(storyboard_plan.get("boards"), list) else []:
             if not isinstance(board, dict):
@@ -6501,7 +6502,6 @@ async def api_video_sync_jobs(req: VideoJobSyncRequest):
 async def api_video_generate_prompts(req: VideoGeneratePromptsRequest):
     """Stream LTX video prompt generation via Vision analysis + Hermes prompt profiles."""
     from fastapi.responses import StreamingResponse
-    import asyncio
 
     shot_ids = [str(x) for x in req.shot_ids]
     duration = int(req.duration or 4)
@@ -7510,7 +7510,6 @@ async def api_hermes_teach(req: TeachModeRequest):
 
     hermes = HermesAgent()
     episodic = hermes.episodic
-    semantic = hermes.semantic
 
     # Build the "before" prompt (with error)
     base_prompt = req.concept
@@ -8398,7 +8397,6 @@ async def api_test_nim():
 
 async def api_restart():
     """Trigger graceful shutdown. Uvicorn should be running with --reload or managed by systemd."""
-    import sys
     import threading
 
     def _delayed_exit():

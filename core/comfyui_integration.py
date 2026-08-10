@@ -1,7 +1,5 @@
 import asyncio
 import logging
-import json
-import os
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 
@@ -14,10 +12,10 @@ class ComfyUIBatchSubmitter:
     and polling/retrieval for the Cinesmith production pipeline.
     """
 
-    def __init__(self, 
-                 hosts: List[str] = ["http://localhost:8188", "http://localhost:8189"],
+    def __init__(self,
+                 hosts: Optional[List[str]] = None,
                  poll_interval: int = 5):
-        self.hosts = hosts
+        self.hosts = hosts if hosts is not None else ["http://localhost:8188", "http://localhost:8189"]
         self.poll_interval = poll_interval
         self.active_jobs = []
 

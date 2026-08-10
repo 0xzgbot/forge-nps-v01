@@ -46,13 +46,9 @@ def generate_sheets(project_slug, host="localhost", port=8188):
         print(f"\nProcessing Character {char_num}...")
 
         name_match = re.search(r'\|- Name \(internal reference\): (.*)', block)
-        desc_match = re.search(r'\|- Description: (.*)', block)
-        trigger_match = re.search(r'\|- Trigger word: (.*)', block)
         sample_labels_match = re.search(r'\|- Sample labels: \[(.*)\]', block)
 
         char_name = name_match.group(1).strip() if name_match else f"char_{char_num}"
-        description = desc_match.group(1).strip() if desc_match else "detailed portrait"
-        trigger_word = trigger_match.group(1).strip() if trigger_match else f"{project_slug}_char{char_num}"
         sample_labels = [s.strip() for s in sample_labels_match.group(1).split(',')] if sample_labels_match else ["hair", "eyes", "nose", "lips", "ears", "skin"]
 
         sheets = [

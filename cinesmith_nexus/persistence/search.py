@@ -1,7 +1,6 @@
 import math
 import re
 from collections import Counter
-from pathlib import Path
 from typing import List, Dict, Any
 
 class BM25Searcher:

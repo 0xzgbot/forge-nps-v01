@@ -272,7 +272,7 @@ class CharacterConsistencyEngine:
                 logger.info(f"Injected Redux anchor for {character_name} into node {node_id}")
                 break
         else:
-            logger.debug(f"No FluxReduxImageEncoder node found; skipping Redux injection")
+            logger.debug("No FluxReduxImageEncoder node found; skipping Redux injection")
 
         return wf
 

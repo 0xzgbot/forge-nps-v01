@@ -160,6 +160,5 @@ class ComfyUIParser:
         return type_map.get(node_data.get("class_type"), ["UNKNOWN"])
     
     def _extract_prompt_refs(self, text: str) -> List[str]:
-        import re
         refs = re.findall(r'\{\{prompt\.(\w+)\}\}', text)
         return refs

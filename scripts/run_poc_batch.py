@@ -1,5 +1,4 @@
 import json
-import requests
 from typing import List, Dict, Any
 import os
 from pathlib import Path
@@ -99,14 +98,14 @@ class PoCGenerator:
                 # response.raise_for_status()
                 
                 # For PoC validation in this environment, we simulate success if injection was attempted
-                print(f"[SUCCESS] Dispatched successfully (Simulated).")
+                print("[SUCCESS] Dispatched successfully (Simulated).")
                 results.append({"concept": concept, "kernel": kernel_id, "status": "dispatched"})
             except Exception as e:
                 # If it's a connection error, we treat it as 'simulated success' for the purpose of this PoC 
                 # unless the user specifically wants to test network connectivity.
                 if "Connection refused" in str(e) or "Max retries exceeded" in str(e):
-                    print(f"[INFO] ComfyUI not detected (Connection Refused). Proceeding with Simulation Mode.")
-                    print(f"[SUCCESS] Dispatched successfully (Simulation Mode).")
+                    print("[INFO] ComfyUI not detected (Connection Refused). Proceeding with Simulation Mode.")
+                    print("[SUCCESS] Dispatched successfully (Simulation Mode).")
                     results.append({"concept": concept, "kernel": kernel_id, "status": "dispatched_simulated"})
                 else:
                     print(f"[ERROR] API dispatch failed: {e}")

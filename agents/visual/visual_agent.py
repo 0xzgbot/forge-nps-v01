@@ -1,7 +1,6 @@
 import logging
 import json
-import asyncio
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 from pathlib import Path
 
 from core.routing.architect_router import ArchitectRouter
@@ -41,7 +40,7 @@ class VisualAgent:
             enriched = self.character_engine.enrich_prompt(description, detect=True)
             if enriched != description:
                 concept = enriched
-                logger.info(f"[CONSISTENCY] Prompt enriched for character lock")
+                logger.info("[CONSISTENCY] Prompt enriched for character lock")
 
         result = self.router.route(intent, concept)
         
@@ -49,7 +48,6 @@ class VisualAgent:
             raise ValueError(f"Routing failed: {result['message']}")
         
         payload = result["payload"]
-        prompt_text = result["prompt"]
         
         # Append quality constants
         quality = get_quality_constants()
@@ -208,7 +206,6 @@ class VisualAgent:
         Supports frame_guidance and motion_strength.
         """
         await self._ensure_connectivity()
-        intent = "video_generation" # Default for video
         payload = await self._build_kernel_payload(shot_data, model_hint="ltx_2_3")
         
         # Extract parameters (frame_guidance, motion_strength) from shot_data if present
@@ -238,6 +235,20 @@ class VisualAgent:
                 if node_info.get("class_type") == "LoadImage":
                     node_info["inputs"]["image"] = Path(anchor_image_path).name
                     break
+
+        # Inject the kernel-generated prompt text into the workflow's text node
+        # (previously the generated video prompt was discarded — LTX ran with default text)
+        prompt_content = payload.get("prompt", "")
+        if isinstance(prompt_content, dict):
+            prompt_content = prompt_content.get("text", "")
+        text_injected = False
+        for node_id, node_info in full_payload["prompt"].items():
+            if node_info.get("class_type") == "CLIPTextEncode" and "text" in node_info.get("inputs", {}):
+                node_info["inputs"]["text"] = str(prompt_content)
+                text_injected = True
+                break
+        if not text_injected:
+            logger.warning("[VisualAgent] No CLIPTextEncode node found in LTX workflow — prompt text not injected")
 
         try:
             response = await self.dispatcher.dispatch(full_payload)

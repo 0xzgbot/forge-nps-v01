@@ -23,7 +23,7 @@ class ScriptParser:
             with open(script_path, 'r', encoding='utf-8') as f:
                 content = f.read()
         except FileNotFoundError:
-            raise FileNotFoundError(f"Script file not found at {script_path}")
+            raise FileNotFoundError(f"Script file not found at {script_path}") from None
 
         parsed_data = {
             "title": "",

@@ -13,7 +13,7 @@ import math
 import os
 from abc import ABC, abstractmethod
 from collections import Counter
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 import numpy as np
 

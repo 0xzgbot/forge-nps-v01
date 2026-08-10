@@ -10,7 +10,6 @@ from __future__ import annotations
 import json
 import logging
 import os
-import re
 import uuid
 from collections import Counter
 from datetime import datetime

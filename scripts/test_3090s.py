@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import asyncio, json, logging, time, uuid
+import asyncio, logging, time, uuid
 from pathlib import Path
 import httpx
 

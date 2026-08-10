@@ -5,7 +5,6 @@ Tests for ComfyPayloadValidator and ComfyRemediationHarness.
 import pytest
 import json
 import os
-import tempfile
 from pathlib import Path
 
 PROJECT_ROOT = str(Path(__file__).resolve().parents[1])

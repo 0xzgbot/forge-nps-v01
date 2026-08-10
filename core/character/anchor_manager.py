@@ -3,7 +3,6 @@ CharacterAnchorManager — extracts character names from shot descriptions,
 loads matching anchor images, and wires them into Kimi-VL audits.
 """
 import re
-import os
 import logging
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -43,16 +42,16 @@ _FALSE_POSITIVES = {
     "Always", "Often", "Sometimes", "Usually", "Generally", "Normally",
     "Specifically", "Particularly", "Especially", "Indeed", "Certainly",
     "Obviously", "Clearly", "Apparently", "Seemingly", "Presumably",
-    "Probably", "Possibly", "Perhaps", "Maybe", "Perhaps", "Likely",
+    "Probably", "Possibly", "Perhaps", "Maybe", "Likely",
     "Unlikely", "Surely", "Definitely", "Absolutely", "Completely",
     "Totally", "Entirely", "Wholly", "Fully", "Perfectly", "Exactly",
     "Precisely", "Accurately", "Correctly", "Rightly", "Properly",
-    "Appropriately", "Suitably", "Fittingly", "Suitably", "Well",
+    "Appropriately", "Suitably", "Fittingly", "Well",
     "Good", "Bad", "Great", "Excellent", "Amazing", "Wonderful",
     "Beautiful", "Gorgeous", "Stunning", "Breathtaking", "Magnificent",
     "Splendid", "Superb", "Fantastic", "Fabulous", "Terrific",
     "Outstanding", "Remarkable", "Extraordinary", "Exceptional",
-    "Incredible", "Unbelievable", "Amazing", "Astounding", "Astonishing",
+    "Incredible", "Unbelievable", "Astounding", "Astonishing",
     "Startling", "Shocking", "Surprising", "Unexpected", "Unforeseen",
     "Unanticipated", "Unpredicted", "Unimagined", "Unthought",
     "Unconceived", "Unenvisioned", "Unpictured", "Undreamed",

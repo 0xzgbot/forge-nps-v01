@@ -1,14 +1,12 @@
 
 import unittest
 import sys
-import asyncio
-import os
 from pathlib import Path
 
 # Ensure project root is in path
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
-from core.error_handling_protocols import ErrorHandler, TransientError, FatalError
+from core.error_handling_protocols import ErrorHandler, TransientError
 from agents.auditor.continuity_auditor import ContinuityAuditor
 
 class MockKimiBridge:

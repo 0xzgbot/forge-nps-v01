@@ -6,7 +6,6 @@ to all connected WebSocket clients.
 """
 
 import asyncio
-import json
 import time
 import os
 from pathlib import Path

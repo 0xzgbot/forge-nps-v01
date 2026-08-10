@@ -1,7 +1,5 @@
 import sys
-import os
 from pathlib import Path
-import json
 
 # Add project root to path to ensure imports work
 project_root = str(Path(__file__).resolve().parents[1])

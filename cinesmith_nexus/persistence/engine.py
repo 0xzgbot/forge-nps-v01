@@ -46,7 +46,6 @@ class SearchEngine:
             # 3. Index Workflows (Metadata & Node types)
             cursor.execute("SELECT id, raw_manifest FROM workflows")
             for row in cursor.fetchall():
-                import json
                 data = json.loads(row["raw_manifest"])
                 node_types = " ".join([n.get("class_type", "") for n in data.get("nodes", [])])
                 docs_to_index.append({

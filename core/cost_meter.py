@@ -12,7 +12,7 @@ import threading
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 # Rough public list prices (USD per image) — override via env or rates file.
 DEFAULT_RATES_USD: Dict[str, Dict[str, float]] = {

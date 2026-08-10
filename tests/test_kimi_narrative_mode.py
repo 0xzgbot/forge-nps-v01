@@ -1,9 +1,8 @@
 import unittest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 import os
 from pathlib import Path
 import json
-import asyncio
 from pydantic import BaseModel
 from core.bridge.kimi_bridge import KimiBridge
 

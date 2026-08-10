@@ -150,7 +150,6 @@ class HermesAgent:
         for shot in shot_list:
             shot_id = shot.get("shot_id", "UNKNOWN")
             concept = shot.get("description", "")
-            intent = shot.get("intent", "high_fidelity_image")
             kernel_id = shot.get("kernel_id", "zimage_turbo")
             error_category = shot.get("error_category")  # For post_failure mode
 

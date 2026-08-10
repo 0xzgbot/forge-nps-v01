@@ -1,7 +1,7 @@
 import logging
 import json
 import asyncio
-from typing import Dict, Any, List, Optional, Union
+from typing import Dict, Any, List
 from enum import Enum
 
 # Configure logging for the Auditor

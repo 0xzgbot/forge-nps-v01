@@ -6,7 +6,6 @@ Hermes queries this before acting: "Have I seen something like this before?"
 """
 
 import json
-import os
 import re
 import uuid
 from collections import Counter

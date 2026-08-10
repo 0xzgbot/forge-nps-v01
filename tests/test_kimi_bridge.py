@@ -3,7 +3,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from pydantic import BaseModel, Field
 import json
 import sys
-import os
 from pathlib import Path
 
 # Add the project root to sys.path so we can import modules correctly

@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Validate Cinesmith environment variables and service reachability."""
 
-import os
 import sys
 import time
 from pathlib import Path
@@ -36,7 +35,7 @@ def check_env_file():
     
     if not env_path.exists():
         print(f"{RED}[!] ERROR: .env file not found.{RESET}")
-        print(f"    Please copy the template: cp .env.template .env")
+        print("    Please copy the template: cp .env.template .env")
         return False, env_path
     
     if not template_path.exists():
@@ -106,6 +105,7 @@ def estimate_nim_latency(endpoint):
         # Note: Some APIs might reject HEAD, so we use GET if needed
         response = requests.get(endpoint, timeout=5)
         latency = (time.time() - start_time) * 1000
+        response.close()
         return f"{GREEN}{latency:.2f}ms{RESET}"
     except Exception:
         return f"{RED}N/A (Check connectivity){RESET}"
@@ -159,7 +159,7 @@ def main():
 
     # 5. Final Result
     print(f"\n{BLUE}========================================={RESET}")
-    print(f"Launch with: bash scripts/launch_cinesmith.sh")
+    print("Launch with: bash scripts/launch_cinesmith.sh")
     if vars_ok and "Unreachable" not in p_status and "Unreachable" not in s_status:
         print(f"{GREEN}SUCCESS: Environment is ready for use.{RESET}")
         sys.exit(0)

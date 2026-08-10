@@ -1,10 +1,8 @@
 import pytest
-import asyncio
 import os
 from pathlib import Path
-import json
 import shutil
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 # Add project root to sys.path for imports
 PROJECT_ROOT = str(Path(__file__).resolve().parents[1])

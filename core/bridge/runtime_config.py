@@ -8,7 +8,7 @@ This lets the dashboard Settings page modify configuration without rewriting .en
 import json
 import os
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 REPO_ROOT = Path(__file__).parent.parent.parent.resolve()
 CONFIG_PATH = REPO_ROOT / "data" / "config.json"

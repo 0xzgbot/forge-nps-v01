@@ -26,13 +26,11 @@ import logging
 import time
 import random
 from pathlib import Path
-from datetime import datetime
 from typing import Dict, List, Optional, Any, Tuple
 
 from core.dispatch.comfy_payload_validator import (
     ComfyPayloadValidator,
     ValidationReport,
-    scan_project_payloads,
 )
 from core.dispatch.comfy_client import ComfyUIClient
 
@@ -363,14 +361,14 @@ class ComfyRemediationHarness:
     def print_report(self, summary: Dict):
         """Pretty-print a summary to stdout."""
         print(f"\n{'='*60}")
-        print(f"  Remediation Harness Report")
+        print("  Remediation Harness Report")
         print(f"{'='*60}")
         print(f"  Scanned:      {summary['stats']['scanned']}")
         print(f"  Valid Images: {summary['stats']['valid_image']}")
         print(f"  Valid Anchors:{summary['stats']['valid_anchor']}")
         print(f"  Video Desc:   {summary['stats']['video_descriptors']}")
         print(f"  Corrupt:      {summary['stats']['corrupt']}")
-        print(f"  ─────────────────────────")
+        print("  ─────────────────────────")
         print(f"  Submitted:    {summary['submitted']}")
         print(f"  Succeeded:    {summary['succeeded']}")
         print(f"  Failed:       {summary['failed']}")
@@ -383,7 +381,6 @@ class ComfyRemediationHarness:
 # ------------------------------------------------------------------
 
 async def main():
-    import sys
     import argparse
 
     parser = argparse.ArgumentParser(description="ComfyUI Remediation Harness")

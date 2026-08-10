@@ -1,7 +1,7 @@
 import time
 import random
 import logging
-from typing import Callable, Any, TypeVar, List
+from typing import Callable, TypeVar
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

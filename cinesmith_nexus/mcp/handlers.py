@@ -1,15 +1,13 @@
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 # Local imports assuming standard package structure
 try:
     from cinesmith_nexus.persistence.engine import SearchEngine
-    from cinesmith_nexus.persistence.manager import PersistenceManager
     from cinesmith_nexus.graph.engine import GraphEngine
 except ImportError:
     from persistence.engine import SearchEngine
-    from persistence.manager import PersistenceManager
     from graph.engine import GraphEngine
 
 class CinesmithMCPHandlers:
@@ -42,10 +40,7 @@ class CinesmithMCPHandlers:
         if not asset_id:
             return {"error": "Missing required argument: 'asset_id'"}
 
-        # We use the persistence manager to query the raw manifest from DB
-        from cinesmith_nexus.persistence.manager import PersistenceManager
-        pm = PersistenceManager(self.project_path)
-        
+        # We use sqlite directly to query the raw manifest from DB
         import sqlite3
         with sqlite3.connect(self.project_path / ".cinesmith-nexus" / "cinesmith.db") as conn:
             conn.row_factory = sqlite3.Row

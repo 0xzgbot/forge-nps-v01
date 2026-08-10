@@ -49,7 +49,6 @@ class PromptEnhancer:
         params = {}
 
         # Extract base style name and any provided overrides
-        style_name = style.get("name", "default")
         overrides = style.get("parameters", {})
         params.update(overrides)
 
@@ -92,7 +91,6 @@ class PromptEnhancer:
 
 if __name__ == "__main__":
     # Quick smoke test
-    import os
     # Create a dummy lighting bank for the test
     dummy_bank = "/tmp/test_lighting.txt"
     with open(dummy_bank, "w", encoding="utf-8") as f:

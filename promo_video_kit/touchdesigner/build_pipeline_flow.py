@@ -232,7 +232,7 @@ result = {'grain': 'wired'}
 
     print("[7/9] Creating output, window, recorder...")
     td_call("td_execute_python", {
-        "script": f"""
+        "script": """
 root = op('/project1')
 
 out_null = root.create(nullTOP, 'out')
@@ -251,7 +251,7 @@ recorder.par.videocodec = 'prores'
 recorder.par.fps = 30
 recorder.inputConnectors[0].connect(out_null.outputConnectors[0])
 
-result = {{'output_ready': True}}
+result = {'output_ready': True}
 """
     })
 

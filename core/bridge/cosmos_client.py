@@ -4,8 +4,7 @@ import time
 import logging
 import asyncio
 import httpx
-from typing import Dict, Any, Optional, List, Type
-from pydantic import BaseModel, ValidationError
+from typing import Dict, Any, Optional, List
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

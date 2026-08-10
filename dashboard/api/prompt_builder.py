@@ -6,8 +6,8 @@ Serves variation bank items and generates recipes from user selections.
 
 import json
 import random
-import hashlib
 import re
+import sys
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 

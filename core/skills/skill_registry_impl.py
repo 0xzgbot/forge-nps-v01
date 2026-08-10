@@ -1,7 +1,5 @@
 
-import json
-import os
-from typing import Dict, List, Any, Optional
+from typing import Dict, Any, Optional
 
 class InMemorySkillRegistry:
     def __init__(self):

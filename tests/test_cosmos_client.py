@@ -2,7 +2,6 @@ import unittest
 from unittest.mock import AsyncMock, patch, MagicMock
 import json
 import httpx
-import asyncio
 from core.bridge.cosmos_client import (
     CosmosClient, 
     CosmosClientError, 

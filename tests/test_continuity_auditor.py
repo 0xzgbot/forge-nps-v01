@@ -1,6 +1,4 @@
 import pytest
-import asyncio
-from unittest.mock import MagicMock, patch
 from agents.auditor.continuity_auditor import ContinuityAuditor, ErrorCategory
 
 @pytest.mark.asyncio
@@ -67,5 +65,4 @@ async def test_audit_batch_global_warning():
 
 if __name__ == "__main__":
     # Allow running tests directly via python
-    import sys
     pytest.main([__file__])

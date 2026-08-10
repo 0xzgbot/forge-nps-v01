@@ -1,7 +1,6 @@
-import asyncio
 import logging
 import re
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any
 from core.bridge.kimi_bridge import KimiBridge
 
 logger = logging.getLogger(__name__)
@@ -83,7 +82,6 @@ class ScriptGenerator:
         Parses the generated markdown into a structured dict for the engine.
         Uses regex to identify scenes and their metadata blocks.
         """
-        import re
         
         scenes = []
         # Split by scene headers: ## SCENE 1: ...

@@ -1,8 +1,6 @@
 from pathlib import Path
 import json
-import hashlib
 from datetime import datetime
-from typing import List, Dict, Any
 
 # Import parsers - relative imports used assuming indexer is run as part of the package
 try:

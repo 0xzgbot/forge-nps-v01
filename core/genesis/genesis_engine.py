@@ -1,8 +1,6 @@
-import asyncio
-import json
 import logging
 import os
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, Optional
 from pathlib import Path
 
 from core.bridge.kimi_bridge import KimiBridge
@@ -110,7 +108,6 @@ class GenesisEngine:
         }
 
         # Copy files to the project folder for local containment
-        import shutil
         shutil.copy(world_bible_path, project_path / "world_bible.md")
         shutil.copy(script_path, project_path / "pilot_script.md")
 
@@ -120,4 +117,3 @@ class GenesisEngine:
         return manifest
 
 import re
-import shutil

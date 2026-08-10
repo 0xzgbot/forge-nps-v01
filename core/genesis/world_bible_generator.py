@@ -1,7 +1,5 @@
-import asyncio
-import json
 import logging
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any
 from core.bridge.kimi_bridge import KimiBridge
 
 logger = logging.getLogger(__name__)
@@ -133,5 +131,4 @@ class WorldBibleGenerator:
 
 if __name__ == "__main__":
     # Quick manual test logic
-    import asyncio
     from core.bridge.kimi_bridge import KimiBridge

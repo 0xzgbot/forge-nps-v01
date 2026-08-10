@@ -138,11 +138,12 @@ result = {'cleaned': True}
         rows.append(row)
     table_text = "\n".join(rows)
 
+    triple_quote = '"""'
     td_call("td_execute_python", {
         "script": f"""
 root = op('/project1')
 tbl = root.create(tableDAT, 'event_data')
-tbl.text = """{table_text}"""
+tbl.text = {triple_quote}{table_text}{triple_quote}
 result = {{'rows': {len(rows)}}}
 """
     })
@@ -303,7 +304,7 @@ result = {'grain': 'wired'}
 
     print("[7/10] Creating output, window, recorder...")
     td_call("td_execute_python", {
-        "script": f"""
+        "script": """
 root = op('/project1')
 
 out_null = root.create(nullTOP, 'out')
@@ -322,7 +323,7 @@ recorder.par.videocodec = 'prores'
 recorder.par.fps = 30
 recorder.inputConnectors[0].connect(out_null.outputConnectors[0])
 
-result = {{'output_ready': True}}
+result = {'output_ready': True}
 """
     })
 
@@ -360,14 +361,14 @@ result = {{'saved_to': '{OUTPUT_TOE}'}}
     print("=" * 60)
     print(f"\nProject saved to: {OUTPUT_TOE}")
     print("\nNEXT STEPS:")
-    print(f"  1. Open TouchDesigner")
+    print("  1. Open TouchDesigner")
     print(f"  2. File → Open → {OUTPUT_TOE}")
     print("  3. Optional: drag AudioFileIn CHOP → AudioSpectrum → Math → CHOPtoTOP")
     print("  4. Press F1 to enter Perform Mode")
     print("  5. Click 'recorder' TOP, set 'Record' to ON")
     print("  6. Let it run for 30-60 seconds")
     print("  7. Set 'Record' to OFF")
-    print(f"  8. Video saved to: /tmp/cinesmith_memory_graph_v2_output.mov")
+    print("  8. Video saved to: /tmp/cinesmith_memory_graph_v2_output.mov")
 
 
 def generate_glsl_shader():

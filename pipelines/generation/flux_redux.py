@@ -1,9 +1,20 @@
 import os
 import json
-import re
-from datetime import datetime
 from pathlib import Path
-from hermes_tools import terminal, json_parse
+try:
+    from hermes_tools import terminal, json_parse
+except ImportError:
+    # Standalone fallback (outside the Hermes agent runtime)
+    import json as _json
+    import subprocess
+
+    def terminal(command, **kwargs):
+        """Run a shell command and return {exit_code, output}."""
+        result = subprocess.run(command, shell=True, capture_output=True, text=True)
+        return {"exit_code": result.returncode, "output": result.stdout + result.stderr}
+
+    def json_parse(text):
+        return _json.loads(text)
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -22,7 +33,6 @@ class FluxReduxGenerator:
             raise FileNotFoundError(f"Reference image not found: {image_path}")
         
         # Using curl via terminal for robust upload handling
-        filename = os.path.basename(image_path)
         cmd = f"curl -X POST -F 'image=@{image_path}' {self.base_url}/upload/image"
         result = terminal(command=cmd)
         if result['exit_code'] != 0:
