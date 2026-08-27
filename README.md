@@ -11,12 +11,13 @@
 <h1 align="center">Cinesmith</h1>
 
 <p align="center">
-  <em>formerly Forge NPS</em> · <strong>A Hermes-led virtual agency for cinematic AI production — in real time.</strong>
+  <em>formerly Forge NPS</em> · <strong>A fully local cinematic AI pipeline — in real time.</strong>
 </p>
 
 <p align="center">
-  You brief Hermes like an executive producer. Hermes plans, compiles, renders, audits, remediates, and remembers.
-  Kimi Moonshot supports planning/critique. Spark executes images and video. This is an agency runtime — not a fixed “script runner.”
+  You brief a <strong>custom Hermes agent</strong> like an executive producer. It plans, compiles, renders, audits, remediates, and remembers —
+  a pipeline of models, not a prompt pile. Runs fully local: <strong>DGX Spark</strong> plus <strong>dual RTX 3090s</strong> with multiple ComfyUI instances.
+  Hermes lives in this repo’s <code>hermes_home/</code> and <strong>does not touch your existing Hermes</strong> (<code>~/.hermes</code> stays yours).
 </p>
 
 <p align="center">
@@ -53,7 +54,7 @@ python3 scripts/preflight_desktop_spark.py
 # open http://127.0.0.1:7000 → Settings → Test connections → Images / Stories / Videos
 ```
 
-- **Isolation:** repo `hermes_home/` only (not `~/.hermes`).
+- **Isolation:** repo `hermes_home/` only. Cinesmith **does not modify** your global Hermes (`~/.hermes` stays untouched unless you set `CINESMITH_ALLOW_GLOBAL_HERMES=1`).
 - **Media:** sibling `CINESMITH_MEDIA` or `./media`.
 - **Smoke:** `python3 scripts/smoke_cinesmith.py --base-url http://127.0.0.1:7000`
 
