@@ -19,6 +19,7 @@ from core.cinesmith_env import hermes_isolated_env, repo_root
 from core.hermes.bots.crew import CREW_BY_KEY
 from core.hermes.bots.runtime import BotRuntime
 from core.hermes.bots.store import BotStore
+from core.hermes.produce import render as produce_render
 
 STAGES = ("story", "script", "storyboard", "video", "edit", "done", "blocked")
 
@@ -67,15 +68,23 @@ class ProduceService:
             raise FileNotFoundError(job_id)
         meta = self._read_meta(path)
         files = {}
-        for name in ("prompt.md", "story.md", "script.md", "shots.json", "storyboard.md", "edit.json", "STATUS.md"):
+        for name in ("prompt.md", "story.md", "script.md", "shots.json", "storyboard.md", "edit.json", "STATUS.md", "characters.md", "product.md"):
             target = path / name
             if target.exists():
                 files[name] = target.read_text(encoding="utf-8")[:20000]
-        clips = sorted(str(p.name) for p in path.glob("*.mp4")) + sorted(str(p.name) for p in path.glob("*.webm"))
-        stills = sorted(str(p.name) for p in path.glob("*.png")) + sorted(str(p.name) for p in path.glob("*.jpg"))
+        media = produce_render.list_media(path)
+        clips = media["clips"]
+        stills = media["stills"]
+        shots = produce_render.load_shots(path)
+        edit = produce_render.load_edit(path)
         stage = self._stage_from_status(files.get("STATUS.md", ""))
-        if files.get("edit.json") and clips:
+        if (path / "cut.mp4").exists():
+            stage = "done" if stage != "blocked" else stage
+        elif files.get("edit.json") and clips:
             stage = "edit" if stage not in {"done", "blocked"} else stage
+        elif clips:
+            if stage in {"story", "script", "storyboard"}:
+                stage = "video"
         elif files.get("storyboard.md") or files.get("shots.json"):
             if stage in {"story", "script"}:
                 stage = "storyboard"
@@ -89,6 +98,9 @@ class ProduceService:
             "files": files,
             "clips": clips,
             "stills": stills,
+            "shots": shots,
+            "edit": edit,
+            "cut": "cut.mp4" if (path / "cut.mp4").exists() else "",
             "error": meta.get("error") or "",
             "llm": meta.get("llm") or {},
             "profile": meta.get("profile") or "producer",
@@ -186,7 +198,11 @@ class ProduceService:
             f"{brief}\n\n"
             f"Job directory (already created): {path}\n"
             f"Your usual artifact is {artifact}. The producer keeps STATUS.md honest.\n"
-            "Write real files. If Spark is down, stop at the last real file and mark STATUS blocked. "
+            "Write real files. Call the produce tools when Spark/3090s are up:\n"
+            f"  POST $CINESMITH_API/api/produce/{path.name}/render-board  {{shot_id}}\n"
+            f"  POST $CINESMITH_API/api/produce/{path.name}/render-take   {{shot_id, mode: i2va|t2va|fl2va|r2va}}\n"
+            f"  POST $CINESMITH_API/api/produce/{path.name}/assemble\n"
+            "If Spark is down, stop at the last real file and mark STATUS blocked. "
             "Adapt. Do not run a fake checklist."
         )
 

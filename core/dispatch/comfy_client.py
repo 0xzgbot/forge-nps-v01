@@ -10,6 +10,60 @@ from core.dispatch.lora_presets import LORA_PRESETS, available_lora_names, infer
 
 logger = logging.getLogger(__name__)
 
+MEDIA_OUTPUT_KEYS = ("images", "gifs", "videos", "animated", "files", "audio")
+VIDEO_SUFFIXES = {".mp4", ".webm", ".mov", ".m4v", ".gif", ".webp"}
+H3_PROMPT_TYPES = ("MiniMaxH3ImageToVideo", "MiniMaxH3ReferenceToVideo")
+H3_TEXT_TYPES = ("CLIPTextEncode", "GemmaAPITextEncode", "CLIPTextEncodeFlux", "T5TextEncode") + H3_PROMPT_TYPES
+
+
+def align_h3_length(frames: int) -> int:
+    """Snap frame count to MiniMax H3's 17k+5 grid (124 ≈ 5s at 24fps)."""
+    n = max(5, int(frames or 0))
+    while n % 17 != 5:
+        n += 1
+    return n
+
+
+def iter_history_media(outputs: dict):
+    """Yield {filename, subfolder, type, media_key} from a Comfy /history outputs block."""
+    if not isinstance(outputs, dict):
+        return
+    for node_output in outputs.values():
+        if not isinstance(node_output, dict):
+            continue
+        for media_key in MEDIA_OUTPUT_KEYS:
+            items = node_output.get(media_key)
+            if not items:
+                continue
+            if isinstance(items, dict):
+                items = [items]
+            if not isinstance(items, list):
+                continue
+            for item in items:
+                if not isinstance(item, dict):
+                    continue
+                filename = item.get("filename")
+                if not filename:
+                    continue
+                yield {
+                    "filename": filename,
+                    "subfolder": item.get("subfolder", ""),
+                    "type": item.get("type", "output"),
+                    "media_key": media_key,
+                }
+
+
+def first_output_filename(outputs: dict) -> str | None:
+    items = list(iter_history_media(outputs))
+    if not items:
+        return None
+    for item in items:
+        suffix = Path(str(item.get("filename") or "")).suffix.lower()
+        if suffix in VIDEO_SUFFIXES:
+            return item["filename"]
+    return items[0]["filename"]
+
+
 class ComfyUIClient:
     def __init__(self, base_url: str):
         # base_url should include protocol and host/port, e.g., http://localhost:8188
@@ -19,7 +73,7 @@ class ComfyUIClient:
         """Returns True/False + system info"""
         try:
             async with httpx.AsyncClient() as client:
-                response = await client.get(f"{self.base_url}/system_stats", timeout=5.0)
+                response = await client.get(f"{self.base_url}/system_stats", timeout=2.0)
                 if response.status_code == 200:
                     return True, response.json()
                 return False, {"error": f"Status code {response.status_code}"}
@@ -288,6 +342,9 @@ class ComfyUIClient:
                     inputs["text"] = negative_default
                 elif inputs["text"] == "" or inputs["text"] is None:
                     inputs["text"] = prompt or "cinematic still frame"
+            if class_type in H3_PROMPT_TYPES:
+                if not str(inputs.get("prompt") or "").strip():
+                    inputs["prompt"] = prompt or "cinematic shot with native stereo audio."
 
     @staticmethod
     def _apply_lora_profile(nodes: dict, object_info: dict, profile_key: str = "") -> dict:
@@ -362,6 +419,16 @@ class ComfyUIClient:
             return {}
         if "prompt" in workflow and isinstance(workflow["prompt"], dict):
             return workflow["prompt"]
+
+        # Already Comfy API format: {"1": {"class_type": "...", "inputs": {...}}, ...}
+        if "nodes" not in workflow and any(
+            isinstance(value, dict) and value.get("class_type") for value in workflow.values()
+        ):
+            return {
+                str(key): value
+                for key, value in workflow.items()
+                if isinstance(value, dict) and value.get("class_type")
+            }
 
         nodes = workflow.get("nodes")
         links = workflow.get("links")
@@ -610,11 +677,10 @@ class ComfyUIClient:
                     if response.status_code == 200:
                         data = response.json()
                         if prompt_id in data:
-                            # Job complete, extract filenames from outputs
                             outputs = data[prompt_id].get("outputs", {})
-                            for node_id, node_output in outputs.items():
-                                if "images" in node_output and len(node_output["images"]) > 0:
-                                    return node_output["images"][0]["filename"]
+                            filename = first_output_filename(outputs)
+                            if filename:
+                                return filename
                     await asyncio.sleep(5)
                 except Exception as e:
                     logger.error(f"Error polling job: {e}")
@@ -654,47 +720,33 @@ class ComfyUIClient:
                         if isinstance(no, dict)
                     ),
                 )
-                media_keys = ("images", "gifs", "videos", "animated", "files")
-                for node_id, node_output in outputs.items():
-                    if not isinstance(node_output, dict):
+                for img_data in iter_history_media(outputs):
+                    filename = img_data.get("filename")
+                    if not filename:
                         continue
-                    for media_key in media_keys:
-                        items = node_output.get(media_key)
-                        if not items:
-                            continue
-                        if isinstance(items, dict):
-                            items = [items]
-                        if not isinstance(items, list):
-                            continue
-                        for img_data in items:
-                            if not isinstance(img_data, dict):
-                                continue
-                            filename = img_data.get("filename")
-                            if not filename:
-                                continue
-                            subfolder = img_data.get("subfolder", "")
-                            file_type = img_data.get("type", "output")
+                    subfolder = img_data.get("subfolder", "")
+                    file_type = img_data.get("type", "output")
 
-                            download_url = f"{self.base_url}/view"
-                            params = {
-                                "filename": filename,
-                                "type": file_type,
-                                "subfolder": subfolder,
-                            }
+                    download_url = f"{self.base_url}/view"
+                    params = {
+                        "filename": filename,
+                        "type": file_type,
+                        "subfolder": subfolder,
+                    }
 
-                            try:
-                                resp = await client.get(download_url, params=params, timeout=60.0)
-                            except Exception as e:
-                                logger.error(f"download_outputs: GET /view failed for {filename}: {e}")
-                                continue
-                            if resp.status_code == 200:
-                                target_file = output_path / filename
-                                with open(target_file, "wb") as f:
-                                    f.write(resp.content)
-                                saved_files.append(str(target_file))
-                                logger.info(f"download_outputs: saved {target_file}")
-                            else:
-                                logger.error(f"Failed to download {filename}: Status {resp.status_code}")
+                    try:
+                        resp = await client.get(download_url, params=params, timeout=60.0)
+                    except Exception as e:
+                        logger.error(f"download_outputs: GET /view failed for {filename}: {e}")
+                        continue
+                    if resp.status_code == 200:
+                        target_file = output_path / filename
+                        with open(target_file, "wb") as f:
+                            f.write(resp.content)
+                        saved_files.append(str(target_file))
+                        logger.info(f"download_outputs: saved {target_file}")
+                    else:
+                        logger.error(f"Failed to download {filename}: Status {resp.status_code}")
 
         except Exception as e:
             logger.error(f"Error in download_outputs: {e}")
@@ -772,6 +824,11 @@ class ComfyUIClient:
         target_fps = int(fps or 0)
         target_duration = int(duration or 0)
         target_frames = target_duration * target_fps if target_duration and target_fps else 0
+        if target_frames and any(
+            isinstance(node, dict) and node.get("class_type") in H3_PROMPT_TYPES
+            for node in nodes.values()
+        ):
+            target_frames = align_h3_length(target_frames)
 
         load_image_slots = []
         for node in nodes.values():
@@ -787,6 +844,8 @@ class ComfyUIClient:
                 is_negative = sum(1 for m in negative_markers if m in existing) >= 1
                 if not is_negative:
                     inputs["text"] = prompt
+            if class_type in H3_PROMPT_TYPES:
+                inputs["prompt"] = prompt
             if uploaded_name and class_type in ("LoadImage", "LoadImageMask", "VHS_LoadImagePath"):
                 load_image_slots.append(inputs)
             if class_type in ("KSampler", "SamplerCustom", "SamplerCustomAdvanced") and "seed" in inputs:

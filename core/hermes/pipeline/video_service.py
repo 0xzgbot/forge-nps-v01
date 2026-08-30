@@ -9,13 +9,15 @@ from PIL import Image
 
 from core.bridge.runtime_config import get_raw_config
 from core.dispatch.comfy_client import ComfyUIClient
+from core.dispatch.capability_router import CapabilityRouter
+from core.dispatch.workflows import capability_for_workflow
 from core.hermes.platform_skills import platform_prompt_clause
 from .profile_cli import HermesProfileCLI
 from .role_skill_mapper import role_skill_scope
 
 
 class HermesVideoService:
-    FIRST_LAST_WORKFLOW_MARKERS = ("first_last", "first-last", "firstlast")
+    FIRST_LAST_WORKFLOW_MARKERS = ("first_last", "first-last", "firstlast", "fl2v", "fl2va")
     FIRST_LAST_WORKFLOW_ID = "05_ltx2.3_first_last_frame_to_video"
 
     def __init__(
@@ -33,6 +35,26 @@ class HermesVideoService:
         self.resolve_image_path = resolve_image_path
         self.workflow_file_for_id = workflow_file_for_id
         self.profile_cli = HermesProfileCLI()
+
+    async def _pick_video_client(self, workflow_id: str) -> Dict[str, Any]:
+        cfg = get_raw_config()
+        router = CapabilityRouter(cfg)
+        require_h3 = "h3" in str(workflow_id).lower() or "minimax" in str(workflow_id).lower()
+        host = await router.host_for_workflow(workflow_id, require_h3=require_h3)
+        if not host:
+            # Configured Spark URL is still the only video target. Do not fail
+            # over onto 3090s; unit tests also rely on this configured host.
+            host = router.spark_url()
+        if not host:
+            cap = capability_for_workflow(workflow_id)
+            return {
+                "error": {
+                    "status": "error",
+                    "error": "comfy_not_configured",
+                    "message": f"No healthy {cap} host. Spark is required for H3/LTX; 3090s are not used for video.",
+                }
+            }
+        return {"host": host, "client": ComfyUIClient(host)}
 
     @staticmethod
     def is_first_last_workflow(workflow_id: str = "") -> bool:
@@ -246,6 +268,7 @@ class HermesVideoService:
         allow_failed_override: bool = False,
         end_shot_id: Optional[str] = None,
         end_image_path: Optional[str] = None,
+        identity_image_paths: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
         if not shot_ids:
             return {"status": "error", "error": "shot_ids_required"}
@@ -256,26 +279,11 @@ class HermesVideoService:
         if not wf:
             return {"status": "error", "error": f"workflow_missing:{workflow_id}"}
 
-        cfg = get_raw_config()
-        primary = (os.getenv("COMFYUI_PRIMARY", "") or str(cfg.get("COMFYUI_PRIMARY", "")) or "").rstrip("/")
-        secondary = (os.getenv("COMFYUI_SECONDARY", "") or str(cfg.get("COMFYUI_SECONDARY", "")) or "").rstrip("/")
-        hosts = [h for h in [primary, secondary] if h]
-        if not hosts:
-            return {"status": "error", "error": "comfy_not_configured", "message": "Set COMFYUI_PRIMARY in Settings."}
-        dedup_hosts: List[str] = []
-        for h in hosts:
-            if h not in dedup_hosts:
-                dedup_hosts.append(h)
-
-        host = dedup_hosts[0]
-        client = ComfyUIClient(host)
-        for candidate in dedup_hosts:
-            probe = ComfyUIClient(candidate)
-            ok, _ = await probe.check_health()
-            if ok:
-                host = candidate
-                client = probe
-                break
+        picked = await self._pick_video_client(workflow_id)
+        if picked.get("error"):
+            return picked["error"]
+        host = picked["host"]
+        client = picked["client"]
         campaign_id = (self.active_campaign_getter() or "video_batch").strip() or "video_batch"
         output_dir = self.media_videos / campaign_id
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -410,6 +418,10 @@ class HermesVideoService:
             # First/last (or explicit end): map start+end into LoadImage slots via image_paths.
             if resolved_end_path:
                 submit_kwargs["image_paths"] = [image_path, resolved_end_path]
+            refs = [str(p) for p in (identity_image_paths or []) if str(p or "").strip()]
+            if refs:
+                # R2VA: identity refs first, then the boarded still.
+                submit_kwargs["image_paths"] = refs + ([image_path] if image_path else [])
 
             submit = await client.submit_prompt_for_shot(**submit_kwargs)
             if submit.get("status") != "success":
@@ -471,26 +483,11 @@ class HermesVideoService:
         if not wf:
             return {"status": "error", "error": f"workflow_missing:{workflow_id}"}
 
-        cfg = get_raw_config()
-        primary = (os.getenv("COMFYUI_PRIMARY", "") or str(cfg.get("COMFYUI_PRIMARY", "")) or "").rstrip("/")
-        secondary = (os.getenv("COMFYUI_SECONDARY", "") or str(cfg.get("COMFYUI_SECONDARY", "")) or "").rstrip("/")
-        hosts = [h for h in [primary, secondary] if h]
-        if not hosts:
-            return {"status": "error", "error": "comfy_not_configured", "message": "Set COMFYUI_PRIMARY in Settings."}
-        dedup_hosts: List[str] = []
-        for h in hosts:
-            if h not in dedup_hosts:
-                dedup_hosts.append(h)
-
-        host = dedup_hosts[0]
-        client = ComfyUIClient(host)
-        for candidate in dedup_hosts:
-            probe = ComfyUIClient(candidate)
-            ok, _ = await probe.check_health()
-            if ok:
-                host = candidate
-                client = probe
-                break
+        picked = await self._pick_video_client(workflow_id)
+        if picked.get("error"):
+            return picked["error"]
+        host = picked["host"]
+        client = picked["client"]
 
         campaign_id = (self.active_campaign_getter() or "text_video_batch").strip() or "text_video_batch"
         output_dir = self.media_videos / campaign_id

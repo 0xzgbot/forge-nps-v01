@@ -15,6 +15,7 @@ metadata:
       - cinesmith-video
       - cinesmith-editor
       - cinesmith-character
+      - h3-prompt-writing
 ---
 
 # Cinesmith Produce
@@ -45,10 +46,20 @@ Do not fan out to everyone. Pick who the brief actually needs. A landscape piece
 |---|---|
 | `story.md` | Expanded narrative |
 | `script.md` | Scenes, action, dialogue, duration |
-| `shots.json` | `{id, purpose, visual, duration_sec, camera}` |
-| `storyboard.md` | Panels tied to shot ids |
+| `shots.json` | `{id, purpose, visual, duration_sec, camera, audio, h3_mode, still, clip, status}` |
+| `boards/` | 3090 stills |
+| `clips/` | Spark H3 mp4s |
 | `edit.json` | Ordered `{shot_id, clip}` when motion exists |
+| `cut.mp4` | ffmpeg assemble |
 | `STATUS.md` | One line: `story` / `script` / `storyboard` / `video` / `edit` / `done` / `blocked` |
+
+Tools (POST `$CINESMITH_API`):
+
+- `/api/produce/<job>/render-board` `{shot_id}`
+- `/api/produce/<job>/render-take` `{shot_id, mode}` (`t2va` scout / `i2va` / `fl2va` / `r2va`)
+- `/api/produce/<job>/assemble`
+
+Use `h3-prompt-writing` when writing H3 prompts.
 
 You keep `STATUS.md` honest. Update it when a real file lands.
 

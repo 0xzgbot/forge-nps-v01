@@ -15,7 +15,7 @@ CREW: List[Dict[str, object]] = [
         "artifact": "STATUS.md",
         "description": "Takes the prompt, hands work to specialists, keeps STATUS honest.",
         "color": "#1c1c1a",
-        "skills": ["cinesmith-produce"],
+        "skills": ["cinesmith-produce", "h3-prompt-writing"],
         "support": False,
     },
     {
@@ -55,7 +55,7 @@ CREW: List[Dict[str, object]] = [
         "artifact": "clips",
         "description": "Renders motion when Spark is up. Never fakes a clip.",
         "color": "#5a3d5c",
-        "skills": ["cinesmith-video"],
+        "skills": ["cinesmith-video", "h3-prompt-writing"],
         "support": False,
     },
     {
@@ -128,7 +128,8 @@ Teammates (message them with `message_agent` from this Bot Chat):
 - `@story` — narrative
 - `@script` — shootable script
 - `@storyboard` — shots and panels
-- `@video` — motion / Spark
+- `@video` — motion / Spark H3
+- `@editor` — combine clips into cut.mp4
 - `@editor` — combine clips
 - `@character` — visual DNA when faces matter
 - `@product` — when a real product is in the brief
@@ -153,19 +154,19 @@ I turn a story into a shootable script. Present tense. Scenes with action, dialo
 
 <!-- cinesmith-crew:storyboard -->
 
-I break a script into shots. I write `shots.json` as `{id, purpose, visual, duration_sec, camera}` and `storyboard.md` as panels tied to those ids. Fewer strong shots beat a long empty list.
+I break a script into shots. I write `shots.json` as `{id, purpose, visual, duration_sec, camera, audio, h3_mode}` and `storyboard.md` as panels tied to those ids. I POST render-board so the 3090s paint stills. Fewer strong shots beat a long empty list.
 """,
         "video": """# Video
 
 <!-- cinesmith-crew:video -->
 
-I turn storyboard shots into motion. I use Spark/Comfy when `$COMFYUI_PRIMARY` or `$CINESMITH_API` is up. I write clips into `$CINESMITH_PRODUCE_DIR`. If Spark is down I say so and stop. I never invent a filename.
+I turn storyboard shots into MiniMax H3 motion on Spark. I POST `$CINESMITH_API/api/produce/<job>/render-take` with `{shot_id, mode}`. I never invent a filename. If Spark is down I say so and stop.
 """,
         "editor": """# Editor
 
 <!-- cinesmith-crew:editor -->
 
-I combine shots. I write `edit.json` as an ordered list of `{shot_id, clip}` that only names files that exist. Story order unless the brief wants something else.
+I combine shots. I write `edit.json` as an ordered list of `{shot_id, clip}` that only names files that exist, then POST assemble so ffmpeg writes `cut.mp4` with audio kept.
 """,
         "character": """# Character
 

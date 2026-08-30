@@ -5360,26 +5360,13 @@ class ImportBatchRequest(BaseModel):
     report_path: str
 
 
-DEFAULT_VIDEO_WORKFLOW_ID = "04_ltx2.3_image_to_video"
-DEFAULT_TEXT_VIDEO_WORKFLOW_ID = "09_ltx23_text_to_video_draft_clean"
-VIDEO_WORKFLOW_LABELS = {
-    "04_ltx2.3_image_to_video": "LTX 2.3 Image-to-Video",
-    "05_ltx2.3_first_last_frame_to_video": "LTX 2.3 First/Last Frame",
-    "09_ltx23_text_to_video_draft_clean": "LTX 2.3 Text-to-Video Draft Clean",
-    "02_ltx2.3_T2V_I2V_distilled": "LTX 2.3 Text-to-Video",
-    "03_ltx2.3_T2V_two_stage": "LTX 2.3 Text-to-Video Two Stage",
-}
-VIDEO_WORKFLOW_FILE_ALIASES = {
-    "04_ltx2.3_image_to_video": "11_ltx23_image_to_video",
-    "04_ltx2.3_image_to_video_v1.1": "11_ltx23_image_to_video",
-    "04_ltx2.3_image_to_video_fp8": "14_ltx23_i2v_nvfp4",
-    "02_ltx2.3_T2V_I2V_distilled": "09_ltx23_text_to_video",
-    "03_ltx2.3_T2V_two_stage": "10_ltx23_text_to_video_two_stage",
-    "05_ltx2.3_first_last_frame_to_video": "12_ltx23_first_last_frame_to_video",
-    "07_ltx2.3_id_lora": "13_ltx23_id_lora",
-    # Character sheet: UI historically used 02_*; file renumbered to 04_* in workflows/.
-    "02_flux2_multi_reference_character_sheet": "04_flux2_multi_reference_character_sheet",
-}
+from core.dispatch.workflows import (
+    DEFAULT_TEXT_VIDEO_WORKFLOW_ID,
+    DEFAULT_VIDEO_WORKFLOW_ID,
+    VIDEO_WORKFLOW_FILE_ALIASES,
+    VIDEO_WORKFLOW_LABELS,
+    workflow_file_for_id as _core_workflow_file_for_id,
+)
 DISABLED_VIDEO_WORKFLOW_IDS: set[str] = set()
 
 
@@ -5567,33 +5554,7 @@ def _video_dimensions(resolution: str, aspect_ratio: str) -> tuple[int, int]:
 
 
 def _workflow_file_for_id(workflow_id: str) -> Optional[Path]:
-    requested = (workflow_id or "").strip()
-    alias = VIDEO_WORKFLOW_FILE_ALIASES.get(requested, "")
-    reverse_aliases = [
-        source
-        for source, target in VIDEO_WORKFLOW_FILE_ALIASES.items()
-        if target == requested
-    ]
-    workflow_ids = [requested]
-    if alias:
-        workflow_ids.append(alias)
-    workflow_ids.extend(reverse_aliases)
-    seen_ids: set[str] = set()
-    candidates = [
-        candidate
-        for wid in workflow_ids
-        if wid and not (wid in seen_ids or seen_ids.add(wid))
-        for candidate in [
-            REPO_ROOT / "workflows" / f"{wid}.json",
-            REPO_ROOT / "workflows" / f"{wid}_api.json",
-            REPO_ROOT / "workflows" / "_disabled_non_numbered" / f"{wid}.json",
-            REPO_ROOT / "workflows" / "_disabled_non_numbered" / f"{wid}_api.json",
-        ]
-    ]
-    for c in candidates:
-        if c.exists():
-            return c
-    return None
+    return _core_workflow_file_for_id(workflow_id)
 
 
 _COMFY_OBJECT_INFO_CACHE: Dict[str, Any] = {"host": "", "ts": 0.0, "data": None}
@@ -5725,12 +5686,14 @@ async def _workflow_missing_comfy_assets(workflow_id: str) -> List[Dict[str, str
 
 
 def _resolve_comfy_primary() -> str:
+    from core.dispatch.capability_router import CapabilityRouter
     cfg = get_raw_config()
-    host = (
+    host = CapabilityRouter(cfg).spark_url() or (
         os.getenv("COMFYUI_PRIMARY", "")
         or str(cfg.get("COMFYUI_PRIMARY", ""))
         or "http://localhost:8188"
-    ).strip().rstrip("/")
+    )
+    host = str(host).strip().rstrip("/")
     if host and not host.startswith(("http://", "https://")):
         host = "http://" + host
     return host
@@ -6194,6 +6157,18 @@ async def api_video_process(req: VideoProcessRequest):
     if not preflight.get("available"):
         raise HTTPException(status_code=404, detail=f"Workflow not found: {preflight.get('workflow_id')}")
     workflow_id = str(preflight["workflow_id"])
+    identity_paths: List[str] = []
+    if campaign_id_for_platform:
+        pack = (await api_get_campaign_identity(campaign_id_for_platform)).get("identity_pack") or {}
+        from core.character.identity_attach import resolve_anchor_paths
+        identity_paths = resolve_anchor_paths(
+            pack,
+            search_dirs=[MEDIA_IDENTITY_ASSETS / campaign_id_for_platform, MEDIA_IDENTITY_ASSETS],
+        )
+        if identity_paths and ("h3" in workflow_id.lower() or "minimax" in workflow_id.lower()):
+            r2v = "23_minimax_h3_reference_to_video"
+            if _workflow_file_for_id(r2v):
+                workflow_id = r2v
     result = await service.process(
         shot_ids=[str(x) for x in req.shot_ids],
         workflow_id=workflow_id,
@@ -6209,6 +6184,7 @@ async def api_video_process(req: VideoProcessRequest):
         require_audit_pass=bool(req.require_audit_pass),
         allow_failed_override=bool(req.allow_failed_override),
         end_shot_id=str(req.end_shot_id).strip() if req.end_shot_id else None,
+        identity_image_paths=identity_paths or None,
     )
     if result.get("status") == "error":
         err = str(result.get("error") or "video_process_error")
@@ -9807,14 +9783,18 @@ def _default_character_workflow_path(workflow_id: str = "") -> Optional[Path]:
 
 
 def _character_host_from_config() -> str:
+    from core.dispatch.capability_router import CapabilityRouter
     cfg = get_raw_config()
-    comfyui = cfg.get("comfyui", {}) if isinstance(cfg.get("comfyui"), dict) else {}
-    host = (
-        os.getenv("COMFYUI_PRIMARY", "")
-        or str(cfg.get("COMFYUI_PRIMARY", ""))
-        or str(comfyui.get("primary", ""))
-        or ""
-    ).strip().rstrip("/")
+    host = CapabilityRouter(cfg).stills_a_url() or CapabilityRouter(cfg).spark_url()
+    if not host:
+        comfyui = cfg.get("comfyui", {}) if isinstance(cfg.get("comfyui"), dict) else {}
+        host = (
+            os.getenv("COMFYUI_PRIMARY", "")
+            or str(cfg.get("COMFYUI_PRIMARY", ""))
+            or str(comfyui.get("primary", ""))
+            or ""
+        )
+    host = str(host or "").strip().rstrip("/")
     if host and not host.startswith(("http://", "https://")):
         host = "http://" + host
     return host

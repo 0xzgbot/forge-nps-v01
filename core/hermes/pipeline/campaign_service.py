@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any, AsyncIterator, Awaitable, Callable, Dict, List, Optional
 
 from core.dispatch.comfy_client import ComfyUIClient
+from core.dispatch.capability_router import CapabilityRouter
 from core.prompts.prompt_compiler import compile_prompt_artifact
 from core.prompts.prompt_standards import apply_model_prompt_standard, flux_dev_ignores_negative_prompts
 from core.bridge.runtime_config import get_raw_config
@@ -1253,12 +1254,19 @@ class HermesCampaignService:
         yield {"type": "kimi", "profile_color_key": director_profile_key, "role_label": director_role, "text": f"Shot list ready: {len(kimi_shots)} shots (requested {target_shots})"}
 
         cfg = get_raw_config()
-        host = (
-            os.getenv("COMFYUI_PRIMARY", "")
-            or str(cfg.get("COMFYUI_PRIMARY", ""))
-        ).rstrip("/")
+        try:
+            host = await CapabilityRouter(cfg).host_for("stills")
+        except Exception:
+            host = ""
         if not host:
-            yield {"type": "error", "text": "Campaign stopped: COMFYUI_PRIMARY is not configured."}
+            host = (
+                os.getenv("COMFYUI_STILLS_A", "")
+                or os.getenv("COMFYUI_SECONDARY", "")
+                or os.getenv("COMFYUI_PRIMARY", "")
+                or str(cfg.get("COMFYUI_STILLS_A", "") or cfg.get("COMFYUI_SECONDARY", "") or cfg.get("COMFYUI_PRIMARY", ""))
+            ).rstrip("/")
+        if not host:
+            yield {"type": "error", "text": "Campaign stopped: no stills host (set 3090 A/B or Spark in Connect)."}
             yield {"type": "done", "text": "Campaign stopped before Spark dispatch."}
             return
         comfy = ComfyUIClient(host)

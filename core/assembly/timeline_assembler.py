@@ -1,32 +1,25 @@
 import os
 import logging
-from typing import Any, Dict
+import shutil
+import subprocess
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
+
 class TimelineAssembler:
     """
-    Implements J13: Consolidates session metadata, shot assets, and audio 
-    into a single production manifest.
+    Consolidates session metadata, shot assets, and audio into a production
+    manifest, then (optionally) runs ffmpeg concat while keeping stereo audio.
     """
 
     def __init__(self):
         self.logger = logger
 
     async def assemble(self, session_id: str, session_summary: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Ingests a session summary and shot list to create a final production manifest.
-        
-        Args:
-            session_id: Unique identifier for the session.
-            session_summary: Dictionary containing 'metadata' and 'shots'.
-            
-        Returns:
-            A consolidated production manifest dictionary.
-        """
         self.logger.info(f"Assembling timeline for session: {session_id}")
 
-        # Extract metadata from summary
         metadata = session_summary.get("metadata", {})
         shot_list = session_summary.get("shots", [])
 
@@ -36,13 +29,12 @@ class TimelineAssembler:
                 "autonomy_score": metadata.get("autonomy_score"),
                 "total_shots": len(shot_list),
                 "learnings": metadata.get("learnings", []),
-                "created_at": metadata.get("created_at")
+                "created_at": metadata.get("created_at"),
             },
-            "production_shots": []
+            "production_shots": [],
         }
 
         for index, shot in enumerate(shot_list):
-            # Build per-shot details
             shot_entry = {
                 "sequence_order": index,
                 "asset_path": shot.get("asset_path"),
@@ -51,10 +43,9 @@ class TimelineAssembler:
                 "iterations": shot.get("iterations", 1),
                 "kimi_reasoning": shot.get("kimi_reasoning_trace"),
                 "final_prompt": shot.get("final_prompt"),
-                "audit_status": shot.get("audit_status", "pending")
+                "audit_status": shot.get("audit_status", "pending"),
             }
 
-            # Graceful handling of missing asset paths with warnings in the manifest
             if not shot_entry["asset_path"] or not os.path.exists(shot_entry["asset_path"]):
                 self.logger.warning(f"Missing or invalid asset path for shot {index}: {shot_entry['asset_path']}")
                 shot_entry["warning"] = f"Asset path missing or unreachable: {shot_entry['asset_path']}"
@@ -68,35 +59,75 @@ class TimelineAssembler:
         self.logger.info(f"Assembly complete for session {session_id} with {len(manifest['production_shots'])} shots.")
         return manifest
 
-    def export_ffmpeg_manifest(self, assembly: Dict[str, Any]) -> str:
-        """
-        Generates an ffmpeg concat script path.
-        Simulated/placeholder for hackathon demo purposes.
-        
-        Args:
-            assembly: The consolidated production manifest.
-            
-        Returns:
-            Path to the generated ffmpeg concat script.
-        """
-        self.logger.info("Generating ffmpeg concat script (simulated)...")
-        
-        # In a real implementation, this would write a text file with 'file /path/to/asset' lines
-        # For the hackathon demo, we return a placeholder path.
-        placeholder_path = f"/tmp/cinesmith_{assembly['session_id']}_concat.txt"
-        
-        # Simulate writing the file (optional but good for demonstration)
+    def export_ffmpeg_manifest(self, assembly: Dict[str, Any], dest: Optional[str] = None) -> str:
+        """Write an ffmpeg concat demuxer list for existing clip files."""
+        session_id = str(assembly.get("session_id") or "session")
+        placeholder_path = dest or f"/tmp/cinesmith_{session_id}_concat.txt"
         try:
             with open(placeholder_path, "w", encoding="utf-8") as f:
-                f.write("# Simulated ffmpeg concat script\n")
+                f.write("ffconcat version 1.0\n")
                 for shot in assembly.get("production_shots", []):
-                    if shot.get("asset_path") and os.path.exists(shot["asset_path"]):
-                        f.write(f"file '{os.path.abspath(shot['asset_path'])}'\n")
+                    asset = shot.get("asset_path")
+                    if asset and os.path.exists(asset):
+                        escaped = os.path.abspath(asset).replace("'", r"'\''")
+                        f.write(f"file '{escaped}'\n")
                     else:
-                        f.write(f"# Skipping missing asset: {shot.get('asset_path')}\n")
-            self.logger.info(f"Simulated concat script created at: {placeholder_path}")
+                        f.write(f"# Skipping missing asset: {asset}\n")
+            self.logger.info(f"Concat script created at: {placeholder_path}")
         except Exception as e:
-            self.logger.error(f"Failed to simulate ffmpeg manifest export: {e}")
+            self.logger.error(f"Failed to write ffmpeg manifest: {e}")
             return ""
-
         return placeholder_path
+
+    def export_cut(
+        self,
+        clips: List[Path],
+        output: Path,
+        *,
+        keep_audio: bool = True,
+    ) -> Dict[str, Any]:
+        """Concat clips with ffmpeg. Prefer stream copy; re-encode if needed. Keep stereo."""
+        ffmpeg = shutil.which("ffmpeg")
+        if not ffmpeg:
+            return {"ok": False, "error": "ffmpeg_not_installed", "output": ""}
+        existing = [Path(c) for c in clips if Path(c).exists()]
+        if not existing:
+            return {"ok": False, "error": "no_clips", "output": ""}
+        output = Path(output)
+        output.parent.mkdir(parents=True, exist_ok=True)
+        concat_path = output.with_suffix(".concat.txt")
+        lines = ["ffconcat version 1.0\n"]
+        for path in existing:
+            escaped = path.resolve().as_posix().replace("'", r"'\''")
+            lines.append(f"file '{escaped}'\n")
+        concat_path.write_text("".join(lines), encoding="utf-8")
+        copy_cmd = [
+            ffmpeg, "-y", "-f", "concat", "-safe", "0", "-i", str(concat_path),
+            "-c", "copy", str(output),
+        ]
+        proc = subprocess.run(copy_cmd, capture_output=True, text=True)
+        if proc.returncode == 0 and output.exists() and output.stat().st_size > 0:
+            return {"ok": True, "output": str(output), "mode": "copy", "clips": [str(p) for p in existing]}
+        encode_cmd = [
+            ffmpeg, "-y", "-f", "concat", "-safe", "0", "-i", str(concat_path),
+            "-c:v", "libx264", "-pix_fmt", "yuv420p",
+            "-c:a", "aac" if keep_audio else "copy",
+            "-ac", "2",
+            "-movflags", "+faststart",
+            str(output),
+        ]
+        if not keep_audio:
+            encode_cmd = [
+                ffmpeg, "-y", "-f", "concat", "-safe", "0", "-i", str(concat_path),
+                "-c:v", "libx264", "-pix_fmt", "yuv420p", "-an",
+                "-movflags", "+faststart",
+                str(output),
+            ]
+        proc = subprocess.run(encode_cmd, capture_output=True, text=True)
+        if proc.returncode == 0 and output.exists() and output.stat().st_size > 0:
+            return {"ok": True, "output": str(output), "mode": "reencode", "clips": [str(p) for p in existing]}
+        return {
+            "ok": False,
+            "error": (proc.stderr or proc.stdout or "ffmpeg_failed")[-800:],
+            "output": "",
+        }

@@ -6,6 +6,7 @@ Pure helpers — no dashboard imports. Safe for offline unit tests.
 from __future__ import annotations
 
 import re
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 
@@ -196,6 +197,52 @@ def build_identity_pack_from_vault_package(
         "identity_tokens": collect_identity_tokens(package),
         "negative_tokens": collect_negative_tokens(package),
     }
+
+
+def resolve_anchor_paths(
+    pack: Dict[str, Any],
+    *,
+    search_dirs: Optional[List[Path]] = None,
+) -> List[str]:
+    """Turn identity_pack anchors into real image file paths."""
+    if not isinstance(pack, dict):
+        return []
+    found: List[str] = []
+    seen: set[str] = set()
+
+    def add(path_value: Any) -> None:
+        text = str(path_value or "").strip()
+        if not text:
+            return
+        path = Path(text)
+        if path.exists() and path.is_file():
+            key = str(path.resolve())
+            if key not in seen:
+                seen.add(key)
+                found.append(key)
+
+    for key in ("anchor_paths", "reference_paths", "image_paths"):
+        values = pack.get(key)
+        if isinstance(values, list):
+            for item in values:
+                add(item)
+        elif values:
+            add(values)
+
+    ids = pack.get("anchor_image_ids") if isinstance(pack.get("anchor_image_ids"), list) else []
+    dirs = [Path(p) for p in (search_dirs or []) if p]
+    for image_id in ids:
+        token = str(image_id or "").strip()
+        if not token:
+            continue
+        add(token)
+        name = Path(token).name
+        for folder in dirs:
+            add(folder / name)
+            for match in folder.glob(f"**/{name}"):
+                add(match)
+                break
+    return found
 
 
 def infer_reference_type(filename: str) -> str:

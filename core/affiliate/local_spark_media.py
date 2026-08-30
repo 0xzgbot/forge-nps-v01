@@ -299,6 +299,13 @@ class LocalSparkMediaAdapter:
             return job
 
         comfy = ComfyUIClient(self.comfy_url)
+        try:
+            from core.dispatch.capability_router import CapabilityRouter
+            stills_host = await CapabilityRouter().host_for("stills")
+            if stills_host:
+                comfy = ComfyUIClient(stills_host)
+        except Exception:
+            pass
         output_prefix = _safe_name(output_label or requested_workflow_id or "model", fallback="model")
         submit = await comfy.submit_prompt_for_shot(
             shot_id=f"{output_prefix}_{job_set_id[:8]}",
@@ -374,10 +381,14 @@ class LocalSparkMediaAdapter:
             prompt_parts.append("Preserve subject identity and product geometry across temporal motion.")
         final_prompt = " ".join(part for part in prompt_parts if part)
 
-        workflow = self.workflow_file_for_id("04_ltx2.3_image_to_video")
+        workflow = self.workflow_file_for_id("21_minimax_h3_image_to_video") or self.workflow_file_for_id("04_ltx2.3_image_to_video")
         end_image_path = None
         if input_image_end_url:
-            workflow = self.workflow_file_for_id("05_ltx2.3_first_last_frame_to_video") or workflow
+            workflow = (
+                self.workflow_file_for_id("22_minimax_h3_first_last_frame_to_video")
+                or self.workflow_file_for_id("05_ltx2.3_first_last_frame_to_video")
+                or workflow
+            )
             end_image_path = await self._copy_or_download_reference(input_image_end_url, output_dir)
             if not end_image_path:
                 job = self._make_job_set(
@@ -414,6 +425,13 @@ class LocalSparkMediaAdapter:
             image_paths.append(str(end_image_path))
 
         comfy = ComfyUIClient(self.comfy_url)
+        try:
+            from core.dispatch.capability_router import CapabilityRouter
+            spark_host = await CapabilityRouter().host_for("spark")
+            if spark_host:
+                comfy = ComfyUIClient(spark_host)
+        except Exception:
+            pass
         output_prefix = _safe_name(model or "video_model", fallback="video_model")
         submit = await comfy.submit_prompt_for_shot(
             shot_id=f"{output_prefix}_{job_set_id[:8]}",

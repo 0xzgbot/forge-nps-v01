@@ -10,8 +10,10 @@ logger = logging.getLogger("ComfyDispatcher")
 
 class ComfyDispatcher:
     """
-    Handles the distribution of payloads to ComfyUI instances.
-    Supports dual-host round-robin load balancing with real API integration.
+    Dual-host dispatcher kept for batch tests.
+
+    Live campaign / video / produce jobs must use CapabilityRouter:
+    Spark = H3 video, 3090s = stills. Do not round-robin mixed boxes.
     """
     def __init__(self, hosts: list[str] = None):
         if hosts is not None:

@@ -24,6 +24,8 @@ def test_is_first_last_workflow_detects_aliases():
     assert HermesVideoService.is_first_last_workflow(FIRST_LAST_WF) is True
     assert HermesVideoService.is_first_last_workflow("12_ltx23_first_last_frame_to_video") is True
     assert HermesVideoService.is_first_last_workflow("05_ltx2.3_first-last_frame") is True
+    assert HermesVideoService.is_first_last_workflow("22_minimax_h3_first_last_frame_to_video") is True
+    assert HermesVideoService.is_first_last_workflow("h3_fl2va") is True
     assert HermesVideoService.is_first_last_workflow(I2V_WF) is False
     assert HermesVideoService.is_first_last_workflow("") is False
 
