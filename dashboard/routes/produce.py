@@ -531,6 +531,8 @@ async def produce_options(job_id: str, req: ProduceOptionsRequest):
 async def produce_attach_elements(job_id: str, req: ProduceAttachRequest):
     path = _job_or_404(job_id)
     copied = produce_elements.attach_to_job(path, req.ids)
+    if copied:
+        produce_desk.refresh_identity_pack(path)
     return {"status": "ok", "copied": copied, **_service.snapshot(job_id)}
 
 
@@ -572,6 +574,8 @@ async def produce_upload(
             guides = list(shot.get("guides") or [])
             guides.append({"frame_idx": 48, "image": saved["path"]})
             produce_render.patch_shot(path, shot_id, {"guides": guides})
+    if str(kind or "").strip().lower() in {"identity", "voice", "score"}:
+        produce_desk.refresh_identity_pack(path)
     return {"status": "ok", **saved, **_service.snapshot(job_id)}
 
 

@@ -87,6 +87,55 @@ def test_snapshot_includes_desk_fields(tmp_path: Path):
     assert out["cuts"] == []
 
 
+def test_review_queues_video_handoff(tmp_path: Path):
+    job = tmp_path / "job"
+    job.mkdir()
+    produce_render.save_shots(
+        job,
+        [{"id": "SHOT_001", "visual": "rain on glass", "clip": "clips/a.mp4", "purpose": "arrive"}],
+    )
+    row = produce_desk.review_shot(job, "SHOT_001", "needs_changes", note="lock the coat")
+    assert row["handoff"]["bot"] == "video"
+    assert row["handoff"]["status"] == "pending"
+    ctx = produce_desk.compose_bot_context(job, "video")
+    assert "SHOT_001" in ctx
+    assert "lock the coat" in ctx
+    assert produce_desk.mark_handoffs_sent(job, "video") == 1
+    assert produce_desk.pending_handoffs(job, "video") == []
+
+
+def test_identity_pack_and_audio_manifest(tmp_path: Path):
+    job = tmp_path / "job"
+    job.mkdir()
+    ident = job / "identity"
+    ident.mkdir()
+    (ident / "hero-face.png").write_bytes(b"png")
+    pack = produce_desk.refresh_identity_pack(job)
+    assert pack.get("identity_tokens")
+    assert "hero-face.png" in str(pack.get("anchors") or pack.get("anchor_image_ids"))
+    produce_render.save_shots(job, [{"id": "SHOT_001", "audio": "rain on glass", "visual": "rain"}])
+    dest = produce_desk.write_audio_manifest(job)
+    body = dest.read_text(encoding="utf-8")
+    assert "SHOT_001" in body
+    assert "rain on glass" in body
+
+
+def test_snapshot_handoff_becomes_next_action(tmp_path: Path):
+    service = ProduceService(tmp_path)
+    snap = service.start("Rain on glass.", profile="producer")
+    job = service.job_dir(snap["job_id"])
+    produce_render.save_shots(
+        job,
+        [{"id": "SHOT_001", "visual": "rain", "clip": "clips/a.mp4", "still": "boards/a.png"}],
+    )
+    (job / "cut.mp4").write_bytes(b"cut")
+    produce_desk.review_shot(job, "SHOT_001", "rejected", note="too dark")
+    out = service.snapshot(snap["job_id"])
+    assert out["next_action"]["id"] == "handoff"
+    assert out["next_action"]["bot"] == "video"
+    assert out["handoffs"]
+
+
 def test_assemble_archives_previous_cut(tmp_path: Path, monkeypatch):
     job = tmp_path / "job"
     job.mkdir()

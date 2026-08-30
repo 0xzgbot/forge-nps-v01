@@ -792,6 +792,9 @@ def assemble_cut(
                     name: bool(step.get("ok")) for name, step in (fin.get("steps") or {}).items()
                 }
         produce_ops.write_captions(job_dir)
+        from core.hermes.produce import desk as produce_desk
+
+        produce_desk.write_audio_manifest(job_dir)
         last = {
             "ok": True,
             "transition": transition,
@@ -874,7 +877,7 @@ def export_package(job_dir: Path) -> Dict[str, Any]:
         "prompt.md", "story.md", "script.md", "storyboard.md", "shots.json",
         "edit.json", "STATUS.md", "job.json", "queue.json", "cut.mp4",
         "cut.srt", "comments.json", "cut_finish.mp4",
-        "review_log.jsonl", "ab_log.jsonl",
+        "review_log.jsonl", "ab_log.jsonl", "handoffs.json", "audio_manifest.json",
     ]
     with zipfile.ZipFile(dest, "w", compression=zipfile.ZIP_DEFLATED) as zf:
         for name in names:

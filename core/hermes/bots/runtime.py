@@ -83,14 +83,24 @@ class BotRuntime:
         llm = resolve_llm_endpoint()
         if not llm.ready:
             raise RuntimeError("Connect a language model first.")
+        extra: Dict[str, str] = {}
+        job_dir = Path(produce_dir) if produce_dir else None
+        if job_id and job_dir is None:
+            candidate = self.root / "data" / "produce" / job_id
+            if candidate.is_dir():
+                job_dir = candidate
+        if job_dir and job_dir.is_dir():
+            extra["CINESMITH_PRODUCE_DIR"] = str(job_dir)
+            from core.hermes.produce import desk as produce_desk
+
+            ctx = produce_desk.compose_bot_context(job_dir, name)
+            if ctx:
+                brief = ctx + "\n\nUser:\n" + brief
         self.store.append_chat(name, "user", brief, job_id=job_id)
         query_dir = self.state_dir / "inbox"
         query_dir.mkdir(parents=True, exist_ok=True)
         query_file = query_dir / f"{name}-{int(time.time() * 1000)}.txt"
         query_file.write_text(brief, encoding="utf-8")
-        extra = {}
-        if produce_dir:
-            extra["CINESMITH_PRODUCE_DIR"] = produce_dir
         cmd = self.chat_argv(name, query_file, title=title, model=llm.model or "")
         env = self.isolated_env(extra)
         log_path = self.store.profile_dir(name) / "cinesmith-bot.log"
@@ -110,6 +120,10 @@ class BotRuntime:
             if proc.returncode not in (0, None) and not reply:
                 reply = f"(Hermes exited {proc.returncode}. See {log_path.name}.)"
             self.store.append_chat(name, "bot", reply, job_id=job_id)
+            if job_dir and job_dir.is_dir():
+                from core.hermes.produce import desk as produce_desk
+
+                produce_desk.mark_handoffs_sent(job_dir, name)
             return {
                 "name": name,
                 "title": title,

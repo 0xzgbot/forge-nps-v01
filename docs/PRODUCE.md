@@ -69,6 +69,7 @@ If Spark or a 3090 is down, items stay `waiting_for_host`. **Run queue** when th
 - Enhance prompt (local cinematic rewrite). Grab still from the take playhead.
 - Script peek and a prompt-overlap scorecard. LLM light is reachable, not just configured.
 - Export transition: hard cut or crossfade.
+- Review notes queue for the matching Hermes profile (`@video` / `@storyboard` / `@story`). The bot sheet prefills; Send includes the job brief. Identity pack + `audio_manifest.json` travel with the handoff zip.
 
 ## API (selected)
 

@@ -116,6 +116,17 @@ class ProduceService:
                 stage = "storyboard"
         elif files.get("script.md") and stage == "story":
             stage = "script"
+        action = produce_ops.next_action(path)
+        pending = produce_desk.pending_handoffs(path)
+        if pending:
+            row = pending[0]
+            bot = str(row.get("bot") or "video")
+            action = {
+                "id": "handoff",
+                "bot": bot,
+                "label": f"Tell @{bot} about {row.get('shot_id')} ({row.get('decision')}).",
+                "cta": "@" + bot,
+            }
         return {
             "job_id": job_id,
             "status": status,
@@ -139,7 +150,7 @@ class ProduceService:
             "fade_sec": float(meta.get("fade_sec") or 0),
             "continuity": produce_ops.continuity_score(path),
             "comments": produce_ops.load_comments(path),
-            "next_action": produce_ops.next_action(path),
+            "next_action": action,
             "runtime_sec": produce_ops.runtime_sec(path),
             "captions": "cut.srt" if (path / "cut.srt").exists() else "",
             "music": bool(produce_ops.find_music(path)),
@@ -149,6 +160,9 @@ class ProduceService:
             "cuts": produce_desk.list_cuts(path),
             "reviews": produce_desk.load_reviews(path),
             "last_assemble": produce_desk.last_assemble(path),
+            "handoffs": produce_desk.load_handoffs(path),
+            "identity_pack": meta.get("identity_pack") or {},
+            "audio_manifest": "audio_manifest.json" if (path / "audio_manifest.json").exists() else "",
             "identity": produce_render.list_identity(path),
             "cut": "cut.mp4" if (path / "cut.mp4").exists() else "",
             "error": meta.get("error") or "",
@@ -274,7 +288,7 @@ class ProduceService:
         )
         stills = produce_render.stills_model(path)
         video = produce_render.video_model(path)
-        return (
+        text = (
             f"You are @{lead} in a Hermes Bot Chat. This is your canonical forever-chat.\n"
             "Use message_agent to hand work to teammates when they should do the job.\n"
             f"Teammates: {mates}\n\n"
@@ -298,6 +312,10 @@ class ProduceService:
             "If hosts stay down, stop at the last real file and mark STATUS blocked. "
             "Adapt. Do not run a fake checklist."
         )
+        digest = produce_desk.compose_producer_digest(path)
+        if digest:
+            return text + "\n\n" + digest
+        return text
 
     def _write_meta(self, path: Path, meta: Dict[str, Any]) -> None:
         (path / "job.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")

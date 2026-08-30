@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-08-30 - Review notes go to the matching Hermes profile
+
+Needs work / Reject queues a handoff for `@video` (or `@storyboard` / `@story` if there is no take). Opening or messaging that bot prepends the shot brief. Does not auto-run Hermes or GPUs. Identity pack tokens and an audio manifest land on the job for those bots to read.
+
 ## 2026-08-30 - Produce desk: review, cut versions, honest LLM light
 
 - LLM header light is **reachable** (GET `/v1/models`), not merely configured.

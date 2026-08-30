@@ -767,14 +767,20 @@
 
     async function reviewShot(decision) {
       if (!jobId || !selectedShotId) return;
+      const note = $("insp-comment") ? $("insp-comment").value.trim() : "";
       const resp = await fetch("/api/produce/" + encodeURIComponent(jobId) + "/review", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ shot_id: selectedShotId, decision }),
+        body: JSON.stringify({ shot_id: selectedShotId, decision, note }),
       });
       const data = await resp.json();
       if (!resp.ok) $("err").textContent = apiError(data, "review failed");
-      else render(data);
+      else {
+        render(data);
+        renderCrew();
+        const handoff = (data.review && data.review.handoff) || {};
+        if (handoff.bot && decision !== "approved") openBot(handoff.bot);
+      }
     }
 
     async function enhanceShot() {
@@ -895,6 +901,19 @@
       if (data.stills_b && data.stills_b.url && !$("stills-b").value) $("stills-b").value = data.stills_b.url;
     }
 
+    function pendingBot(name) {
+      return (lastSnap.handoffs || []).some((h) => h.bot === name && h.status === "pending");
+    }
+
+    function draftForBot(name) {
+      const rows = (lastSnap.handoffs || []).filter((h) => h.bot === name && h.status === "pending");
+      if (!rows.length) return "";
+      return rows.map((h) => {
+        return "Please handle " + (h.shot_id || "this shot") + " (" + (h.decision || "") + ")" +
+          (h.note ? ": " + h.note : "") + ".";
+      }).join("\n");
+    }
+
     function renderCrew() {
       const support = roster.filter((b) => b.support);
       const core = roster.filter((b) => !b.support);
@@ -902,8 +921,8 @@
         '<button type="button" class="chip' + extra + (b.busy ? " busy" : "") + '" data-bot="' + b.name + '">' +
         escapeHtml(b.title || b.name) + "</button>";
       $("crew").innerHTML =
-        core.map((b) => chip(b, "")).join("") +
-        support.map((b) => chip(b, " support")).join("") +
+        core.map((b) => chip(b, pendingBot(b.name) ? " on" : "")).join("") +
+        support.map((b) => chip(b, " support" + (pendingBot(b.name) ? " on" : ""))).join("") +
         '<button type="button" class="chip support" id="open-group">Crew room</button>';
       $("crew").querySelectorAll("[data-bot]").forEach((el) => {
         el.onclick = () => openBot(el.getAttribute("data-bot"));
@@ -930,6 +949,8 @@
       $("bot-desc").textContent = data.description || "";
       renderChat(data.chat || []);
       renderRoutines(data.routines || []);
+      const draft = draftForBot(name);
+      if (draft && !$("bot-msg").value.trim()) $("bot-msg").value = draft;
       $("bot-pane").classList.add("open");
     }
 
@@ -1283,6 +1304,7 @@
           if (id === "boards" || id === "takes") queuePlan();
           else if (id === "assemble") assembleCut();
           else if (id === "export") openExport();
+          else if (id === "handoff") openBot((lastSnap.next_action || {}).bot || "video");
         };
       }
       const delShot = $("del-shot");
