@@ -9,11 +9,12 @@ from fastapi import APIRouter, File, Form, UploadFile
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
-from core.bridge.llm_endpoint import resolve_llm_endpoint
+from core.bridge.llm_endpoint import probe_llm_endpoint, resolve_llm_endpoint
 from core.bridge.runtime_config import get_raw_config, set_config
 from core.dispatch.capability_router import CapabilityRouter
 from core.dispatch.model_catalog import catalog as model_catalog
 from core.hermes.produce import elements as produce_elements
+from core.hermes.produce import desk as produce_desk
 from core.hermes.produce import job_ops as produce_ops
 from core.hermes.produce import queue as produce_queue
 from core.hermes.produce import render as produce_render
@@ -78,6 +79,9 @@ class ProduceShotPatch(BaseModel):
     guides: Optional[List[Dict[str, Any]]] = None
     status: Optional[str] = None
     seed: Optional[int] = None
+    negative_prompt: Optional[str] = None
+    review_status: Optional[str] = None
+    review_note: Optional[str] = None
 
 
 class ProduceOptionsRequest(BaseModel):
@@ -88,6 +92,7 @@ class ProduceOptionsRequest(BaseModel):
     title: str = ""
     aspect: str = ""
     fade_sec: Optional[float] = None
+    transition: str = ""
 
 
 class ProduceQueueRunRequest(BaseModel):
@@ -122,6 +127,30 @@ class ProduceRenameRequest(BaseModel):
     title: str = ""
 
 
+class ProduceReviewRequest(BaseModel):
+    shot_id: str = ""
+    decision: str = "approved"
+    note: str = ""
+
+
+class ProduceAbRequest(BaseModel):
+    shot_id: str
+    take_a: str
+    take_b: str
+    winner: str = ""
+    note: str = ""
+
+
+class ProduceGrabRequest(BaseModel):
+    shot_id: str
+    time_sec: float = 0
+    as_last: bool = False
+
+
+class ProduceRestoreCutRequest(BaseModel):
+    file: str = ""
+
+
 class ProduceConnectSave(BaseModel):
     LLM_BASE_URL: str = ""
     LLM_MODEL: str = ""
@@ -142,14 +171,18 @@ def _job_or_404(job_id: str):
 async def connect_status():
     cfg = get_raw_config()
     llm = resolve_llm_endpoint(cfg)
+    probe = await asyncio.to_thread(probe_llm_endpoint, llm)
     hosts = await CapabilityRouter(cfg).connect_status()
     return {
         "status": "ok",
         "llm": {
             "ready": llm.ready,
+            "configured": bool(probe.get("configured")),
+            "reachable": bool(probe.get("reachable")),
             "model": llm.model,
             "base_url": llm.base_url,
             "source": llm.source,
+            "error": probe.get("error") or "",
         },
         "spark": hosts.get("spark") or {},
         "stills_a": hosts.get("stills_a") or {},
@@ -279,6 +312,63 @@ async def produce_captions(job_id: str):
     path = _job_or_404(job_id)
     dest = produce_ops.write_captions(path)
     return {"status": "ok", "captions": dest.name, **_service.snapshot(job_id)}
+
+
+@router.post("/api/produce/{job_id}/review")
+async def produce_review(job_id: str, req: ProduceReviewRequest):
+    path = _job_or_404(job_id)
+    try:
+        row = produce_desk.review_shot(path, req.shot_id or "", req.decision, note=req.note)
+    except ValueError as exc:
+        raise CinesmithAPIError(str(exc), status_code=400) from exc
+    return {"status": "ok", "review": row, **_service.snapshot(job_id)}
+
+
+@router.post("/api/produce/{job_id}/ab")
+async def produce_ab(job_id: str, req: ProduceAbRequest):
+    path = _job_or_404(job_id)
+    row = produce_desk.compare_takes(
+        path, req.shot_id, req.take_a, req.take_b, winner=req.winner, note=req.note
+    )
+    return {"status": "ok", "ab": row, **_service.snapshot(job_id)}
+
+
+@router.post("/api/produce/{job_id}/enhance")
+async def produce_enhance(job_id: str, req: ProduceShotRequest):
+    path = _job_or_404(job_id)
+    try:
+        shot = produce_desk.enhance_shot(path, req.shot_id)
+    except ValueError as exc:
+        raise CinesmithAPIError(str(exc), status_code=400) from exc
+    return {"status": "ok", "shot": shot, **_service.snapshot(job_id)}
+
+
+@router.post("/api/produce/{job_id}/shots/{shot_id}/duplicate")
+async def produce_duplicate_shot(job_id: str, shot_id: str):
+    path = _job_or_404(job_id)
+    try:
+        shot = produce_desk.duplicate_shot(path, shot_id)
+    except ValueError as exc:
+        raise CinesmithAPIError(str(exc), status_code=400) from exc
+    return {"status": "ok", "shot": shot, **_service.snapshot(job_id)}
+
+
+@router.post("/api/produce/{job_id}/grab-still")
+async def produce_grab_still(job_id: str, req: ProduceGrabRequest):
+    path = _job_or_404(job_id)
+    result = produce_desk.grab_still(path, req.shot_id, time_sec=req.time_sec, as_last=req.as_last)
+    if not result.get("ok"):
+        raise CinesmithAPIError(result.get("error") or "grab_failed", status_code=400)
+    return {"status": "ok", **result, **_service.snapshot(job_id)}
+
+
+@router.post("/api/produce/{job_id}/cuts/restore")
+async def produce_restore_cut(job_id: str, req: ProduceRestoreCutRequest):
+    path = _job_or_404(job_id)
+    result = produce_desk.restore_cut(path, req.file)
+    if not result.get("ok"):
+        raise CinesmithAPIError(result.get("error") or "restore_failed", status_code=400)
+    return {"status": "ok", **result, **_service.snapshot(job_id)}
 
 
 @router.post("/api/produce/{job_id}/render-board")
@@ -429,6 +519,9 @@ async def produce_options(job_id: str, req: ProduceOptionsRequest):
             meta["fade_sec"] = max(0.0, min(3.0, float(req.fade_sec)))
         except (TypeError, ValueError):
             pass
+    if req.transition:
+        key = str(req.transition).strip().lower()
+        meta["transition"] = "crossfade" if key in {"crossfade", "dissolve", "fade"} else "cut"
     if meta:
         produce_render.save_job_meta(path, meta)
     return {"status": "ok", **_service.snapshot(job_id)}

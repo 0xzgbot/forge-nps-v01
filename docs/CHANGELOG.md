@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-08-30 - Produce desk: review, cut versions, honest LLM light
+
+- LLM header light is **reachable** (GET `/v1/models`), not merely configured.
+- Cut player on the job, archived versions under `cuts/`, restore a prior assemble.
+- Shot review (approve / needs work / reject) + take A/B pick. Enhance prompt locally. Grab first/last still from the take playhead.
+- Script peek (INT./EXT. or `# SCRIPT:`), prompt-overlap scorecard next to the lock grade.
+- Export: hard cut or crossfade. Fade out when duration can be probed. Captions button.
+
 ## 2026-08-30 - Produce launch desk: finish, samples, ⌘K
 
 Home is a launch-ready producer desk, not a second product. Hermes still directs. 3090s still paint. Spark still shoots. ffmpeg still cuts.

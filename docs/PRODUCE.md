@@ -65,6 +65,10 @@ If Spark or a 3090 is down, items stay `waiting_for_host`. **Run queue** when th
 - **Handoff zip** next to Assemble cut.
 - Queue panel with a rough ETA. Color pass optional.
 - Coach chip: next honest step (boards → takes → assemble → export).
+- Cut player + version history. Review chips and take compare in the inspector.
+- Enhance prompt (local cinematic rewrite). Grab still from the take playhead.
+- Script peek and a prompt-overlap scorecard. LLM light is reachable, not just configured.
+- Export transition: hard cut or crossfade.
 
 ## API (selected)
 
@@ -81,6 +85,7 @@ If Spark or a 3090 is down, items stay `waiting_for_host`. **Run queue** when th
 - `PUT /api/produce/{job}/options` `{color_pass, stills_model, video_model, title, aspect, fade_sec}`
 - `POST /api/produce/{job}/assemble`
 - `POST /api/produce/{job}/comments` / `duplicate` / `rename` / `captions`
+- `POST /api/produce/{job}/review` / `ab` / `enhance` / `grab-still` / `cuts/restore`
 - `GET /api/produce/{job}/export`
 - `POST /api/produce/{job}/takes/restore`
 

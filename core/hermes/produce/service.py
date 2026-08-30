@@ -19,6 +19,7 @@ from core.cinesmith_env import hermes_isolated_env, repo_root
 from core.hermes.bots.crew import CREW_BY_KEY
 from core.hermes.bots.runtime import BotRuntime
 from core.hermes.bots.store import BotStore
+from core.hermes.produce import desk as produce_desk
 from core.hermes.produce import job_ops as produce_ops
 from core.hermes.produce import queue as produce_queue
 from core.hermes.produce import render as produce_render
@@ -142,6 +143,12 @@ class ProduceService:
             "runtime_sec": produce_ops.runtime_sec(path),
             "captions": "cut.srt" if (path / "cut.srt").exists() else "",
             "music": bool(produce_ops.find_music(path)),
+            "transition": str(meta.get("transition") or "cut"),
+            "scorecard": produce_desk.scorecard(path),
+            "script": produce_desk.peek_script(path),
+            "cuts": produce_desk.list_cuts(path),
+            "reviews": produce_desk.load_reviews(path),
+            "last_assemble": produce_desk.last_assemble(path),
             "identity": produce_render.list_identity(path),
             "cut": "cut.mp4" if (path / "cut.mp4").exists() else "",
             "error": meta.get("error") or "",

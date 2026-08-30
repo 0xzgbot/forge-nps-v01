@@ -7,6 +7,8 @@ Canonical keys: LLM_BASE_URL, LLM_MODEL, LLM_API_KEY.
 from __future__ import annotations
 
 import os
+import urllib.error
+import urllib.request
 from dataclasses import dataclass
 from typing import Any, Dict, Optional
 from urllib.parse import urlsplit, urlunsplit
@@ -148,3 +150,57 @@ def resolve_llm_endpoint(cfg: Optional[Dict[str, Any]] = None) -> LLMEndpoint:
             )
 
     return LLMEndpoint(base_url="", model=model, api_key=api_key, source="unset", local=local)
+
+
+def probe_llm_endpoint(endpoint: Optional[LLMEndpoint] = None, *, timeout: float = 1.5) -> Dict[str, Any]:
+    """HTTP ping of GET {base}/models. Configured is not the same as reachable."""
+    llm = endpoint or resolve_llm_endpoint()
+    configured = bool(llm.base_url and llm.model)
+    if not configured:
+        return {
+            "configured": False,
+            "ok": False,
+            "reachable": False,
+            "model": llm.model or "",
+            "base_url": llm.base_url or "",
+            "source": llm.source,
+        }
+    url = llm.base_url.rstrip("/") + "/models"
+    headers = {"Accept": "application/json"}
+    if llm.api_key:
+        headers["Authorization"] = "Bearer " + llm.api_key
+    req = urllib.request.Request(url, headers=headers, method="GET")
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            ok = 200 <= int(getattr(resp, "status", 200) or 200) < 300
+            return {
+                "configured": True,
+                "ok": ok,
+                "reachable": ok,
+                "status": int(getattr(resp, "status", 200) or 200),
+                "model": llm.model,
+                "base_url": llm.base_url,
+                "source": llm.source,
+            }
+    except Exception as exc:
+        kind = type(exc).__name__
+        if isinstance(exc, urllib.error.HTTPError):
+            return {
+                "configured": True,
+                "ok": False,
+                "reachable": False,
+                "status": int(exc.code),
+                "error": kind,
+                "model": llm.model,
+                "base_url": llm.base_url,
+                "source": llm.source,
+            }
+        return {
+            "configured": True,
+            "ok": False,
+            "reachable": False,
+            "error": kind,
+            "model": llm.model,
+            "base_url": llm.base_url,
+            "source": llm.source,
+        }

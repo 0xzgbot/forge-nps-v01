@@ -5,7 +5,7 @@ from __future__ import annotations
 import shutil
 import subprocess
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 ASPECTS = {
     "16:9": (1920, 1080),
@@ -30,6 +30,43 @@ def _font() -> str:
 
 def _ffmpeg() -> str:
     return shutil.which("ffmpeg") or ""
+
+
+def probe_duration(src: Path) -> float:
+    ffmpeg = _ffmpeg()
+    if not ffmpeg or not Path(src).exists():
+        return 0.0
+    ffprobe = shutil.which("ffprobe") or ""
+    if ffprobe:
+        proc = subprocess.run(
+            [
+                ffprobe, "-v", "error", "-show_entries", "format=duration",
+                "-of", "default=noprint_wrappers=1:nokey=1", str(src),
+            ],
+            capture_output=True,
+            text=True,
+        )
+        try:
+            return max(0.0, float((proc.stdout or "").strip()))
+        except (TypeError, ValueError):
+            return 0.0
+    proc = subprocess.run(
+        [ffmpeg, "-i", str(src)],
+        capture_output=True,
+        text=True,
+    )
+    text = (proc.stderr or "") + (proc.stdout or "")
+    marker = "Duration: "
+    if marker not in text:
+        return 0.0
+    stamp = text.split(marker, 1)[1].split(",", 1)[0].strip()
+    parts = stamp.split(":")
+    try:
+        if len(parts) == 3:
+            return float(parts[0]) * 3600 + float(parts[1]) * 60 + float(parts[2])
+    except (TypeError, ValueError):
+        return 0.0
+    return 0.0
 
 
 def _run(cmd: list[str]) -> Dict[str, Any]:
@@ -136,18 +173,79 @@ def fade_edges(src: Path, dest: Path, seconds: float = 0.35) -> Dict[str, Any]:
     if not ffmpeg:
         return {"ok": False, "error": "ffmpeg_not_installed"}
     d = max(0.05, float(seconds))
-    # Fade in only. Out-fade needs a probed duration; skip it rather than fade from t=0.
+    duration = probe_duration(src)
     vf = f"fade=t=in:st=0:d={d}"
+    af = f"afade=t=in:st=0:d={d}"
+    if duration > d * 2:
+        out_at = max(0.0, duration - d)
+        vf = f"{vf},fade=t=out:st={out_at:.3f}:d={d}"
+        af = f"{af},afade=t=out:st={out_at:.3f}:d={d}"
     cmd = [
         ffmpeg, "-y", "-i", str(src), "-vf", vf,
         "-c:v", "libx264", "-pix_fmt", "yuv420p",
         "-c:a", "aac", "-ac", "2",
-        "-af", f"afade=t=in:st=0:d={d}",
+        "-af", af,
         "-movflags", "+faststart", str(dest),
     ]
     result = _run(cmd)
     if result["ok"] and dest.exists():
         result["output"] = str(dest)
+    return result
+
+
+def crossfade_concat(clips: List[Path], dest: Path, *, fade_sec: float = 0.25) -> Dict[str, Any]:
+    """Hard-cut fallback when probe/ffmpeg xfade fails. Local only."""
+    ffmpeg = _ffmpeg()
+    existing = [Path(c) for c in clips if Path(c).exists()]
+    if not existing:
+        return {"ok": False, "error": "no_clips"}
+    dest = Path(dest)
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    if len(existing) == 1 or not ffmpeg or fade_sec <= 0.04:
+        if len(existing) == 1:
+            shutil.copy2(existing[0], dest)
+            return {"ok": dest.exists(), "output": str(dest), "xfade": False}
+        return {"ok": False, "error": "xfade_skipped"}
+    durs = [probe_duration(p) for p in existing]
+    if any(d <= fade_sec * 2 for d in durs):
+        return {"ok": False, "error": "clips_too_short"}
+    cmd: List[str] = [ffmpeg, "-y"]
+    for path in existing:
+        cmd.extend(["-i", str(path)])
+    n = len(existing)
+    filters: List[str] = []
+    offset = durs[0] - fade_sec
+    last = "[0:v]"
+    last_a = "[0:a]"
+    for i in range(1, n):
+        vout = f"[v{i}]"
+        aout = f"[a{i}]"
+        vin = last if i == 1 else last
+        ain = last_a if i == 1 else last_a
+        filters.append(
+            f"{vin}[{i}:v]xfade=transition=fade:duration={fade_sec}:offset={offset:.3f}{vout}"
+        )
+        filters.append(
+            f"{ain}[{i}:a]acrossfade=d={fade_sec}{aout}"
+        )
+        last = vout
+        last_a = aout
+        if i + 1 < n:
+            offset = offset + durs[i] - fade_sec
+    graph = ";".join(filters)
+    cmd.extend(
+        [
+            "-filter_complex", graph,
+            "-map", last, "-map", last_a,
+            "-c:v", "libx264", "-pix_fmt", "yuv420p",
+            "-c:a", "aac", "-ac", "2",
+            "-movflags", "+faststart", str(dest),
+        ]
+    )
+    result = _run(cmd)
+    if result.get("ok") and dest.exists():
+        result["output"] = str(dest)
+        result["xfade"] = True
     return result
 
 

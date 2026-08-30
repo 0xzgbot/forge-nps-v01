@@ -355,6 +355,13 @@
     body.working .eyebrow { display: none; }
     body.working main { padding-top: 18px; }
     .kbd-hint { font-size: 12px; color: var(--mute); }
+    .cut-player video { width: 100%; border-radius: 14px; background: #e8e8ed; }
+    .badge { font-size: 10px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
+      background: #f2f2f7; border-radius: 980px; padding: 2px 8px; margin-left: 6px; }
+    .badge.approved { background: rgba(52,199,89,0.16); color: #1d7a38; }
+    .badge.needs_changes { background: rgba(255,204,0,0.22); color: #8a6a00; }
+    .badge.rejected, .badge.retake { background: rgba(255,59,48,0.12); color: #c41d16; }
+    .audio-file { font-size: 12px; color: var(--mute); padding: 4px 0; }
     .sheet select {
       width: 100%; border: 1px solid var(--line); border-radius: 12px;
       padding: 11px 13px; font: inherit; background: #f5f5f7;
@@ -474,6 +481,11 @@
       <input id="export-title" placeholder="On-screen title">
       <label>Fade in (sec)</label>
       <input id="export-fade" type="number" min="0" max="3" step="0.05" value="0.3">
+      <label>Transition</label>
+      <select id="export-transition">
+        <option value="cut">Hard cut</option>
+        <option value="crossfade">Crossfade</option>
+      </select>
       <p class="meta" id="export-music" style="margin-top:12px">No score yet. Drop a wav named music / bed / score under Identity.</p>
       <div class="row" style="margin-top:22px;">
         <button class="primary" type="button" id="export-save">Save &amp; assemble</button>
@@ -596,6 +608,8 @@
         { id: "assemble", label: "Assemble cut", kbd: "A", run: () => assembleCut() },
         { id: "export", label: "Export / finish", kbd: "E", run: () => openExport() },
         { id: "add", label: "Add shot", kbd: "N", run: () => addShot() },
+        { id: "enhance", label: "Enhance selected shot", kbd: "", run: () => enhanceShot() },
+        { id: "captions", label: "Regenerate captions", kbd: "", run: () => regenCaptions() },
         { id: "dup", label: "Duplicate job", kbd: "", run: () => duplicateJob() },
         { id: "board", label: "Board selected shot", kbd: "B", run: () => selectedShotId && shotAction("board", selectedShotId) },
         { id: "take", label: "Take selected shot", kbd: "T", run: () => selectedShotId && shotAction("take", selectedShotId) },
@@ -680,6 +694,7 @@
       $("export-aspect").value = data.aspect || "16:9";
       $("export-title").value = data.title || "";
       $("export-fade").value = data.fade_sec != null ? data.fade_sec : 0.3;
+      if ($("export-transition")) $("export-transition").value = data.transition === "crossfade" ? "crossfade" : "cut";
       $("export-music").textContent = data.music
         ? "Score found in identity. It will mix under the cut."
         : "No score yet. Drop a wav named music / bed / score under Identity.";
@@ -700,6 +715,7 @@
           aspect: $("export-aspect").value,
           title: $("export-title").value,
           fade_sec: Number($("export-fade").value),
+          transition: $("export-transition") ? $("export-transition").value : "cut",
         }),
       });
       closePanes();
@@ -749,6 +765,81 @@
       render(await resp.json());
     }
 
+    async function reviewShot(decision) {
+      if (!jobId || !selectedShotId) return;
+      const resp = await fetch("/api/produce/" + encodeURIComponent(jobId) + "/review", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ shot_id: selectedShotId, decision }),
+      });
+      const data = await resp.json();
+      if (!resp.ok) $("err").textContent = apiError(data, "review failed");
+      else render(data);
+    }
+
+    async function enhanceShot() {
+      if (!jobId || !selectedShotId) return;
+      const resp = await fetch("/api/produce/" + encodeURIComponent(jobId) + "/enhance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ shot_id: selectedShotId }),
+      });
+      const data = await resp.json();
+      if (!resp.ok) $("err").textContent = apiError(data, "enhance failed");
+      else render(data);
+    }
+
+    async function duplicateShot(shotId) {
+      if (!jobId || !shotId) return;
+      const resp = await fetch("/api/produce/" + encodeURIComponent(jobId) + "/shots/" + encodeURIComponent(shotId) + "/duplicate", { method: "POST" });
+      render(await resp.json());
+    }
+
+    async function grabStill(asLast) {
+      if (!jobId || !selectedShotId) return;
+      const video = document.querySelector(".inspector video");
+      const t = video && !isNaN(video.currentTime) ? video.currentTime : 0;
+      const resp = await fetch("/api/produce/" + encodeURIComponent(jobId) + "/grab-still", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ shot_id: selectedShotId, time_sec: t, as_last: !!asLast }),
+      });
+      const data = await resp.json();
+      if (!resp.ok) $("err").textContent = apiError(data, "grab failed");
+      else render(data);
+    }
+
+    async function regenCaptions() {
+      if (!jobId) return;
+      const resp = await fetch("/api/produce/" + encodeURIComponent(jobId) + "/captions", { method: "POST" });
+      render(await resp.json());
+    }
+
+    async function restoreCutVersion(file) {
+      if (!jobId || !file) return;
+      const resp = await fetch("/api/produce/" + encodeURIComponent(jobId) + "/cuts/restore", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ file }),
+      });
+      const data = await resp.json();
+      if (!resp.ok) $("err").textContent = apiError(data, "restore cut failed");
+      else render(data);
+    }
+
+    async function pickTakeWinner() {
+      if (!jobId || !selectedShotId) return;
+      const a = $("ab-a") ? $("ab-a").value : "";
+      const b = $("ab-b") ? $("ab-b").value : "";
+      if (!a) return;
+      const resp = await fetch("/api/produce/" + encodeURIComponent(jobId) + "/ab", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ shot_id: selectedShotId, take_a: a, take_b: b, winner: a }),
+      });
+      render(await resp.json());
+    }
+
     async function postComment() {
       if (!jobId) return;
       const text = $("insp-comment") ? $("insp-comment").value.trim() : "";
@@ -792,7 +883,11 @@
         lightRow("spark", "Spark", data.spark) +
         lightRow("a", "3090A", data.stills_a) +
         lightRow("b", "3090B", data.stills_b) +
-        lightRow("llm", "LLM", { ok: !!llm.ready, configured: true, url: llm.base_url });
+        lightRow("llm", "LLM", {
+          ok: !!llm.reachable,
+          configured: !!(llm.configured || llm.ready),
+          url: llm.base_url,
+        });
       if (llm.base_url && !$("llm-url").value) $("llm-url").value = llm.base_url;
       if (llm.model && !$("llm-model").value) $("llm-model").value = llm.model;
       if (data.spark && data.spark.url && !$("spark-url").value) $("spark-url").value = data.spark.url;
@@ -1022,8 +1117,11 @@
         $("job-stats").textContent =
           (data.shots || []).length + " shots · " + mins + " min · " +
           escapeHtml(data.stills_model || "") + " / " + escapeHtml(data.video_model || "");
-        $("job-grade").textContent = (cont.grade || "") + (cont.score != null ? " " + cont.score : "");
+        const card = data.scorecard || {};
+        $("job-grade").textContent = (cont.grade || "") + (cont.score != null ? " " + cont.score : "") +
+          (card.grade ? " · " + card.grade : "");
         $("job-grade").className = "grade " + (cont.grade || "");
+        $("job-grade").title = card.summary || (cont.notes || []).join(" · ");
       }
       $("status").textContent = (data.files && data.files["STATUS.md"]) || data.status || "";
       $("err").textContent = typeof data.error === "string" ? data.error : (data.error && data.error.message) || "";
@@ -1043,7 +1141,15 @@
       const files = data.files || {};
       const blocks = [];
       if (files["story.md"]) blocks.push(card("Story", files["story.md"]));
-      if (files["script.md"]) blocks.push(card("Script", files["script.md"]));
+      const peek = data.script || {};
+      if ((peek.scenes || []).length) {
+        blocks.push('<article><h2>Script</h2>' + peek.scenes.map((s) =>
+          '<div class="c-row"><strong>' + escapeHtml(s.id || "Scene") + "</strong>" +
+          '<div class="meta">' + escapeHtml(s.action || s.visual || "") + "</div></div>"
+        ).join("") + "</article>");
+      } else if (files["script.md"]) {
+        blocks.push(card("Script", files["script.md"]));
+      }
       if (files["storyboard.md"]) blocks.push(card("Storyboard", files["storyboard.md"]));
       const shots = data.shots || [];
       lastSnap = data;
@@ -1069,6 +1175,9 @@
           identBlock = '<article><h2>Identity / elements</h2><div class="identity">' +
           identity.filter((n) => /\.(png|jpg|jpeg|webp)$/i.test(n)).map((n) =>
             '<img src="/api/produce/' + jobId + "/file/" + encodeURIComponent(n) + '" alt="">'
+          ).join("") +
+          identity.filter((n) => /\.(wav|mp3|m4a|flac|ogg)$/i.test(n)).map((n) =>
+            '<div class="audio-file">' + escapeHtml(n.split("/").pop()) + "</div>"
           ).join("") +
           '</div><div class="row"><label class="drop">Face / location<input type="file" accept="image/*" data-up="identity" multiple></label>' +
           '<label class="drop">Voice<input type="file" accept="audio/*" data-up="voice"></label>' +
@@ -1099,6 +1208,21 @@
       }
       const edit = data.edit || [];
       lastEdit = edit;
+      let cutBlock = "";
+      if (data.cut) {
+        cutBlock = '<article class="cut-player"><h2>Cut</h2>' +
+          '<video controls src="/api/produce/' + jobId + "/file/" + encodeURIComponent(data.cut) + '"></video>' +
+          ((data.cuts || []).length
+            ? '<div class="row">' + (data.cuts || []).map((c) =>
+                '<button type="button" class="chip" data-cut="' + escapeHtml(c.file) + '">v' +
+                escapeHtml(c.name.replace(".mp4", "")) + "</button>"
+              ).join("") + "</div>"
+            : "") +
+          ((data.last_assemble && data.last_assemble.transition)
+            ? '<p class="meta">Last assemble · ' + escapeHtml(data.last_assemble.transition) + "</p>"
+            : "") +
+          "</article>";
+      }
       let timeline = "";
       if (edit.length || (data.clips || []).length) {
         const items = edit.length ? edit : (data.clips || []).map((n) => ({ shot_id: n, clip: n, muted: false }));
@@ -1123,6 +1247,7 @@
           (data.cut ? '<a class="ghost" href="/api/produce/' + jobId + "/file/" + encodeURIComponent(data.cut) + '">Download cut</a>' : "") +
           (data.captions ? '<a class="ghost" href="/api/produce/' + jobId + "/file/" + encodeURIComponent(data.captions) + '">Captions</a>' : "") +
           '<button class="ghost" type="button" id="open-export-inline">Export</button>' +
+          '<button class="ghost" type="button" id="regen-captions">Captions</button>' +
           '<a class="ghost" href="/api/produce/' + jobId + '/export">Handoff zip</a>' +
           "</div></article>";
       }
@@ -1136,7 +1261,7 @@
           "</div>";
       }
       const inspector = inspectorHtml(data);
-      const left = coach + strip + identBlock + queueBlock + blocks.join("") + timeline + media;
+      const left = coach + strip + identBlock + queueBlock + blocks.join("") + cutBlock + timeline + media;
       $("work").innerHTML = inspector ? '<div class="layout"><div>' + left + "</div>" + inspector + "</div>" : left;
       $("work").querySelectorAll("[data-shot-act]").forEach((btn) => {
         btn.onclick = () => shotAction(btn.getAttribute("data-shot-act"), btn.getAttribute("data-shot"));
@@ -1164,6 +1289,24 @@
       if (delShot) delShot.onclick = () => deleteShot(selectedShotId);
       const sendComment = $("send-comment");
       if (sendComment) sendComment.onclick = postComment;
+      const enhanceBtn = $("enhance-shot");
+      if (enhanceBtn) enhanceBtn.onclick = enhanceShot;
+      const dupShot = $("dup-shot");
+      if (dupShot) dupShot.onclick = () => duplicateShot(selectedShotId);
+      const grabFirst = $("grab-first");
+      if (grabFirst) grabFirst.onclick = () => grabStill(false);
+      const grabLast = $("grab-last");
+      if (grabLast) grabLast.onclick = () => grabStill(true);
+      const captionsBtn = $("regen-captions");
+      if (captionsBtn) captionsBtn.onclick = regenCaptions;
+      const pickWinner = $("pick-winner");
+      if (pickWinner) pickWinner.onclick = pickTakeWinner;
+      $("work").querySelectorAll("[data-review]").forEach((btn) => {
+        btn.onclick = () => reviewShot(btn.getAttribute("data-review"));
+      });
+      $("work").querySelectorAll("[data-cut]").forEach((btn) => {
+        btn.onclick = () => restoreCutVersion(btn.getAttribute("data-cut"));
+      });
       $("work").querySelectorAll("[data-move]").forEach((btn) => {
         btn.onclick = () => moveEdit(btn.getAttribute("data-move"), edit);
       });
@@ -1209,6 +1352,18 @@
       }
     }
 
+    function takeCompareHtml(data, shotId) {
+      const takes = (data.takes || []).filter((t) => t.shot_id === shotId);
+      if (takes.length < 2) return "";
+      const opts = takes.map((t) =>
+        '<option value="' + escapeHtml(t.clip) + '">' + escapeHtml(t.clip.split("/").pop()) + "</option>"
+      ).join("");
+      return '<h2 style="margin-top:16px">Compare takes</h2><div class="pair">' +
+        '<label class="pick"><span>A</span><select id="ab-a">' + opts + "</select></label>" +
+        '<label class="pick"><span>B</span><select id="ab-b">' + opts + "</select></label></div>" +
+        '<button class="ghost" type="button" id="pick-winner">Use take A in cut</button>';
+    }
+
     function takeBinHtml(data, shotId) {
       const takes = (data.takes || []).filter((t) => t.shot_id === shotId);
       if (!takes.length) return "";
@@ -1244,8 +1399,20 @@
         '<label>Mode</label><input id="insp-mode" value="' + escapeHtml(shot.h3_mode || "") + '" placeholder="i2va / fl2va / t2va / r2va">' +
         '<label>Seed</label><input id="insp-seed" type="number" value="' + escapeHtml(shot.seed || "") + '" placeholder="optional">' +
         '<div class="row" style="margin-top:12px"><button class="primary" type="button" id="save-prompt">Save shot</button>' +
+        '<button class="ghost" type="button" id="enhance-shot">Enhance</button>' +
+        '<button class="ghost" type="button" id="dup-shot">Duplicate</button>' +
         '<button class="ghost" type="button" id="del-shot">Delete</button></div>' +
+        (clip
+          ? '<div class="row"><button class="ghost" type="button" id="grab-first">Grab first</button>' +
+            '<button class="ghost" type="button" id="grab-last">Grab last</button></div>'
+          : "") +
+        '<div class="row"><button type="button" class="chip" data-review="approved">Approve</button>' +
+        '<button type="button" class="chip" data-review="needs_changes">Needs work</button>' +
+        '<button type="button" class="chip" data-review="rejected">Reject</button></div>' +
+        (shot.review_status ? '<p class="meta">Review · ' + escapeHtml(shot.review_status) +
+          (shot.review_note ? " · " + escapeHtml(shot.review_note) : "") + "</p>" : "") +
         takeBinHtml(data, selectedShotId) +
+        takeCompareHtml(data, selectedShotId) +
         commentHtml(data, selectedShotId) +
         '<p class="eta">Click a board to inspect. Trim is local ffmpeg. Retake on the timeline sends a new take to Spark.</p></aside>';
     }
@@ -1327,7 +1494,10 @@
           ? '<video src="/api/produce/' + jobId + "/file/" + encodeURIComponent(clip) + '" muted></video>'
           : '<div class="meta">No board yet</div>');
       return '<div class="shot' + (id === selectedShotId ? " sel" : "") + '" data-open-shot="' + escapeHtml(id) + '">' + media +
-        "<strong>" + escapeHtml(id) + "</strong>" +
+        "<strong>" + escapeHtml(id) +
+        (shot.review_status ? '<span class="badge ' + escapeHtml(shot.review_status) + '">' +
+          escapeHtml(shot.review_status.replace("_", " ")) + "</span>" : "") +
+        "</strong>" +
         '<div class="meta">' + escapeHtml(shot.status || "planned") +
         (shot.purpose ? " · " + escapeHtml(String(shot.purpose).slice(0, 80)) : "") + "</div>" +
         '<div class="actions">' +

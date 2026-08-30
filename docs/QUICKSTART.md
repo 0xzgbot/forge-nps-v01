@@ -61,6 +61,8 @@ Crew chips (Producer, Story, Video, …) open a bot sheet. They talk through Her
 
 Keyboard: **⌘K** command palette · **B** board · **T** take · **A** assemble · **⌘↵** Produce.
 
+The LLM light is green only when the language model answers. Grey means the URL is saved but the box is down. After a cut exists, the desk plays it and keeps older assembles under **cuts/**.
+
 ## Do not
 
 - Do not send H3 to a 3090.

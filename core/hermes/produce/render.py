@@ -364,6 +364,9 @@ SHOT_PATCH_FIELDS = {
     "guides",
     "status",
     "seed",
+    "negative_prompt",
+    "review_status",
+    "review_note",
 }
 
 
@@ -732,9 +735,29 @@ def assemble_cut(
         if item.get("muted"):
             muted_paths.append(use)
     if not clips:
-        return {"status": "error", "error": "no_clips"}
+        return {"ok": False, "status": "error", "error": "no_clips"}
+    from core.hermes.produce import desk as produce_desk
+    from core.hermes.produce import finish as produce_finish
+    from core.hermes.produce import job_ops as produce_ops
+
     out = job_dir / "cut.mp4"
-    result = assembler.export_cut(clips, out, keep_audio=True, muted_paths=muted_paths)
+    if out.exists():
+        produce_desk.archive_cut(job_dir)
+    meta = load_job_meta(job_dir)
+    transition = str(meta.get("transition") or "cut").strip().lower()
+    result: Dict[str, Any]
+    if transition in {"crossfade", "dissolve", "fade"} and len(clips) > 1:
+        faded = job_dir / ".trim" / "xfade.mp4"
+        faded.parent.mkdir(parents=True, exist_ok=True)
+        xf = produce_finish.crossfade_concat(clips, faded, fade_sec=0.25)
+        if xf.get("ok") and faded.exists():
+            shutil.copy2(faded, out)
+            result = {"ok": True, "output": str(out), "transition": "crossfade"}
+        else:
+            result = assembler.export_cut(clips, out, keep_audio=True, muted_paths=muted_paths)
+            result["transition_fallback"] = xf.get("error") or "xfade_failed"
+    else:
+        result = assembler.export_cut(clips, out, keep_audio=True, muted_paths=muted_paths)
     use_color = bool(load_job_meta(job_dir).get("color_pass")) if color_pass is None else bool(color_pass)
     if result.get("ok") and use_color:
         graded = job_dir / "cut.grade.mp4"
@@ -745,10 +768,6 @@ def assemble_cut(
         else:
             result["color_pass_error"] = grade.get("error")
     if result.get("ok"):
-        from core.hermes.produce import finish as produce_finish
-        from core.hermes.produce import job_ops as produce_ops
-
-        meta = load_job_meta(job_dir)
         aspect = str(meta.get("aspect") or "16:9")
         title = str(meta.get("title") or "")
         try:
@@ -773,6 +792,14 @@ def assemble_cut(
                     name: bool(step.get("ok")) for name, step in (fin.get("steps") or {}).items()
                 }
         produce_ops.write_captions(job_dir)
+        last = {
+            "ok": True,
+            "transition": transition,
+            "color_pass": bool(result.get("color_pass")),
+            "color_pass_error": result.get("color_pass_error") or "",
+            "finish": result.get("finish") or {},
+        }
+        save_job_meta(job_dir, {"last_assemble": last, "status": "ready", "stage": "edit"})
         (job_dir / "STATUS.md").write_text("edit — cut.mp4 assembled.\n", encoding="utf-8")
         try:
             from core.hermes.produce import queue as produce_queue
@@ -847,13 +874,14 @@ def export_package(job_dir: Path) -> Dict[str, Any]:
         "prompt.md", "story.md", "script.md", "storyboard.md", "shots.json",
         "edit.json", "STATUS.md", "job.json", "queue.json", "cut.mp4",
         "cut.srt", "comments.json", "cut_finish.mp4",
+        "review_log.jsonl", "ab_log.jsonl",
     ]
     with zipfile.ZipFile(dest, "w", compression=zipfile.ZIP_DEFLATED) as zf:
         for name in names:
             path = job_dir / name
             if path.exists():
                 zf.write(path, name)
-        for folder in ("boards", "clips", "identity", "takes"):
+        for folder in ("boards", "clips", "identity", "takes", "cuts"):
             root = job_dir / folder
             if not root.exists():
                 continue
