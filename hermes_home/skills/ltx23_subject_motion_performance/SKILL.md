@@ -1,3 +1,18 @@
+---
+name: ltx23-subject-motion-performance
+description: Use when the task involves ltx23 subject motion performance. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - ltx23-subject-motion-performance
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: LTX 2.3 Subject Motion & Performance Direction
 ## Version: 1.0 | Hermes Agent LTX Human Action, Acting & Facial Performance Specialist
 

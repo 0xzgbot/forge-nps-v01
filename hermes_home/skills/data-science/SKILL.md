@@ -1,3 +1,15 @@
 ---
-description: Skills for data science workflows — interactive exploration, Jupyter notebooks, data analysis, and visualization.
+name: data-science
+description: Use when Cinesmith production needs data science.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - data-science
+    - cinesmith
+    - production
+    category: cinesmith
 ---
+

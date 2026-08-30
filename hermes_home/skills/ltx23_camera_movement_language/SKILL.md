@@ -1,3 +1,18 @@
+---
+name: ltx23-camera-movement-language
+description: Use when the task involves ltx23 camera movement language. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - ltx23-camera-movement-language
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: LTX 2.3 Camera Movement Language
 ## Version: 1.0 | Hermes Agent LTX Video Motion Grammar
 

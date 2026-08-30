@@ -1,3 +1,18 @@
+---
+name: lifestyle-aspiration
+description: Use when the task involves lifestyle aspiration. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - lifestyle-aspiration
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Lifestyle & Aspiration
 ## Version: 1.0 | Hermes Agent Genre & Format Expertise
 

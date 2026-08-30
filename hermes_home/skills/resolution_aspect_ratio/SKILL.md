@@ -1,3 +1,18 @@
+---
+name: resolution-aspect-ratio
+description: Use when the task involves resolution aspect ratio. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - resolution-aspect-ratio
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Resolution & Aspect Ratio Language
 ## Version: 1.0 | Hermes Agent SD Prompt Craft (Technical)
 

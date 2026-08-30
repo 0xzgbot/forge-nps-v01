@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cinesmith</title>
+  <style>
+    :root {
+      --bg: #f3f1ec;
+      --ink: #1b1b18;
+      --mute: #6a6862;
+      --line: #d9d5cc;
+      --card: #fffdf8;
+      --accent: #1b1b18;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+      font-size: 15px;
+      line-height: 1.5;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 18px 24px 0;
+    }
+    header strong { letter-spacing: -0.03em; font-size: 16px; }
+    header nav { display: flex; align-items: center; gap: 14px; color: var(--mute); }
+    header button, header a {
+      color: var(--mute);
+      background: none;
+      border: 0;
+      font: inherit;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    #link-status { font-size: 13px; max-width: 36em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #link-status.ready { color: var(--ink); }
+    main { max-width: 720px; margin: 0 auto; padding: 56px 24px 96px; }
+    h1 { font-size: 32px; letter-spacing: -0.04em; font-weight: 600; margin-bottom: 8px; }
+    .lede { color: var(--mute); margin-bottom: 22px; max-width: 38em; }
+    .crew {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 28px;
+    }
+    .chip {
+      border: 1px solid var(--line);
+      background: var(--card);
+      color: var(--ink);
+      border-radius: 999px;
+      padding: 6px 12px;
+      font: inherit;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .chip.busy { border-color: var(--ink); }
+    .chip.support { color: var(--mute); }
+    textarea {
+      width: 100%;
+      min-height: 132px;
+      border: 1px solid var(--line);
+      background: var(--card);
+      border-radius: 12px;
+      padding: 14px 16px;
+      font: inherit;
+      resize: vertical;
+      color: var(--ink);
+    }
+    textarea:focus, input:focus { outline: 2px solid var(--ink); outline-offset: 2px; }
+    .row { display: flex; gap: 10px; margin-top: 14px; align-items: center; flex-wrap: wrap; }
+    .primary {
+      background: var(--accent);
+      color: #fff;
+      border: 0;
+      border-radius: 999px;
+      padding: 10px 18px;
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .primary:disabled { opacity: 0.45; cursor: wait; }
+    .ghost {
+      background: none;
+      border: 0;
+      color: var(--mute);
+      font: inherit;
+      cursor: pointer;
+    }
+    .stages { display: flex; gap: 10px; margin: 28px 0 8px; flex-wrap: wrap; }
+    .stage {
+      font-size: 12px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--mute);
+      padding-bottom: 3px;
+      border-bottom: 2px solid transparent;
+    }
+    .stage.on { color: var(--ink); border-color: var(--ink); }
+    .stage.done { color: var(--ink); }
+    article {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-top: 10px;
+      white-space: pre-wrap;
+    }
+    article h2, .jobs h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--mute); margin-bottom: 8px; }
+    .clips { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; margin-top: 12px; }
+    .clips video, .clips img { width: 100%; border-radius: 10px; background: #111; }
+    #status { color: var(--mute); font-size: 13px; }
+    #err, #bot-err { color: #9b2c2c; margin-top: 10px; font-size: 13px; }
+    .jobs { margin-top: 40px; }
+    .job {
+      display: block;
+      width: 100%;
+      text-align: left;
+      background: none;
+      border: 0;
+      border-top: 1px solid var(--line);
+      padding: 10px 0;
+      font: inherit;
+      cursor: pointer;
+      color: inherit;
+    }
+    .job small { display: block; color: var(--mute); }
+    .pane {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(27,27,24,0.28);
+      z-index: 5;
+    }
+    .pane.open { display: block; }
+    .sheet {
+      position: absolute;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      width: min(420px, 100%);
+      background: var(--card);
+      padding: 24px;
+      overflow: auto;
+      border-left: 1px solid var(--line);
+    }
+    label { display: block; font-size: 12px; color: var(--mute); margin: 14px 0 6px; }
+    input {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font: inherit;
+      background: var(--bg);
+    }
+    #chat-log { min-height: 140px; max-height: 42vh; overflow: auto; margin: 12px 0; }
+    #chat-log p { margin: 0 0 10px; white-space: pre-wrap; }
+    #chat-log .who { font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--mute); }
+    details { margin-top: 22px; color: var(--mute); }
+    details summary { cursor: pointer; font-size: 13px; }
+    .routine { font-size: 13px; padding: 8px 0; border-top: 1px solid var(--line); color: var(--ink); }
+    #save-note { font-size: 13px; color: var(--mute); }
+  </style>
+</head>
+<body>
+  <header>
+    <strong>Cinesmith</strong>
+    <nav>
+      <span id="link-status">Checking connection…</span>
+      <button type="button" id="open-settings">Connect</button>
+      <a href="/studio">Studio</a>
+    </nav>
+  </header>
+  <main>
+    <h1>What should we make?</h1>
+    <p class="lede">Type a video idea. The producer hands it to story, script, storyboard, video, and editor.</p>
+    <div class="crew" id="crew"></div>
+    <textarea id="prompt" placeholder="A courier misses the last train and walks home through a wet city. Two minutes. Quiet. No dialogue."></textarea>
+    <div class="row">
+      <button class="primary" id="go" type="button">Produce</button>
+      <span id="status"></span>
+    </div>
+    <div id="err"></div>
+    <div class="stages" id="stages" hidden></div>
+    <div id="work"></div>
+    <section class="jobs" id="jobs-wrap" hidden>
+      <h2>Recent</h2>
+      <div id="jobs"></div>
+    </section>
+  </main>
+  <div class="pane" id="bot-pane">
+    <div class="sheet">
+      <h2 id="bot-title" style="letter-spacing:-0.03em;margin-bottom:6px;font-size:20px;text-transform:none;color:inherit;">Bot</h2>
+      <p class="lede" id="bot-desc"></p>
+      <div id="chat-log"></div>
+      <textarea id="bot-msg" placeholder="Message this bot. @story or @video to hand off."></textarea>
+      <div class="row">
+        <button class="primary" type="button" id="bot-send">Send</button>
+        <button class="ghost" type="button" id="close-bot">Close</button>
+      </div>
+      <div id="bot-err"></div>
+      <details id="routines-box">
+        <summary>Routines</summary>
+        <div id="routine-list"></div>
+        <label>Title</label>
+        <input id="routine-title" placeholder="Morning review">
+        <label>Schedule</label>
+        <input id="routine-sched" placeholder="every 1d">
+        <label>Prompt</label>
+        <input id="routine-prompt" placeholder="What this bot should do">
+        <div class="row">
+          <button class="primary" type="button" id="routine-add">Add routine</button>
+        </div>
+      </details>
+    </div>
+  </div>
+  <div class="pane" id="drawer">
+    <form class="sheet" id="settings">
+      <h2 style="letter-spacing:-0.03em;margin-bottom:8px;font-size:20px;">Connect</h2>
+      <p class="lede">Any OpenAI-compatible language model. Spark for pictures and video.</p>
+      <label>Language model endpoint</label>
+      <input id="llm-url" placeholder="http://localhost:1234/v1">
+      <label>Model name</label>
+      <input id="llm-model" placeholder="local model id, or openai/gpt-4.1">
+      <label>API key</label>
+      <input id="llm-key" type="password" placeholder="Leave blank for local">
+      <label>Spark / ComfyUI</label>
+      <input id="spark-url" placeholder="http://localhost:8188">
+      <div class="row" style="margin-top:22px;">
+        <button class="primary" type="submit">Save</button>
+        <button class="ghost" type="button" id="close-settings">Close</button>
+        <span id="save-note"></span>
+      </div>
+    </form>
+  </div>
+  <script>
+    const STAGES = ["story", "script", "storyboard", "video", "edit", "done"];
+    let jobId = "";
+    let timer = null;
+    let selectedBot = "";
+    let groupMode = false;
+    let roster = [];
+
+    function $(id) { return document.getElementById(id); }
+    function escapeHtml(s) {
+      return String(s || "").replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+    }
+    function apiError(data, fallback) {
+      if (!data) return fallback;
+      if (typeof data.error === "string") return data.error;
+      if (data.error && data.error.message) return data.error.message;
+      return data.detail || data.message || fallback;
+    }
+    function shortModel(name) {
+      const text = String(name || "");
+      return text.length > 36 ? text.slice(0, 34) + "…" : text;
+    }
+
+    async function loadStatus() {
+      const resp = await fetch("/api/connect/status");
+      const data = await resp.json();
+      const llm = data.llm || {};
+      const el = $("link-status");
+      if (llm.ready) {
+        el.textContent = shortModel(llm.model || llm.base_url);
+        el.className = "ready";
+        el.title = (llm.base_url || "") + (llm.model ? " · " + llm.model : "");
+      } else {
+        el.textContent = "No language model";
+        el.className = "";
+      }
+      if (llm.base_url && !$("llm-url").value) $("llm-url").value = llm.base_url;
+      if (llm.model && !$("llm-model").value) $("llm-model").value = llm.model;
+      if (data.spark && data.spark.url && !$("spark-url").value) $("spark-url").value = data.spark.url;
+    }
+
+    function renderCrew() {
+      const support = roster.filter((b) => b.support);
+      const core = roster.filter((b) => !b.support);
+      const chip = (b, extra) =>
+        '<button type="button" class="chip' + extra + (b.busy ? " busy" : "") + '" data-bot="' + b.name + '">' +
+        escapeHtml(b.title || b.name) + "</button>";
+      $("crew").innerHTML =
+        core.map((b) => chip(b, "")).join("") +
+        support.map((b) => chip(b, " support")).join("") +
+        '<button type="button" class="chip support" id="open-group">Crew room</button>';
+      $("crew").querySelectorAll("[data-bot]").forEach((el) => {
+        el.onclick = () => openBot(el.getAttribute("data-bot"));
+      });
+      const group = $("open-group");
+      if (group) group.onclick = openGroup;
+    }
+
+    async function loadRoster() {
+      const resp = await fetch("/api/bots");
+      const data = await resp.json();
+      roster = data.bots || [];
+      renderCrew();
+    }
+
+    async function openBot(name) {
+      groupMode = false;
+      selectedBot = name;
+      $("bot-err").textContent = "";
+      $("routines-box").hidden = false;
+      const resp = await fetch("/api/bots/" + encodeURIComponent(name));
+      const data = await resp.json();
+      $("bot-title").textContent = data.title || name;
+      $("bot-desc").textContent = data.description || "";
+      renderChat(data.chat || []);
+      renderRoutines(data.routines || []);
+      $("bot-pane").classList.add("open");
+    }
+
+    async function openGroup() {
+      groupMode = true;
+      selectedBot = "";
+      $("bot-err").textContent = "";
+      $("routines-box").hidden = true;
+      const resp = await fetch("/api/crew/group");
+      const data = await resp.json();
+      $("bot-title").textContent = "Crew room";
+      $("bot-desc").textContent = "@mention a specialist to keep the round tight.";
+      renderChat((data.messages || []).map((m) => ({ role: m.role, text: m.text })));
+      $("bot-pane").classList.add("open");
+    }
+
+    function renderChat(rows) {
+      $("chat-log").innerHTML = (rows || []).map((r) => {
+        return '<p><span class="who">' + escapeHtml(r.role || "") + "</span><br>" + escapeHtml(r.text || "") + "</p>";
+      }).join("") || '<p class="lede">No messages yet.</p>';
+      $("chat-log").scrollTop = $("chat-log").scrollHeight;
+    }
+
+    function renderRoutines(rows) {
+      $("routine-list").innerHTML = (rows || []).map((r) => {
+        return '<div class="routine"><strong>' + escapeHtml(r.title || r.name || "") + "</strong> · " +
+          escapeHtml(r.schedule || "") + "</div>";
+      }).join("") || '<p class="lede">None yet.</p>';
+    }
+
+    function closePanes() {
+      $("bot-pane").classList.remove("open");
+      $("drawer").classList.remove("open");
+    }
+
+    $("close-bot").onclick = closePanes;
+    $("close-settings").onclick = closePanes;
+    $("bot-pane").addEventListener("click", (e) => { if (e.target.id === "bot-pane") closePanes(); });
+    $("drawer").addEventListener("click", (e) => { if (e.target.id === "drawer") closePanes(); });
+    $("open-settings").onclick = () => { loadSettings(); $("drawer").classList.add("open"); };
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") closePanes();
+      if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && document.activeElement === $("prompt")) {
+        e.preventDefault();
+        $("go").click();
+      }
+    });
+
+    $("bot-send").onclick = async () => {
+      const message = $("bot-msg").value.trim();
+      if (!message) return;
+      $("bot-err").textContent = "";
+      $("bot-send").disabled = true;
+      try {
+        const url = groupMode ? "/api/crew/group" : "/api/bots/" + encodeURIComponent(selectedBot) + "/chat";
+        const resp = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message, job_id: jobId }),
+        });
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(apiError(data, "send failed"));
+        $("bot-msg").value = "";
+        if (groupMode) renderChat((data.messages || []).map((m) => ({ role: m.role, text: m.text })));
+        else {
+          const detail = await fetch("/api/bots/" + encodeURIComponent(selectedBot));
+          renderChat((await detail.json()).chat || []);
+        }
+        loadRoster().catch(() => {});
+      } catch (err) {
+        $("bot-err").textContent = err.message || String(err);
+      } finally {
+        $("bot-send").disabled = false;
+      }
+    };
+
+    $("routine-add").onclick = async () => {
+      if (groupMode || !selectedBot) return;
+      const prompt = $("routine-prompt").value.trim();
+      if (!prompt) return;
+      await fetch("/api/bots/" + encodeURIComponent(selectedBot) + "/routines", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: $("routine-title").value.trim(),
+          prompt,
+          schedule: $("routine-sched").value.trim() || "every 1d",
+        }),
+      });
+      $("routine-title").value = "";
+      $("routine-prompt").value = "";
+      const bot = await (await fetch("/api/bots/" + encodeURIComponent(selectedBot))).json();
+      renderRoutines(bot.routines || []);
+    };
+
+    async function loadSettings() {
+      const resp = await fetch("/api/config");
+      const data = await resp.json();
+      $("llm-url").value = data.LLM_BASE_URL || "";
+      $("llm-model").value = data.LLM_MODEL || "";
+      $("spark-url").value = data.COMFYUI_PRIMARY || (data.comfyui && data.comfyui.primary) || "";
+      $("save-note").textContent = "";
+    }
+
+    $("settings").onsubmit = async (e) => {
+      e.preventDefault();
+      $("save-note").textContent = "Saving…";
+      const resp = await fetch("/api/config/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          LLM_BASE_URL: $("llm-url").value,
+          LLM_MODEL: $("llm-model").value,
+          LLM_API_KEY: $("llm-key").value,
+          COMFYUI_PRIMARY: $("spark-url").value,
+        }),
+      });
+      $("save-note").textContent = resp.ok ? "Saved." : "Could not save.";
+      if (resp.ok) {
+        $("llm-key").value = "";
+        loadStatus().catch(() => {});
+        setTimeout(closePanes, 400);
+      }
+    };
+
+    $("go").onclick = async () => {
+      const prompt = $("prompt").value.trim();
+      $("err").textContent = "";
+      if (!prompt) { $("err").textContent = "Write a prompt first."; return; }
+      $("go").disabled = true;
+      $("status").textContent = "Producer is reading the brief…";
+      $("stages").hidden = false;
+      try {
+        const resp = await fetch("/api/produce/start", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt, profile: "producer" }),
+        });
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(apiError(data, "start failed"));
+        jobId = data.job_id;
+        render(data);
+        poll();
+      } catch (err) {
+        $("err").textContent = err.message || String(err);
+        $("go").disabled = false;
+      }
+    };
+
+    function finished(data) {
+      return data.status === "done" || data.status === "blocked";
+    }
+
+    async function poll() {
+      if (!jobId) return;
+      const resp = await fetch("/api/produce/" + encodeURIComponent(jobId));
+      const data = await resp.json();
+      render(data);
+      if (!finished(data)) timer = setTimeout(poll, 2000);
+      else $("go").disabled = false;
+    }
+
+    function render(data) {
+      $("status").textContent = (data.files && data.files["STATUS.md"]) || data.status || "";
+      $("err").textContent = typeof data.error === "string" ? data.error : (data.error && data.error.message) || "";
+      $("stages").hidden = false;
+      const have = {
+        story: !!(data.files && data.files["story.md"]),
+        script: !!(data.files && data.files["script.md"]),
+        storyboard: !!(data.files && (data.files["storyboard.md"] || data.files["shots.json"])),
+        video: (data.clips || []).length > 0,
+        edit: !!(data.files && data.files["edit.json"]),
+        done: data.stage === "done",
+      };
+      $("stages").innerHTML = STAGES.map((s) => {
+        const on = s === data.stage;
+        return '<span class="stage' + (on ? " on" : "") + (have[s] ? " done" : "") + '">' + s + "</span>";
+      }).join("");
+      const files = data.files || {};
+      const blocks = [];
+      if (files["story.md"]) blocks.push(card("Story", files["story.md"]));
+      if (files["script.md"]) blocks.push(card("Script", files["script.md"]));
+      if (files["storyboard.md"]) blocks.push(card("Storyboard", files["storyboard.md"]));
+      if (files["shots.json"]) blocks.push(card("Shots", files["shots.json"]));
+      if (files["edit.json"]) blocks.push(card("Edit", files["edit.json"]));
+      let media = "";
+      const clips = data.clips || [];
+      const stills = data.stills || [];
+      if (clips.length || stills.length) {
+        media = '<div class="clips">' +
+          stills.map((n) => '<img src="/api/produce/' + jobId + "/file/" + encodeURIComponent(n) + '" alt="">').join("") +
+          clips.map((n) => '<video controls src="/api/produce/' + jobId + "/file/" + encodeURIComponent(n) + '"></video>').join("") +
+          "</div>";
+      }
+      $("work").innerHTML = blocks.join("") + media;
+    }
+
+    function card(title, body) {
+      return "<article><h2>" + title + "</h2>" + escapeHtml(String(body || "").slice(0, 4000)) + "</article>";
+    }
+
+    async function loadJobs() {
+      const resp = await fetch("/api/produce/jobs");
+      const data = await resp.json();
+      const jobs = data.jobs || [];
+      if (!jobs.length) return;
+      $("jobs-wrap").hidden = false;
+      $("jobs").innerHTML = jobs.map((j) => {
+        return '<button type="button" class="job" data-job="' + escapeHtml(j.job_id) + '">' +
+          escapeHtml(j.prompt || j.job_id) + "<small>" + escapeHtml(j.stage || "") + " · " + escapeHtml(j.status || "") + "</small></button>";
+      }).join("");
+      $("jobs").querySelectorAll("[data-job]").forEach((el) => {
+        el.onclick = async () => {
+          jobId = el.getAttribute("data-job");
+          const snap = await (await fetch("/api/produce/" + encodeURIComponent(jobId))).json();
+          render(snap);
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        };
+      });
+    }
+
+    loadStatus().catch(() => { $("link-status").textContent = "Connect a model"; });
+    loadRoster().catch(() => {});
+    loadJobs().catch(() => {});
+    loadSettings().catch(() => {});
+    setInterval(() => {
+      if (document.hidden) return;
+      loadRoster().catch(() => {});
+      loadStatus().catch(() => {});
+    }, 10000);
+  </script>
+</body>
+</html>

@@ -1,3 +1,19 @@
+---
+name: skill-cyberpunk-neon-noir-specialist
+description: Use when the task involves skill cyberpunk neon noir specialist. 1. EXECUTIVE
+  SUMMARY.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - skill-cyberpunk-neon-noir-specialist
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Cyberpunk / Neon Noir Specialist
 ## Domain: Dystopian Futurism, Neon Cinematography, Volumetric Atmosphere, Holographic UI
 ## Version: 1.0

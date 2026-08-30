@@ -1,3 +1,18 @@
+---
+name: documentary-interview-format
+description: Use when the task involves documentary interview format. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - documentary-interview-format
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Documentary & Interview Format
 ## Version: 1.0 | Hermes Agent Non-Fiction Cinematic Grammar
 

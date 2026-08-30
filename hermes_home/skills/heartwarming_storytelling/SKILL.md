@@ -1,7 +1,15 @@
 ---
 name: heartwarming_storytelling
 version: 1.0
-description: Wholesome micro-story arcs for happy, emotional, family-safe campaign content.
+description: Wholesome micro-story arcs for happy, emotional, family-safe campaign
+  content.
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - heartwarming-storytelling
+    category: cinesmith
 ---
 
 # Heartwarming Storytelling

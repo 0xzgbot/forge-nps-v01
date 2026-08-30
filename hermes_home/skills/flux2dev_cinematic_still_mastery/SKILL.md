@@ -1,3 +1,18 @@
+---
+name: flux2dev-cinematic-still-mastery
+description: Use when the task involves flux2dev cinematic still mastery. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - flux2dev-cinematic-still-mastery
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: FLUX.2 Dev Cinematic Still Mastery
 ## Version: 1.0 | Hermes Agent Flux2 Film Frame & Storyboard Specialist
 

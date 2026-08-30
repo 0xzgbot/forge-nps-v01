@@ -1,3 +1,18 @@
+---
+name: ensemble-group-dynamics
+description: Use when the task involves ensemble group dynamics. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - ensemble-group-dynamics
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Ensemble Group Dynamics
 ## Version: 1.0 | Hermes Agent Character & Direction System
 

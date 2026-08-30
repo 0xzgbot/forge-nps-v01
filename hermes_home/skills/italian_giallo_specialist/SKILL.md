@@ -1,3 +1,18 @@
+---
+name: italian-giallo-specialist
+description: Use when the task involves italian giallo specialist. 1. EXECUTIVE SUMMARY.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - italian-giallo-specialist
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: 1970s Italian Giallo Specialist
 ## Domain: Stylized Horror, Baroque Cinematography, Saturated Color Gels, Black Leather, Synth Atmosphere
 ## Version: 1.0

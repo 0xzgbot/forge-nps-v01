@@ -1,3 +1,18 @@
+---
+name: beauty-skincare
+description: Use when the task involves beauty skincare. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - beauty-skincare
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Beauty & Skincare
 ## Version: 1.0 | Hermes Agent Brand Voice & Style
 

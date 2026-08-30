@@ -1,3 +1,18 @@
+---
+name: workflow-ltx-i2v
+description: Use when the task involves workflow ltx i2v. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - workflow-ltx-i2v
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: LTX 2.3 Image-to-Video Workflow Master
 ## Version: 1.0 | Hermes Agent LTX I2V Pipeline & Anchor Strategy Specialist
 

@@ -1,3 +1,18 @@
+---
+name: luxury-premium
+description: Use when the task involves luxury premium. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - luxury-premium
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Luxury & Premium
 ## Version: 1.0 | Hermes Agent Brand Voice & Style
 

@@ -1,3 +1,18 @@
+---
+name: product-launch-hero-shot
+description: Use when the task involves product launch hero shot. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - product-launch-hero-shot
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Product Launch Hero Shot
 ## Version: 1.0 | Hermes Agent Genre & Format Expertise
 

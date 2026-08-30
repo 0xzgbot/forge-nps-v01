@@ -1,3 +1,15 @@
 ---
-description: Note taking skills, to save information, assist with research, and collab on multi-session planning and information sharing.
+name: note-taking
+description: Use when Cinesmith production needs note taking.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - note-taking
+    - cinesmith
+    - production
+    category: cinesmith
 ---
+

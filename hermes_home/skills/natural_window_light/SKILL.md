@@ -1,3 +1,18 @@
+---
+name: natural-window-light
+description: Use when the task involves natural window light. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - natural-window-light
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Natural Window Light
 ## Version: 1.0 | Hermes Agent Lighting System
 

@@ -1,3 +1,18 @@
+---
+name: seed-strategy
+description: Use when the task involves seed strategy. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - seed-strategy
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Seed Strategy
 ## Version: 1.0 | Hermes Agent SD Prompt Craft (Technical)
 

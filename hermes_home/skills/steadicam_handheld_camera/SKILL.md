@@ -1,3 +1,18 @@
+---
+name: steadicam-handheld-camera
+description: Use when the task involves steadicam handheld camera. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - steadicam-handheld-camera
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Steadicam & Handheld Camera
 ## Version: 1.0 | Hermes Agent Camera Movement Language
 

@@ -1,3 +1,18 @@
+---
+name: rack-focus-technique
+description: Use when the task involves rack focus technique. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - rack-focus-technique
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Rack Focus Technique
 ## Version: 1.0 | Hermes Agent Camera & Lens Language
 

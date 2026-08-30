@@ -1,10 +1,17 @@
 ---
 name: youtube-content
-description: >
-  Fetch YouTube video transcripts and transform them into structured content
-  (chapters, summaries, threads, blog posts). Use when the user shares a YouTube
-  URL or video link, asks to summarize a video, requests a transcript, or wants
-  to extract and reformat content from any YouTube video.
+description: Fetch YouTube video transcripts and transform them into structured content
+  (chapters, summaries, threads, blog posts). Use when the user shares a YouTube URL
+  or video link, asks to summarize a video, requests a transcript, or wants to extract
+  and reformat content from any YouTube video.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - youtube-content
+    category: media
 ---
 
 # YouTube Content Tool

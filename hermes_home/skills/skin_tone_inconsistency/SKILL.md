@@ -1,3 +1,18 @@
+---
+name: skin-tone-inconsistency
+description: Use when the task involves skin tone inconsistency. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - skin-tone-inconsistency
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Skin Tone Inconsistency
 ## Version: 1.0 | Hermes Agent Failure Pattern Library
 

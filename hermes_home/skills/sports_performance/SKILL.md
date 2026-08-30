@@ -1,3 +1,18 @@
+---
+name: sports-performance
+description: Use when the task involves sports performance. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - sports-performance
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Sports & Performance
 ## Version: 1.0 | Hermes Agent Brand Voice & Style
 

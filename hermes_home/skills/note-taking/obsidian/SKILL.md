@@ -1,6 +1,14 @@
 ---
 name: obsidian
 description: Read, search, and create notes in the Obsidian vault.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - obsidian
+    category: note-taking
 ---
 
 # Obsidian Vault

@@ -1,8 +1,25 @@
 ---
 name: pokemon-player
-description: Play Pokemon games autonomously via headless emulation. Starts a game server, reads structured game state from RAM, makes strategic decisions, and sends button inputs — all from the terminal.
-tags: [gaming, pokemon, emulator, pyboy, gameplay, gameboy]
+description: Play Pokemon games autonomously via headless emulation. Starts a game
+  server, reads structured game state from RAM, makes strategic decisions, and sends
+  button inputs — all from the terminal.
+tags:
+- gaming
+- pokemon
+- emulator
+- pyboy
+- gameplay
+- gameboy
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - pokemon-player
+    category: gaming
 ---
+
 # Pokemon Player
 
 Play Pokemon games via headless emulation using the `pokemon-agent` package.

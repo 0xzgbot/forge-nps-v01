@@ -1,3 +1,18 @@
+---
+name: volumetric-god-rays-lighting
+description: Use when the task involves volumetric god rays lighting. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - volumetric-god-rays-lighting
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Volumetric God Rays & Light Shafts
 ## Version: 1.0 | Hermes Agent Atmospheric Lighting
 

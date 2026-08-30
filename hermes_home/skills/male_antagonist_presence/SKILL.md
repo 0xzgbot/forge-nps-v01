@@ -1,3 +1,18 @@
+---
+name: male-antagonist-presence
+description: Use when the task involves male antagonist presence. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - male-antagonist-presence
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Male Antagonist Presence
 ## Version: 1.0 | Hermes Agent Character & Direction System
 

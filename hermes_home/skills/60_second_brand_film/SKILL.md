@@ -1,3 +1,18 @@
+---
+name: 60-second-brand-film
+description: Use when the task involves 60 second brand film. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - 60-second-brand-film
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: 60-Second Brand Film
 ## Version: 1.0 | Hermes Agent Genre & Format Expertise
 

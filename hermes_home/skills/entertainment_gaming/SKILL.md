@@ -1,3 +1,18 @@
+---
+name: entertainment-gaming
+description: Use when the task involves entertainment gaming. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - entertainment-gaming
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Entertainment & Gaming
 ## Version: 1.0 | Hermes Agent Brand Voice & Style
 

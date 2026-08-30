@@ -1,3 +1,18 @@
+---
+name: elder-authority
+description: Use when the task involves elder authority. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - elder-authority
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Elder & Authority
 ## Version: 1.0 | Hermes Agent Character & Direction System
 

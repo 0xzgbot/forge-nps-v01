@@ -1,3 +1,18 @@
+---
+name: tech-innovation
+description: Use when the task involves tech innovation. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - tech-innovation
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Tech & Innovation
 ## Version: 1.0 | Hermes Agent Brand Voice & Style
 

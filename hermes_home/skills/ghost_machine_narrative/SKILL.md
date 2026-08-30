@@ -1,3 +1,21 @@
+---
+name: ghost-machine-narrative
+description: I'll craft this temporal narrative arc for the 'Ghost in the Machine'
+  launch. Let me first search for current design trends and conceptual frameworks
+  around technological emergence and AI aesthetics to ensure the narrative feels grounded
+  in contemporary visual language.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - ghost-machine-narrative
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 I'll craft this temporal narrative arc for the 'Ghost in the Machine' launch. Let me first search for current design trends and conceptual frameworks around technological emergence and AI aesthetics to ensure the narrative feels grounded in contemporary visual language.
 
 Search

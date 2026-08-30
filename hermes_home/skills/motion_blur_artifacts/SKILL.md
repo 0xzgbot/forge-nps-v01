@@ -1,3 +1,18 @@
+---
+name: motion-blur-artifacts
+description: Use when the task involves motion blur artifacts. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - motion-blur-artifacts
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Motion Blur Artifacts
 ## Version: 1.0 | Hermes Agent Failure Pattern Library
 

@@ -1,3 +1,18 @@
+---
+name: dramatic-chiaroscuro
+description: Use when the task involves dramatic chiaroscuro. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - dramatic-chiaroscuro
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Dramatic Chiaroscuro
 ## Version: 1.0 | Hermes Agent Lighting System
 

@@ -1,3 +1,18 @@
+---
+name: drone-aerial-framing
+description: Use when the task involves drone aerial framing. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - drone-aerial-framing
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Drone & Aerial Framing
 ## Version: 1.0 | Hermes Agent Camera & Lens Language
 

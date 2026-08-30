@@ -1,3 +1,18 @@
+---
+name: flux2dev-macro-texture-surface
+description: Use when the task involves flux2dev macro texture surface. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - flux2dev-macro-texture-surface
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: FLUX.2 Dev Macro, Texture & Surface Detail
 ## Version: 1.0 | Hermes Agent Flux2 Extreme Close-Up & Material Fidelity Specialist
 

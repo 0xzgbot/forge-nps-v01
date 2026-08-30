@@ -1,3 +1,18 @@
+---
+name: studio-softbox-setups
+description: Use when the task involves studio softbox setups. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - studio-softbox-setups
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Studio Softbox Setups
 ## Version: 1.0 | Hermes Agent Lighting System
 

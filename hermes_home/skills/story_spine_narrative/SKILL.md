@@ -1,3 +1,18 @@
+---
+name: story-spine-narrative
+description: Use when the task involves story spine narrative. 1. EXECUTIVE SUMMARY.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - story-spine-narrative
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Story Spine / Narrative
 ## Domain: Three-Act Structure, Emotional Beats, Scene Sequencing, Character Arcs
 ## Version: 1.0

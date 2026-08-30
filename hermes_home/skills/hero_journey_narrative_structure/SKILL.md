@@ -1,3 +1,18 @@
+---
+name: hero-journey-narrative-structure
+description: Use when the task involves hero journey narrative structure. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - hero-journey-narrative-structure
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Hero's Journey / Monomyth Narrative Structure
 ## Version: 1.0 | Cinesmith Hermes Agent Narrative Architecture
 

@@ -1,3 +1,18 @@
+---
+name: ltx23-technical-configuration
+description: Use when the task involves ltx23 technical configuration. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - ltx23-technical-configuration
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: LTX 2.3 Technical Configuration & Workflow Optimization
 ## Version: 1.0 | Hermes Agent LTX Settings, Inference Modes & Pipeline Architecture
 

@@ -1,3 +1,19 @@
+---
+name: impressionism-monet-specialist
+description: Use when the task involves impressionism monet specialist. 1. EXECUTIVE
+  SUMMARY.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - impressionism-monet-specialist
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Impressionism / Monet Specialist
 ## Domain: Broken Color, Plein Air Light, Visible Brushstroke, Color Vibration, Atmospheric Perspective
 ## Version: 1.0

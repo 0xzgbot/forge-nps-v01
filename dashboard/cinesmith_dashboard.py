@@ -299,6 +299,9 @@ async def api_system_readiness():
     cfg = get_raw_config()
     isolation = hermes_isolation_status()
     media_paths = ensure_media_layout(MEDIA_ROOT)
+    from core.bridge.llm_endpoint import resolve_llm_endpoint
+
+    llm = resolve_llm_endpoint(cfg)
 
     checks: Dict[str, Any] = {
         "isolation": {
@@ -316,6 +319,9 @@ async def api_system_readiness():
             "has_kimi_key": bool(str(cfg.get("KIMI_API_KEY", "") or os.getenv("KIMI_API_KEY", "")).strip()),
             "comfy_primary": str(cfg.get("COMFYUI_PRIMARY", "") or os.getenv("COMFYUI_PRIMARY", "") or ""),
             "lmstudio_host": str(cfg.get("LMSTUDIO_HOST", "") or os.getenv("LMSTUDIO_HOST", "") or ""),
+            "llm_ready": llm.ready,
+            "llm_model": llm.model,
+            "llm_base_url": llm.base_url,
         },
     }
 
@@ -684,10 +690,17 @@ app.mount("/campaigns", StaticFiles(directory=str(_campaigns_dir)), name="campai
 
 @app.get("/")
 async def root():
-    """
-    Serve the active dashboard UI.
-    The current app frontend lives in dashboard/templates/index.html.
-    """
+    """Simple Hermes-led produce surface."""
+    produce = Path(__file__).parent / "templates" / "produce.html"
+    headers = {"Cache-Control": "no-store, max-age=0"}
+    if produce.exists():
+        return FileResponse(produce, headers=headers)
+    return await studio()
+
+
+@app.get("/studio")
+async def studio():
+    """Previous multi-tab studio (Images / Videos / Stories)."""
     template_index = Path(__file__).parent / "templates" / "index.html"
     headers = {"Cache-Control": "no-store, max-age=0"}
     if template_index.exists():
@@ -7757,7 +7770,15 @@ async def api_config():
         lm_port_value: Any = int(lm_port or "1234") if lm_host else ""
     except ValueError:
         lm_port_value = 1234 if lm_host else ""
+    from core.bridge.llm_endpoint import resolve_llm_endpoint
+
+    llm = resolve_llm_endpoint(cfg)
     return {
+        "LLM_BASE_URL": llm.base_url,
+        "LLM_MODEL": llm.model,
+        "COMFYUI_PRIMARY": comfy_primary,
+        "llm_ready": llm.ready,
+        "llm_source": llm.source,
         "backend_mode": "remote" if endpoint.startswith("http") else "local",
         "kimi": {
             "api_key_set": bool(kimi_key),
@@ -7866,6 +7887,10 @@ async def api_config_save(req: FlatConfigUpdateRequest, request: Request):
         "models.hermes_3.host": "LMSTUDIO_HOST",
         "models.hermes_3.port": "LMSTUDIO_PORT",
         "models.hermes_3.model_name": "LMSTUDIO_CHAT_MODEL",
+        "LLM_BASE_URL": "LLM_BASE_URL",
+        "LLM_MODEL": "LLM_MODEL",
+        "LLM_API_KEY": "LLM_API_KEY",
+        "COMFYUI_PRIMARY": "COMFYUI_PRIMARY",
         "comfyui.primary": "COMFYUI_PRIMARY",
         "comfyui.secondary": "COMFYUI_SECONDARY",
         "spark.primary": "COMFYUI_PRIMARY",
@@ -7880,7 +7905,7 @@ async def api_config_save(req: FlatConfigUpdateRequest, request: Request):
     for k, v in (updates or {}).items():
         mapped[key_map.get(k, k)] = v
     current_cfg = get_raw_config()
-    for secret_key in ["NOUS_API_KEY", "KIMI_API_KEY", "OPENROUTER_API_KEY", "OPENAI_API_KEY", "GEMINI_API_KEY"]:
+    for secret_key in ["NOUS_API_KEY", "KIMI_API_KEY", "OPENROUTER_API_KEY", "OPENAI_API_KEY", "GEMINI_API_KEY", "LLM_API_KEY"]:
         if secret_key in mapped and not str(mapped.get(secret_key) or "").strip() and str(current_cfg.get(secret_key, "") or "").strip():
             mapped.pop(secret_key, None)
     updated = set_config(mapped)

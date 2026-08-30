@@ -1,3 +1,18 @@
+---
+name: music-scoring-cinematic
+description: Use when the task involves music scoring cinematic. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - music-scoring-cinematic
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Music Scoring & Cinematic Audio
 ## Version: 1.0 | Hermes Agent Emotional Sound Architecture
 

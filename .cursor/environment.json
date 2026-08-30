@@ -1,0 +1,16 @@
+{
+  "name": "Cinesmith",
+  "install": "bash .cursor/install.sh",
+  "terminals": [
+    {
+      "name": "dashboard",
+      "command": "source .venv/bin/activate && CINESMITH_SKIP_PREFLIGHT=1 bash scripts/launch_cinesmith.sh --package"
+    }
+  ],
+  "ports": [
+    {
+      "name": "dashboard",
+      "port": 7000
+    }
+  ]
+}

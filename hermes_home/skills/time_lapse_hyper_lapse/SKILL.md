@@ -1,3 +1,18 @@
+---
+name: time-lapse-hyper-lapse
+description: Use when the task involves time lapse hyper lapse. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - time-lapse-hyper-lapse
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Time-Lapse & Hyper-Lapse
 ## Version: 1.0 | Hermes Agent Temporal Compression Cinematography
 

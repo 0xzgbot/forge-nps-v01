@@ -1,3 +1,18 @@
+---
+name: chroma-key-green-screen-vfx
+description: Use when the task involves chroma key green screen vfx. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - chroma-key-green-screen-vfx
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Chroma Key & Green Screen VFX
 ## Version: 1.0 | Hermes Agent Compositing & Virtual Production
 

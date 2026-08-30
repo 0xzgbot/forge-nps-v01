@@ -1,3 +1,18 @@
+---
+name: underwater-aquatic-light
+description: Use when the task involves underwater aquatic light. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - underwater-aquatic-light
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Underwater & Aquatic Light
 ## Version: 1.0 | Hermes Agent Lighting System
 

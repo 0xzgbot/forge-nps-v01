@@ -1,3 +1,18 @@
+---
+name: neon-practical-lighting
+description: Use when the task involves neon practical lighting. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - neon-practical-lighting
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Neon & Practical Lighting
 ## Version: 1.0 | Hermes Agent Lighting System
 

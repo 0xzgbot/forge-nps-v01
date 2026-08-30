@@ -1,3 +1,18 @@
+---
+name: ltx23-prompt-engineering-master
+description: Use when the task involves ltx23 prompt engineering master. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - ltx23-prompt-engineering-master
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: LTX 2.3 Prompt Engineering Master
 ## Version: 1.0 | Hermes Agent Universal LTX 2.3 Prompt Optimization Doctrine
 

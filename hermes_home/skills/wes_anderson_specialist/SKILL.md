@@ -1,3 +1,18 @@
+---
+name: wes-anderson-specialist
+description: Use when the task involves wes anderson specialist. 1. EXECUTIVE SUMMARY.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - wes-anderson-specialist
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Wes Anderson Specialist
 ## Domain: Cinematography, Production Design, Color Theory, Typography, Narrative Style
 ## Version: 1.0

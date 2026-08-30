@@ -1,6 +1,15 @@
 ---
 name: sienna-nomad-prompt-standardization
-description: Protocol for generating and maintaining cinematic prompt libraries for the Sienna Nomad AI Influencer project.
+description: Protocol for generating and maintaining cinematic prompt libraries for
+  the Sienna Nomad AI Influencer project.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - sienna-nomad-prompt-standardization
+    category: cinesmith
 ---
 
 # Sienna Nomad Project: Prompt Library Standardization & Generation

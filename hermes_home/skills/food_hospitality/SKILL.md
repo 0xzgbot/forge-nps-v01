@@ -1,3 +1,18 @@
+---
+name: food-hospitality
+description: Use when the task involves food hospitality. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - food-hospitality
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Food & Hospitality
 ## Version: 1.0 | Hermes Agent Brand Voice & Style
 

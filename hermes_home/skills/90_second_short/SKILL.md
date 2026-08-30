@@ -1,3 +1,18 @@
+---
+name: 90-second-short
+description: Use when the task involves 90 second short. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - 90-second-short
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: 90-Second Short
 ## Version: 1.0 | Hermes Agent Genre & Format Expertise
 

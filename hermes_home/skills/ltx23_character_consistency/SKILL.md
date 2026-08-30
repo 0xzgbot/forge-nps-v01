@@ -1,3 +1,18 @@
+---
+name: ltx23-character-consistency
+description: 'Deep Research: Character Consistency in LTX 2.3.'
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - ltx23-character-consistency
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 Deep Research: Character Consistency in LTX 2.3
 Executive Summary
 LTX 2.3 (Lightricks' 22B-parameter open-weight video model) represents a meaningful step forward in character consistency for AI video generation, though it relies on a combination of base model improvements, image-to-video anchoring, LoRA fine-tuning, and platform-level tools (LTX Studio's "Elements" system) rather than solving character drift natively in pure text-to-video mode.

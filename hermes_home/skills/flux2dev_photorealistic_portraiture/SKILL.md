@@ -1,3 +1,18 @@
+---
+name: flux2dev-photorealistic-portraiture
+description: Use when the task involves flux2dev photorealistic portraiture. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - flux2dev-photorealistic-portraiture
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: FLUX.2 Dev Photorealistic Portraiture
 ## Version: 1.0 | Hermes Agent Flux2 Portrait & Skin Fidelity Specialist
 

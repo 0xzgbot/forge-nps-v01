@@ -1,0 +1,11 @@
+description: Renders motion when Spark is up. Never fakes a clip.
+display_name: Video
+ui_meta:
+  hermes-bots:
+    title: Video
+    description: Renders motion when Spark is up. Never fakes a clip.
+    color: '#5a3d5c'
+    groups:
+    - crew
+    created: 1788105067417
+    hidden: false

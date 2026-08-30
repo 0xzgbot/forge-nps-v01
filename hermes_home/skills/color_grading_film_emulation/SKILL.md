@@ -1,3 +1,18 @@
+---
+name: color-grading-film-emulation
+description: Use when the task involves color grading film emulation. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - color-grading-film-emulation
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Color Grading & Film Emulation
 ## Version: 1.0 | Hermes Agent Post-Production & Look Development
 

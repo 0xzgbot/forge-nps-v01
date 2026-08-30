@@ -1,3 +1,18 @@
+---
+name: telephoto-compression
+description: Use when the task involves telephoto compression. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - telephoto-compression
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Telephoto Compression
 ## Version: 1.0 | Hermes Agent Camera & Lens Language
 

@@ -1,3 +1,18 @@
+---
+name: neural-aesthetic-brand-bible
+description: Neural Aesthetic — Brand Bible Protocol v1.0.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - neural-aesthetic-brand-bible
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 Neural Aesthetic — Brand Bible Protocol v1.0
 Cinesmith Architect Router Injection Standard
 

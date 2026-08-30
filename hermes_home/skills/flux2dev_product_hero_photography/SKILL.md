@@ -1,3 +1,18 @@
+---
+name: flux2dev-product-hero-photography
+description: Use when the task involves flux2dev product hero photography. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - flux2dev-product-hero-photography
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: FLUX.2 Dev Product & Hero Photography
 ## Version: 1.0 | Hermes Agent Flux2 Commercial & E-Commerce Specialist
 

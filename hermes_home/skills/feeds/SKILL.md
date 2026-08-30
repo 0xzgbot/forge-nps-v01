@@ -1,3 +1,15 @@
 ---
-description: Skills for monitoring, aggregating, and processing RSS feeds, blogs, and web content sources.
+name: feeds
+description: Use when Cinesmith production needs feeds.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - feeds
+    - cinesmith
+    - production
+    category: cinesmith
 ---
+

@@ -1,3 +1,18 @@
+---
+name: anatomical-errors
+description: Use when the task involves anatomical errors. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - anatomical-errors
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Anatomical Errors
 ## Version: 1.0 | Hermes Agent Failure Pattern Library
 

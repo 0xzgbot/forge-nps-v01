@@ -1,3 +1,18 @@
+---
+name: wide-angle-environmental
+description: Use when the task involves wide angle environmental. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - wide-angle-environmental
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Wide Angle Environmental
 ## Version: 1.0 | Hermes Agent Camera & Lens Language
 

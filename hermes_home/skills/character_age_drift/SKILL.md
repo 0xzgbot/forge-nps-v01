@@ -1,3 +1,18 @@
+---
+name: character-age-drift
+description: Use when the task involves character age drift. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - character-age-drift
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Character Age Drift
 ## Version: 1.0 | Hermes Agent Failure Pattern Library
 

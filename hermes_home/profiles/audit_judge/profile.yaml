@@ -1,0 +1,6 @@
+ui_meta:
+  hermes-bots:
+    title: Audit Judge
+    description: Legacy pipeline profile. Hidden from the crew roster.
+    hidden: true
+description: Legacy pipeline profile. Hidden from the crew roster.

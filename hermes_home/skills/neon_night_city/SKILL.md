@@ -1,3 +1,18 @@
+---
+name: neon-night-city
+description: Use when the task involves neon night city. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - neon-night-city
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Neon Night City
 ## Version: 1.0 | Hermes Agent Lighting System
 

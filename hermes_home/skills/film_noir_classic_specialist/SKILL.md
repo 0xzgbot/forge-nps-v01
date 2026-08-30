@@ -1,3 +1,19 @@
+---
+name: film-noir-classic-specialist
+description: Use when the task involves film noir classic specialist. 1. EXECUTIVE
+  SUMMARY.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - film-noir-classic-specialist
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Film Noir Classic Specialist
 ## Domain: Low-Key Lighting, Venetian Blind Shadows, Femme Fatale, Hard-Boiled Detective, Urban Dread
 ## Version: 1.0

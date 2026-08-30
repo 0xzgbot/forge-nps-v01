@@ -1,3 +1,18 @@
+---
+name: motion-graphics-kinetic-type
+description: Use when the task involves motion graphics kinetic type. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - motion-graphics-kinetic-type
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Motion Graphics & Kinetic Typography
 ## Version: 1.0 | Hermes Agent Animated Information Design
 

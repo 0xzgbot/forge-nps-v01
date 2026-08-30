@@ -1,7 +1,18 @@
 ---
 name: domain-intel
-description: Passive domain reconnaissance using Python stdlib. Use this skill for subdomain discovery, SSL certificate inspection, WHOIS lookups, DNS records, domain availability checks, and bulk multi-domain analysis. No API keys required. Triggers on requests like "find subdomains", "check ssl cert", "whois lookup", "is this domain available", "bulk check these domains".
+description: Passive domain reconnaissance using Python stdlib. Use this skill for
+  subdomain discovery, SSL certificate inspection, WHOIS lookups, DNS records, domain
+  availability checks, and bulk multi-domain analysis. No API keys required. Triggers
+  on requests like "find subdomains", "check ssl cert", "whois lookup", "is this domain
+  available", "bulk check these domains".
 license: MIT
+version: 1.0.0
+author: Cinesmith
+metadata:
+  hermes:
+    tags:
+    - domain
+    category: cinesmith
 ---
 
 Passive domain intelligence using only Python stdlib and public data sources.

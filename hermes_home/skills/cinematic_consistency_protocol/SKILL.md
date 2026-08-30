@@ -1,3 +1,18 @@
+---
+name: cinematic-consistency-protocol
+description: The Cinematic Consistency Protocol (CCP v1.0).
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - cinematic-consistency-protocol
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # The Cinematic Consistency Protocol (CCP v1.0)
 ## A Technical Manifesto for Cross-Model Visual Continuity in Multi-Modal Diffusion Pipelines
 

@@ -1,3 +1,18 @@
+---
+name: skill-neural-aesthetic
+description: Use when the task involves skill neural aesthetic. 1. EXECUTIVE SUMMARY.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - skill-neural-aesthetic
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Neural Aesthetic
 ## Domain: Lighting Constants, Mood Descriptors, Style DNA, Prompt Injection Architecture
 ## Version: 1.0

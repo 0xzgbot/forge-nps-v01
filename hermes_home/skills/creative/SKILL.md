@@ -1,3 +1,15 @@
 ---
-description: Creative content generation — ASCII art, hand-drawn style diagrams, and visual design tools.
+name: creative
+description: Use when Cinesmith production needs creative.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - creative
+    - cinesmith
+    - production
+    category: cinesmith
 ---
+

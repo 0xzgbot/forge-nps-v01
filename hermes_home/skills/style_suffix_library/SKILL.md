@@ -1,3 +1,18 @@
+---
+name: style-suffix-library
+description: Use when the task involves style suffix library. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - style-suffix-library
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Style Suffix Library
 ## Version: 1.0 | Hermes Agent SD Prompt Craft (Technical)
 

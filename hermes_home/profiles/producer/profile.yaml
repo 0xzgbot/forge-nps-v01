@@ -1,0 +1,11 @@
+description: Takes the prompt, hands work to specialists, keeps STATUS honest.
+display_name: Producer
+ui_meta:
+  hermes-bots:
+    title: Producer
+    description: Takes the prompt, hands work to specialists, keeps STATUS honest.
+    color: '#1c1c1a'
+    groups:
+    - crew
+    created: 1788105067386
+    hidden: false

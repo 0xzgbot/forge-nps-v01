@@ -1,3 +1,18 @@
+---
+name: golden-hour-mastery
+description: Use when the task involves golden hour mastery. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - golden-hour-mastery
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Golden Hour Mastery
 ## Version: 1.0 | Hermes Agent Lighting System
 

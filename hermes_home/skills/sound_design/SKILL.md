@@ -1,3 +1,18 @@
+---
+name: sound-design
+description: Use when the task involves sound design. 1. EXECUTIVE SUMMARY.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - sound-design
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Sound Design
 ## Domain: Foley, Diegetic/Non-Diegetic Audio, Music Cues, Audio-Visual Correlation
 ## Version: 1.0

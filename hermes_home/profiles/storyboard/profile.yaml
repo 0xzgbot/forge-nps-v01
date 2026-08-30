@@ -1,0 +1,11 @@
+description: Breaks the script into shots and storyboard panels.
+display_name: Storyboard
+ui_meta:
+  hermes-bots:
+    title: Storyboard
+    description: Breaks the script into shots and storyboard panels.
+    color: '#6b4f3d'
+    groups:
+    - crew
+    created: 1788105067414
+    hidden: false

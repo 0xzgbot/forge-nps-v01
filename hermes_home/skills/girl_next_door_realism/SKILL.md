@@ -1,7 +1,15 @@
 ---
 name: girl_next_door_realism
 version: 1.0
-description: Natural, approachable recurring female character realism for wholesome social videos.
+description: Natural, approachable recurring female character realism for wholesome
+  social videos.
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - girl-next-door-realism
+    category: cinesmith
 ---
 
 # Girl Next Door Realism
