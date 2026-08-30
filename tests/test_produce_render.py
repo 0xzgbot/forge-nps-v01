@@ -140,3 +140,17 @@ def test_assemble_cut_mutes_clip_with_an(tmp_path, monkeypatch):
     assert any("-an" in cmd for cmd in cmds)
     final = cmds[-1]
     assert "-ac" in final and "2" in final
+
+
+def test_list_media_dedupes_boards_and_skips_identity(tmp_path: Path):
+    job = tmp_path / "job"
+    (job / "boards").mkdir(parents=True)
+    (job / "clips").mkdir()
+    (job / "identity").mkdir()
+    (job / "boards" / "SHOT_001.png").write_bytes(b"png")
+    (job / "clips" / "SHOT_001.mp4").write_bytes(b"mp4")
+    (job / "identity" / "face.png").write_bytes(b"face")
+    media = produce_render.list_media(job)
+    assert media["stills"] == ["boards/SHOT_001.png"]
+    assert media["clips"] == ["clips/SHOT_001.mp4"]
+

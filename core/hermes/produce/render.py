@@ -192,17 +192,26 @@ def _rel_or_name(job_dir: Path, path: Path) -> str:
 def list_media(job_dir: Path) -> Dict[str, List[str]]:
     stills: List[str] = []
     clips: List[str] = []
-    for folder in (job_dir, job_dir / "boards", job_dir / "clips"):
-        if not folder.exists():
+    seen_stills: set[str] = set()
+    seen_clips: set[str] = set()
+    if not job_dir.exists():
+        return {"stills": stills, "clips": clips}
+    for path in sorted(job_dir.rglob("*")):
+        if not path.is_file():
             continue
-        for path in sorted(folder.rglob("*")):
-            if not path.is_file():
+        rel = _rel_or_name(job_dir, path)
+        if rel.startswith("identity/") or "/identity/" in rel.replace("\\", "/"):
+            continue
+        if path.suffix.lower() in IMAGE_EXTS:
+            if rel in seen_stills:
                 continue
-            rel = _rel_or_name(job_dir, path)
-            if path.suffix.lower() in IMAGE_EXTS:
-                stills.append(rel)
-            elif path.suffix.lower() in VIDEO_EXTS:
-                clips.append(rel)
+            seen_stills.add(rel)
+            stills.append(rel)
+        elif path.suffix.lower() in VIDEO_EXTS:
+            if rel in seen_clips:
+                continue
+            seen_clips.add(rel)
+            clips.append(rel)
     return {"stills": stills, "clips": clips}
 
 
