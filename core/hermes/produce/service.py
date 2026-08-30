@@ -132,7 +132,8 @@ class ProduceService:
             "video_model": produce_render.video_model(path),
             "takes": produce_render.list_takes(path),
             "color_pass": bool(produce_render.load_job_meta(path).get("color_pass")),
-            "title": str(meta.get("title") or ""),
+            "title": str(meta.get("title") or "").strip()
+            or str(meta.get("prompt") or files.get("prompt.md", "")).split(".")[0].strip()[:80],
             "aspect": str(meta.get("aspect") or "16:9"),
             "fade_sec": float(meta.get("fade_sec") or 0),
             "continuity": produce_ops.continuity_score(path),
