@@ -1,3 +1,18 @@
+---
+name: inference-sh
+description: Use when the task involves inference sh. inference.sh.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - inference-sh
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # inference.sh
 
 Run 150+ AI applications in the cloud via the [inference.sh](https://inference.sh) platform.

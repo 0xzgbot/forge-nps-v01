@@ -1,3 +1,18 @@
+---
+name: eye-color-mismatch
+description: Use when the task involves eye color mismatch. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - eye-color-mismatch
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Eye Color Mismatch
 ## Version: 1.0 | Hermes Agent Failure Pattern Library
 

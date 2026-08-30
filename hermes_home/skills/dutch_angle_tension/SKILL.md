@@ -1,3 +1,18 @@
+---
+name: dutch-angle-tension
+description: Use when the task involves dutch angle tension. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - dutch-angle-tension
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Dutch Angle & Tension
 ## Version: 1.0 | Hermes Agent Camera & Lens Language
 

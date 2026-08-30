@@ -1,11 +1,22 @@
 ---
 name: yuanbao
-description: "Yuanbao (元宝) groups: @mention users, query info/members."
+description: 'Yuanbao (元宝) groups: @mention users, query info/members.'
 version: 1.0.0
 metadata:
   hermes:
-    tags: [yuanbao, mention, at, group, members, 元宝, 派, 艾特]
+    tags:
+    - yuanbao
+    - mention
+    - at
+    - group
+    - members
+    - 元宝
+    - 派
+    - 艾特
     related_skills: []
+    category: cinesmith
+author: Cinesmith
+license: MIT
 ---
 
 # Yuanbao Group Interaction

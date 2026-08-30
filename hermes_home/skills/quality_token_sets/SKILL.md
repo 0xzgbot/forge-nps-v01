@@ -1,3 +1,18 @@
+---
+name: quality-token-sets
+description: Use when the task involves quality token sets. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - quality-token-sets
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Quality Token Sets
 ## Version: 1.0 | Hermes Agent SD Prompt Craft (Technical)
 

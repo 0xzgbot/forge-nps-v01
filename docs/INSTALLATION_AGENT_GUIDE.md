@@ -4,9 +4,8 @@ This guide is for an agent or engineer bringing Cinesmith up on a new machine or
 
 ## Non-Negotiable Runtime Contract
 
-- Hermes is the pipeline brain for campaign intake, prompt compilation, continuity, and remediation.
-- Kimi is used at max capability for planning and critique.
-- FastAPI routes are thin adapters around pipeline services.
+- Hermes is the production brain. The user connects any OpenAI-compatible LLM (local or frontier) and Spark/Comfy for renders.
+- Do not require Kimi or any single vendor. FastAPI routes are thin adapters around Hermes and Spark.
 - Production must not hide broken behavior behind silent fallbacks.
 - LM Studio load tuning is not controlled by Cinesmith. Cinesmith loads the selected model and lets LM Studio apply its model defaults.
 

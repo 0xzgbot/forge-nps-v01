@@ -4,7 +4,14 @@ author: Hermes Agent
 version: 1.0
 created: 2026-04-10
 name: visual-ai-marketing-team-setup
-description: Comprehensive guide to setting up and organizing a team of specialized AI agents for autonomous visual marketing campaigns.
+description: Comprehensive guide to setting up and organizing a team of specialized
+  AI agents for autonomous visual marketing campaigns.
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - visual-ai-marketing-team-setup
+    category: cinesmith
 ---
 
 # Visual AI Marketing Team Setup

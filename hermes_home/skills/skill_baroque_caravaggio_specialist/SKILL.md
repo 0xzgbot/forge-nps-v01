@@ -1,3 +1,19 @@
+---
+name: skill-baroque-caravaggio-specialist
+description: Use when the task involves skill baroque caravaggio specialist. 1. EXECUTIVE
+  SUMMARY.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - skill-baroque-caravaggio-specialist
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Baroque / Caravaggio Specialist
 ## Domain: Dramatic Chiaroscuro, Tenebrism, Emotional Intensity, Religious Ecstasy
 ## Version: 1.0

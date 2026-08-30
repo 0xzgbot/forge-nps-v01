@@ -1,3 +1,18 @@
+---
+name: artist-reference-vocabulary
+description: Use when the task involves artist reference vocabulary. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - artist-reference-vocabulary
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Artist Reference Vocabulary
 ## Version: 1.0 | Hermes Agent SD Prompt Craft (Technical)
 

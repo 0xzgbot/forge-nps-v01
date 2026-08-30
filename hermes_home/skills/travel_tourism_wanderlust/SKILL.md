@@ -1,3 +1,18 @@
+---
+name: travel-tourism-wanderlust
+description: Use when the task involves travel tourism wanderlust. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - travel-tourism-wanderlust
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Travel & Tourism Wanderlust
 ## Version: 1.0 | Hermes Agent Destination Cinematography
 

@@ -1,3 +1,18 @@
+---
+name: positive-prompt-structure
+description: Use when the task involves positive prompt structure. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - positive-prompt-structure
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Positive Prompt Structure
 ## Version: 1.0 | Hermes Agent SD Prompt Craft (Technical)
 

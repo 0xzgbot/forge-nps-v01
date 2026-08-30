@@ -1,3 +1,18 @@
+---
+name: skill-ukiyo-e-specialist
+description: Use when the task involves skill ukiyo e specialist. 1. EXECUTIVE SUMMARY.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - skill-ukiyo-e-specialist
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Ukiyo-e Specialist
 ## Domain: Japanese Woodblock Print, Flat Color, Bold Outlines, Edo-Period Aesthetics
 ## Version: 1.0

@@ -6,66 +6,33 @@ from typing import Any, Dict, List, Optional
 class ProfileDef:
     key: str
     name: str
-    backend: str  # "lmstudio" | "kimi"
+    backend: str
     stage: str
     color_key: str
 
 
 PROFILE_REGISTRY: Dict[str, ProfileDef] = {
-    "director_planner": ProfileDef(
-        key="director_planner",
-        name="Director Planner",
-        backend="kimi",
-        stage="plan",
-        color_key="profile_director_kimi",
-    ),
-    "coverage_critic": ProfileDef(
-        key="coverage_critic",
-        name="Coverage Critic",
-        backend="kimi",
-        stage="review",
-        color_key="profile_critic_kimi",
-    ),
-    "prompt_compiler": ProfileDef(
-        key="prompt_compiler",
-        name="Prompt Compiler",
-        backend="lmstudio",
-        stage="compile",
-        color_key="profile_compiler_lmstudio",
-    ),
-    "continuity_guard": ProfileDef(
-        key="continuity_guard",
-        name="Continuity Guard",
-        backend="lmstudio",
-        stage="compile",
-        color_key="profile_continuity_lmstudio",
-    ),
-    "remediation_reprompter": ProfileDef(
-        key="remediation_reprompter",
-        name="Remediation Reprompter",
-        backend="lmstudio",
-        stage="remediation",
-        color_key="profile_remediation_lmstudio",
-    ),
-    "audit_judge": ProfileDef(
-        key="audit_judge",
-        name="Audit Judge",
-        backend="kimi",
-        stage="audit",
-        color_key="profile_audit_kimi",
-    ),
+    "producer": ProfileDef("producer", "Producer", "hermes", "produce", "profile_producer"),
+    "story": ProfileDef("story", "Story", "hermes", "story", "profile_story"),
+    "script": ProfileDef("script", "Script", "hermes", "script", "profile_script"),
+    "storyboard": ProfileDef("storyboard", "Storyboard", "hermes", "storyboard", "profile_storyboard"),
+    "video": ProfileDef("video", "Video", "hermes", "video", "profile_video"),
+    "editor": ProfileDef("editor", "Editor", "hermes", "edit", "profile_editor"),
+    "character": ProfileDef("character", "Character", "hermes", "character", "profile_character"),
+    "product": ProfileDef("product", "Product", "hermes", "product", "profile_product"),
+    # Legacy campaign keys still resolve so /studio does not break.
+    "director_planner": ProfileDef("director_planner", "Producer", "hermes", "produce", "profile_producer"),
+    "coverage_critic": ProfileDef("coverage_critic", "Storyboard", "hermes", "storyboard", "profile_storyboard"),
+    "prompt_compiler": ProfileDef("prompt_compiler", "Script", "hermes", "script", "profile_script"),
+    "continuity_guard": ProfileDef("continuity_guard", "Character", "hermes", "character", "profile_character"),
+    "remediation_reprompter": ProfileDef("remediation_reprompter", "Editor", "hermes", "edit", "profile_editor"),
+    "audit_judge": ProfileDef("audit_judge", "Video", "hermes", "video", "profile_video"),
 }
 
 
 def profile_label(key: str) -> str:
     p = PROFILE_REGISTRY.get(key)
-    if not p:
-        return key
-    if p.backend == "kimi":
-        return f"NVIDIA / {p.name}"
-    if p.backend == "lmstudio":
-        return f"Hermes / {p.name}"
-    return p.name
+    return p.name if p else key
 
 
 def profile_color_key(key: str) -> str:

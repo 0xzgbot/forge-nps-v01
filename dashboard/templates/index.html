@@ -19,6 +19,7 @@
             height: 100vh;
             display: flex;
             overflow: hidden;
+            padding-top: 37px;
         }
 
         /* Sidebar */
@@ -5450,6 +5451,10 @@
     <link rel="stylesheet" href="/static/css/cinesmith-polish.css?v=20260716-polish">
 </head>
 <body>
+    <div id="legacy-studio-bar" style="position:fixed;top:0;left:0;right:0;z-index:80;display:flex;justify-content:space-between;align-items:center;padding:8px 16px;background:#111;color:#cfcfcf;font:13px/1.4 Inter,system-ui,sans-serif;border-bottom:1px solid #333;">
+        <span>Old studio — images, videos, and campaigns from the previous UI.</span>
+        <a href="/" style="color:#fff;text-decoration:none;font-weight:600;">Back to Cinesmith</a>
+    </div>
     <div id="global-toast-host" aria-live="polite"></div>
     <div id="cinesmith-onboarding" role="dialog" aria-modal="true" aria-labelledby="onboard-title">
         <div class="onboard-card">

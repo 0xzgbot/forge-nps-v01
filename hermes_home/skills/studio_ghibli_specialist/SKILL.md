@@ -1,3 +1,18 @@
+---
+name: studio-ghibli-specialist
+description: Use when the task involves studio ghibli specialist. 1. EXECUTIVE SUMMARY.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - studio-ghibli-specialist
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Studio Ghibli Specialist
 ## Domain: Hand-Drawn Animation, Environmental Storytelling, Naturalistic Fantasy, Emotional Subtlety
 ## Version: 1.0

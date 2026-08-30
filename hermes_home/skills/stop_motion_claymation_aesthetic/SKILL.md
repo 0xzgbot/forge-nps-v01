@@ -1,3 +1,18 @@
+---
+name: stop-motion-claymation-aesthetic
+description: Use when the task involves stop motion claymation aesthetic. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - stop-motion-claymation-aesthetic
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Stop-Motion & Claymation Aesthetic
 ## Version: 1.0 | Hermes Agent Frame-by-Frame Animation Language
 

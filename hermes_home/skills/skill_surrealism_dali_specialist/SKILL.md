@@ -1,3 +1,19 @@
+---
+name: skill-surrealism-dali-specialist
+description: Use when the task involves skill surrealism dali specialist. 1. EXECUTIVE
+  SUMMARY.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - skill-surrealism-dali-specialist
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Surrealism / Dalí Specialist
 ## Domain: Dream Logic, Impossible Architecture, Symbolic Imagery, Paranoid-Critical Method
 ## Version: 1.0

@@ -1,3 +1,18 @@
+---
+name: macro-intimacy
+description: Use when the task involves macro intimacy. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - macro-intimacy
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Macro Intimacy
 ## Version: 1.0 | Hermes Agent Camera & Lens Language
 

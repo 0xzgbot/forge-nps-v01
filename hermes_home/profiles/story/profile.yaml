@@ -1,0 +1,11 @@
+description: 'Expands a prompt into a story: world, characters, tone, ending.'
+display_name: Story
+ui_meta:
+  hermes-bots:
+    title: Story
+    description: 'Expands a prompt into a story: world, characters, tone, ending.'
+    color: '#4a5d3f'
+    groups:
+    - crew
+    created: 1788105067406
+    hidden: false

@@ -1,3 +1,18 @@
+---
+name: overcast-diffusion
+description: Use when the task involves overcast diffusion. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - overcast-diffusion
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Overcast Diffusion
 ## Version: 1.0 | Hermes Agent Lighting System
 

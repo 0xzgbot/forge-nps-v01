@@ -1,3 +1,18 @@
+---
+name: iterative-prompt-refinement
+description: 'Iterative Prompt Refinement: Logic Framework for Semantic Remediation.'
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - iterative-prompt-refinement
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # Iterative Prompt Refinement: Logic Framework for Semantic Remediation
 
 ## 1. Error Taxonomy

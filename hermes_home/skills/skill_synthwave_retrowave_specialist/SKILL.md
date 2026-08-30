@@ -1,3 +1,19 @@
+---
+name: skill-synthwave-retrowave-specialist
+description: Use when the task involves skill synthwave retrowave specialist. 1. EXECUTIVE
+  SUMMARY.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - skill-synthwave-retrowave-specialist
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Synthwave / Retrowave Specialist
 ## Domain: 1980s Nostalgia, Neon Grid Landscapes, Chrome Typography, Sunset Gradients
 ## Version: 1.0

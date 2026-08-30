@@ -1,3 +1,18 @@
+---
+name: flux2-json-schema
+description: Search for up-to-date info on 2026 models and ComfyUI implementations.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - flux2-json-schema
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 Search for up-to-date info on 2026 models and ComfyUI implementations
 
 

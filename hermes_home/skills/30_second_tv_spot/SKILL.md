@@ -1,3 +1,18 @@
+---
+name: 30-second-tv-spot
+description: Use when the task involves 30 second tv spot. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - 30-second-tv-spot
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: 30-Second TV Spot
 ## Version: 1.0 | Hermes Agent Genre & Format Expertise
 

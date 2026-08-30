@@ -1,3 +1,18 @@
+---
+name: ltx23-audio-visual-sync
+description: Use when the task involves ltx23 audio visual sync. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - ltx23-audio-visual-sync
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: LTX 2.3 Audio-Visual Integration & Sync
 ## Version: 1.0 | Hermes Agent LTX Native Audio-Video Synchronization Specialist
 

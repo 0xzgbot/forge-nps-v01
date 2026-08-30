@@ -1,3 +1,18 @@
+---
+name: color-palette-injection
+description: Use when the task involves color palette injection. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - color-palette-injection
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Color Palette Injection
 ## Version: 1.0 | Hermes Agent SD Prompt Craft (Technical)
 

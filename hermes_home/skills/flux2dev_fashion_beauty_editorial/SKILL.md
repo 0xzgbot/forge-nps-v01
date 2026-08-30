@@ -1,3 +1,18 @@
+---
+name: flux2dev-fashion-beauty-editorial
+description: Use when the task involves flux2dev fashion beauty editorial. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - flux2dev-fashion-beauty-editorial
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: FLUX.2 Dev Fashion & Beauty Editorial
 ## Version: 1.0 | Hermes Agent Flux2 Fashion Photography Specialist
 

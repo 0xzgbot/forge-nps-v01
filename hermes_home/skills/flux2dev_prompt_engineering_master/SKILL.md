@@ -1,3 +1,18 @@
+---
+name: flux2dev-prompt-engineering-master
+description: Use when the task involves flux2dev prompt engineering master. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - flux2dev-prompt-engineering-master
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: FLUX.2 Dev Prompt Engineering Master
 ## Version: 1.0 | Hermes Agent Universal Flux2 Prompt Optimization Doctrine
 

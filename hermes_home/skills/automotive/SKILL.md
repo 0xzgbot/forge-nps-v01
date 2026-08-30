@@ -1,3 +1,18 @@
+---
+name: automotive
+description: Use when the task involves automotive. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - automotive
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Automotive
 ## Version: 1.0 | Hermes Agent Brand Voice & Style
 

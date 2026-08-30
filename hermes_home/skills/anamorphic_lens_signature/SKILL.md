@@ -1,3 +1,18 @@
+---
+name: anamorphic-lens-signature
+description: Use when the task involves anamorphic lens signature. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - anamorphic-lens-signature
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Anamorphic Lens Signature
 ## Version: 1.0 | Hermes Agent Camera & Lens Language
 

@@ -1,3 +1,15 @@
 ---
-description: Skills for working with MCP (Model Context Protocol) servers, tools, and integrations. Documents the built-in native MCP client — configure servers in config.yaml for automatic tool discovery.
+name: mcp
+description: Use when Cinesmith production needs mcp.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - mcp
+    - cinesmith
+    - production
+    category: cinesmith
 ---
+

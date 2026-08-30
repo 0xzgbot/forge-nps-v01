@@ -1,0 +1,11 @@
+description: Orders clips into an edit list so shots can be combined.
+display_name: Editor
+ui_meta:
+  hermes-bots:
+    title: Editor
+    description: Orders clips into an edit list so shots can be combined.
+    color: '#3d5c58'
+    groups:
+    - crew
+    created: 1788105067419
+    hidden: false

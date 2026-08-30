@@ -1,3 +1,19 @@
+---
+name: skill-soviet-constructivist-brutalist-specialist
+description: Use when the task involves skill soviet constructivist brutalist specialist.
+  1. EXECUTIVE SUMMARY.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - skill-soviet-constructivist-brutalist-specialist
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Soviet Constructivist / Brutalist Specialist
 ## Domain: Bold Geometry, Monumental Scale, Raw Materiality, Agitprop Typography, Stark Lighting
 ## Version: 1.0

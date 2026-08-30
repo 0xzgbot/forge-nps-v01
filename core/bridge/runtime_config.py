@@ -17,6 +17,10 @@ ENV_PATH = REPO_ROOT / ".env"
 
 # All keys that Settings page can read/write
 CONFIGURABLE_KEYS = [
+    "LLM_BASE_URL",
+    "LLM_MODEL",
+    "LLM_API_KEY",
+    "LLM_BACKEND",
     "NOUS_API_KEY",
     "NOUS_ENDPOINT",
     "DIRECTOR_MODEL",
@@ -55,6 +59,7 @@ CONFIGURABLE_KEYS = [
 ]
 
 SECRET_KEYS = {
+    "LLM_API_KEY",
     "NOUS_API_KEY",
     "KIMI_API_KEY",
     "OPENROUTER_API_KEY",

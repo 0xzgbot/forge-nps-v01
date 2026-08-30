@@ -1,3 +1,18 @@
+---
+name: clothing-detail-loss
+description: Use when the task involves clothing detail loss. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - clothing-detail-loss
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Clothing Detail Loss
 ## Version: 1.0 | Hermes Agent Failure Pattern Library
 

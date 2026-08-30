@@ -1,3 +1,18 @@
+---
+name: flux2dev-architectural-environment
+description: Use when the task involves flux2dev architectural environment. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - flux2dev-architectural-environment
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: FLUX.2 Dev Architectural & Environment Rendering
 ## Version: 1.0 | Hermes Agent Flux2 Architecture & Real Estate Specialist
 

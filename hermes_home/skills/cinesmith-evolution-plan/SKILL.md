@@ -1,6 +1,14 @@
 ---
 name: cinesmith-evolution-plan
 description: Strategic roadmap for evolving Cinesmith into a Neural Production Studio.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - cinesmith-evolution-plan
+    category: cinesmith
 ---
 
 # Cinesmith Evolution Sprint (Hackathon Strategy)

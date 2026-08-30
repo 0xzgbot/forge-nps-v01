@@ -1,3 +1,18 @@
+---
+name: pov-first-person
+description: Use when the task involves pov first person. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - pov-first-person
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: POV & First-Person
 ## Version: 1.0 | Hermes Agent Camera & Lens Language
 

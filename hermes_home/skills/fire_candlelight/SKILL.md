@@ -1,3 +1,18 @@
+---
+name: fire-candlelight
+description: Use when the task involves fire candlelight. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - fire-candlelight
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Fire & Candlelight
 ## Version: 1.0 | Hermes Agent Lighting System
 

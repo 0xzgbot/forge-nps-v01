@@ -1,3 +1,18 @@
+---
+name: female-protagonist-framing
+description: Use when the task involves female protagonist framing. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - female-protagonist-framing
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Female Protagonist Framing
 ## Version: 1.0 | Hermes Agent Character & Direction System
 

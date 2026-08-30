@@ -1,3 +1,18 @@
+---
+name: negative-prompt-library
+description: Use when the task involves negative prompt library. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - negative-prompt-library
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Negative Prompt Library
 ## Version: 1.0 | Hermes Agent SD Prompt Craft (Technical)
 

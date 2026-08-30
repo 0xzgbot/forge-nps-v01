@@ -1,3 +1,18 @@
+---
+name: cinematic-continuity
+description: Use when the task involves cinematic continuity. 1. EXECUTIVE SUMMARY.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - cinematic-continuity
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Cinematic Continuity
 ## Domain: Multi-Shot Sequences, Visual Coherence, Character Consistency, Pipeline Continuity
 ## Version: 1.0

@@ -5,6 +5,8 @@ from __future__ import annotations
 from fastapi import FastAPI
 
 from dashboard.routes.product import router as product_router
+from dashboard.routes.bots import router as bots_router
+from dashboard.routes.produce import router as produce_router
 from dashboard.routes.system import build_system_router
 from dashboard.routes.campaigns import build_campaigns_router
 from dashboard.routes.script import build_script_router
@@ -20,6 +22,8 @@ from dashboard.routes.legacy import build_legacy_router
 def register_extra_routes(app: FastAPI) -> None:
     """Mount product routes early (self-contained)."""
     app.include_router(product_router, tags=["product"])
+    app.include_router(produce_router)
+    app.include_router(bots_router)
 
 
 def register_domain_routers(app: FastAPI) -> None:

@@ -7,6 +7,7 @@ from urllib.parse import urlsplit, urlunsplit
 
 import httpx
 
+from core.bridge.llm_endpoint import resolve_llm_endpoint
 from core.bridge.runtime_config import MODEL_REPLACEMENTS, get_raw_config
 
 
@@ -91,54 +92,15 @@ def _multi_person_cast_directive(brief: str, target_shots: int) -> str:
     )
 
 
-class KimiDirectorService:
+class DirectorService:
     def __init__(self) -> None:
-        cfg = get_raw_config()
-        self.use_local_director = _truthy(os.getenv("USE_LOCAL_DIRECTOR", "") or cfg.get("USE_LOCAL_DIRECTOR", ""))
-        self.backend = "lmstudio" if self.use_local_director else "nvidia"
-        raw_key = (
-            os.getenv("KIMI_API_KEY", "")
-            or str(cfg.get("KIMI_API_KEY", ""))
-            or os.getenv("NOUS_API_KEY", "")
-            or os.getenv("OPENROUTER_API_KEY", "")
-            or str(cfg.get("NOUS_API_KEY", ""))
-        ).strip()
-        self.api_key = self._sanitize_api_key(raw_key)
-        if self.use_local_director:
-            endpoint = _lmstudio_chat_endpoint(cfg)
-        else:
-            active = (os.getenv("KIMI_DIRECTOR_ENDPOINT_ACTIVE", "") or str(cfg.get("KIMI_DIRECTOR_ENDPOINT_ACTIVE", "api1"))).strip().lower()
-            api1 = (os.getenv("KIMI_DIRECTOR_ENDPOINT_API1", "") or str(cfg.get("KIMI_DIRECTOR_ENDPOINT_API1", ""))).strip()
-            api2 = (os.getenv("KIMI_DIRECTOR_ENDPOINT_API2", "") or str(cfg.get("KIMI_DIRECTOR_ENDPOINT_API2", ""))).strip()
-            endpoint = api2 if active == "api2" and api2 else api1
-            if not endpoint:
-                endpoint = (
-                    os.getenv("NIM_ENDPOINT", "")
-                    or os.getenv("KIMI_ENDPOINT", "")
-                    or str(cfg.get("NIM_ENDPOINT", ""))
-                    or os.getenv("NOUS_ENDPOINT", "")
-                    or os.getenv("OPENROUTER_ENDPOINT", "")
-                    or str(cfg.get("NOUS_ENDPOINT", ""))
-                ).strip()
-            if not endpoint:
-                endpoint = "https://inference-api.nousresearch.com/v1/chat/completions"
-            endpoint = endpoint.rstrip("/")
-            if not endpoint.endswith("/chat/completions"):
-                endpoint += "/chat/completions"
-        self.endpoint = endpoint
-        self.model_name = _normalize_model_name(
-            (os.getenv("LMSTUDIO_CHAT_MODEL", "") or str(cfg.get("LMSTUDIO_CHAT_MODEL", "")) if self.use_local_director else "")
-            or os.getenv("KIMI_INSTRUCT_MODEL", "")
-            or str(cfg.get("KIMI_INSTRUCT_MODEL", ""))
-            or os.getenv("DIRECTOR_MODEL", "")
-            or str(cfg.get("DIRECTOR_MODEL", "Hermes-4-405B"))
-        )
-        self.thinking_model_name = _normalize_model_name(
-            (os.getenv("LMSTUDIO_CHAT_MODEL", "") or str(cfg.get("LMSTUDIO_CHAT_MODEL", "")) if self.use_local_director else "")
-            or os.getenv("KIMI_THINKING_MODEL", "")
-            or str(cfg.get("KIMI_THINKING_MODEL", ""))
-            or self.model_name
-        )
+        llm = resolve_llm_endpoint()
+        self.use_local_director = llm.local
+        self.backend = llm.source or "custom"
+        self.api_key = self._sanitize_api_key(llm.api_key)
+        self.endpoint = llm.chat_url
+        self.model_name = _normalize_model_name(llm.model)
+        self.thinking_model_name = self.model_name
 
     def _auth_headers(self) -> Dict[str, str]:
         headers = {"Content-Type": "application/json"}
@@ -152,12 +114,8 @@ class KimiDirectorService:
         return {"type": "json_object"}
 
     def _require_ready(self) -> None:
-        if self.use_local_director:
-            if not self.model_name:
-                raise RuntimeError("missing_lmstudio_chat_model")
-            return
-        if not self.api_key:
-            raise RuntimeError("missing_kimi_api_key")
+        if not self.model_name or not self.endpoint:
+            raise RuntimeError("missing_llm_endpoint")
 
     @staticmethod
     def _sanitize_api_key(raw_key: str) -> str:
@@ -616,3 +574,6 @@ class KimiDirectorService:
             return int(float(raw))
         except Exception:
             return None
+
+
+KimiDirectorService = DirectorService

@@ -1,3 +1,18 @@
+---
+name: performance-direction-micro-expression
+description: Use when the task involves performance direction micro expression. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - performance-direction-micro-expression
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Performance Direction & Micro-Expressions
 ## Version: 1.0 | Hermes Agent AI Actor Direction
 

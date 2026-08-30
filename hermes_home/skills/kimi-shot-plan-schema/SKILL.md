@@ -1,15 +1,18 @@
 ---
-name: kimi-shot-plan-schema
-description: Pydantic schema definition for structured Kimi shot plans in the Cinesmith Hermes agent.
-version: 1.0
-tags:
-  - pydantic
-  - schema
-  - kimi
-  - shot-plan
-categories:
-  - mlops
+name: shot-plan-schema
+description: Use when compiling a structured shot plan for Cinesmith. JSON schema for
+  campaign shots the Hermes agent writes.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - shot-plan
+    - schema
+    category: cinesmith
 ---
+
 class ShotPlan(BaseModel):
     campaign_id: str = Field(..., description="Unique identifier for the campaign")
     shot_id: str = Field(..., description="Unique identifier for the shot within the campaign")

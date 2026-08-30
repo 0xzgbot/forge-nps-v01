@@ -1,3 +1,18 @@
+---
+name: scale-distortion
+description: Use when the task involves scale distortion. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - scale-distortion
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Scale Distortion
 ## Version: 1.0 | Hermes Agent Failure Pattern Library
 

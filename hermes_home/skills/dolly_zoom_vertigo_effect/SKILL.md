@@ -1,3 +1,18 @@
+---
+name: dolly-zoom-vertigo-effect
+description: Use when the task involves dolly zoom vertigo effect. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - dolly-zoom-vertigo-effect
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Dolly Zoom / Vertigo Effect
 ## Version: 1.0 | Hermes Agent Cinematic Camera Movement
 

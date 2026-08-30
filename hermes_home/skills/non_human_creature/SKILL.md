@@ -1,3 +1,18 @@
+---
+name: non-human-creature
+description: Use when the task involves non human creature. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - non-human-creature
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Non-Human & Creature
 ## Version: 1.0 | Hermes Agent Character & Direction System
 

@@ -1,3 +1,18 @@
+---
+name: background-bleed
+description: Use when the task involves background bleed. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - background-bleed
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Background Bleed
 ## Version: 1.0 | Hermes Agent Failure Pattern Library
 

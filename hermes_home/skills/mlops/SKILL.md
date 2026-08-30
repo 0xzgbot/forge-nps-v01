@@ -1,3 +1,15 @@
 ---
-description: Knowledge and Tools for Machine Learning Operations - tools and frameworks for training, fine-tuning, deploying, and optimizing ML/AI models
+name: mlops
+description: Use when Cinesmith production needs mlops.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - mlops
+    - cinesmith
+    - production
+    category: cinesmith
 ---
+

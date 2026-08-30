@@ -1,7 +1,15 @@
 ---
 name: tiktok_vertical_platform
 version: 1.0
-description: TikTok vertical short platform constraints for mobile-first image and LTX video generation.
+description: TikTok vertical short platform constraints for mobile-first image and
+  LTX video generation.
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - tiktok-vertical-platform
+    category: cinesmith
 ---
 
 # TikTok Vertical Platform

@@ -1,3 +1,18 @@
+---
+name: child-youth-direction
+description: Use when the task involves child youth direction. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - child-youth-direction
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Child & Youth Direction
 ## Version: 1.0 | Hermes Agent Character & Direction System
 

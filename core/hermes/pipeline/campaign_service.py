@@ -20,7 +20,7 @@ from core.hermes.platform_skills import (
     review_flags_low_watch_time,
 )
 
-from .director_service import KimiDirectorService
+from .director_service import DirectorService
 from .profile_cli import HermesProfileCLI
 from .role_skill_mapper import role_skill_scope
 from .state_machine import transition_shot
@@ -69,7 +69,7 @@ class HermesCampaignService:
         self.active_campaign_setter = active_campaign_setter
         self.remediate_failed = remediate_failed
         self.get_hermes_bridge = get_hermes_bridge
-        self.director = KimiDirectorService()
+        self.director = DirectorService()
         self.profile_cli = HermesProfileCLI()
         self._detached_tasks: set[asyncio.Task[Any]] = set()
 

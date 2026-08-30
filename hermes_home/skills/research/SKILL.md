@@ -1,3 +1,15 @@
 ---
-description: Skills for academic research, paper discovery, literature review, domain reconnaissance, market data, content monitoring, and scientific knowledge retrieval.
+name: research
+description: Use when Cinesmith production needs research.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - research
+    - cinesmith
+    - production
+    category: cinesmith
 ---
+

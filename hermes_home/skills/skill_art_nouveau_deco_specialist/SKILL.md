@@ -1,3 +1,19 @@
+---
+name: skill-art-nouveau-deco-specialist
+description: Use when the task involves skill art nouveau deco specialist. 1. EXECUTIVE
+  SUMMARY.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - skill-art-nouveau-deco-specialist
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Art Nouveau / Art Deco Specialist
 ## Domain: Ornate Organic Design, Geometric Elegance, Gold Leaf, Streamlined Modernism
 ## Version: 1.0

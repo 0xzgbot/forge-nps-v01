@@ -1,3 +1,18 @@
+---
+name: composition-drift
+description: Use when the task involves composition drift. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - composition-drift
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Composition Drift
 ## Version: 1.0 | Hermes Agent Failure Pattern Library
 

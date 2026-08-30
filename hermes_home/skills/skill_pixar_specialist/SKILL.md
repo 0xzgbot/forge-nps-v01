@@ -1,3 +1,18 @@
+---
+name: skill-pixar-specialist
+description: Use when the task involves skill pixar specialist. 1. EXECUTIVE SUMMARY.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - skill-pixar-specialist
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Pixar Specialist
 ## Domain: Animation, Character Design, Lighting, Rendering, Storytelling
 ## Version: 1.0

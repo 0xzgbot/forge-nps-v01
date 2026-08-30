@@ -1,3 +1,18 @@
+---
+name: financial-professional
+description: Use when the task involves financial professional. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - financial-professional
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Financial & Professional
 ## Version: 1.0 | Hermes Agent Brand Voice & Style
 

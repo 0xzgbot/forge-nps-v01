@@ -1,3 +1,18 @@
+---
+name: 15-second-social-content
+description: Use when the task involves 15 second social content. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - 15-second-social-content
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: 15-Second Social Content
 ## Version: 1.0 | Hermes Agent Genre & Format Expertise
 

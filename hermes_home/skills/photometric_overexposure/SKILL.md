@@ -1,3 +1,18 @@
+---
+name: photometric-overexposure
+description: Use when the task involves photometric overexposure. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - photometric-overexposure
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Photometric Overexposure
 ## Version: 1.0 | Hermes Agent Failure Pattern Library
 

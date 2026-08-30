@@ -1,7 +1,15 @@
 ---
 name: sunlit_travel_cinematography
 version: 1.0
-description: Warm travel framing for optimistic destination, journey, and wanderlust content.
+description: Warm travel framing for optimistic destination, journey, and wanderlust
+  content.
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - sunlit-travel-cinematography
+    category: cinesmith
 ---
 
 # Sunlit Travel Cinematography

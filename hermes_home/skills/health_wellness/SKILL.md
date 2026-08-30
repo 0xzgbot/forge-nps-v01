@@ -1,3 +1,18 @@
+---
+name: health-wellness
+description: Use when the task involves health wellness. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - health-wellness
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Health & Wellness
 ## Version: 1.0 | Hermes Agent Brand Voice & Style
 

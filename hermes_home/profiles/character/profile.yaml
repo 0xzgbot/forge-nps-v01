@@ -1,0 +1,11 @@
+description: Locks visual DNA so faces and wardrobe do not drift.
+display_name: Character
+ui_meta:
+  hermes-bots:
+    title: Character
+    description: Locks visual DNA so faces and wardrobe do not drift.
+    color: '#6b3d3d'
+    groups:
+    - crew
+    created: 1788105067423
+    hidden: false

@@ -1,3 +1,18 @@
+---
+name: streetwear-youth-culture
+description: Use when the task involves streetwear youth culture. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - streetwear-youth-culture
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Streetwear & Youth Culture
 ## Version: 1.0 | Hermes Agent Brand Voice & Style
 

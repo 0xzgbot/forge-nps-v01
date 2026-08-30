@@ -7,6 +7,7 @@ fallback_providers: []
 toolsets:
 - hermes-cli
 agent:
+  bot_mode_protocol: true
   max_turns: 60
   gateway_timeout: 1800
 terminal:

@@ -1,3 +1,18 @@
+---
+name: character-consistency
+description: Use when the task involves character consistency. 1. EXECUTIVE SUMMARY.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - character-consistency
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Character Consistency
 ## Domain: Face Embeddings, LoRA Training, IP Adapters, Wardrobe Locking, Anchor Frames
 ## Version: 1.0

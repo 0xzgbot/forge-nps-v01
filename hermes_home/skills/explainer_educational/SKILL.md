@@ -1,3 +1,18 @@
+---
+name: explainer-educational
+description: Use when the task involves explainer educational. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - explainer-educational
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Explainer & Educational
 ## Version: 1.0 | Hermes Agent Genre & Format Expertise
 

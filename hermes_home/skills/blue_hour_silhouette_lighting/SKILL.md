@@ -1,3 +1,18 @@
+---
+name: blue-hour-silhouette-lighting
+description: Use when the task involves blue hour silhouette lighting. DESCRIPTION.
+version: 1.0.0
+author: Cinesmith
+license: MIT
+metadata:
+  hermes:
+    tags:
+    - blue-hour-silhouette-lighting
+    - cinesmith
+    - production
+    category: cinesmith
+---
+
 # SKILL: Blue Hour & Silhouette Lighting
 ## Version: 1.0 | Hermes Agent Twilight & Shadow Cinematography
 
