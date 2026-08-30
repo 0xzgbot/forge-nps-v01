@@ -44,6 +44,8 @@ Drop any open-weight Comfy API graph in `workflows/` and it appears as a custom 
 | `queue.json` | GPU work Hermes (or the UI) appended |
 | `edit.json` | Timeline `{shot_id, clip, muted}` |
 | `cut.mp4` | Assembled film |
+| `cut.srt` | Captions from shot purpose/visual |
+| `comments.json` | Shot notes |
 | `STATUS.md` | Honest one-liner |
 
 ## Queue
@@ -54,24 +56,31 @@ If Spark or a 3090 is down, items stay `waiting_for_host`. **Run queue** when th
 
 ## UI
 
-- Shot strip: board, approve, take, retake. Inspector: first/last, shot prompt, camera, duration, mode, seed, take bin.
-- Identity: job drop zone plus a reusable elements library (character / location / voice).
+- Shot strip: board, approve, take, retake. Inspector: first/last, shot prompt, camera, duration, mode, seed, take bin, notes.
+- Identity: job drop zone plus a reusable elements library (character / location / voice) plus **score**.
 - Timeline: reorder, mute, **Trim** (local ffmpeg in/out), range **Retake** (Spark).
+- Project bar: rename, continuity grade, add shot, duplicate, **Export**.
+- Sample briefs, ⌘K command palette, keyboard B/T/A.
+- **Export** sheet: aspect (16:9 / 9:16 / 1:1 / 2.39), fade, title card, mix score. Assemble also writes `cut.srt`.
 - **Handoff zip** next to Assemble cut.
 - Queue panel with a rough ETA. Color pass optional.
+- Coach chip: next honest step (boards → takes → assemble → export).
 
 ## API (selected)
 
-- `POST /api/produce/start` `{prompt, produce_mode, stills_model, video_model}`
+- `POST /api/produce/start` `{prompt, produce_mode, stills_model, video_model, title, aspect}`
 - `GET /api/produce/models`
+- `GET /api/produce/samples`
 - `GET` / `POST /api/produce/elements`
 - `GET /api/produce/{job}`
 - `POST /api/produce/{job}/render-board` / `render-take` / `range-retake`
 - `POST /api/produce/{job}/queue` / `queue/plan` / `queue/run`
+- `POST` / `DELETE /api/produce/{job}/shots` / `shots/{shot_id}`
 - `PUT /api/produce/{job}/shots/{shot_id}`
 - `POST /api/produce/{job}/upload`
-- `PUT /api/produce/{job}/options` `{color_pass, stills_model, video_model}`
+- `PUT /api/produce/{job}/options` `{color_pass, stills_model, video_model, title, aspect, fade_sec}`
 - `POST /api/produce/{job}/assemble`
+- `POST /api/produce/{job}/comments` / `duplicate` / `rename` / `captions`
 - `GET /api/produce/{job}/export`
 - `POST /api/produce/{job}/takes/restore`
 

@@ -38,7 +38,7 @@ Home has two menus:
 
 Wan 2.2 is I2V only. Scout on Wan will board first.
 
-Type a short film. Pick a mode. Press **Produce**.
+Type a short film. Pick a mode. Press **Produce**. Sample chips under the prompt fill a brief. ⌘K opens commands.
 
 - **Shoot** — 3090 boards, you approve, then Spark. First+last (`fl2va`) when a shot has an end still.
 - **Scout** — text-to-video when the family has T2V (H3 / LTX). No stills.
@@ -49,15 +49,17 @@ Your Comfy presets in `workflows/` are called with the shot prompt. You do not e
 
 ## 4. Boards, takes, cut
 
-Once shots exist:
+Once shots exist, the project bar shows title, runtime, and a continuity grade (locks, not beauty).
 
-1. Click a board → inspector (first/last frames, H3 prompt, duration, mode).
-2. Drop face/location stills and an optional voice wav under **Identity**.
-3. **Queue boards / takes** plans GPU work. **Run queue** submits it (only when you mean it).
+1. Click a board → inspector (first/last frames, H3 prompt, duration, mode, seed, notes).
+2. Drop face/location stills, optional voice, and a **score** wav (filename containing music / bed / score) under **Identity**.
+3. **Queue boards / takes** plans GPU work. **Run queue** submits it (only when you mean it). Add or delete shots without waiting on Hermes.
 4. Timeline: reorder, mute (H3 stereo stays on unmuted clips), range retake (in/out seconds).
-5. Optional **Color pass**. **Assemble cut** writes `cut.mp4`.
+5. **Export** — 16:9 / 9:16 / 1:1 / 2.39, fade, title card, mix score. **Assemble cut** writes `cut.mp4` plus `cut.srt`. **Handoff zip** packs the job.
 
 Crew chips (Producer, Story, Video, …) open a bot sheet. They talk through Hermes. They are not a JSON stage machine.
+
+Keyboard: **⌘K** command palette · **B** board · **T** take · **A** assemble · **⌘↵** Produce.
 
 ## Do not
 

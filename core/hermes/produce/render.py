@@ -393,6 +393,10 @@ def list_identity(job_dir: Path) -> List[str]:
 def save_upload(job_dir: Path, *, kind: str, filename: str, data: bytes) -> Dict[str, Any]:
     kind = str(kind or "identity").strip().lower()
     safe = Path(str(filename or "upload.bin").replace("..", "")).name
+    if kind == "score":
+        kind = "identity"
+        if "music" not in safe.lower() and "bed" not in safe.lower() and "score" not in safe.lower():
+            safe = "music-" + safe
     folders = {
         "identity": job_dir / "identity",
         "still": job_dir / "boards",
@@ -741,6 +745,34 @@ def assemble_cut(
         else:
             result["color_pass_error"] = grade.get("error")
     if result.get("ok"):
+        from core.hermes.produce import finish as produce_finish
+        from core.hermes.produce import job_ops as produce_ops
+
+        meta = load_job_meta(job_dir)
+        aspect = str(meta.get("aspect") or "16:9")
+        title = str(meta.get("title") or "")
+        try:
+            fade_sec = float(meta.get("fade_sec") or 0)
+        except (TypeError, ValueError):
+            fade_sec = 0.0
+        music = produce_ops.find_music(job_dir)
+        if aspect != "16:9" or title or music or fade_sec > 0.04:
+            finished = job_dir / "cut_finish.mp4"
+            fin = produce_finish.apply_finish(
+                out,
+                finished,
+                aspect=aspect,
+                title=title,
+                music=music,
+                fade_sec=fade_sec,
+            )
+            if fin.get("ok") and finished.exists():
+                shutil.copy2(finished, out)
+                result["finish"] = {k: v for k, v in fin.items() if k != "steps"}
+                result["finish"]["steps_ok"] = {
+                    name: bool(step.get("ok")) for name, step in (fin.get("steps") or {}).items()
+                }
+        produce_ops.write_captions(job_dir)
         (job_dir / "STATUS.md").write_text("edit — cut.mp4 assembled.\n", encoding="utf-8")
         try:
             from core.hermes.produce import queue as produce_queue
@@ -814,6 +846,7 @@ def export_package(job_dir: Path) -> Dict[str, Any]:
     names = [
         "prompt.md", "story.md", "script.md", "storyboard.md", "shots.json",
         "edit.json", "STATUS.md", "job.json", "queue.json", "cut.mp4",
+        "cut.srt", "comments.json", "cut_finish.mp4",
     ]
     with zipfile.ZipFile(dest, "w", compression=zipfile.ZIP_DEFLATED) as zf:
         for name in names:

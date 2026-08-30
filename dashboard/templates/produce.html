@@ -300,6 +300,64 @@
     article .row { padding: 0; }
     .drop input { width: auto; background: transparent; border: 0; padding: 0; }
     body { -webkit-font-smoothing: antialiased; }
+    .samples { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 22px; }
+    .samples button {
+      border: 1px solid var(--line); background: var(--card-solid); color: var(--ink);
+      border-radius: 980px; padding: 8px 14px; font: inherit; font-size: 13px;
+      font-weight: 500; cursor: pointer; box-shadow: var(--shadow);
+    }
+    .samples button:hover { box-shadow: 0 0 0 2px rgba(0,113,227,0.18), var(--shadow); }
+    .project-bar {
+      position: sticky; top: 49px; z-index: 3;
+      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+      padding: 10px 28px; background: rgba(245,245,247,0.9);
+      backdrop-filter: blur(16px); border-bottom: 1px solid var(--line);
+    }
+    .project-bar input {
+      width: auto; min-width: 12em; flex: 1; max-width: 28em;
+      background: #fff; font-weight: 600; font-size: 15px;
+    }
+    .project-bar .stats { font-size: 12px; color: var(--mute); }
+    .project-bar .grade {
+      font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
+      background: #f2f2f7; border-radius: 980px; padding: 4px 10px;
+    }
+    .project-bar .grade.locked { background: rgba(52,199,89,0.16); color: #1d7a38; }
+    .project-bar .grade.held { background: rgba(255,204,0,0.22); color: #8a6a00; }
+    .coach {
+      margin-top: 14px; padding: 12px 16px; border-radius: 16px;
+      background: #fff; border: 1px solid var(--line); box-shadow: var(--shadow);
+      display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+    }
+    .coach p { font-size: 14px; color: var(--ink); margin: 0; }
+    .cmdk-sheet {
+      position: absolute; left: 50%; top: 18%; transform: translateX(-50%);
+      width: min(520px, calc(100% - 32px));
+      background: rgba(255,255,255,0.96); border-radius: 18px;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.18); overflow: hidden;
+      border: 1px solid var(--line);
+    }
+    .cmdk-sheet input {
+      border: 0; border-radius: 0; background: transparent; font-size: 17px; padding: 16px 18px;
+    }
+    .cmdk-item {
+      display: block; width: 100%; text-align: left; border: 0; background: none;
+      padding: 10px 18px; font: inherit; font-size: 14px; cursor: pointer; color: var(--ink);
+    }
+    .cmdk-item:hover, .cmdk-item.on { background: #f2f2f7; }
+    .cmdk-item kbd { float: right; color: var(--mute); font-size: 11px; }
+    .comments { margin-top: 12px; }
+    .comments .c-row { font-size: 13px; padding: 8px 0; border-top: 1px solid var(--line); }
+    .comments .c-who { font-size: 11px; color: var(--mute); text-transform: uppercase; letter-spacing: 0.04em; }
+    body.working .lede, body.working .samples { display: none; }
+    body.working h1 { font-size: 22px; margin-bottom: 6px; }
+    body.working .eyebrow { display: none; }
+    body.working main { padding-top: 18px; }
+    .kbd-hint { font-size: 12px; color: var(--mute); }
+    .sheet select {
+      width: 100%; border: 1px solid var(--line); border-radius: 12px;
+      padding: 11px 13px; font: inherit; background: #f5f5f7;
+    }
   </style>
 </head>
 <body>
@@ -312,10 +370,19 @@
       <a href="/studio" class="legacy">Studio</a>
     </nav>
   </header>
+  <div id="project-bar" class="project-bar" hidden>
+    <input id="job-title" placeholder="Untitled" aria-label="Job title">
+    <span class="stats" id="job-stats"></span>
+    <span class="grade" id="job-grade"></span>
+    <button type="button" class="ghost" id="add-shot">Add shot</button>
+    <button type="button" class="ghost" id="dup-job">Duplicate</button>
+    <button type="button" class="nav-btn" id="open-export">Export</button>
+  </div>
   <main>
     <p class="eyebrow">Produce</p>
     <h1>What should we make?</h1>
     <p class="lede">Hermes writes the story. 3090s paint boards. Spark shoots the take. Pick Flux or H3, or any open-weight graph you dropped in workflows/.</p>
+    <div class="samples" id="samples"></div>
     <div class="composer">
     <textarea id="prompt" placeholder="A courier misses the last train and walks home through a wet city. Two minutes. Quiet. No dialogue."></textarea>
     <div class="row">
@@ -391,6 +458,37 @@
       </div>
     </form>
   </div>
+  <div class="pane" id="export-pane">
+    <div class="sheet">
+      <h2 style="letter-spacing:-0.03em;margin-bottom:8px;font-size:20px;">Export</h2>
+      <p class="lede">Local ffmpeg. Aspect, fade, title card, optional score. No GPU.</p>
+      <label>Aspect</label>
+      <select id="export-aspect">
+        <option value="16:9">YouTube 16:9</option>
+        <option value="9:16">Reels / TikTok 9:16</option>
+        <option value="1:1">Feed 1:1</option>
+        <option value="2.39">Scope 2.39</option>
+      </select>
+      <label>Title card</label>
+      <input id="export-title" placeholder="On-screen title">
+      <label>Fade in (sec)</label>
+      <input id="export-fade" type="number" min="0" max="3" step="0.05" value="0.3">
+      <p class="meta" id="export-music" style="margin-top:12px">No score yet. Drop a wav named music / bed / score under Identity.</p>
+      <div class="row" style="margin-top:22px;">
+        <button class="primary" type="button" id="export-save">Save &amp; assemble</button>
+        <a class="ghost" id="export-zip" href="#">Handoff zip</a>
+        <a class="ghost" id="export-cut" href="#" hidden>Download cut</a>
+        <a class="ghost" id="export-srt" href="#" hidden>Captions</a>
+        <button class="ghost" type="button" id="close-export">Close</button>
+      </div>
+    </div>
+  </div>
+  <div class="pane" id="cmdk">
+    <div class="cmdk-sheet">
+      <input id="cmdk-q" placeholder="Search commands…" autocomplete="off">
+      <div id="cmdk-list"></div>
+    </div>
+  </div>
   <script>
     const STAGES = ["story", "script", "storyboard", "video", "edit", "done"];
     let jobId = "";
@@ -406,6 +504,9 @@
     let lastEdit = [];
     let lastSnap = {};
     let selectedShotId = "";
+    let cmdkOpen = false;
+    let cmdkIndex = 0;
+    let sampleBriefs = [];
 
     function $(id) { return document.getElementById(id); }
     function escapeHtml(s) {
@@ -462,6 +563,202 @@
     }
     $("stills-model").onchange = persistModels;
     $("video-model").onchange = persistModels;
+
+    async function loadSamples() {
+      const resp = await fetch("/api/produce/samples");
+      const data = await resp.json();
+      sampleBriefs = data.samples || [];
+      $("samples").innerHTML = sampleBriefs.map((s) =>
+        '<button type="button" data-sample="' + escapeHtml(s.id) + '">' + escapeHtml(s.title) + "</button>"
+      ).join("");
+      $("samples").querySelectorAll("[data-sample]").forEach((el) => {
+        el.onclick = () => {
+          const row = sampleBriefs.find((s) => s.id === el.getAttribute("data-sample"));
+          if (!row) return;
+          $("prompt").value = row.prompt;
+          if (row.id === "vertical-hook") produceMode = "shoot";
+          $("prompt").focus();
+        };
+      });
+    }
+
+    function typing() {
+      const tag = (document.activeElement && document.activeElement.tagName) || "";
+      return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
+    }
+
+    function commandList() {
+      return [
+        { id: "produce", label: "Produce this brief", kbd: "⌘↵", run: () => $("go").click() },
+        { id: "queue", label: "Queue boards / takes", kbd: "Q", run: () => queuePlan() },
+        { id: "run", label: "Run queue", kbd: "R", run: () => runQueueNow() },
+        { id: "assemble", label: "Assemble cut", kbd: "A", run: () => assembleCut() },
+        { id: "export", label: "Export / finish", kbd: "E", run: () => openExport() },
+        { id: "add", label: "Add shot", kbd: "N", run: () => addShot() },
+        { id: "dup", label: "Duplicate job", kbd: "", run: () => duplicateJob() },
+        { id: "board", label: "Board selected shot", kbd: "B", run: () => selectedShotId && shotAction("board", selectedShotId) },
+        { id: "take", label: "Take selected shot", kbd: "T", run: () => selectedShotId && shotAction("take", selectedShotId) },
+        { id: "connect", label: "Connect hosts", kbd: ",", run: () => { loadSettings(); $("drawer").classList.add("open"); } },
+        { id: "shoot", label: "Mode: Shoot", kbd: "", run: () => setMode("shoot") },
+        { id: "scout", label: "Mode: Scout", kbd: "", run: () => setMode("scout") },
+      ].concat(sampleBriefs.map((s) => ({
+        id: "s-" + s.id,
+        label: "Sample · " + s.title,
+        kbd: "",
+        run: () => { $("prompt").value = s.prompt; closePanes(); },
+      })));
+    }
+
+    function renderCmdk(filter) {
+      const q = String(filter || "").toLowerCase();
+      const rows = commandList().filter((c) => !q || c.label.toLowerCase().includes(q));
+      if (cmdkIndex >= rows.length) cmdkIndex = 0;
+      $("cmdk-list").innerHTML = rows.map((c, i) =>
+        '<button type="button" class="cmdk-item' + (i === cmdkIndex ? " on" : "") + '" data-cmd="' + escapeHtml(c.id) + '">' +
+        escapeHtml(c.label) + (c.kbd ? "<kbd>" + escapeHtml(c.kbd) + "</kbd>" : "") + "</button>"
+      ).join("") || '<p class="lede" style="padding:12px 18px">No matches.</p>';
+      $("cmdk-list").querySelectorAll("[data-cmd]").forEach((el) => {
+        el.onclick = () => runCommand(el.getAttribute("data-cmd"));
+      });
+    }
+
+    function runCommand(id) {
+      const row = commandList().find((c) => c.id === id);
+      closePanes();
+      if (row) row.run();
+    }
+
+    function openCmdk() {
+      cmdkOpen = true;
+      cmdkIndex = 0;
+      $("cmdk").classList.add("open");
+      $("cmdk-q").value = "";
+      renderCmdk("");
+      setTimeout(() => $("cmdk-q").focus(), 20);
+    }
+
+    $("cmdk-q").oninput = () => { cmdkIndex = 0; renderCmdk($("cmdk-q").value); };
+
+    function onKeys(e) {
+      if (e.key === "Escape") { closePanes(); return; }
+      if ((e.metaKey || e.ctrlKey) && (e.key === "k" || e.key === "K")) {
+        e.preventDefault();
+        if (cmdkOpen) closePanes();
+        else openCmdk();
+        return;
+      }
+      if (cmdkOpen) {
+        const rows = [...$("cmdk-list").querySelectorAll("[data-cmd]")];
+        if (e.key === "ArrowDown") { e.preventDefault(); cmdkIndex = Math.min(rows.length - 1, cmdkIndex + 1); renderCmdk($("cmdk-q").value); }
+        if (e.key === "ArrowUp") { e.preventDefault(); cmdkIndex = Math.max(0, cmdkIndex - 1); renderCmdk($("cmdk-q").value); }
+        if (e.key === "Enter") {
+          e.preventDefault();
+          const id = rows[cmdkIndex] && rows[cmdkIndex].getAttribute("data-cmd");
+          if (id) runCommand(id);
+        }
+        return;
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+        e.preventDefault();
+        $("go").click();
+        return;
+      }
+      if (typing()) return;
+      if (e.key === "b" || e.key === "B") selectedShotId && shotAction("board", selectedShotId);
+      if (e.key === "t" || e.key === "T") selectedShotId && shotAction("take", selectedShotId);
+      if (e.key === "a" || e.key === "A") assembleCut();
+      if (e.key === "q" || e.key === "Q") queuePlan();
+      if (e.key === "r" || e.key === "R") runQueueNow();
+      if (e.key === "e" || e.key === "E") openExport();
+      if (e.key === "n" || e.key === "N") addShot();
+    }
+
+    function openExport() {
+      if (!jobId) { $("err").textContent = "Produce a job first."; return; }
+      const data = lastSnap || {};
+      $("export-aspect").value = data.aspect || "16:9";
+      $("export-title").value = data.title || "";
+      $("export-fade").value = data.fade_sec != null ? data.fade_sec : 0.3;
+      $("export-music").textContent = data.music
+        ? "Score found in identity. It will mix under the cut."
+        : "No score yet. Drop a wav named music / bed / score under Identity.";
+      $("export-zip").href = "/api/produce/" + encodeURIComponent(jobId) + "/export";
+      $("export-cut").href = data.cut ? "/api/produce/" + encodeURIComponent(jobId) + "/file/" + encodeURIComponent(data.cut) : "#";
+      $("export-cut").hidden = !data.cut;
+      $("export-srt").href = data.captions ? "/api/produce/" + encodeURIComponent(jobId) + "/file/" + encodeURIComponent(data.captions) : "#";
+      $("export-srt").hidden = !data.captions;
+      $("export-pane").classList.add("open");
+    }
+
+    $("export-save").onclick = async () => {
+      if (!jobId) return;
+      await fetch("/api/produce/" + encodeURIComponent(jobId) + "/options", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          aspect: $("export-aspect").value,
+          title: $("export-title").value,
+          fade_sec: Number($("export-fade").value),
+        }),
+      });
+      closePanes();
+      await assembleCut();
+    };
+
+    async function persistTitle() {
+      if (!jobId) return;
+      const title = $("job-title").value.trim();
+      if (!title) return;
+      const resp = await fetch("/api/produce/" + encodeURIComponent(jobId) + "/rename", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title }),
+      });
+      if (resp.ok) lastSnap = await resp.json();
+    }
+    $("job-title").onchange = persistTitle;
+
+    async function addShot() {
+      if (!jobId) return;
+      const resp = await fetch("/api/produce/" + encodeURIComponent(jobId) + "/shots", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ purpose: "New beat", visual: "" }),
+      });
+      render(await resp.json());
+    }
+    $("add-shot").onclick = addShot;
+
+    async function duplicateJob() {
+      if (!jobId) return;
+      const resp = await fetch("/api/produce/" + encodeURIComponent(jobId) + "/duplicate", { method: "POST" });
+      const data = await resp.json();
+      if (!resp.ok) { $("err").textContent = apiError(data, "duplicate failed"); return; }
+      jobId = data.job_id;
+      render(data);
+      loadJobs().catch(() => {});
+    }
+    $("dup-job").onclick = duplicateJob;
+
+    async function deleteShot(shotId) {
+      if (!jobId || !shotId) return;
+      if (!window.confirm("Remove " + shotId + " from this job?")) return;
+      const resp = await fetch("/api/produce/" + encodeURIComponent(jobId) + "/shots/" + encodeURIComponent(shotId), { method: "DELETE" });
+      selectedShotId = "";
+      render(await resp.json());
+    }
+
+    async function postComment() {
+      if (!jobId) return;
+      const text = $("insp-comment") ? $("insp-comment").value.trim() : "";
+      if (!text) return;
+      const resp = await fetch("/api/produce/" + encodeURIComponent(jobId) + "/comments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, shot_id: selectedShotId }),
+      });
+      render(await resp.json());
+    }
 
     async function loadElements() {
       const resp = await fetch("/api/produce/elements");
@@ -570,20 +867,21 @@
     function closePanes() {
       $("bot-pane").classList.remove("open");
       $("drawer").classList.remove("open");
+      $("export-pane").classList.remove("open");
+      $("cmdk").classList.remove("open");
+      cmdkOpen = false;
     }
 
     $("close-bot").onclick = closePanes;
     $("close-settings").onclick = closePanes;
+    $("close-export").onclick = closePanes;
     $("bot-pane").addEventListener("click", (e) => { if (e.target.id === "bot-pane") closePanes(); });
     $("drawer").addEventListener("click", (e) => { if (e.target.id === "drawer") closePanes(); });
+    $("export-pane").addEventListener("click", (e) => { if (e.target.id === "export-pane") closePanes(); });
+    $("cmdk").addEventListener("click", (e) => { if (e.target.id === "cmdk") closePanes(); });
     $("open-settings").onclick = () => { loadSettings(); $("drawer").classList.add("open"); };
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") closePanes();
-      if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && document.activeElement === $("prompt")) {
-        e.preventDefault();
-        $("go").click();
-      }
-    });
+    $("open-export").onclick = openExport;
+    document.addEventListener("keydown", onKeys);
 
     $("bot-send").onclick = async () => {
       const message = $("bot-msg").value.trim();
@@ -684,6 +982,7 @@
             produce_mode: produceMode,
             stills_model: $("stills-model").value || stillsModel,
             video_model: $("video-model").value || videoModel,
+            aspect: /9\s*:\s*16|vertical/i.test(prompt) ? "9:16" : "16:9",
           }),
         });
         const data = await resp.json();
@@ -698,7 +997,7 @@
     };
 
     function finished(data) {
-      return data.status === "done" || data.status === "blocked";
+      return data.status === "done" || data.status === "blocked" || data.status === "ready";
     }
 
     async function poll() {
@@ -711,6 +1010,20 @@
     }
 
     function render(data) {
+      lastSnap = data;
+      jobId = data.job_id || jobId;
+      document.body.classList.toggle("working", !!jobId);
+      $("project-bar").hidden = !jobId;
+      if (jobId) {
+        if (document.activeElement !== $("job-title")) $("job-title").value = data.title || "";
+        const cont = data.continuity || {};
+        const mins = Math.round((Number(data.runtime_sec) || 0) / 6) / 10;
+        $("job-stats").textContent =
+          (data.shots || []).length + " shots · " + mins + " min · " +
+          escapeHtml(data.stills_model || "") + " / " + escapeHtml(data.video_model || "");
+        $("job-grade").textContent = (cont.grade || "") + (cont.score != null ? " " + cont.score : "");
+        $("job-grade").className = "grade " + (cont.grade || "");
+      }
       $("status").textContent = (data.files && data.files["STATUS.md"]) || data.status || "";
       $("err").textContent = typeof data.error === "string" ? data.error : (data.error && data.error.message) || "";
       $("stages").hidden = false;
@@ -733,12 +1046,21 @@
       if (files["storyboard.md"]) blocks.push(card("Storyboard", files["storyboard.md"]));
       const shots = data.shots || [];
       lastSnap = data;
+      const next = data.next_action || {};
+      let coach = "";
+      if (next.label) {
+        coach = '<div class="coach"><p>' + escapeHtml(next.label) + "</p>" +
+          (next.cta ? '<button class="primary" type="button" id="coach-cta">' + escapeHtml(next.cta) + "</button>" : "") +
+          "</div>";
+      }
       let strip = "";
       if (shots.length) {
         strip = '<div class="strip">' + shots.map((s) => shotCard(s)).join("") + "</div>" +
           '<div class="row"><button class="ghost" type="button" id="board-all">Queue boards / takes</button>' +
           '<button class="ghost" type="button" id="run-queue">Run queue</button>' +
-          '<label class="eta"><input type="checkbox" id="color-pass"' + (data.color_pass ? " checked" : "") + "> Color pass</label></div>";
+          '<button class="ghost" type="button" id="add-shot-inline">Add shot</button>' +
+          '<label class="eta"><input type="checkbox" id="color-pass"' + (data.color_pass ? " checked" : "") + "> Color pass</label>" +
+          '<span class="kbd-hint">⌘K commands · B board · T take · A assemble</span></div>';
       }
       const identity = data.identity || [];
       let identBlock = "";
@@ -749,6 +1071,7 @@
           ).join("") +
           '</div><div class="row"><label class="drop">Face / location<input type="file" accept="image/*" data-up="identity" multiple></label>' +
           '<label class="drop">Voice<input type="file" accept="audio/*" data-up="voice"></label>' +
+          '<label class="drop">Score<input type="file" accept="audio/*" data-up="score"></label>' +
           '<label class="drop">Library<input type="file" accept="image/*,audio/*" id="lib-file"></label></div>' +
           (libraryElements.length
             ? '<div class="row">' + libraryElements.map((el) =>
@@ -797,6 +1120,8 @@
           }).join("") +
           '</div><div class="row"><button class="primary" type="button" id="assemble">Assemble cut</button>' +
           (data.cut ? '<a class="ghost" href="/api/produce/' + jobId + "/file/" + encodeURIComponent(data.cut) + '">Download cut</a>' : "") +
+          (data.captions ? '<a class="ghost" href="/api/produce/' + jobId + "/file/" + encodeURIComponent(data.captions) + '">Captions</a>' : "") +
+          '<button class="ghost" type="button" id="open-export-inline">Export</button>' +
           '<a class="ghost" href="/api/produce/' + jobId + '/export">Handoff zip</a>' +
           "</div></article>";
       }
@@ -810,7 +1135,7 @@
           "</div>";
       }
       const inspector = inspectorHtml(data);
-      const left = strip + identBlock + queueBlock + blocks.join("") + timeline + media;
+      const left = coach + strip + identBlock + queueBlock + blocks.join("") + timeline + media;
       $("work").innerHTML = inspector ? '<div class="layout"><div>' + left + "</div>" + inspector + "</div>" : left;
       $("work").querySelectorAll("[data-shot-act]").forEach((btn) => {
         btn.onclick = () => shotAction(btn.getAttribute("data-shot-act"), btn.getAttribute("data-shot"));
@@ -821,6 +1146,23 @@
       if (boardAll) boardAll.onclick = queuePlan;
       const runQueue = $("run-queue");
       if (runQueue) runQueue.onclick = runQueueNow;
+      const addInline = $("add-shot-inline");
+      if (addInline) addInline.onclick = addShot;
+      const exportInline = $("open-export-inline");
+      if (exportInline) exportInline.onclick = openExport;
+      const coachCta = $("coach-cta");
+      if (coachCta) {
+        coachCta.onclick = () => {
+          const id = (lastSnap.next_action || {}).id;
+          if (id === "boards" || id === "takes") queuePlan();
+          else if (id === "assemble") assembleCut();
+          else if (id === "export") openExport();
+        };
+      }
+      const delShot = $("del-shot");
+      if (delShot) delShot.onclick = () => deleteShot(selectedShotId);
+      const sendComment = $("send-comment");
+      if (sendComment) sendComment.onclick = postComment;
       $("work").querySelectorAll("[data-move]").forEach((btn) => {
         btn.onclick = () => moveEdit(btn.getAttribute("data-move"), edit);
       });
@@ -900,9 +1242,22 @@
         '<label>Duration (sec)</label><input id="insp-dur" type="number" min="2" max="15" value="' + escapeHtml(shot.duration_sec || 5) + '">' +
         '<label>Mode</label><input id="insp-mode" value="' + escapeHtml(shot.h3_mode || "") + '" placeholder="i2va / fl2va / t2va / r2va">' +
         '<label>Seed</label><input id="insp-seed" type="number" value="' + escapeHtml(shot.seed || "") + '" placeholder="optional">' +
-        '<div class="row" style="margin-top:12px"><button class="primary" type="button" id="save-prompt">Save shot</button></div>' +
+        '<div class="row" style="margin-top:12px"><button class="primary" type="button" id="save-prompt">Save shot</button>' +
+        '<button class="ghost" type="button" id="del-shot">Delete</button></div>' +
         takeBinHtml(data, selectedShotId) +
+        commentHtml(data, selectedShotId) +
         '<p class="eta">Click a board to inspect. Trim is local ffmpeg. Retake on the timeline sends a new take to Spark.</p></aside>';
+    }
+
+    function commentHtml(data, shotId) {
+      const rows = (data.comments || []).filter((c) => !c.shot_id || c.shot_id === shotId);
+      return '<div class="comments"><h2 style="margin-top:16px">Notes</h2>' +
+        rows.map((c) =>
+          '<div class="c-row"><div class="c-who">' + escapeHtml(c.author || "you") +
+          (c.shot_id ? " · " + escapeHtml(c.shot_id) : "") + "</div>" + escapeHtml(c.text || "") + "</div>"
+        ).join("") +
+        '<input id="insp-comment" placeholder="Note on this shot">' +
+        '<div class="row"><button class="ghost" type="button" id="send-comment">Add note</button></div></div>';
     }
 
     async function saveInspector() {
@@ -1121,7 +1476,9 @@
       $("jobs-wrap").hidden = false;
       $("jobs").innerHTML = jobs.map((j) => {
         return '<button type="button" class="job" data-job="' + escapeHtml(j.job_id) + '">' +
-          escapeHtml(j.prompt || j.job_id) + "<small>" + escapeHtml(j.stage || "") + " · " + escapeHtml(j.status || "") + "</small></button>";
+          escapeHtml(j.title || j.prompt || j.job_id) + "<small>" +
+          escapeHtml(j.stage || "") + " · " + escapeHtml(j.status || "") +
+          (j.cut ? " · cut ready" : "") + "</small></button>";
       }).join("");
       $("jobs").querySelectorAll("[data-job]").forEach((el) => {
         el.onclick = async () => {
@@ -1139,6 +1496,7 @@
     loadSettings().catch(() => {});
     loadModels().catch(() => {});
     loadElements().catch(() => {});
+    loadSamples().catch(() => {});
     setInterval(() => {
       if (document.hidden) return;
       loadRoster().catch(() => {});

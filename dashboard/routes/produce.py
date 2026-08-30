@@ -14,6 +14,7 @@ from core.bridge.runtime_config import get_raw_config, set_config
 from core.dispatch.capability_router import CapabilityRouter
 from core.dispatch.model_catalog import catalog as model_catalog
 from core.hermes.produce import elements as produce_elements
+from core.hermes.produce import job_ops as produce_ops
 from core.hermes.produce import queue as produce_queue
 from core.hermes.produce import render as produce_render
 from core.hermes.produce.service import ProduceService
@@ -29,6 +30,8 @@ class ProduceStartRequest(BaseModel):
     produce_mode: str = "shoot"
     stills_model: str = ""
     video_model: str = ""
+    title: str = ""
+    aspect: str = "16:9"
 
 
 class ProduceShotRequest(BaseModel):
@@ -82,6 +85,9 @@ class ProduceOptionsRequest(BaseModel):
     color_pass: Optional[bool] = None
     stills_model: str = ""
     video_model: str = ""
+    title: str = ""
+    aspect: str = ""
+    fade_sec: Optional[float] = None
 
 
 class ProduceQueueRunRequest(BaseModel):
@@ -99,6 +105,21 @@ class ProduceAttachRequest(BaseModel):
 class ProduceRestoreTakeRequest(BaseModel):
     shot_id: str
     clip: str
+
+
+class ProduceCommentRequest(BaseModel):
+    text: str = ""
+    shot_id: str = ""
+    author: str = "you"
+
+
+class ProduceShotAddRequest(BaseModel):
+    purpose: str = ""
+    visual: str = ""
+
+
+class ProduceRenameRequest(BaseModel):
+    title: str = ""
 
 
 class ProduceConnectSave(BaseModel):
@@ -146,6 +167,8 @@ async def produce_start(req: ProduceStartRequest):
             produce_mode=req.produce_mode,
             stills_model=req.stills_model,
             video_model=req.video_model,
+            title=req.title,
+            aspect=req.aspect,
         )
     except ValueError as exc:
         raise CinesmithAPIError(str(exc), status_code=400) from exc
@@ -161,6 +184,15 @@ async def produce_jobs():
 @router.get("/api/produce/models")
 async def produce_models():
     return {"status": "ok", **model_catalog()}
+
+
+@router.get("/api/produce/samples")
+async def produce_samples():
+    return {
+        "status": "ok",
+        "samples": produce_ops.SAMPLE_BRIEFS,
+        "presets": produce_ops.SOCIAL_PRESETS,
+    }
 
 
 @router.get("/api/produce/elements")
@@ -191,6 +223,62 @@ async def produce_job(job_id: str):
 async def produce_shots(job_id: str):
     path = _job_or_404(job_id)
     return {"status": "ok", "shots": produce_render.load_shots(path), "edit": produce_render.load_edit(path)}
+
+
+@router.post("/api/produce/{job_id}/shots")
+async def produce_add_shot(job_id: str, req: ProduceShotAddRequest):
+    path = _job_or_404(job_id)
+    shot = produce_ops.add_shot(path, purpose=req.purpose, visual=req.visual)
+    return {"status": "ok", "shot": shot, **_service.snapshot(job_id)}
+
+
+@router.delete("/api/produce/{job_id}/shots/{shot_id}")
+async def produce_delete_shot(job_id: str, shot_id: str):
+    path = _job_or_404(job_id)
+    produce_ops.delete_shot(path, shot_id)
+    return {"status": "ok", **_service.snapshot(job_id)}
+
+
+@router.get("/api/produce/{job_id}/comments")
+async def produce_comments(job_id: str):
+    path = _job_or_404(job_id)
+    return {"status": "ok", "comments": produce_ops.load_comments(path)}
+
+
+@router.post("/api/produce/{job_id}/comments")
+async def produce_add_comment(job_id: str, req: ProduceCommentRequest):
+    path = _job_or_404(job_id)
+    try:
+        row = produce_ops.add_comment(path, req.text, shot_id=req.shot_id, author=req.author)
+    except ValueError as exc:
+        raise CinesmithAPIError(str(exc), status_code=400) from exc
+    return {"status": "ok", "comment": row, **_service.snapshot(job_id)}
+
+
+@router.post("/api/produce/{job_id}/duplicate")
+async def produce_duplicate(job_id: str):
+    import time
+    import uuid
+
+    src = _job_or_404(job_id)
+    new_id = time.strftime("%Y%m%d-%H%M%S") + "-" + uuid.uuid4().hex[:6]
+    dest = _service.job_dir(new_id)
+    produce_ops.duplicate_job(src, dest)
+    return {"status": "ok", **_service.snapshot(new_id)}
+
+
+@router.post("/api/produce/{job_id}/rename")
+async def produce_rename(job_id: str, req: ProduceRenameRequest):
+    path = _job_or_404(job_id)
+    title = produce_ops.rename_job(path, req.title)
+    return {"status": "ok", "title": title, **_service.snapshot(job_id)}
+
+
+@router.post("/api/produce/{job_id}/captions")
+async def produce_captions(job_id: str):
+    path = _job_or_404(job_id)
+    dest = produce_ops.write_captions(path)
+    return {"status": "ok", "captions": dest.name, **_service.snapshot(job_id)}
 
 
 @router.post("/api/produce/{job_id}/render-board")
@@ -332,6 +420,15 @@ async def produce_options(job_id: str, req: ProduceOptionsRequest):
         meta["color_pass"] = bool(req.color_pass)
     if req.stills_model or req.video_model:
         produce_render.set_model_options(path, stills=req.stills_model, video=req.video_model)
+    if req.title:
+        produce_ops.rename_job(path, req.title)
+    if req.aspect:
+        meta["aspect"] = str(req.aspect).strip()
+    if req.fade_sec is not None:
+        try:
+            meta["fade_sec"] = max(0.0, min(3.0, float(req.fade_sec)))
+        except (TypeError, ValueError):
+            pass
     if meta:
         produce_render.save_job_meta(path, meta)
     return {"status": "ok", **_service.snapshot(job_id)}

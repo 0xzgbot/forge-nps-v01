@@ -19,6 +19,7 @@ from core.cinesmith_env import hermes_isolated_env, repo_root
 from core.hermes.bots.crew import CREW_BY_KEY
 from core.hermes.bots.runtime import BotRuntime
 from core.hermes.bots.store import BotStore
+from core.hermes.produce import job_ops as produce_ops
 from core.hermes.produce import queue as produce_queue
 from core.hermes.produce import render as produce_render
 
@@ -43,6 +44,8 @@ class ProduceService:
         produce_mode: str = "shoot",
         stills_model: str = "",
         video_model: str = "",
+        title: str = "",
+        aspect: str = "16:9",
     ) -> Dict[str, Any]:
         brief = (prompt or "").strip()
         if not brief:
@@ -58,9 +61,16 @@ class ProduceService:
         (path / "STATUS.md").write_text(
             f"story — @{lead} is reading the brief.\n", encoding="utf-8"
         )
+        label = str(title or "").strip()[:120]
+        if not label:
+            label = brief.split(".")[0].strip()[:80]
+        aspect_key = str(aspect or "16:9").strip() or "16:9"
         meta = {
             "job_id": job_id,
             "prompt": brief,
+            "title": label,
+            "aspect": aspect_key,
+            "fade_sec": 0,
             "created_at": time.time(),
             "status": "running",
             "pid": None,
@@ -122,6 +132,15 @@ class ProduceService:
             "video_model": produce_render.video_model(path),
             "takes": produce_render.list_takes(path),
             "color_pass": bool(produce_render.load_job_meta(path).get("color_pass")),
+            "title": str(meta.get("title") or ""),
+            "aspect": str(meta.get("aspect") or "16:9"),
+            "fade_sec": float(meta.get("fade_sec") or 0),
+            "continuity": produce_ops.continuity_score(path),
+            "comments": produce_ops.load_comments(path),
+            "next_action": produce_ops.next_action(path),
+            "runtime_sec": produce_ops.runtime_sec(path),
+            "captions": "cut.srt" if (path / "cut.srt").exists() else "",
+            "music": bool(produce_ops.find_music(path)),
             "identity": produce_render.list_identity(path),
             "cut": "cut.mp4" if (path / "cut.mp4").exists() else "",
             "error": meta.get("error") or "",
@@ -143,6 +162,9 @@ class ProduceService:
                     "status": snap["status"],
                     "stage": snap["stage"],
                     "prompt": (snap["prompt"] or "")[:160],
+                    "title": snap.get("title") or "",
+                    "cut": bool(snap.get("cut")),
+                    "runtime_sec": snap.get("runtime_sec") or 0,
                 }
             )
         return rows[:40]

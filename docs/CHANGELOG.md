@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-08-30 - Produce launch desk: finish, samples, ⌘K
+
+Home is a launch-ready producer desk, not a second product. Hermes still directs. 3090s still paint. Spark still shoots. ffmpeg still cuts.
+
+- Sample briefs on the empty desk. Project bar (title, runtime, continuity grade) once a job is loaded.
+- ⌘K command palette. Keyboard: B board, T take, A assemble, N add shot, E export.
+- Add / delete shots, duplicate job, shot notes (`comments.json`).
+- Export sheet: 16:9 / 9:16 / 1:1 / 2.39, fade, title card, mix a score wav. Assemble writes `cut.mp4` + `cut.srt`. Handoff zip includes captions and comments.
+- Honest coach chip (boards → takes → assemble → export). Continuity grade counts identity/board/take locks, not beauty.
+- Score drop under Identity (`music` / `bed` / `score` in the filename).
+
 ## 2026-08-30 - Produce: Spark H3, dual 3090s, queue, cut
 
 Home (`/`) is **Produce**. Hermes writes story/script/shots. 3090s paint boards. Spark MiniMax H3 shoots takes with native stereo. ffmpeg assembles `cut.mp4`. `/studio` is labeled legacy.
