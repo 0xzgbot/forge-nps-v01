@@ -24,6 +24,17 @@ def test_snapshot_includes_shots_and_boards(tmp_path: Path):
     assert out["produce_mode"] in {"scout", "shoot"}
 
 
+def test_snapshot_cut_marks_status_ready(tmp_path: Path):
+    service = ProduceService(tmp_path)
+    snap = service.start("a wet city walk", profile="producer")
+    job = service.job_dir(snap["job_id"])
+    (job / "cut.mp4").write_bytes(b"cut")
+    out = service.snapshot(snap["job_id"])
+    assert out["cut"] == "cut.mp4"
+    assert out["stage"] == "done"
+    assert out["status"] == "ready"
+
+
 def test_identity_anchor_paths(tmp_path: Path):
     img = tmp_path / "face.png"
     img.write_bytes(b"x")

@@ -81,8 +81,11 @@ class ProduceService:
         edit = produce_render.load_edit(path)
         queue = produce_queue.load_queue(path)
         stage = self._stage_from_status(files.get("STATUS.md", ""))
+        status = meta.get("status") or "running"
         if (path / "cut.mp4").exists():
             stage = "done" if stage != "blocked" else stage
+            if status == "running":
+                status = "ready"
         elif files.get("edit.json") and clips:
             stage = "edit" if stage not in {"done", "blocked"} else stage
         elif clips:
@@ -95,7 +98,7 @@ class ProduceService:
             stage = "script"
         return {
             "job_id": job_id,
-            "status": meta.get("status") or "running",
+            "status": status,
             "stage": stage,
             "prompt": meta.get("prompt") or files.get("prompt.md", "").strip(),
             "files": files,
