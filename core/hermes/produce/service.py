@@ -19,6 +19,7 @@ from core.cinesmith_env import hermes_isolated_env, repo_root
 from core.hermes.bots.crew import CREW_BY_KEY
 from core.hermes.bots.runtime import BotRuntime
 from core.hermes.bots.store import BotStore
+from core.hermes.produce import queue as produce_queue
 from core.hermes.produce import render as produce_render
 
 STAGES = ("story", "script", "storyboard", "video", "edit", "done", "blocked")
@@ -35,7 +36,7 @@ class ProduceService:
     def job_dir(self, job_id: str) -> Path:
         return self.jobs_dir / job_id
 
-    def start(self, prompt: str, profile: str = "producer") -> Dict[str, Any]:
+    def start(self, prompt: str, profile: str = "producer", produce_mode: str = "shoot") -> Dict[str, Any]:
         brief = (prompt or "").strip()
         if not brief:
             raise ValueError("prompt required")
@@ -57,6 +58,7 @@ class ProduceService:
             "status": "running",
             "pid": None,
             "profile": lead,
+            "produce_mode": "scout" if str(produce_mode or "").strip().lower() == "scout" else "shoot",
             "bots": [],
         }
         self._write_meta(path, meta)
@@ -68,7 +70,7 @@ class ProduceService:
             raise FileNotFoundError(job_id)
         meta = self._read_meta(path)
         files = {}
-        for name in ("prompt.md", "story.md", "script.md", "shots.json", "storyboard.md", "edit.json", "STATUS.md", "characters.md", "product.md"):
+        for name in ("prompt.md", "story.md", "script.md", "shots.json", "storyboard.md", "edit.json", "STATUS.md", "characters.md", "product.md", "queue.json"):
             target = path / name
             if target.exists():
                 files[name] = target.read_text(encoding="utf-8")[:20000]
@@ -100,6 +102,8 @@ class ProduceService:
             "stills": stills,
             "shots": shots,
             "edit": edit,
+            "queue": produce_queue.load_queue(path),
+            "produce_mode": produce_render.produce_mode(path),
             "cut": "cut.mp4" if (path / "cut.mp4").exists() else "",
             "error": meta.get("error") or "",
             "llm": meta.get("llm") or {},
@@ -138,7 +142,7 @@ class ProduceService:
             return
 
         lead = str(meta.get("profile") or "producer")
-        instruction = self._agent_prompt(brief, path, lead)
+        instruction = self._agent_prompt(brief, path, lead, produce_mode=produce_render.produce_mode(path))
         query = path / "query.txt"
         query.write_text(instruction, encoding="utf-8")
         env = hermes_isolated_env(
@@ -154,6 +158,8 @@ class ProduceService:
         )
         cmd = self.runtime.chat_argv(lead, query, model=llm.model or "")
         log = path / "hermes.log"
+        stop = asyncio.Event()
+        drain_task = asyncio.create_task(self._queue_watch(job_id, stop))
         try:
             with log.open("ab") as handle:
                 proc = await asyncio.create_subprocess_exec(
@@ -169,6 +175,10 @@ class ProduceService:
             self.runtime._track(lead, proc.pid, job_id=job_id, title="Bot Chat")
             code = await proc.wait()
             self.runtime._untrack(lead, proc.pid)
+            try:
+                await produce_queue.drain_pending(path)
+            except Exception:
+                pass
             meta = self._read_meta(path)
             if code != 0 and meta.get("status") != "blocked":
                 meta["status"] = "blocked"
@@ -185,11 +195,34 @@ class ProduceService:
             meta["error"] = str(exc)
             self._write_meta(path, meta)
             (path / "STATUS.md").write_text(f"blocked — {exc}\n", encoding="utf-8")
+        finally:
+            stop.set()
+            try:
+                await drain_task
+            except Exception:
+                pass
 
-    def _agent_prompt(self, brief: str, path: Path, lead: str = "producer") -> str:
+    async def _queue_watch(self, job_id: str, done: asyncio.Event) -> None:
+        path = self.job_dir(job_id)
+        while not done.is_set():
+            try:
+                await produce_queue.drain_pending(path)
+            except Exception:
+                pass
+            try:
+                await asyncio.wait_for(done.wait(), timeout=3.0)
+            except asyncio.TimeoutError:
+                continue
+
+    def _agent_prompt(self, brief: str, path: Path, lead: str = "producer", produce_mode: str = "shoot") -> str:
         role = CREW_BY_KEY.get(lead, {})
         artifact = role.get("artifact") or "the job files"
         mates = ", ".join(f"@{k}" for k in CREW_BY_KEY if k != lead)
+        grammar = (
+            "Scout mode: no boards. Queue render_take with mode t2va."
+            if produce_mode == "scout"
+            else "Shoot mode: queue render_board on the 3090s, then render_take. Use fl2va when a shot has end_still, else i2va. r2va when identity refs exist."
+        )
         return (
             f"You are @{lead} in a Hermes Bot Chat. This is your canonical forever-chat.\n"
             "Use message_agent to hand work to teammates when they should do the job.\n"
@@ -197,12 +230,19 @@ class ProduceService:
             "The user asked for a video from this prompt:\n\n"
             f"{brief}\n\n"
             f"Job directory (already created): {path}\n"
+            f"Produce mode: {produce_mode}. {grammar}\n"
             f"Your usual artifact is {artifact}. The producer keeps STATUS.md honest.\n"
-            "Write real files. Call the produce tools when Spark/3090s are up:\n"
-            f"  POST $CINESMITH_API/api/produce/{path.name}/render-board  {{shot_id}}\n"
-            f"  POST $CINESMITH_API/api/produce/{path.name}/render-take   {{shot_id, mode: i2va|t2va|fl2va|r2va}}\n"
-            f"  POST $CINESMITH_API/api/produce/{path.name}/assemble\n"
-            "If Spark is down, stop at the last real file and mark STATUS blocked. "
+            "Write real files. Prefer appending GPU work to queue.json over hoping a curl lands:\n"
+            "  queue.json = {items:[{id, action, shot_id, mode, status: pending}]}\n"
+            "  actions: render_board | render_take | assemble\n"
+            "A worker drains queue.json when hosts are up. If Spark/3090s are down, items stay "
+            "pending (waiting_for_host). Never mark done without a file on disk.\n"
+            "You may also POST $CINESMITH_API:\n"
+            f"  /api/produce/{path.name}/queue        {{action, shot_id, mode}}\n"
+            f"  /api/produce/{path.name}/queue/plan\n"
+            f"  /api/produce/{path.name}/queue/run\n"
+            "Comfy presets live in workflows/ — inject the shot prompt, do not invent a new graph.\n"
+            "If hosts stay down, stop at the last real file and mark STATUS blocked. "
             "Adapt. Do not run a fake checklist."
         )
 

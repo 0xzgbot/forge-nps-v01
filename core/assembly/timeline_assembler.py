@@ -79,14 +79,35 @@ class TimelineAssembler:
             return ""
         return placeholder_path
 
+    def _silence_clip(self, ffmpeg: str, path: Path, dest: Path) -> Optional[Path]:
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        copy_cmd = [ffmpeg, "-y", "-i", str(path), "-c:v", "copy", "-an", str(dest)]
+        proc = subprocess.run(copy_cmd, capture_output=True, text=True)
+        if proc.returncode == 0 and dest.exists() and dest.stat().st_size > 0:
+            return dest
+        encode_cmd = [
+            ffmpeg, "-y", "-i", str(path),
+            "-c:v", "libx264", "-pix_fmt", "yuv420p", "-an",
+            str(dest),
+        ]
+        proc = subprocess.run(encode_cmd, capture_output=True, text=True)
+        if proc.returncode == 0 and dest.exists() and dest.stat().st_size > 0:
+            return dest
+        self.logger.warning("Could not mute clip %s: %s", path, (proc.stderr or "")[-200:])
+        return None
+
     def export_cut(
         self,
         clips: List[Path],
         output: Path,
         *,
         keep_audio: bool = True,
+        muted_paths: Optional[List[Path]] = None,
     ) -> Dict[str, Any]:
-        """Concat clips with ffmpeg. Prefer stream copy; re-encode if needed. Keep stereo."""
+        """Concat clips with ffmpeg. Prefer stream copy; re-encode if needed. Keep stereo.
+
+        muted_paths strip audio on those clips only. Unmuted H3 clips keep stereo (-ac 2).
+        """
         ffmpeg = shutil.which("ffmpeg")
         if not ffmpeg:
             return {"ok": False, "error": "ffmpeg_not_installed", "output": ""}
@@ -95,37 +116,56 @@ class TimelineAssembler:
             return {"ok": False, "error": "no_clips", "output": ""}
         output = Path(output)
         output.parent.mkdir(parents=True, exist_ok=True)
+        muted = {str(Path(p).resolve()) for p in (muted_paths or [])}
+        prepared: List[Path] = []
+        mute_dir = output.parent / f".{output.stem}_mute"
+        for path in existing:
+            if keep_audio and str(path.resolve()) in muted:
+                silent = self._silence_clip(ffmpeg, path, mute_dir / f"{path.stem}.muted{path.suffix}")
+                prepared.append(silent or path)
+            else:
+                prepared.append(path)
+        any_audio = keep_audio and any(str(path.resolve()) not in muted for path in existing)
         concat_path = output.with_suffix(".concat.txt")
         lines = ["ffconcat version 1.0\n"]
-        for path in existing:
+        for path in prepared:
             escaped = path.resolve().as_posix().replace("'", r"'\''")
             lines.append(f"file '{escaped}'\n")
         concat_path.write_text("".join(lines), encoding="utf-8")
-        copy_cmd = [
-            ffmpeg, "-y", "-f", "concat", "-safe", "0", "-i", str(concat_path),
-            "-c", "copy", str(output),
-        ]
-        proc = subprocess.run(copy_cmd, capture_output=True, text=True)
-        if proc.returncode == 0 and output.exists() and output.stat().st_size > 0:
-            return {"ok": True, "output": str(output), "mode": "copy", "clips": [str(p) for p in existing]}
+        can_copy = any_audio and not muted
+        if can_copy:
+            copy_cmd = [
+                ffmpeg, "-y", "-f", "concat", "-safe", "0", "-i", str(concat_path),
+                "-c", "copy", str(output),
+            ]
+            proc = subprocess.run(copy_cmd, capture_output=True, text=True)
+            if proc.returncode == 0 and output.exists() and output.stat().st_size > 0:
+                return {
+                    "ok": True,
+                    "output": str(output),
+                    "mode": "copy",
+                    "clips": [str(p) for p in existing],
+                    "muted": [str(p) for p in existing if str(p.resolve()) in muted],
+                }
         encode_cmd = [
             ffmpeg, "-y", "-f", "concat", "-safe", "0", "-i", str(concat_path),
             "-c:v", "libx264", "-pix_fmt", "yuv420p",
-            "-c:a", "aac" if keep_audio else "copy",
-            "-ac", "2",
             "-movflags", "+faststart",
             str(output),
         ]
-        if not keep_audio:
-            encode_cmd = [
-                ffmpeg, "-y", "-f", "concat", "-safe", "0", "-i", str(concat_path),
-                "-c:v", "libx264", "-pix_fmt", "yuv420p", "-an",
-                "-movflags", "+faststart",
-                str(output),
-            ]
+        if any_audio:
+            encode_cmd = encode_cmd[:-1] + ["-c:a", "aac", "-ac", "2", str(output)]
+        else:
+            encode_cmd = encode_cmd[:-1] + ["-an", str(output)]
         proc = subprocess.run(encode_cmd, capture_output=True, text=True)
         if proc.returncode == 0 and output.exists() and output.stat().st_size > 0:
-            return {"ok": True, "output": str(output), "mode": "reencode", "clips": [str(p) for p in existing]}
+            return {
+                "ok": True,
+                "output": str(output),
+                "mode": "reencode",
+                "clips": [str(p) for p in existing],
+                "muted": [str(p) for p in existing if str(p.resolve()) in muted],
+            }
         return {
             "ok": False,
             "error": (proc.stderr or proc.stdout or "ffmpeg_failed")[-800:],

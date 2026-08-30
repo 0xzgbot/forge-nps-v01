@@ -85,6 +85,10 @@
     }
     .chip.busy { border-color: var(--ink); }
     .chip.support { color: var(--mute); }
+    .chip.on { border-color: var(--ink); background: var(--ink); color: #fff; }
+    .queue { font-size: 13px; }
+    .queue .q-row { display: flex; gap: 10px; padding: 6px 0; border-top: 1px solid var(--line); }
+    .queue .q-status { min-width: 7em; color: var(--mute); }
     textarea {
       width: 100%;
       min-height: 132px;
@@ -203,10 +207,12 @@
   </header>
   <main>
     <h1>What should we make?</h1>
-    <p class="lede">Type a video idea. Hermes writes the story. 3090s paint boards. Spark MiniMax H3 shoots the take. Approve, retake, then assemble the cut.</p>
+    <p class="lede">Type a video idea. Hermes writes the story. Scout is H3 text-to-video. Shoot paints boards on the 3090s, then Spark MiniMax H3 takes the shot. Queue GPU work; it waits if boxes are offline.</p>
     <div class="crew" id="crew"></div>
     <textarea id="prompt" placeholder="A courier misses the last train and walks home through a wet city. Two minutes. Quiet. No dialogue."></textarea>
     <div class="row">
+      <button class="chip on" id="mode-shoot" type="button">Shoot</button>
+      <button class="chip" id="mode-scout" type="button">Scout</button>
       <button class="primary" id="go" type="button">Produce</button>
       <span id="status"></span>
     </div>
@@ -274,6 +280,8 @@
     let selectedBot = "";
     let groupMode = false;
     let roster = [];
+    let produceMode = "shoot";
+    let lastEdit = [];
 
     function $(id) { return document.getElementById(id); }
     function escapeHtml(s) {
@@ -289,6 +297,14 @@
       const text = String(name || "");
       return text.length > 36 ? text.slice(0, 34) + "…" : text;
     }
+
+    function setMode(mode) {
+      produceMode = mode === "scout" ? "scout" : "shoot";
+      $("mode-scout").classList.toggle("on", produceMode === "scout");
+      $("mode-shoot").classList.toggle("on", produceMode === "shoot");
+    }
+    $("mode-scout").onclick = () => setMode("scout");
+    $("mode-shoot").onclick = () => setMode("shoot");
 
     function lightRow(id, label, row) {
       const on = row && row.ok;
@@ -499,7 +515,7 @@
         const resp = await fetch("/api/produce/start", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt, profile: "producer" }),
+          body: JSON.stringify({ prompt, profile: "producer", produce_mode: produceMode }),
         });
         const data = await resp.json();
         if (!resp.ok) throw new Error(apiError(data, "start failed"));
@@ -549,19 +565,39 @@
       const shots = data.shots || [];
       let strip = "";
       if (shots.length) {
-        strip = '<div class="strip">' + shots.map((s) => shotCard(s)).join("") + "</div>";
+        strip = '<div class="strip">' + shots.map((s) => shotCard(s)).join("") + "</div>" +
+          '<div class="row"><button class="ghost" type="button" id="board-all">Queue boards / takes</button>' +
+          '<button class="ghost" type="button" id="run-queue">Run queue</button></div>';
+      }
+      const queue = data.queue || [];
+      let queueBlock = "";
+      if (queue.length) {
+        queueBlock = '<article class="queue"><h2>Queue</h2>' +
+          queue.map((q) => {
+            return '<div class="q-row"><span class="q-status">' + escapeHtml(q.status || "pending") +
+              "</span><span>" + escapeHtml(q.action || "") +
+              (q.shot_id ? " · " + escapeHtml(q.shot_id) : "") +
+              (q.mode ? " · " + escapeHtml(q.mode) : "") +
+              (q.host ? " · " + escapeHtml(q.host) : "") +
+              (q.error ? " · " + escapeHtml(q.error) : "") +
+              "</span></div>";
+          }).join("") + "</article>";
       }
       const edit = data.edit || [];
+      lastEdit = edit;
       let timeline = "";
       if (edit.length || (data.clips || []).length) {
-        const items = edit.length ? edit : (data.clips || []).map((n) => ({ shot_id: n, clip: n }));
+        const items = edit.length ? edit : (data.clips || []).map((n) => ({ shot_id: n, clip: n, muted: false }));
         timeline = '<article><h2>Timeline</h2><div class="timeline">' +
           items.map((row, idx) => {
             const clip = row.clip || "";
+            const muted = !!row.muted;
             return '<div class="tl-clip"><div class="meta">' + escapeHtml(row.shot_id || clip) +
+              (muted ? " · muted" : "") +
               '</div><video controls src="/api/produce/' + jobId + "/file/" + encodeURIComponent(clip) +
               '"></video><div class="actions"><button type="button" data-move="' + idx + ':-1">Up</button>' +
-              '<button type="button" data-move="' + idx + ':1">Down</button></div></div>';
+              '<button type="button" data-move="' + idx + ':1">Down</button>' +
+              '<button type="button" data-mute="' + idx + '">' + (muted ? "Unmute" : "Mute") + "</button></div></div>";
           }).join("") +
           '</div><div class="row"><button class="primary" type="button" id="assemble">Assemble cut</button>' +
           (data.cut ? '<a class="ghost" href="/api/produce/' + jobId + "/file/" + encodeURIComponent(data.cut) + '">Download cut</a>' : "") +
@@ -576,15 +612,23 @@
           clips.map((n) => '<video controls src="/api/produce/' + jobId + "/file/" + encodeURIComponent(n) + '"></video>').join("") +
           "</div>";
       }
-      $("work").innerHTML = strip + blocks.join("") + timeline + media;
+      $("work").innerHTML = strip + queueBlock + blocks.join("") + timeline + media;
       $("work").querySelectorAll("[data-shot-act]").forEach((btn) => {
         btn.onclick = () => shotAction(btn.getAttribute("data-shot-act"), btn.getAttribute("data-shot"));
       });
       const assemble = $("assemble");
       if (assemble) assemble.onclick = assembleCut;
+      const boardAll = $("board-all");
+      if (boardAll) boardAll.onclick = queuePlan;
+      const runQueue = $("run-queue");
+      if (runQueue) runQueue.onclick = runQueueNow;
       $("work").querySelectorAll("[data-move]").forEach((btn) => {
         btn.onclick = () => moveEdit(btn.getAttribute("data-move"), edit);
       });
+      $("work").querySelectorAll("[data-mute]").forEach((btn) => {
+        btn.onclick = () => toggleMute(Number(btn.getAttribute("data-mute")), edit);
+      });
+      if (data.produce_mode) setMode(data.produce_mode);
     }
 
     function shotCard(shot) {
@@ -619,7 +663,7 @@
       const url = "/api/produce/" + encodeURIComponent(jobId) + path;
       const opts = act === "approve" || act === "retake"
         ? { method: "POST" }
-        : { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ shot_id: shotId, mode: act === "take" ? "i2va" : "" }) };
+        : { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ shot_id: shotId, mode: act === "take" ? (produceMode === "scout" ? "t2va" : "") : "" }) };
       const resp = await fetch(url, opts);
       const data = await resp.json();
       if (!resp.ok) {
@@ -627,6 +671,36 @@
         return;
       }
       render(data);
+    }
+
+    async function queuePlan() {
+      if (!jobId) return;
+      const resp = await fetch("/api/produce/" + encodeURIComponent(jobId) + "/queue/plan", { method: "POST" });
+      const data = await resp.json();
+      if (!resp.ok) $("err").textContent = apiError(data, "queue plan failed");
+      else render(data);
+    }
+
+    async function runQueueNow() {
+      if (!jobId) return;
+      const resp = await fetch("/api/produce/" + encodeURIComponent(jobId) + "/queue/run", { method: "POST" });
+      const data = await resp.json();
+      if (!resp.ok) $("err").textContent = apiError(data, "queue run failed");
+      else render(data);
+    }
+
+    async function toggleMute(idx, edit) {
+      const next = (edit || lastEdit || []).map((row, i) => {
+        const copy = Object.assign({}, row);
+        if (i === idx) copy.muted = !copy.muted;
+        return copy;
+      });
+      const resp = await fetch("/api/produce/" + encodeURIComponent(jobId) + "/edit", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ shots: next }),
+      });
+      render(await resp.json());
     }
 
     async function assembleCut() {

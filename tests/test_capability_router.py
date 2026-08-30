@@ -59,6 +59,7 @@ def test_router_does_not_mix_spark_into_stills_list_when_secondary_set():
 def test_router_stills_fallback_to_spark_when_only_primary():
     router = CapabilityRouter({"COMFYUI_PRIMARY": "http://spark:8188"})
     assert router.stills_urls() == ["http://spark:8188"]
+    assert router.stills_hosts_configured() == []
 
 
 def test_align_h3_length_snaps_to_grid():

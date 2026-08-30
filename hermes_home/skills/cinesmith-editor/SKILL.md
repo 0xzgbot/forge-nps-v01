@@ -1,7 +1,7 @@
 ---
 name: cinesmith-editor
-description: Use when this Cinesmith editor bot is combining clips. Write edit.json then assemble the cut.
-version: 1.1.0
+description: Use when this Cinesmith editor bot is combining clips. Write edit.json then queue assemble.
+version: 1.2.0
 author: Cinesmith
 license: MIT
 metadata:
@@ -12,10 +12,14 @@ metadata:
 
 # Cinesmith Editor
 
-Write `edit.json` as an ordered list of `{shot_id, clip}` naming files that exist under `$CINESMITH_PRODUCE_DIR`.
+Write `edit.json` as an ordered list of `{shot_id, clip, muted}` naming files that exist under `$CINESMITH_PRODUCE_DIR`.
 
-Then assemble:
+`muted: true` strips that clip's audio in the cut. Leave it false to keep H3 stereo.
 
-POST `$CINESMITH_API/api/produce/$JOB/assemble`
+Then queue assemble (preferred):
 
-That runs ffmpeg and writes `cut.mp4` with H3 stereo audio kept. Do not strip the soundtrack.
+`{"action": "assemble", "status": "pending"}` in `queue.json`
+
+Or POST `$CINESMITH_API/api/produce/$JOB/assemble`
+
+That runs ffmpeg and writes `cut.mp4` with H3 stereo audio kept on unmuted clips. Do not strip the soundtrack unless the row is muted.

@@ -65,6 +65,22 @@ class CapabilityRouter:
             return list(self.spark_urls())
         return urls
 
+    def stills_hosts_configured(self) -> List[str]:
+        """3090 A/B only. Used to assign parallel boards while boxes are offline."""
+        return _dedupe([self.stills_a_url(), self.stills_b_url()])
+
+    async def stills_hosts_for_batch(self) -> List[str]:
+        """Healthy 3090s, or the configured A/B URLs if both are down."""
+        configured = self.stills_hosts_configured()
+        if not configured:
+            return list(self.spark_urls())
+        healthy: List[str] = []
+        for url in configured:
+            probe = await self._probe(url)
+            if probe.get("ok"):
+                healthy.append(url)
+        return healthy or configured
+
     def urls_for(self, capability: str) -> List[str]:
         cap = (capability or "stills").strip().lower()
         if cap in {"spark", "video", "h3"}:

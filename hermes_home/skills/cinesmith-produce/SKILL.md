@@ -1,7 +1,7 @@
 ---
 name: cinesmith-produce
 description: Use when the user asks for a video, film, story, or cinematic piece from a short prompt. You are the producer. Hand work to specialist bots. Adapt. Do not run a fixed script.
-version: 1.1.0
+version: 1.2.0
 author: Cinesmith
 license: MIT
 metadata:
@@ -32,11 +32,11 @@ Message them with `message_agent` (this is Bot Chat — you have that tool):
 | `@script` | Shootable script | `script.md` |
 | `@storyboard` | Shots and panels | `shots.json`, `storyboard.md` |
 | `@video` | Motion | clips in the job dir |
-| `@editor` | Combine shots | `edit.json` |
 | `@character` | Visual DNA when faces matter | `characters.md` |
 | `@product` | Real product as a prop | `product.md` |
+| `@editor` | Combine shots | `edit.json` |
 
-Do not fan out to everyone. Pick who the brief actually needs. A landscape piece may skip `@character`. A 6-second product hit may skip a long script.
+Do not fan out to everyone. Pick who the brief actually needs.
 
 ## Job directory
 
@@ -46,27 +46,49 @@ Do not fan out to everyone. Pick who the brief actually needs. A landscape piece
 |---|---|
 | `story.md` | Expanded narrative |
 | `script.md` | Scenes, action, dialogue, duration |
-| `shots.json` | `{id, purpose, visual, duration_sec, camera, audio, h3_mode, still, clip, status}` |
+| `shots.json` | `{id, purpose, visual, duration_sec, camera, audio, h3_mode, still, clip, end_still, guides, status}` |
 | `boards/` | 3090 stills |
 | `clips/` | Spark H3 mp4s |
-| `edit.json` | Ordered `{shot_id, clip}` when motion exists |
+| `queue.json` | GPU work the worker will run |
+| `edit.json` | Ordered `{shot_id, clip, muted}` |
 | `cut.mp4` | ffmpeg assemble |
 | `STATUS.md` | One line: `story` / `script` / `storyboard` / `video` / `edit` / `done` / `blocked` |
 
-Tools (POST `$CINESMITH_API`):
+## Queue (preferred)
 
-- `/api/produce/<job>/render-board` `{shot_id}`
-- `/api/produce/<job>/render-take` `{shot_id, mode}` (`t2va` scout / `i2va` / `fl2va` / `r2va`)
-- `/api/produce/<job>/assemble`
+Write GPU work to `queue.json`. Do not invent clips. The worker drains items when Spark/3090s are up. If a host is down, the item stays `waiting_for_host` — never mark it done.
+
+```json
+{
+  "items": [
+    {"id": "q-board-SHOT_001", "action": "render_board", "shot_id": "SHOT_001", "status": "pending"},
+    {"id": "q-take-SHOT_001", "action": "render_take", "shot_id": "SHOT_001", "mode": "fl2va", "status": "pending"},
+    {"id": "q-assemble", "action": "assemble", "status": "pending"}
+  ]
+}
+```
+
+You may also POST `$CINESMITH_API`:
+
+- `/api/produce/<job>/queue` `{action, shot_id, mode}`
+- `/api/produce/<job>/queue/plan`
+- `/api/produce/<job>/queue/run`
+
+Comfy presets live in `workflows/`. Call them with the shot prompt. Do not invent a new graph.
+
+## Scout vs Shoot
+
+- **Scout** — no boards. Takes are `t2va`.
+- **Shoot** — 3090 boards first, then H3. `fl2va` when `end_still` exists, else `i2va`. `r2va` when identity refs exist. Mid-clip guides: `guides: [{frame_idx, image}]` on the shot.
 
 Use `h3-prompt-writing` when writing H3 prompts.
 
-You keep `STATUS.md` honest. Update it when a real file lands.
+Keep `STATUS.md` honest. Update it when a real file lands.
 
 ## Rules
 
 - Hermes decides. There is no hidden Python stage machine.
 - Never claim a clip exists unless the file is on disk.
-- If Spark is down, stop at the last real artifact and mark `blocked`.
+- If Spark is down, stop at the last real artifact and leave queue items waiting.
 - Character identity does not drift after `@character` writes it.
 - Prefer fewer strong shots.

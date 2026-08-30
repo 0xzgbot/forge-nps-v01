@@ -65,3 +65,38 @@ def test_assemble_cut_runs_ffmpeg(tmp_path, monkeypatch):
     assert result["ok"] is True
     assert (job / "cut.mp4").exists()
     assert "edit" in (job / "STATUS.md").read_text(encoding="utf-8")
+
+
+def test_assemble_cut_mutes_clip_with_an(tmp_path, monkeypatch):
+    job = tmp_path / "job"
+    job.mkdir()
+    a = job / "a.mp4"
+    b = job / "b.mp4"
+    a.write_bytes(b"clip-a")
+    b.write_bytes(b"clip-b")
+    produce_render.save_edit(
+        job,
+        [
+            {"shot_id": "SHOT_001", "clip": "a.mp4", "muted": True},
+            {"shot_id": "SHOT_002", "clip": "b.mp4", "muted": False},
+        ],
+    )
+    cmds = []
+
+    class Result:
+        returncode = 0
+        stdout = ""
+        stderr = ""
+
+    def fake_run(cmd, capture_output, text):
+        cmds.append(list(cmd))
+        Path(cmd[-1]).write_bytes(b"out")
+        return Result()
+
+    monkeypatch.setattr("core.assembly.timeline_assembler.shutil.which", lambda name: "/usr/bin/ffmpeg")
+    monkeypatch.setattr("core.assembly.timeline_assembler.subprocess.run", fake_run)
+    result = produce_render.assemble_cut(job)
+    assert result["ok"] is True
+    assert any("-an" in cmd for cmd in cmds)
+    final = cmds[-1]
+    assert "-ac" in final and "2" in final

@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import shutil
-import subprocess
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -17,6 +17,8 @@ from core.dispatch.workflows import (
     take_workflow_for_mode,
     workflow_file_for_id,
 )
+
+_JOB_LOCKS: Dict[str, asyncio.Lock] = {}
 
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp"}
 VIDEO_EXTS = {".mp4", ".webm", ".mov", ".m4v"}
@@ -57,6 +59,72 @@ def save_shots(job_dir: Path, shots: List[Dict[str, Any]]) -> None:
         json.dumps({"shots": shots}, indent=2),
         encoding="utf-8",
     )
+
+
+def _job_lock(job_dir: Path) -> asyncio.Lock:
+    key = str(Path(job_dir).resolve())
+    lock = _JOB_LOCKS.get(key)
+    if lock is None:
+        lock = asyncio.Lock()
+        _JOB_LOCKS[key] = lock
+    return lock
+
+
+def load_job_meta(job_dir: Path) -> Dict[str, Any]:
+    target = Path(job_dir) / "job.json"
+    if not target.exists():
+        return {}
+    try:
+        data = json.loads(target.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def save_job_meta(job_dir: Path, meta: Dict[str, Any]) -> None:
+    current = load_job_meta(job_dir)
+    current.update(meta)
+    (Path(job_dir) / "job.json").write_text(json.dumps(current, indent=2), encoding="utf-8")
+
+
+def produce_mode(job_dir: Path) -> str:
+    mode = str(load_job_meta(job_dir).get("produce_mode") or "shoot").strip().lower()
+    return "scout" if mode == "scout" else "shoot"
+
+
+def set_produce_mode(job_dir: Path, mode: str) -> str:
+    value = "scout" if str(mode or "").strip().lower() == "scout" else "shoot"
+    save_job_meta(job_dir, {"produce_mode": value})
+    return value
+
+
+def resolve_take_mode(job_dir: Path, shot: Optional[Dict[str, Any]] = None, requested: str = "") -> str:
+    """Scout is always t2va. Shoot prefers FL2VA when an end still exists."""
+    if produce_mode(job_dir) == "scout":
+        return "t2va"
+    aliases = {
+        "t2v": "t2va",
+        "t2va": "t2va",
+        "i2v": "i2va",
+        "i2va": "i2va",
+        "fl2v": "fl2va",
+        "fl2va": "fl2va",
+        "first_last": "fl2va",
+        "r2v": "r2va",
+        "r2va": "r2va",
+    }
+    req = str(requested or "").strip().lower()
+    if req in aliases:
+        return aliases[req]
+    stored = str((shot or {}).get("h3_mode") or "").strip().lower()
+    stored = aliases.get(stored, "")
+    if stored in {"t2va", "r2va"}:
+        return stored
+    if (shot or {}).get("end_still"):
+        return "fl2va"
+    if stored:
+        return stored
+    return "i2va"
 
 
 def get_shot(job_dir: Path, shot_id: str) -> Optional[Dict[str, Any]]:
@@ -166,13 +234,45 @@ def ensure_edit_from_clips(job_dir: Path) -> List[Dict[str, Any]]:
     for shot in shots:
         clip = str(shot.get("clip") or "").strip()
         if clip:
-            rows.append({"shot_id": shot.get("id"), "clip": clip})
+            rows.append({"shot_id": shot.get("id"), "clip": clip, "muted": bool(shot.get("muted"))})
     if not rows:
         for name in list_media(job_dir)["clips"]:
-            rows.append({"shot_id": Path(name).stem, "clip": name})
+            rows.append({"shot_id": Path(name).stem, "clip": name, "muted": False})
     if rows:
         save_edit(job_dir, rows)
     return rows
+
+
+def _shot_prompt(shot: Dict[str, Any]) -> str:
+    return str(
+        shot.get("visual")
+        or shot.get("h3_prompt")
+        or shot.get("prompt")
+        or shot.get("purpose")
+        or ""
+    ).strip()
+
+
+def _guide_specs(job_dir: Path, shot: Dict[str, Any]) -> List[Dict[str, Any]]:
+    specs: List[Dict[str, Any]] = []
+    raw = shot.get("guides") if isinstance(shot.get("guides"), list) else []
+    for row in raw:
+        if not isinstance(row, dict):
+            continue
+        image = str(row.get("image") or row.get("path") or row.get("image_path") or "").strip()
+        if not image:
+            continue
+        path = Path(image)
+        if not path.is_absolute():
+            path = (Path(job_dir) / image).resolve()
+        if not path.exists():
+            continue
+        try:
+            frame_idx = int(row.get("frame_idx") if row.get("frame_idx") is not None else row.get("frame") or 0)
+        except (TypeError, ValueError):
+            frame_idx = 0
+        specs.append({"frame_idx": max(0, frame_idx), "image_path": str(path)})
+    return specs
 
 
 async def render_board(
@@ -181,26 +281,39 @@ async def render_board(
     *,
     workflow_id: str = DEFAULT_BOARD_WORKFLOW_ID,
     wait: bool = False,
+    host: str = "",
 ) -> Dict[str, Any]:
     shot = get_shot(job_dir, shot_id) or upsert_shot(job_dir, shot_id)
-    prompt = str(
-        shot.get("visual")
-        or shot.get("h3_prompt")
-        or shot.get("prompt")
-        or shot.get("purpose")
-        or ""
-    ).strip()
+    prompt = _shot_prompt(shot)
     if not prompt:
         return {"status": "error", "error": "shot_prompt_missing"}
     wf = workflow_file_for_id(workflow_id or DEFAULT_BOARD_WORKFLOW_ID)
     if not wf:
         return {"status": "error", "error": f"workflow_missing:{workflow_id}"}
-    host = await CapabilityRouter().host_for("stills")
-    if not host:
-        return {"status": "error", "error": "stills_host_unavailable", "message": "Connect a 3090 or Spark for boards."}
+    router = CapabilityRouter()
+    chosen = str(host or "").strip()
+    if chosen:
+        probe = await router._probe(chosen)
+        if not probe.get("ok"):
+            return {
+                "status": "error",
+                "error": "stills_host_unavailable",
+                "waiting": True,
+                "host": chosen,
+                "message": "3090 is offline. Queue item stays waiting.",
+            }
+    else:
+        chosen = await router.host_for("stills")
+    if not chosen:
+        return {
+            "status": "error",
+            "error": "stills_host_unavailable",
+            "waiting": True,
+            "message": "Connect a 3090 or Spark for boards.",
+        }
     out_dir = job_dir / "boards"
     out_dir.mkdir(parents=True, exist_ok=True)
-    client = ComfyUIClient(host)
+    client = ComfyUIClient(chosen)
     submit = await client.submit_prompt_for_shot(
         shot_id=f"{shot_id}_board",
         prompt=prompt,
@@ -213,8 +326,8 @@ async def render_board(
     updates: Dict[str, Any] = {
         "status": "boarding" if submit.get("queued") else ("boarded" if submit.get("status") == "success" else "failed"),
         "board_prompt_id": submit.get("prompt_id"),
-        "board_host": host,
-        "board_workflow_id": workflow_id,
+        "board_host": chosen,
+        "board_workflow_id": workflow_id or DEFAULT_BOARD_WORKFLOW_ID,
         "board_error": submit.get("error") or "",
     }
     saved = [Path(p) for p in (submit.get("saved_files") or [])]
@@ -223,20 +336,44 @@ async def render_board(
         shutil.copy2(saved[0], dest)
         updates["still"] = _rel_or_name(job_dir, dest)
         updates["status"] = "boarded"
-    upsert_shot(job_dir, shot_id, **updates)
-    return {"status": submit.get("status") or "error", "shot": get_shot(job_dir, shot_id), **submit, "host": host}
+    async with _job_lock(job_dir):
+        upsert_shot(job_dir, shot_id, **updates)
+    return {"status": submit.get("status") or "error", "shot": get_shot(job_dir, shot_id), **submit, "host": chosen}
+
+
+async def render_boards(
+    job_dir: Path,
+    shot_ids: Optional[List[str]] = None,
+    *,
+    workflow_id: str = DEFAULT_BOARD_WORKFLOW_ID,
+    wait: bool = False,
+) -> List[Dict[str, Any]]:
+    """Paint boards in parallel across 3090 A/B."""
+    if shot_ids:
+        ids = [str(s).strip() for s in shot_ids if str(s).strip()]
+    else:
+        ids = [str(s.get("id") or "") for s in load_shots(job_dir) if s.get("id")]
+    hosts = await CapabilityRouter().stills_hosts_for_batch()
+    tasks = []
+    for idx, shot_id in enumerate(ids):
+        host = hosts[idx % len(hosts)] if hosts else ""
+        tasks.append(render_board(job_dir, shot_id, workflow_id=workflow_id, wait=wait, host=host))
+    if not tasks:
+        return []
+    return list(await asyncio.gather(*tasks))
 
 
 async def render_take(
     job_dir: Path,
     shot_id: str,
     *,
-    mode: str = "i2va",
+    mode: str = "",
     wait: bool = False,
     identity_pack: Optional[Dict[str, Any]] = None,
+    host: str = "",
 ) -> Dict[str, Any]:
     shot = get_shot(job_dir, shot_id) or upsert_shot(job_dir, shot_id)
-    mode_key = str(mode or shot.get("h3_mode") or "i2va").strip().lower()
+    mode_key = resolve_take_mode(job_dir, shot, requested=mode)
     workflow_id = take_workflow_for_mode(mode_key)
     wf = workflow_file_for_id(workflow_id)
     if not wf:
@@ -244,6 +381,7 @@ async def render_take(
     prompt = str(shot.get("h3_prompt") or shot.get("visual") or shot.get("purpose") or "").strip()
     if not prompt:
         return {"status": "error", "error": "shot_prompt_missing"}
+    guides = _guide_specs(job_dir, shot)
     duration = int(shot.get("duration_sec") or 5)
     still = shot.get("still") or ""
     still_path = (job_dir / still).resolve() if still else None
@@ -274,12 +412,25 @@ async def render_take(
     elif still_path:
         image_paths = [str(still_path)]
 
-    host = await CapabilityRouter().host_for_workflow(workflow_id, require_h3="h3" in workflow_id)
-    if not host:
-        return {"status": "error", "error": "spark_unavailable", "message": "H3 runs on Spark only."}
+    router = CapabilityRouter()
+    chosen = str(host or "").strip()
+    if chosen:
+        probe = await router._probe(chosen)
+        if not probe.get("ok"):
+            return {
+                "status": "error",
+                "error": "spark_unavailable",
+                "waiting": True,
+                "host": chosen,
+                "message": "Spark is offline. Queue item stays waiting.",
+            }
+    else:
+        chosen = await router.host_for_workflow(workflow_id, require_h3="h3" in workflow_id)
+    if not chosen:
+        return {"status": "error", "error": "spark_unavailable", "waiting": True, "message": "H3 runs on Spark only."}
     out_dir = job_dir / "clips"
     out_dir.mkdir(parents=True, exist_ok=True)
-    client = ComfyUIClient(host)
+    client = ComfyUIClient(chosen)
     submit = await client.submit_prompt_for_shot(
         shot_id=f"{shot_id}_take",
         prompt=prompt,
@@ -291,15 +442,17 @@ async def render_take(
         fps=24,
         width=1344,
         height=768,
+        guides=guides or None,
     )
     updates: Dict[str, Any] = {
         "status": "shooting" if submit.get("queued") else ("shot" if submit.get("status") == "success" else "failed"),
         "h3_mode": mode_key,
         "take_prompt_id": submit.get("prompt_id"),
-        "take_host": host,
+        "take_host": chosen,
         "take_workflow_id": workflow_id,
         "take_error": submit.get("error") or "",
         "identity_ref_count": len(refs),
+        "guide_count": len(guides),
     }
     saved = [Path(p) for p in (submit.get("saved_files") or []) if Path(p).suffix.lower() in VIDEO_EXTS]
     if not saved:
@@ -309,8 +462,9 @@ async def render_take(
         shutil.copy2(saved[0], dest)
         updates["clip"] = _rel_or_name(job_dir, dest)
         updates["status"] = "shot"
-    upsert_shot(job_dir, shot_id, **updates)
-    return {"status": submit.get("status") or "error", "shot": get_shot(job_dir, shot_id), **submit, "host": host}
+    async with _job_lock(job_dir):
+        upsert_shot(job_dir, shot_id, **updates)
+    return {"status": submit.get("status") or "error", "shot": get_shot(job_dir, shot_id), **submit, "host": chosen}
 
 
 def assemble_cut(job_dir: Path, *, rows: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
@@ -318,6 +472,7 @@ def assemble_cut(job_dir: Path, *, rows: Optional[List[Dict[str, Any]]] = None) 
     if rows is not None:
         save_edit(job_dir, edit_rows)
     clips: List[Path] = []
+    muted_paths: List[Path] = []
     for item in edit_rows:
         rel = str(item.get("clip") or "").strip()
         if not rel:
@@ -325,11 +480,13 @@ def assemble_cut(job_dir: Path, *, rows: Optional[List[Dict[str, Any]]] = None) 
         path = (job_dir / rel).resolve()
         if path.exists():
             clips.append(path)
+            if item.get("muted"):
+                muted_paths.append(path)
     if not clips:
         return {"status": "error", "error": "no_clips"}
     assembler = TimelineAssembler()
     out = job_dir / "cut.mp4"
-    result = assembler.export_cut(clips, out, keep_audio=True)
+    result = assembler.export_cut(clips, out, keep_audio=True, muted_paths=muted_paths)
     if result.get("ok"):
         (job_dir / "STATUS.md").write_text("edit — cut.mp4 assembled.\n", encoding="utf-8")
     return result

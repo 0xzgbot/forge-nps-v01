@@ -13,7 +13,115 @@ logger = logging.getLogger(__name__)
 MEDIA_OUTPUT_KEYS = ("images", "gifs", "videos", "animated", "files", "audio")
 VIDEO_SUFFIXES = {".mp4", ".webm", ".mov", ".m4v", ".gif", ".webp"}
 H3_PROMPT_TYPES = ("MiniMaxH3ImageToVideo", "MiniMaxH3ReferenceToVideo")
+H3_LATENT_TYPES = H3_PROMPT_TYPES + ("EmptyMiniMaxH3LatentAV",)
 H3_TEXT_TYPES = ("CLIPTextEncode", "GemmaAPITextEncode", "CLIPTextEncodeFlux", "T5TextEncode") + H3_PROMPT_TYPES
+
+
+def _next_node_id(nodes: dict) -> str:
+    numeric = [int(k) for k in nodes.keys() if str(k).isdigit()]
+    return str(max(numeric) + 1) if numeric else "100"
+
+
+def _guide_frame_key(object_info: dict | None) -> str:
+    info = (object_info or {}).get("MiniMaxH3AddGuide") or {}
+    required = (info.get("input") or {}).get("required") or {}
+    for key in ("frame_idx", "frame_index", "frame_offset", "index"):
+        if key in required:
+            return key
+    return "frame_idx"
+
+
+def apply_h3_guides(nodes: dict, guides: list, object_info: dict | None = None) -> dict:
+    """Insert MiniMaxH3AddGuide only when real mid-clip guide images exist.
+
+    Each guide is {frame_idx, image} where image is a Comfy input filename.
+    Does nothing when guides is empty — never leaves a dummy LoadImage.
+    """
+    if not isinstance(nodes, dict) or not guides:
+        return nodes
+    clean = []
+    for row in guides:
+        if not isinstance(row, dict):
+            continue
+        image = str(row.get("image") or row.get("name") or "").strip()
+        if not image:
+            continue
+        try:
+            frame_idx = int(row.get("frame_idx") if row.get("frame_idx") is not None else row.get("frame") or 0)
+        except (TypeError, ValueError):
+            frame_idx = 0
+        clean.append({"frame_idx": max(0, frame_idx), "image": image})
+    if not clean:
+        return nodes
+
+    source_id = None
+    vae_id = None
+    for node_id, node in nodes.items():
+        if not isinstance(node, dict):
+            continue
+        if node.get("class_type") in H3_LATENT_TYPES and source_id is None:
+            source_id = str(node_id)
+            inputs = node.get("inputs") if isinstance(node.get("inputs"), dict) else {}
+            vae_ref = inputs.get("vae")
+            if isinstance(vae_ref, list) and vae_ref:
+                vae_id = str(vae_ref[0])
+        if node.get("class_type") == "VAELoader" and vae_id is None:
+            vae_id = str(node_id)
+    if source_id is None:
+        return nodes
+    if vae_id is None:
+        for node_id, node in nodes.items():
+            if isinstance(node, dict) and node.get("class_type") == "VAELoader":
+                vae_id = str(node_id)
+                break
+
+    cond_ref = [source_id, 0]
+    latent_ref = [source_id, 1]
+    frame_key = _guide_frame_key(object_info)
+    last_guide_id = None
+    for guide in clean:
+        load_id = _next_node_id(nodes)
+        nodes[load_id] = {
+            "class_type": "LoadImage",
+            "inputs": {"image": guide["image"]},
+            "_meta": {"title": f"H3 guide {guide['frame_idx']}"},
+        }
+        guide_id = _next_node_id(nodes)
+        inputs = {
+            "conditioning": cond_ref,
+            "latent": latent_ref,
+            "image": [load_id, 0],
+            frame_key: guide["frame_idx"],
+        }
+        if vae_id:
+            inputs["vae"] = [vae_id, 0]
+        nodes[guide_id] = {
+            "class_type": "MiniMaxH3AddGuide",
+            "inputs": inputs,
+            "_meta": {"title": f"H3 AddGuide @{guide['frame_idx']}"},
+        }
+        cond_ref = [guide_id, 0]
+        latent_ref = [guide_id, 1]
+        last_guide_id = guide_id
+
+    if last_guide_id is None:
+        return nodes
+    for node in nodes.values():
+        if not isinstance(node, dict):
+            continue
+        inputs = node.get("inputs")
+        if not isinstance(inputs, dict):
+            continue
+        class_type = node.get("class_type", "")
+        if class_type == "BasicGuider":
+            ref = inputs.get("conditioning")
+            if isinstance(ref, list) and ref and str(ref[0]) == source_id:
+                inputs["conditioning"] = [last_guide_id, 0]
+        if class_type in ("SamplerCustomAdvanced", "SamplerCustom"):
+            ref = inputs.get("latent_image")
+            if isinstance(ref, list) and ref and str(ref[0]) == source_id:
+                inputs["latent_image"] = [last_guide_id, 1]
+    return nodes
 
 
 def align_h3_length(frames: int) -> int:
@@ -768,6 +876,7 @@ class ComfyUIClient:
         duration: int | None = None,
         fps: int | None = None,
         lora_profile: str | None = None,
+        guides: Optional[list] = None,
     ) -> dict:
         """Load a workflow, inject prompt/seed, submit, poll, and optionally download outputs."""
         import random
@@ -873,6 +982,25 @@ class ComfyUIClient:
         if uploaded_names and load_image_slots:
             for idx, slot in enumerate(load_image_slots):
                 slot["image"] = uploaded_names[idx] if idx < len(uploaded_names) else uploaded_names[0]
+
+        guide_uploads: list[dict] = []
+        for row in guides or []:
+            if not isinstance(row, dict):
+                continue
+            path = str(row.get("image_path") or row.get("image") or "").strip()
+            if not path or not os.path.exists(path):
+                continue
+            up = await self.upload_image(path)
+            if not up.get("ok"):
+                logger.warning("Guide upload failed for %s: %s", path, up.get("error"))
+                continue
+            try:
+                frame_idx = int(row.get("frame_idx") if row.get("frame_idx") is not None else row.get("frame") or 0)
+            except (TypeError, ValueError):
+                frame_idx = 0
+            guide_uploads.append({"frame_idx": max(0, frame_idx), "image": str(up.get("name") or "")})
+        if guide_uploads:
+            apply_h3_guides(nodes, guide_uploads, object_info)
 
         if target_width or target_height or target_fps or target_frames or target_duration:
             # Some WebUI/subgraph exports route dimensions through PrimitiveInt
