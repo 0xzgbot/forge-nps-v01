@@ -16,6 +16,10 @@ Write `edit.json` as an ordered list of `{shot_id, clip, muted}` naming files th
 
 `muted: true` strips that clip's audio in the cut. Leave it false to keep H3 stereo.
 
+Optional color pass: PUT `/api/produce/$JOB/options` `{ "color_pass": true }` before assemble.
+
+Range retake is a video-bot job; after the new middle lands, the original heads/tails stay.
+
 Then queue assemble (preferred):
 
 `{"action": "assemble", "status": "pending"}` in `queue.json`

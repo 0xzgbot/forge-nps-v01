@@ -275,6 +275,152 @@ def _guide_specs(job_dir: Path, shot: Dict[str, Any]) -> List[Dict[str, Any]]:
     return specs
 
 
+def _voice_path(job_dir: Path, shot: Optional[Dict[str, Any]] = None) -> str:
+    audio_exts = {".wav", ".mp3", ".flac", ".ogg", ".m4a"}
+    rel = str((shot or {}).get("voice_ref") or "").strip()
+    if rel:
+        path = Path(rel)
+        if not path.is_absolute():
+            path = (Path(job_dir) / rel).resolve()
+        if path.exists() and path.suffix.lower() in audio_exts:
+            return str(path)
+    identity = Path(job_dir) / "identity"
+    if identity.exists():
+        for path in sorted(identity.iterdir()):
+            if path.suffix.lower() in audio_exts and path.is_file():
+                return str(path.resolve())
+    return ""
+
+
+SHOT_PATCH_FIELDS = {
+    "visual",
+    "h3_prompt",
+    "purpose",
+    "duration_sec",
+    "camera",
+    "audio",
+    "h3_mode",
+    "still",
+    "end_still",
+    "voice_ref",
+    "guides",
+    "status",
+}
+
+
+def patch_shot(job_dir: Path, shot_id: str, fields: Dict[str, Any]) -> Dict[str, Any]:
+    updates = {k: v for k, v in fields.items() if k in SHOT_PATCH_FIELDS}
+    if "duration_sec" in updates:
+        try:
+            updates["duration_sec"] = max(2, min(15, int(updates["duration_sec"])))
+        except (TypeError, ValueError):
+            updates.pop("duration_sec", None)
+    return upsert_shot(job_dir, shot_id, **updates)
+
+
+def list_identity(job_dir: Path) -> List[str]:
+    names: List[str] = []
+    for folder in identity_search_dirs(job_dir):
+        if not folder.exists():
+            continue
+        for path in sorted(folder.iterdir()):
+            if path.is_file() and path.suffix.lower() in IMAGE_EXTS | {".wav", ".mp3", ".flac", ".ogg", ".m4a"}:
+                rel = _rel_or_name(job_dir, path)
+                if rel not in names:
+                    names.append(rel)
+    return names
+
+
+def save_upload(job_dir: Path, *, kind: str, filename: str, data: bytes) -> Dict[str, Any]:
+    kind = str(kind or "identity").strip().lower()
+    safe = Path(str(filename or "upload.bin").replace("..", "")).name
+    folders = {
+        "identity": job_dir / "identity",
+        "still": job_dir / "boards",
+        "end_still": job_dir / "boards",
+        "guide": job_dir / "boards",
+        "voice": job_dir / "identity",
+    }
+    dest_dir = folders.get(kind, job_dir / "identity")
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    dest = dest_dir / safe
+    dest.write_bytes(data)
+    rel = _rel_or_name(job_dir, dest)
+    return {"ok": True, "path": rel, "kind": kind}
+
+
+def maybe_stitch_range(job_dir: Path, shot_id: str) -> Dict[str, Any]:
+    shot = get_shot(job_dir, shot_id) or {}
+    if not shot.get("stitch_pending"):
+        return {"ok": False, "error": "not_pending"}
+    orig_rel = str(shot.get("orig_clip") or "").strip()
+    clip_rel = str(shot.get("clip") or "").strip()
+    orig = (job_dir / orig_rel).resolve() if orig_rel else None
+    middle = (job_dir / clip_rel).resolve() if clip_rel else None
+    if not orig or not orig.exists() or not middle or not middle.exists():
+        return {"ok": False, "error": "clips_missing"}
+    if orig == middle:
+        return {"ok": False, "error": "take_not_ready"}
+    try:
+        start = float(shot.get("range_start") or 0)
+        end = float(shot.get("range_end") or 0)
+    except (TypeError, ValueError):
+        return {"ok": False, "error": "bad_range"}
+    dest = job_dir / "clips" / f"{shot_id}_stitched.mp4"
+    result = TimelineAssembler().stitch_range(orig, middle, start, end, dest)
+    if result.get("ok"):
+        rel = _rel_or_name(job_dir, dest)
+        upsert_shot(job_dir, shot_id, clip=rel, stitch_pending=False, stitched=True)
+        result["clip"] = rel
+    return result
+
+
+async def range_retake(
+    job_dir: Path,
+    shot_id: str,
+    start_sec: float,
+    end_sec: float,
+    *,
+    wait: bool = False,
+) -> Dict[str, Any]:
+    shot = get_shot(job_dir, shot_id)
+    if not shot:
+        return {"status": "error", "error": "shot_missing"}
+    clip_rel = str(shot.get("clip") or "").strip()
+    clip = (job_dir / clip_rel).resolve() if clip_rel else None
+    if not clip or not clip.exists():
+        return {"status": "error", "error": "clip_required"}
+    start = max(0.0, float(start_sec))
+    end = float(end_sec)
+    if end <= start + 0.2:
+        return {"status": "error", "error": "range_too_short"}
+    assembler = TimelineAssembler()
+    orig = job_dir / "clips" / f"{shot_id}_orig{clip.suffix}"
+    if not orig.exists():
+        shutil.copy2(clip, orig)
+    in_path = job_dir / "boards" / f"{shot_id}_in.png"
+    out_path = job_dir / "boards" / f"{shot_id}_out.png"
+    first = assembler.extract_frame(clip, start, in_path)
+    last = assembler.extract_frame(clip, end, out_path)
+    if not first.get("ok") or not last.get("ok"):
+        return {"status": "error", "error": first.get("error") or last.get("error") or "extract_failed"}
+    duration = max(2, min(15, int(round(end - start))))
+    upsert_shot(
+        job_dir,
+        shot_id,
+        still=_rel_or_name(job_dir, in_path),
+        end_still=_rel_or_name(job_dir, out_path),
+        orig_clip=_rel_or_name(job_dir, orig),
+        range_start=start,
+        range_end=end,
+        stitch_pending=True,
+        duration_sec=duration,
+        status="retake",
+    )
+    result = await render_take(job_dir, shot_id, mode="fl2va", wait=wait)
+    return result
+
+
 async def render_board(
     job_dir: Path,
     shot_id: str,
@@ -412,6 +558,8 @@ async def render_take(
     elif still_path:
         image_paths = [str(still_path)]
 
+    voice_path = _voice_path(job_dir, shot)
+
     router = CapabilityRouter()
     chosen = str(host or "").strip()
     if chosen:
@@ -443,6 +591,7 @@ async def render_take(
         width=1344,
         height=768,
         guides=guides or None,
+        audio_path=voice_path,
     )
     updates: Dict[str, Any] = {
         "status": "shooting" if submit.get("queued") else ("shot" if submit.get("status") == "success" else "failed"),
@@ -453,6 +602,7 @@ async def render_take(
         "take_error": submit.get("error") or "",
         "identity_ref_count": len(refs),
         "guide_count": len(guides),
+        "voice_ref": _rel_or_name(job_dir, Path(voice_path)) if voice_path else "",
     }
     saved = [Path(p) for p in (submit.get("saved_files") or []) if Path(p).suffix.lower() in VIDEO_EXTS]
     if not saved:
@@ -464,10 +614,17 @@ async def render_take(
         updates["status"] = "shot"
     async with _job_lock(job_dir):
         upsert_shot(job_dir, shot_id, **updates)
+    if updates.get("clip"):
+        maybe_stitch_range(job_dir, shot_id)
     return {"status": submit.get("status") or "error", "shot": get_shot(job_dir, shot_id), **submit, "host": chosen}
 
 
-def assemble_cut(job_dir: Path, *, rows: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
+def assemble_cut(
+    job_dir: Path,
+    *,
+    rows: Optional[List[Dict[str, Any]]] = None,
+    color_pass: Optional[bool] = None,
+) -> Dict[str, Any]:
     edit_rows = rows if rows is not None else ensure_edit_from_clips(job_dir)
     if rows is not None:
         save_edit(job_dir, edit_rows)
@@ -487,6 +644,15 @@ def assemble_cut(job_dir: Path, *, rows: Optional[List[Dict[str, Any]]] = None) 
     assembler = TimelineAssembler()
     out = job_dir / "cut.mp4"
     result = assembler.export_cut(clips, out, keep_audio=True, muted_paths=muted_paths)
+    use_color = bool(load_job_meta(job_dir).get("color_pass")) if color_pass is None else bool(color_pass)
+    if result.get("ok") and use_color:
+        graded = job_dir / "cut.grade.mp4"
+        grade = assembler.color_pass(out, graded)
+        if grade.get("ok"):
+            shutil.copy2(graded, out)
+            result["color_pass"] = True
+        else:
+            result["color_pass_error"] = grade.get("error")
     if result.get("ok"):
         (job_dir / "STATUS.md").write_text("edit — cut.mp4 assembled.\n", encoding="utf-8")
     return result

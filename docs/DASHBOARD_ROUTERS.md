@@ -9,7 +9,7 @@
 - Avoids a risky big-bang move of 400+ tightly coupled helpers
 - Gives OpenAPI tags and clear ownership per domain
 - Keeps tests that import `dashboard.cinesmith_dashboard` symbols working
-- New product features live as self-contained routers (`product.py`)
+- New product features live as self-contained routers (`produce.py`, `product.py`)
 
 ## Registration order
 
@@ -22,6 +22,7 @@
 
 | Module | Tag | Responsibility |
 | --- | --- | --- |
+| `routes/produce.py` | produce | Home app: jobs, queue, boards, H3 takes, range retake, assemble, connect lights |
 | `routes/product.py` | product | Create hub, export, scorecard, wizard, suggestions, cost-meter (G5), failure-auto-consolidate (J4) |
 | `routes/system.py` | system | config, readiness, models, spark tests, restart |
 | `routes/campaigns.py` | campaigns | shots, campaigns, identity assets, comfy recover |
@@ -36,7 +37,8 @@
 
 ## Still on `app` directly
 
-- `GET /` (dashboard HTML)
+- `GET /` (Produce HTML)
+- `GET /studio` (legacy multi-tab dashboard)
 - WebSockets: `/ws/{session_id}`, `/ws/spark`, `/ws/hermes`
 - Static mounts (`/static`, `/media-assets`, …)
 

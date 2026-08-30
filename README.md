@@ -69,18 +69,19 @@ Cinesmith is built around one non-negotiable idea: AI production needs an agency
 | **Kimi Moonshot** | Director planner and critique model, used for structured shot planning and self-check before render spend. |
 | **Skill Pack** | A virtual agency library with 127 skill directories across protocols, Spark operations, style, lighting, diagnostics, continuity, product, character, and script work. |
 | **Memory** | Persistent provenance for events, prompts, model choices, audit results, failures, retries, and final outcomes. |
-| **Spark / ComfyUI** | Render execution layer for images and videos. |
+| **Spark / ComfyUI** | Render execution: 3090s for stills, Spark MiniMax H3 for motion. |
 | **Vision Audit** | Quality gate that drives remediation instead of silent failure. |
 
 ## Latest product surface
 
-Documented in [docs/CHANGELOG.md](docs/CHANGELOG.md) and [docs/POLISH_ROADMAP.md](docs/POLISH_ROADMAP.md):
+**Produce** at `/` is the product: prompt → Hermes story/script → 3090 storyboards → Spark MiniMax H3 takes → timeline → `cut.mp4`. Full guide: [docs/PRODUCE.md](docs/PRODUCE.md).
 
-- **Agency home** with getting-started coach, sample EP briefs, EP chat, production timeline, ⌘K palette
-- **Images** — live Hermes campaign (plan → compile → Spark → audit → memory)
-- **Stories** — multi-beat production + multi-episode series fields + package export
-- **Videos** — start frames, **First → Last** pairs, text-to-video
-- **Characters** — **Sheet from photo** continuity (works offline for identity lock)
+Also documented in [docs/CHANGELOG.md](docs/CHANGELOG.md):
+
+- **Scout / Shoot** — H3 text-to-video, or boards then I2VA/FL2VA/R2VA
+- **Queue** — GPU work waits if Spark/3090s are offline; Comfy presets take a prompt
+- **Timeline** — reorder, mute, range retake, color pass, stereo kept
+- **Legacy studio** (`/studio`) — Images / Videos / Stories / campaigns
 - **Desktop + Spark package** — `launch_cinesmith.sh --package`, preflight, slim ship notes
 - Storyboard rendering defaults to individual high-resolution production keyframes, not multi-panel page proofs. Page proofs remain an advanced diagnostic/export option.
 - Storyboard image providers are configurable in Settings: local Spark/ComfyUI (`Flux2.Dev`, `Flux2 Klein`, `Z-Image`, `Z-Image Turbo`) plus optional OpenAI image generation and Gemini/Nano Banana when API keys are set.
@@ -190,7 +191,7 @@ flowchart LR
     J --> E
 ```
 
-Script Studio video generation:
+Script Studio video generation (legacy `/studio`):
 
 ```mermaid
 flowchart LR
@@ -201,6 +202,18 @@ flowchart LR
     E --> F["Individual 1080p start frames"]
     F --> G["LTX image-to-video jobs"]
     G --> H["Start frames and clips in Script Studio"]
+```
+
+Produce (home `/`):
+
+```mermaid
+flowchart LR
+    A["User prompt"] --> B["Hermes producer"]
+    B --> C["Story / script / shots.json"]
+    C --> D["3090 boards"]
+    D --> E["Approve / retake"]
+    E --> F["Spark MiniMax H3"]
+    F --> G["Timeline + ffmpeg cut"]
 ```
 
 ## Canonical API Path
@@ -239,9 +252,9 @@ Open:
 http://localhost:7000
 ```
 
-First load opens the **Agency** home: brief Hermes live, run an image campaign, or produce a multi-beat **Story**. Press `?` for shortcuts. Readiness chips (Hermes / Spark / Director / Media) live in the sidebar.
+First load opens **Produce**: type a video idea, pick Scout or Shoot, connect Spark / 3090s / an LLM. Legacy Images / Stories / Videos live at `/studio`. Press Connect in the header. Isolation: repo `hermes_home/` only.
 
-Product vision: [docs/PRODUCT_VISION.md](docs/PRODUCT_VISION.md) · Roadmap: [docs/POLISH_ROADMAP.md](docs/POLISH_ROADMAP.md)
+Product vision: [docs/PRODUCT_VISION.md](docs/PRODUCT_VISION.md) · Produce: [docs/PRODUCE.md](docs/PRODUCE.md) · Roadmap: [docs/POLISH_ROADMAP.md](docs/POLISH_ROADMAP.md)
 
 ## Required Services
 

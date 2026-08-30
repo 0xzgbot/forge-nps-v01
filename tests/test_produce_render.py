@@ -20,6 +20,8 @@ def test_snapshot_includes_shots_and_boards(tmp_path: Path):
     out = service.snapshot(snap["job_id"])
     assert out["shots"][0]["id"] == "SHOT_001"
     assert "boards/SHOT_001.png" in out["stills"]
+    assert "queue_eta_sec" in out
+    assert out["produce_mode"] in {"scout", "shoot"}
 
 
 def test_identity_anchor_paths(tmp_path: Path):
@@ -65,6 +67,44 @@ def test_assemble_cut_runs_ffmpeg(tmp_path, monkeypatch):
     assert result["ok"] is True
     assert (job / "cut.mp4").exists()
     assert "edit" in (job / "STATUS.md").read_text(encoding="utf-8")
+
+
+def test_patch_shot_and_identity_upload(tmp_path: Path):
+    job = tmp_path / "job"
+    job.mkdir()
+    produce_render.save_shots(job, [{"id": "SHOT_001", "visual": "rain"}])
+    produce_render.patch_shot(job, "SHOT_001", {"h3_prompt": "wet city walk", "duration_sec": 8})
+    shot = produce_render.get_shot(job, "SHOT_001")
+    assert shot["h3_prompt"] == "wet city walk"
+    assert shot["duration_sec"] == 8
+    saved = produce_render.save_upload(job, kind="identity", filename="face.png", data=b"png")
+    assert saved["ok"]
+    assert "face.png" in produce_render.list_identity(job)[0]
+
+
+def test_color_pass_uses_eq_filter(tmp_path, monkeypatch):
+    job = tmp_path / "job"
+    job.mkdir()
+    clip = job / "a.mp4"
+    clip.write_bytes(b"clip")
+    produce_render.save_edit(job, [{"shot_id": "SHOT_001", "clip": "a.mp4"}])
+    cmds = []
+
+    class Result:
+        returncode = 0
+        stdout = ""
+        stderr = ""
+
+    def fake_run(cmd, capture_output, text):
+        cmds.append(list(cmd))
+        Path(cmd[-1]).write_bytes(b"out")
+        return Result()
+
+    monkeypatch.setattr("core.assembly.timeline_assembler.shutil.which", lambda name: "/usr/bin/ffmpeg")
+    monkeypatch.setattr("core.assembly.timeline_assembler.subprocess.run", fake_run)
+    result = produce_render.assemble_cut(job, color_pass=True)
+    assert result["ok"] is True
+    assert any("eq=" in " ".join(cmd) for cmd in cmds)
 
 
 def test_assemble_cut_mutes_clip_with_an(tmp_path, monkeypatch):

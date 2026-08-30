@@ -79,6 +79,7 @@ class ProduceService:
         stills = media["stills"]
         shots = produce_render.load_shots(path)
         edit = produce_render.load_edit(path)
+        queue = produce_queue.load_queue(path)
         stage = self._stage_from_status(files.get("STATUS.md", ""))
         if (path / "cut.mp4").exists():
             stage = "done" if stage != "blocked" else stage
@@ -102,8 +103,11 @@ class ProduceService:
             "stills": stills,
             "shots": shots,
             "edit": edit,
-            "queue": produce_queue.load_queue(path),
+            "queue": queue,
+            "queue_eta_sec": produce_queue.queue_eta_sec(queue),
             "produce_mode": produce_render.produce_mode(path),
+            "color_pass": bool(produce_render.load_job_meta(path).get("color_pass")),
+            "identity": produce_render.list_identity(path),
             "cut": "cut.mp4" if (path / "cut.mp4").exists() else "",
             "error": meta.get("error") or "",
             "llm": meta.get("llm") or {},

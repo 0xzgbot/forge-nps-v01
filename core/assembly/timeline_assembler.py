@@ -171,3 +171,91 @@ class TimelineAssembler:
             "error": (proc.stderr or proc.stdout or "ffmpeg_failed")[-800:],
             "output": "",
         }
+
+    def extract_frame(self, clip: Path, time_sec: float, dest: Path) -> Dict[str, Any]:
+        ffmpeg = shutil.which("ffmpeg")
+        if not ffmpeg:
+            return {"ok": False, "error": "ffmpeg_not_installed"}
+        dest = Path(dest)
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        cmd = [
+            ffmpeg, "-y", "-ss", f"{max(0.0, float(time_sec)):.3f}",
+            "-i", str(clip), "-frames:v", "1", "-q:v", "2", str(dest),
+        ]
+        proc = subprocess.run(cmd, capture_output=True, text=True)
+        if proc.returncode == 0 and dest.exists() and dest.stat().st_size > 0:
+            return {"ok": True, "output": str(dest)}
+        return {"ok": False, "error": (proc.stderr or "extract_failed")[-400:]}
+
+    def slice_clip(self, clip: Path, start_sec: float, end_sec: Optional[float], dest: Path) -> Dict[str, Any]:
+        ffmpeg = shutil.which("ffmpeg")
+        if not ffmpeg:
+            return {"ok": False, "error": "ffmpeg_not_installed"}
+        dest = Path(dest)
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        cmd = [ffmpeg, "-y", "-ss", f"{max(0.0, float(start_sec)):.3f}", "-i", str(clip)]
+        if end_sec is not None:
+            duration = max(0.04, float(end_sec) - float(start_sec))
+            cmd += ["-t", f"{duration:.3f}"]
+        cmd += ["-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", "-ac", "2", str(dest)]
+        proc = subprocess.run(cmd, capture_output=True, text=True)
+        if proc.returncode == 0 and dest.exists() and dest.stat().st_size > 0:
+            return {"ok": True, "output": str(dest)}
+        return {"ok": False, "error": (proc.stderr or "slice_failed")[-400:]}
+
+    def stitch_range(
+        self,
+        original: Path,
+        middle: Path,
+        start_sec: float,
+        end_sec: float,
+        dest: Path,
+    ) -> Dict[str, Any]:
+        """Keep original before start and after end; replace the middle with a new take."""
+        ffmpeg = shutil.which("ffmpeg")
+        if not ffmpeg:
+            return {"ok": False, "error": "ffmpeg_not_installed"}
+        work = Path(dest).parent / f".{Path(dest).stem}_range"
+        work.mkdir(parents=True, exist_ok=True)
+        parts: List[Path] = []
+        if float(start_sec) > 0.04:
+            prefix = work / "prefix.mp4"
+            pre = self.slice_clip(original, 0.0, float(start_sec), prefix)
+            if not pre.get("ok"):
+                return pre
+            parts.append(prefix)
+        if Path(middle).exists():
+            parts.append(Path(middle))
+        suffix = work / "suffix.mp4"
+        post = self.slice_clip(original, float(end_sec), None, suffix)
+        if post.get("ok"):
+            parts.append(suffix)
+        if not parts:
+            return {"ok": False, "error": "nothing_to_stitch"}
+        return self.export_cut(parts, Path(dest), keep_audio=True)
+
+    def color_pass(self, clip: Path, dest: Path) -> Dict[str, Any]:
+        """Mild continuity grade. Does not replace H3 stereo."""
+        ffmpeg = shutil.which("ffmpeg")
+        if not ffmpeg:
+            return {"ok": False, "error": "ffmpeg_not_installed"}
+        dest = Path(dest)
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        vf = "eq=contrast=1.04:saturation=1.06:gamma=0.98"
+        copy_cmd = [
+            ffmpeg, "-y", "-i", str(clip), "-vf", vf,
+            "-c:a", "copy", "-movflags", "+faststart", str(dest),
+        ]
+        proc = subprocess.run(copy_cmd, capture_output=True, text=True)
+        if proc.returncode == 0 and dest.exists() and dest.stat().st_size > 0:
+            return {"ok": True, "output": str(dest), "mode": "color"}
+        encode_cmd = [
+            ffmpeg, "-y", "-i", str(clip), "-vf", vf,
+            "-c:v", "libx264", "-pix_fmt", "yuv420p",
+            "-c:a", "aac", "-ac", "2",
+            "-movflags", "+faststart", str(dest),
+        ]
+        proc = subprocess.run(encode_cmd, capture_output=True, text=True)
+        if proc.returncode == 0 and dest.exists() and dest.stat().st_size > 0:
+            return {"ok": True, "output": str(dest), "mode": "color"}
+        return {"ok": False, "error": (proc.stderr or "color_pass_failed")[-400:]}

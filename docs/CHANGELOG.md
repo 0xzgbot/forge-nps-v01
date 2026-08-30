@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-08-30 - Produce: Spark H3, dual 3090s, queue, cut
+
+Home (`/`) is **Produce**. Hermes writes story/script/shots. 3090s paint boards. Spark MiniMax H3 shoots takes with native stereo. ffmpeg assembles `cut.mp4`. `/studio` is labeled legacy.
+
+- Capability router: Spark = H3/LTX video; `COMFYUI_STILLS_A` / `COMFYUI_STILLS_B` = stills. H3 never fails over to a 3090.
+- H3 workflows `20`–`23` (T2VA, I2VA, FL2VA, R2VA) plus official `h3-prompt-writing` skill.
+- Honest `queue.json` (GET snapshot never fires GPUs; offline hosts stay `waiting_for_host`).
+- Scout (T2VA) vs Shoot (boards, then FL2VA when an end still exists).
+- Parallel boards across 3090 A/B; shot inspector; first/last pair; identity + voice refs into R2VA.
+- Timeline mute, range retake + stitch, optional color pass; H3 stereo kept on unmuted clips.
+- Produce guide: [PRODUCE.md](PRODUCE.md)
+
 ## 2026-08-06 - Rebrand: Forge NPS → Cinesmith
 
 - **Full rename** across app, docs, skills, and marketing: `Forge NPS` → `Cinesmith` (formerly "Neural Production Studio").

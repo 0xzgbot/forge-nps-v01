@@ -18,7 +18,8 @@ Cinesmith is not a standalone single-process app. It expects these services:
 | Cinesmith dashboard | FastAPI UI and pipeline API | `http://localhost:7000` |
 | NVIDIA/Kimi-compatible API | Director planning and critique | `https://integrate.api.nvidia.com/v1/chat/completions` |
 | LM Studio | Hermes local chat/profile calls and optional local vision | `http://localhost:1234` |
-| ComfyUI/Spark | Image/video render execution | `http://localhost:8188` |
+| ComfyUI/Spark | H3 video | `http://localhost:8188` (`COMFYUI_PRIMARY`) |
+| ComfyUI 3090 A/B | Storyboard stills | `COMFYUI_STILLS_A` / `COMFYUI_STILLS_B` |
 | Media root | Rendered images/videos served by dashboard | Sibling `../CINESMITH_MEDIA` if present, else `<repo>/media`, or `CINESMITH_MEDIA_ROOT` |
 
 ## Repository Setup

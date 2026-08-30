@@ -124,6 +124,38 @@ def apply_h3_guides(nodes: dict, guides: list, object_info: dict | None = None) 
     return nodes
 
 
+def apply_h3_voice_ref(nodes: dict, audio_name: str, object_info: dict | None = None) -> dict:
+    """Attach a voice/audio reference to MiniMax H3 R2VA only when a real file was uploaded."""
+    name = str(audio_name or "").strip()
+    if not isinstance(nodes, dict) or not name:
+        return nodes
+    target_id = None
+    for node_id, node in nodes.items():
+        if isinstance(node, dict) and node.get("class_type") in H3_PROMPT_TYPES:
+            target_id = str(node_id)
+            if node.get("class_type") == "MiniMaxH3ReferenceToVideo":
+                break
+    if target_id is None:
+        return nodes
+    load_id = _next_node_id(nodes)
+    nodes[load_id] = {
+        "class_type": "LoadAudio",
+        "inputs": {"audio": name},
+        "_meta": {"title": "H3 voice ref"},
+    }
+    target = nodes[target_id]
+    inputs = target.setdefault("inputs", {})
+    info = (object_info or {}).get(str(target.get("class_type") or "")) or {}
+    optional = (info.get("input") or {}).get("optional") or {}
+    required = (info.get("input") or {}).get("required") or {}
+    keys = [k for k in ("ref_audio", "audio", "reference_audio", "voice", "audio_ref") if k in optional or k in required]
+    if not keys:
+        keys = ["ref_audio"]
+    for key in keys:
+        inputs[key] = [load_id, 0]
+    return nodes
+
+
 def align_h3_length(frames: int) -> int:
     """Snap frame count to MiniMax H3's 17k+5 grid (124 ≈ 5s at 24fps)."""
     n = max(5, int(frames or 0))
@@ -877,6 +909,7 @@ class ComfyUIClient:
         fps: int | None = None,
         lora_profile: str | None = None,
         guides: Optional[list] = None,
+        audio_path: Optional[str] = None,
     ) -> dict:
         """Load a workflow, inject prompt/seed, submit, poll, and optionally download outputs."""
         import random
@@ -1001,6 +1034,11 @@ class ComfyUIClient:
             guide_uploads.append({"frame_idx": max(0, frame_idx), "image": str(up.get("name") or "")})
         if guide_uploads:
             apply_h3_guides(nodes, guide_uploads, object_info)
+
+        if audio_path and os.path.exists(str(audio_path)):
+            up = await self.upload_image(str(audio_path))
+            if up.get("ok") and up.get("name"):
+                apply_h3_voice_ref(nodes, str(up.get("name")), object_info)
 
         if target_width or target_height or target_fps or target_frames or target_duration:
             # Some WebUI/subgraph exports route dimensions through PrimitiveInt

@@ -20,7 +20,7 @@ from core.hermes.produce import render as produce_render
 
 logger = logging.getLogger(__name__)
 
-ACTIONS = ("render_board", "render_take", "assemble")
+ACTIONS = ("render_board", "render_take", "assemble", "range_retake")
 LIVE = {"pending", "waiting_for_host", "running"}
 HOST_UNAVAILABLE = {"stills_host_unavailable", "spark_unavailable"}
 
@@ -87,15 +87,17 @@ def _normalize(row: Dict[str, Any], idx: int = 0) -> Dict[str, Any]:
         "updated_at": row.get("updated_at") or row.get("created_at") or _now(),
         "started_at": row.get("started_at"),
         "finished_at": row.get("finished_at"),
+        "start_sec": row.get("start_sec"),
+        "end_sec": row.get("end_sec"),
     }
     return item
 
 
 def _capability_for(action: str, workflow_id: str = "", mode: str = "") -> str:
+    if action in {"assemble"}:
+        return "local"
     if action == "render_board":
         return "stills"
-    if action == "assemble":
-        return "local"
     if workflow_id:
         return capability_for_workflow(workflow_id)
     if mode:
@@ -112,6 +114,8 @@ def enqueue(
     workflow_id: str = "",
     host: str = "",
     capability: str = "",
+    start_sec: Any = None,
+    end_sec: Any = None,
 ) -> Dict[str, Any]:
     action = str(action or "").strip()
     if action not in ACTIONS:
@@ -135,6 +139,8 @@ def enqueue(
             "status": "pending",
             "host": host,
             "capability": capability or _capability_for(action, workflow_id, mode),
+            "start_sec": start_sec,
+            "end_sec": end_sec,
             "created_at": _now(),
             "updated_at": _now(),
         }
@@ -320,6 +326,14 @@ async def execute_item(
             wait=False,
             host=host,
         )
+    elif action == "range_retake":
+        result = await produce_render.range_retake(
+            job_dir,
+            str(item.get("shot_id") or ""),
+            float(item.get("start_sec") or 0),
+            float(item.get("end_sec") or 0),
+            wait=False,
+        )
     else:
         mark_failed(job_dir, item_id, error=f"unknown_action:{action}")
         return {"status": "error", "error": f"unknown_action:{action}"}
@@ -387,3 +401,20 @@ async def drain_pending(
             results.append({"status": "failed", "error": str(exc), "item": load_item(job_dir, str(item.get("id") or ""))})
         remaining -= 1
     return results
+
+
+def queue_eta_sec(items: Optional[List[Dict[str, Any]]] = None) -> int:
+    """Rough remaining work in seconds. Does not probe GPUs."""
+    eta = 0
+    for row in items or []:
+        status = str(row.get("status") or "")
+        if status not in LIVE:
+            continue
+        action = str(row.get("action") or "")
+        if action == "render_board":
+            eta += 25
+        elif action in {"render_take", "range_retake"}:
+            eta += 90
+        else:
+            eta += 8
+    return eta

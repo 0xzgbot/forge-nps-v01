@@ -22,9 +22,28 @@ Skills marked with **(twin: `skill_*`)** have a duplicate `skill_`-prefixed dire
 
 ### Newly indexed in this refresh
 
-This update adds the 28 root skills that were present under [hermes_home/skills/](hermes_home/skills/) but missing from the document:
+Produce / H3 (home app):
+
+`cinesmith-produce` · `cinesmith-video` · `cinesmith-storyboard` · `cinesmith-editor` · `cinesmith-character` · `h3-prompt-writing`
+
+This update also adds the 28 root skills that were present under [hermes_home/skills/](hermes_home/skills/) but missing from the document:
 
 `blue_hour_silhouette_lighting` · `chroma_key_green_screen_vfx` · `color_grading_film_emulation` · `documentary_interview_format` · `dolly_zoom_vertigo_effect` · `film_noir_classic_specialist` · `flux2dev_architectural_environment` · `flux2dev_cinematic_still_mastery` · `flux2dev_fashion_beauty_editorial` · `flux2dev_macro_texture_surface` · `flux2dev_photorealistic_portraiture` · `flux2dev_product_hero_photography` · `flux2dev_prompt_engineering_master` · `hero_journey_narrative_structure` · `impressionism_monet_specialist` · `ltx23_audio_visual_sync` · `ltx23_camera_movement_language` · `ltx23_prompt_engineering_master` · `ltx23_subject_motion_performance` · `ltx23_technical_configuration` · `motion_graphics_kinetic_type` · `music_scoring_cinematic` · `performance_direction_micro_expression` · `steadicam_handheld_camera` · `stop_motion_claymation_aesthetic` · `time_lapse_hyper_lapse` · `travel_tourism_wanderlust` · `volumetric_god_rays_lighting`
+
+---
+
+## 🎬 Produce (Hermes crew + MiniMax H3)
+
+Skills the Produce home app expects under [hermes_home/skills/](hermes_home/skills/):
+
+| Skill | Purpose |
+|---|---|
+| **cinesmith-produce** | @producer: job files, `queue.json`, Scout vs Shoot, honest STATUS. |
+| **cinesmith-storyboard** | `shots.json` + 3090 `render_board` queue items. |
+| **cinesmith-video** | H3 `render_take` / range retake; never invent filenames. |
+| **cinesmith-editor** | `edit.json`, mute, assemble, color pass; keep H3 stereo. |
+| **cinesmith-character** | `characters.md` + identity refs into R2VA. |
+| **h3-prompt-writing** | Official MiniMax H3 prompt shapes (T2VA / I2VA / FL2VA / R2VA). |
 
 ---
 

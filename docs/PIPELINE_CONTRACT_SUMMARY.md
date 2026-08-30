@@ -1,6 +1,17 @@
 # Pipeline Contract Summary
 
-## Canonical Runtime Flow
+## Produce Runtime Flow (home `/`)
+
+Produce is the default product. See [PRODUCE.md](PRODUCE.md).
+
+1. `POST /api/produce/start` with a prompt (Scout or Shoot).
+2. Hermes writes `story.md` / `script.md` / `shots.json` in `data/produce/<id>/`.
+3. GPU work is appended to `queue.json` (or POSTed). GET snapshot never submits Comfy jobs.
+4. 3090s paint boards (`render_board`); Spark MiniMax H3 shoots takes (`render_take` / `range_retake`).
+5. `edit.json` + ffmpeg assemble `cut.mp4`. Muted clips drop audio; unmuted H3 stereo is kept.
+
+## Canonical Runtime Flow (legacy campaign)
+
 1. `POST /api/hermes/run-campaign`
 2. Hermes campaign intake returns structured context.
 3. Kimi returns strict structured shot plan.
@@ -12,7 +23,7 @@
 
 ## Script Studio Runtime Flow
 
-Script Studio is also canonical. It is job-based and persists progress into saved script projects.
+Script Studio at `/studio` is the legacy campaign path. It is job-based and persists progress into saved script projects.
 
 1. `POST /api/script/pipeline/start`
 2. Script package is created or loaded.

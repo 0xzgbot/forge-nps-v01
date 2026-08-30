@@ -148,6 +148,42 @@ def test_apply_h3_guides_injects_mid_clip():
     )
 
 
+def test_voice_ref_skipped_without_audio():
+    from core.dispatch.comfy_client import apply_h3_voice_ref
+
+    nodes = {
+        "6": {"class_type": "MiniMaxH3ReferenceToVideo", "inputs": {"prompt": "x"}},
+        "20": {"class_type": "LoadImage", "inputs": {"image": "ref.png"}},
+    }
+    apply_h3_voice_ref(nodes, "")
+    assert not any(n.get("class_type") == "LoadAudio" for n in nodes.values())
+    apply_h3_voice_ref(nodes, "voice.wav")
+    assert any(n.get("class_type") == "LoadAudio" for n in nodes.values())
+    assert nodes["6"]["inputs"]["ref_audio"][0] != "6"
+
+
+def test_queue_eta_counts_pending_only():
+    from core.hermes.produce import queue as produce_queue
+
+    items = [
+        {"action": "render_board", "status": "pending"},
+        {"action": "render_take", "status": "done"},
+        {"action": "range_retake", "status": "waiting_for_host"},
+    ]
+    assert produce_queue.queue_eta_sec(items) == 25 + 90
+
+
+@pytest.mark.asyncio
+async def test_range_retake_rejects_short_range(tmp_path: Path):
+    job = tmp_path / "job"
+    job.mkdir()
+    clip = job / "a.mp4"
+    clip.write_bytes(b"clip")
+    produce_render.save_shots(job, [{"id": "SHOT_001", "clip": "a.mp4", "visual": "rain"}])
+    result = await produce_render.range_retake(job, "SHOT_001", 1.0, 1.05)
+    assert result["error"] == "range_too_short"
+
+
 def test_stills_hosts_configured_does_not_include_spark():
     router = CapabilityRouter(
         {

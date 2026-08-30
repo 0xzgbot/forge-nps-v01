@@ -4,13 +4,14 @@
 
 Cinesmith is a **Hermes-led virtual production agency**, not a script runner.
 
-The user talks to an agency brain. Hermes **plans, routes skills, compiles prompts, dispatches Spark, audits, remediates, and writes memory** in real time. Fixed pipelines exist only as **internal tools** Hermes (or advanced users) can invoke—not as the primary mental model.
+The user talks to an agency brain. On Produce, Hermes writes the film and calls 3090s + Spark MiniMax H3. On legacy studio, Hermes **plans, routes skills, compiles prompts, dispatches Spark, audits, remediates, and writes memory** in real time. Fixed pipelines exist only as **internal tools** Hermes (or advanced users) can invoke—not as the primary mental model.
 
 ## Product surfaces (user language)
 
 | UI name | What Hermes does | Not called |
 | --- | --- | --- |
-| **Create** | Agency home: start work, see readiness, memory tips | “pipeline picker” |
+| **Produce** (`/`) | Video from a prompt: story, 3090 boards, Spark H3 takes, cut | “pipeline picker” |
+| **Legacy studio** (`/studio`) | Images / Stories / Videos / Characters campaigns | the default app |
 | **Images** | Live campaign: brief → Director plan → compile → Spark → audit | batch script |
 | **Stories** | Multi-beat narrative production (brief → frames → clips) | Script Studio |
 | **Videos** | Motion from selected stills / story frames | render recipe only |
@@ -34,7 +35,7 @@ The user talks to an agency brain. Hermes **plans, routes skills, compiles promp
 
 | Surface | Bar |
 | --- | --- |
-| Agency home | EP console: brief, Hermes chat, production timeline, command palette |
+| Agency home | Produce: prompt, Scout/Shoot, shot inspector, queue, timeline, export cut |
 | Power user | ⌘K everywhere, keyboard workspace jumps, guided tooltips |
 | Production | Live stage track (plan → compile → render → audit → memory) |
 | Handoff | Story package ZIP + continuity score + audio honesty |

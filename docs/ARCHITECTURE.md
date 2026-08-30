@@ -14,7 +14,20 @@ Primary app:
 - Port: `7000`
 - UI: `http://127.0.0.1:7000`
 
-Cinesmith is a multi-service app. The dashboard coordinates external Kimi/NVIDIA, LM Studio, and ComfyUI/Spark services.
+Cinesmith is a multi-service app. The dashboard coordinates an LLM (local or frontier), dual-3090 Comfy for stills, and Spark MiniMax H3 for video.
+
+## Produce (primary surface)
+
+`GET /` serves Produce. Job files live under `data/produce/<id>/`. Hermes (`@producer` and crew bots) writes story/script/shots; a worker drains `queue.json` onto the right Comfy host. See [PRODUCE.md](PRODUCE.md).
+
+| File | Responsibility |
+|------|----------------|
+| [core/dispatch/capability_router.py](../core/dispatch/capability_router.py) | Spark = video/H3; 3090 A/B = stills. |
+| [core/hermes/produce/service.py](../core/hermes/produce/service.py) | Starts Hermes on a job directory. Not a stage machine. |
+| [core/hermes/produce/queue.py](../core/hermes/produce/queue.py) | Honest GPU queue. GET snapshot never drains. |
+| [core/hermes/produce/render.py](../core/hermes/produce/render.py) | `render_board`, `render_take`, range retake, assemble. |
+| [core/assembly/timeline_assembler.py](../core/assembly/timeline_assembler.py) | ffmpeg concat, mute, stitch, color pass. |
+| [dashboard/routes/produce.py](../dashboard/routes/produce.py) | Produce HTTP API. |
 
 ## Service Roles
 
@@ -79,9 +92,12 @@ Storyboard provider options:
 
 ## Dashboard Workspaces
 
+Produce (`/`) is the default app. `/studio` is the previous multi-tab campaign UI (Images, Videos, Stories, Characters, Memory, Settings).
+
 | Workspace | Runtime Role |
 |-----------|--------------|
-| Images | Prompt intake, generation controls, campaign selection, log and media review. |
+| Produce | Prompt, Hermes crew, 3090 boards, H3 takes, queue, timeline, cut. |
+| Images (legacy studio) | Prompt intake, generation controls, campaign selection, log and media review. |
 | Ideas | Hermes/shot-store kanban board grouped by intake, planning, prompt compile, render, audit, revise, and approved stages. |
 | Characters | Identity asset management, character image upload, DNA editing, character render prompts, and character render history. |
 | Script | One-click brief-to-video pipeline, saved script projects, package generation, coverage, storyboard start frames, and individual video clips. |
@@ -91,6 +107,19 @@ Storyboard provider options:
 | Settings | Provider, endpoint, ComfyUI/Spark, LM Studio, Kimi/NIM, and profile configuration. |
 
 ## Canonical Endpoints
+
+Produce (home):
+
+- `POST /api/produce/start`
+- `GET /api/produce/{job_id}`
+- `POST /api/produce/{job_id}/render-board`
+- `POST /api/produce/{job_id}/render-take`
+- `POST /api/produce/{job_id}/range-retake`
+- `POST /api/produce/{job_id}/queue` / `queue/plan` / `queue/run`
+- `POST /api/produce/{job_id}/assemble`
+- `GET /api/connect/status`
+
+Campaign / studio (legacy path):
 
 - `POST /api/hermes/run-campaign`
 - `POST /api/hermes/cancel`

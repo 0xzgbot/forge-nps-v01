@@ -12,6 +12,6 @@ metadata:
 
 # Cinesmith Character
 
-Write `characters.md` with locked visual DNA.
+Write `characters.md` with locked visual DNA. Put face/location stills (and optional voice wav) in `$CINESMITH_PRODUCE_DIR/identity/`. Those files are what R2VA actually uploads — not prompt poetry alone.
 
 `$CINESMITH_PRODUCE_DIR` is the job directory. Write real files. Update `STATUS.md` when your artifact lands. Do not fake a step.

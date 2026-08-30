@@ -12,7 +12,8 @@ This guide is the product-facing entry for that layout. Deeper agent/ops detail 
 | --- | --- | --- |
 | **Desktop** (macOS or Windows/Linux) | Yes | Runs the Cinesmith dashboard (FastAPI + static UI). |
 | **Python 3.11+** | Yes | `python3 --version`. Create a venv and `pip install -r requirements.txt`. |
-| **Spark / ComfyUI on LAN** | Yes for images & video | Default `COMFYUI_PRIMARY=http://localhost:8188` or your Spark host IP. Must answer `/system_stats`. |
+| **Spark / ComfyUI on LAN** | Yes for images & video | `COMFYUI_PRIMARY` = Spark (H3). Optional `COMFYUI_STILLS_A` / `COMFYUI_STILLS_B` = 3090s. |
+| **Second Comfy (3090s)** | Recommended for Shoot | Boards stay off Spark. |
 | **Director API key** (Kimi / NVIDIA / Nous / etc.) | Optional* | Cloud planning & critique. Or use local Director mode. |
 | **LM Studio** (local OpenAI-compatible API) | Optional | Hermes chat / local Director. Default `http://localhost:1234`. |
 
@@ -20,9 +21,9 @@ This guide is the product-facing entry for that layout. Deeper agent/ops detail 
 
 Core workflows expected under `workflows/`:
 
-- Flux2 text-to-image (`01_flux2_text_to_image.json`)
-- LTX image-to-video (`04_ltx2.3_image_to_video.json` or numbered LTX I2V variants)
-- LTX first/last frame (`05_ltx2.3_first_last_frame_to_video.json` or equivalent)
+- Flux2 text-to-image (`01_flux2_text_to_image.json`) for 3090 boards
+- MiniMax H3 T2VA / I2VA / FL2VA / R2VA (`20_`–`23_minimax_h3_*.json`)
+- LTX 2.3 image-to-video as a draft fallback (`04_ltx2.3_image_to_video` aliases)
 
 ---
 
@@ -48,7 +49,7 @@ The launcher:
 2. Forces `HERMES_HOME` to repo `hermes_home/` (unless `CINESMITH_ALLOW_GLOBAL_HERMES=1`)
 3. Sets media root to sibling `CINESMITH_MEDIA` or `./media`
 4. Re-asserts isolation after sourcing `.env`
-5. Prints the dashboard URL (default `http://127.0.0.1:7000`)
+5. Prints the dashboard URL (default `http://127.0.0.1:7000`) — Produce home. Legacy studio is `/studio`.
 
 First-time setup:
 

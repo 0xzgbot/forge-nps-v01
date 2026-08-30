@@ -83,7 +83,7 @@ Comfy presets live in `workflows/`. Call them with the shot prompt. Do not inven
 
 Use `h3-prompt-writing` when writing H3 prompts.
 
-Keep `STATUS.md` honest. Update it when a real file lands.
+- Timeline mute, range retake, optional color pass; keep H3 stereo on unmuted clips.
 
 ## Rules
 

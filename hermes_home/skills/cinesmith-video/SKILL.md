@@ -24,6 +24,8 @@ Modes: `t2va` (scout, no still), `i2va` (board → take), `fl2va` (first + last)
 
 Shoot grammar: `fl2va` when the shot has `end_still`, else `i2va`. Scout is always `t2va`.
 
-Mid-clip guides go on the shot as `guides: [{ "frame_idx": 48, "image": "boards/mid.png" }]`. The worker injects `MiniMaxH3AddGuide` only when those files exist.
+- Range retake: in/out seconds on a clip → first/last frames → `fl2va` → stitch the kept heads/tails.
+- Voice: drop a wav under `identity/` or `voice_ref` on the shot; R2VA gets `LoadAudio` only when that file exists.
+- Mid-clip guides: `guides: [{ "frame_idx": 48, "image": "boards/mid.png" }]` only when the file exists.
 
 Clips land in `$CINESMITH_PRODUCE_DIR/clips/`. If Spark is down, leave the queue item pending. Never invent a filename.

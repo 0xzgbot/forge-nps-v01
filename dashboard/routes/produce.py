@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter
+from fastapi import APIRouter, File, Form, UploadFile
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
@@ -46,6 +46,35 @@ class ProduceQueueItemRequest(BaseModel):
     mode: str = ""
     workflow_id: str = ""
     host: str = ""
+    start_sec: float = 0
+    end_sec: float = 0
+
+
+class ProduceRangeRequest(BaseModel):
+    shot_id: str
+    start_sec: float
+    end_sec: float
+    wait: bool = False
+
+
+class ProduceShotPatch(BaseModel):
+    visual: Optional[str] = None
+    h3_prompt: Optional[str] = None
+    purpose: Optional[str] = None
+    duration_sec: Optional[int] = None
+    camera: Optional[str] = None
+    audio: Optional[str] = None
+    h3_mode: Optional[str] = None
+    still: Optional[str] = None
+    end_still: Optional[str] = None
+    voice_ref: Optional[str] = None
+    guides: Optional[List[Dict[str, Any]]] = None
+    status: Optional[str] = None
+
+
+class ProduceOptionsRequest(BaseModel):
+    produce_mode: str = ""
+    color_pass: Optional[bool] = None
 
 
 class ProduceQueueRunRequest(BaseModel):
@@ -209,6 +238,8 @@ async def produce_queue_add(job_id: str, req: ProduceQueueItemRequest):
             mode=req.mode,
             workflow_id=req.workflow_id,
             host=req.host,
+            start_sec=req.start_sec,
+            end_sec=req.end_sec,
         )
     except ValueError as exc:
         raise CinesmithAPIError(str(exc), status_code=400) from exc
@@ -227,6 +258,60 @@ async def produce_queue_run(job_id: str, req: Optional[ProduceQueueRunRequest] =
     path = _job_or_404(job_id)
     results = await produce_queue.drain_pending(path, max_items=(req.max_items if req else 8))
     return {"status": "ok", "results": results, **_service.snapshot(job_id)}
+
+
+@router.put("/api/produce/{job_id}/shots/{shot_id}")
+async def produce_patch_shot(job_id: str, shot_id: str, req: ProduceShotPatch):
+    path = _job_or_404(job_id)
+    fields = {k: v for k, v in req.model_dump().items() if v is not None}
+    produce_render.patch_shot(path, shot_id, fields)
+    return {"status": "ok", **_service.snapshot(job_id)}
+
+
+@router.post("/api/produce/{job_id}/range-retake")
+async def produce_range_retake(job_id: str, req: ProduceRangeRequest):
+    path = _job_or_404(job_id)
+    result = await produce_render.range_retake(
+        path, req.shot_id, req.start_sec, req.end_sec, wait=req.wait
+    )
+    if result.get("status") == "error":
+        raise CinesmithAPIError(result.get("error") or "range_retake_failed", status_code=400)
+    return {"status": "ok", **result, **_service.snapshot(job_id)}
+
+
+@router.put("/api/produce/{job_id}/options")
+async def produce_options(job_id: str, req: ProduceOptionsRequest):
+    path = _job_or_404(job_id)
+    meta: Dict[str, Any] = {}
+    if req.produce_mode:
+        produce_render.set_produce_mode(path, req.produce_mode)
+    if req.color_pass is not None:
+        meta["color_pass"] = bool(req.color_pass)
+    if meta:
+        produce_render.save_job_meta(path, meta)
+    return {"status": "ok", **_service.snapshot(job_id)}
+
+
+@router.post("/api/produce/{job_id}/upload")
+async def produce_upload(
+    job_id: str,
+    file: UploadFile = File(...),
+    kind: str = Form("identity"),
+    shot_id: str = Form(""),
+):
+    path = _job_or_404(job_id)
+    data = await file.read()
+    saved = produce_render.save_upload(path, kind=kind, filename=file.filename or "upload.bin", data=data)
+    if shot_id and saved.get("path"):
+        field = {"still": "still", "end_still": "end_still", "voice": "voice_ref"}.get(kind)
+        if field:
+            produce_render.patch_shot(path, shot_id, {field: saved["path"]})
+        elif kind == "guide":
+            shot = produce_render.get_shot(path, shot_id) or {}
+            guides = list(shot.get("guides") or [])
+            guides.append({"frame_idx": 48, "image": saved["path"]})
+            produce_render.patch_shot(path, shot_id, {"guides": guides})
+    return {"status": "ok", **saved, **_service.snapshot(job_id)}
 
 
 @router.get("/api/produce/{job_id}/file/{name:path}")
