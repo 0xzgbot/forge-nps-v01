@@ -27,14 +27,21 @@ Top right: **Connect**. Four fields, four lights in the header.
 | 3090B | 3090 B (stills) | Second board GPU, optional |
 | LLM | Language model | Any OpenAI-compatible endpoint |
 
-Green means `/system_stats` (or the LLM probe) answered. Grey means configured but down. H3 is never sent to a 3090. Boards do not require Spark.
+Green means `/system_stats` answered. Grey means configured but down. Video graphs never go to a 3090. Boards do not require Spark.
 
-## 3. Scout or Shoot, then Produce
+## 3. Pick models, Scout or Shoot, then Produce
+
+Home has two menus:
+
+- **Boards · 3090s** — Flux 2 (default), Flux Turbo, Klein 9B, Z-Image, ERNIE, or any stills graph you drop in `workflows/`.
+- **Takes · Spark** — MiniMax H3 (default, stereo), LTX 2.3, Wan 2.2, or any video graph you drop in `workflows/`.
+
+Wan 2.2 is I2V only. Scout on Wan will board first.
 
 Type a short film. Pick a mode. Press **Produce**.
 
-- **Shoot** — 3090 boards, you approve, then H3. First+last (`fl2va`) when a shot has an end still.
-- **Scout** — MiniMax H3 text-to-video. No stills. Fast tone check.
+- **Shoot** — 3090 boards, you approve, then Spark. First+last (`fl2va`) when a shot has an end still.
+- **Scout** — text-to-video when the family has T2V (H3 / LTX). No stills.
 
 Hermes writes `story.md`, `script.md`, and `shots.json` into `data/produce/<job>/`. GPU work goes in `queue.json`. If Spark or a 3090 is off, items stay **waiting_for_host**. Press **Run queue** when the boxes are up.
 

@@ -13,7 +13,16 @@
 | 3090 B | `COMFYUI_STILLS_B` | Parallel boards |
 | LLM | `LLM_BASE_URL` / Settings | Any OpenAI-compatible model |
 
-H3 is not sent to a 3090. If both 3090s are down, Flux boards may use Spark. H3 never fails over to a 3090.
+H3 is not sent to a 3090. If both 3090s are down, Flux boards may use Spark. Video graphs never fail over to a 3090.
+
+Produce model menus (also `GET /api/produce/models`):
+
+| Lane | Default | Also in the repo |
+| --- | --- | --- |
+| Boards · 3090s | Flux 2 | Flux Turbo, Klein 9B, Z-Image, ERNIE, character sheet |
+| Takes · Spark | MiniMax H3 | LTX 2.3, LTX NVFP4, Wan 2.2 |
+
+Drop any open-weight Comfy API graph in `workflows/` and it appears as a custom option. Video stays on Spark. Stills stay on the 3090s.
 
 ## Scout vs Shoot
 
@@ -31,6 +40,7 @@ H3 is not sent to a 3090. If both 3090s are down, Flux boards may use Spark. H3 
 | `boards/` | 3090 stills |
 | `clips/` | H3 takes |
 | `identity/` | Face / location / voice refs |
+| `takes/` | Previous takes (bin) |
 | `queue.json` | GPU work Hermes (or the UI) appended |
 | `edit.json` | Timeline `{shot_id, clip, muted}` |
 | `cut.mp4` | Assembled film |
@@ -44,25 +54,29 @@ If Spark or a 3090 is down, items stay `waiting_for_host`. **Run queue** when th
 
 ## UI
 
-- Shot strip: board, approve, take, retake. Click a shot for the inspector (first/last frames, H3 prompt, duration, mode, audio playback).
-- Identity strip: face/location stills and a voice file for R2VA.
-- Timeline: reorder, mute (keeps H3 stereo on unmuted clips), range retake (in/out seconds → extract frames → FL2VA → stitch the rest of the original).
-- Color pass: mild continuity grade on `cut.mp4` after concat.
-- Queue panel with a rough ETA.
+- Shot strip: board, approve, take, retake. Inspector: first/last, shot prompt, camera, duration, mode, seed, take bin.
+- Identity: job drop zone plus a reusable elements library (character / location / voice).
+- Timeline: reorder, mute, **Trim** (local ffmpeg in/out), range **Retake** (Spark).
+- **Handoff zip** next to Assemble cut.
+- Queue panel with a rough ETA. Color pass optional.
 
 ## API (selected)
 
-- `POST /api/produce/start` `{prompt, produce_mode}`
+- `POST /api/produce/start` `{prompt, produce_mode, stills_model, video_model}`
+- `GET /api/produce/models`
+- `GET` / `POST /api/produce/elements`
 - `GET /api/produce/{job}`
 - `POST /api/produce/{job}/render-board` / `render-take` / `range-retake`
 - `POST /api/produce/{job}/queue` / `queue/plan` / `queue/run`
 - `PUT /api/produce/{job}/shots/{shot_id}`
-- `POST /api/produce/{job}/upload` (multipart `kind`: identity, still, end_still, voice, guide)
-- `PUT /api/produce/{job}/options` `{color_pass}`
+- `POST /api/produce/{job}/upload`
+- `PUT /api/produce/{job}/options` `{color_pass, stills_model, video_model}`
 - `POST /api/produce/{job}/assemble`
+- `GET /api/produce/{job}/export`
+- `POST /api/produce/{job}/takes/restore`
 
 ## Workflows
 
-H3 graphs: `20` T2VA, `21` I2VA, `22` FL2VA, `23` R2VA under `workflows/`. LTX 2.3 remains a draft lane. Drop your own Comfy presets in `workflows/` — Produce injects the prompt.
+H3 graphs: `20` T2VA, `21` I2VA, `22` FL2VA, `23` R2VA. LTX and Wan are selectable Spark lanes. Drop your own Comfy API graph in `workflows/` — it shows up as a custom model. Produce injects the shot prompt.
 
 Prompt skill: `hermes_home/skills/h3-prompt-writing`.

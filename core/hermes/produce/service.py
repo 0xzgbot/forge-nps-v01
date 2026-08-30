@@ -36,7 +36,14 @@ class ProduceService:
     def job_dir(self, job_id: str) -> Path:
         return self.jobs_dir / job_id
 
-    def start(self, prompt: str, profile: str = "producer", produce_mode: str = "shoot") -> Dict[str, Any]:
+    def start(
+        self,
+        prompt: str,
+        profile: str = "producer",
+        produce_mode: str = "shoot",
+        stills_model: str = "",
+        video_model: str = "",
+    ) -> Dict[str, Any]:
         brief = (prompt or "").strip()
         if not brief:
             raise ValueError("prompt required")
@@ -59,6 +66,8 @@ class ProduceService:
             "pid": None,
             "profile": lead,
             "produce_mode": "scout" if str(produce_mode or "").strip().lower() == "scout" else "shoot",
+            "stills_model": produce_render.normalize_stills_model(stills_model),
+            "video_model": produce_render.normalize_video_model(video_model),
             "bots": [],
         }
         self._write_meta(path, meta)
@@ -109,6 +118,9 @@ class ProduceService:
             "queue": queue,
             "queue_eta_sec": produce_queue.queue_eta_sec(queue),
             "produce_mode": produce_render.produce_mode(path),
+            "stills_model": produce_render.stills_model(path),
+            "video_model": produce_render.video_model(path),
+            "takes": produce_render.list_takes(path),
             "color_pass": bool(produce_render.load_job_meta(path).get("color_pass")),
             "identity": produce_render.list_identity(path),
             "cut": "cut.mp4" if (path / "cut.mp4").exists() else "",
@@ -230,6 +242,8 @@ class ProduceService:
             if produce_mode == "scout"
             else "Shoot mode: queue render_board on the 3090s, then render_take. Use fl2va when a shot has end_still, else i2va. r2va when identity refs exist."
         )
+        stills = produce_render.stills_model(path)
+        video = produce_render.video_model(path)
         return (
             f"You are @{lead} in a Hermes Bot Chat. This is your canonical forever-chat.\n"
             "Use message_agent to hand work to teammates when they should do the job.\n"
@@ -238,6 +252,8 @@ class ProduceService:
             f"{brief}\n\n"
             f"Job directory (already created): {path}\n"
             f"Produce mode: {produce_mode}. {grammar}\n"
+            f"Boards (3090s): stills model `{stills}`. Takes (Spark): video model `{video}`.\n"
+            "Never send a video graph to a 3090. Never paint boards with MiniMax H3.\n"
             f"Your usual artifact is {artifact}. The producer keeps STATUS.md honest.\n"
             "Write real files. Prefer appending GPU work to queue.json over hoping a curl lands:\n"
             "  queue.json = {items:[{id, action, shot_id, mode, status: pending}]}\n"

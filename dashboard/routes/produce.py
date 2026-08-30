@@ -12,6 +12,8 @@ from pydantic import BaseModel
 from core.bridge.llm_endpoint import resolve_llm_endpoint
 from core.bridge.runtime_config import get_raw_config, set_config
 from core.dispatch.capability_router import CapabilityRouter
+from core.dispatch.model_catalog import catalog as model_catalog
+from core.hermes.produce import elements as produce_elements
 from core.hermes.produce import queue as produce_queue
 from core.hermes.produce import render as produce_render
 from core.hermes.produce.service import ProduceService
@@ -25,6 +27,8 @@ class ProduceStartRequest(BaseModel):
     prompt: str = ""
     profile: str = "producer"
     produce_mode: str = "shoot"
+    stills_model: str = ""
+    video_model: str = ""
 
 
 class ProduceShotRequest(BaseModel):
@@ -70,11 +74,14 @@ class ProduceShotPatch(BaseModel):
     voice_ref: Optional[str] = None
     guides: Optional[List[Dict[str, Any]]] = None
     status: Optional[str] = None
+    seed: Optional[int] = None
 
 
 class ProduceOptionsRequest(BaseModel):
     produce_mode: str = ""
     color_pass: Optional[bool] = None
+    stills_model: str = ""
+    video_model: str = ""
 
 
 class ProduceQueueRunRequest(BaseModel):
@@ -83,6 +90,15 @@ class ProduceQueueRunRequest(BaseModel):
 
 class ProduceEditRequest(BaseModel):
     shots: List[Dict[str, Any]] = []
+
+
+class ProduceAttachRequest(BaseModel):
+    ids: List[str] = []
+
+
+class ProduceRestoreTakeRequest(BaseModel):
+    shot_id: str
+    clip: str
 
 
 class ProduceConnectSave(BaseModel):
@@ -124,7 +140,13 @@ async def connect_status():
 @router.post("/api/produce/start")
 async def produce_start(req: ProduceStartRequest):
     try:
-        snap = _service.start(req.prompt, profile=req.profile, produce_mode=req.produce_mode)
+        snap = _service.start(
+            req.prompt,
+            profile=req.profile,
+            produce_mode=req.produce_mode,
+            stills_model=req.stills_model,
+            video_model=req.video_model,
+        )
     except ValueError as exc:
         raise CinesmithAPIError(str(exc), status_code=400) from exc
     asyncio.create_task(_service._run_hermes(snap["job_id"], snap["prompt"]))
@@ -134,6 +156,27 @@ async def produce_start(req: ProduceStartRequest):
 @router.get("/api/produce/jobs")
 async def produce_jobs():
     return {"status": "ok", "jobs": _service.list_jobs()}
+
+
+@router.get("/api/produce/models")
+async def produce_models():
+    return {"status": "ok", **model_catalog()}
+
+
+@router.get("/api/produce/elements")
+async def produce_elements_list():
+    return {"status": "ok", "elements": produce_elements.load_elements()}
+
+
+@router.post("/api/produce/elements")
+async def produce_elements_add(
+    file: UploadFile = File(...),
+    kind: str = Form("character"),
+    label: str = Form(""),
+):
+    data = await file.read()
+    item = produce_elements.add_element(kind, file.filename or "upload.bin", data, label=label)
+    return {"status": "ok", "element": item, "elements": produce_elements.load_elements()}
 
 
 @router.get("/api/produce/{job_id}")
@@ -287,9 +330,37 @@ async def produce_options(job_id: str, req: ProduceOptionsRequest):
         produce_render.set_produce_mode(path, req.produce_mode)
     if req.color_pass is not None:
         meta["color_pass"] = bool(req.color_pass)
+    if req.stills_model or req.video_model:
+        produce_render.set_model_options(path, stills=req.stills_model, video=req.video_model)
     if meta:
         produce_render.save_job_meta(path, meta)
     return {"status": "ok", **_service.snapshot(job_id)}
+
+
+@router.post("/api/produce/{job_id}/elements/attach")
+async def produce_attach_elements(job_id: str, req: ProduceAttachRequest):
+    path = _job_or_404(job_id)
+    copied = produce_elements.attach_to_job(path, req.ids)
+    return {"status": "ok", "copied": copied, **_service.snapshot(job_id)}
+
+
+@router.post("/api/produce/{job_id}/takes/restore")
+async def produce_restore_take(job_id: str, req: ProduceRestoreTakeRequest):
+    path = _job_or_404(job_id)
+    result = produce_render.restore_take(path, req.shot_id, req.clip)
+    if not result.get("ok"):
+        raise CinesmithAPIError(result.get("error") or "restore_failed", status_code=400)
+    return {"status": "ok", **result, **_service.snapshot(job_id)}
+
+
+@router.get("/api/produce/{job_id}/export")
+async def produce_export(job_id: str):
+    path = _job_or_404(job_id)
+    produce_render.export_package(path)
+    dest = path / "handoff.zip"
+    if not dest.exists():
+        raise CinesmithAPIError("export_failed", status_code=400)
+    return FileResponse(str(dest), filename=f"{job_id}-handoff.zip")
 
 
 @router.post("/api/produce/{job_id}/upload")

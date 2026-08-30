@@ -157,12 +157,21 @@ def enqueue_plan(job_dir: Path, *, router: Optional[CapabilityRouter] = None) ->
     shots = produce_render.load_shots(job_dir)
     hosts = (router or CapabilityRouter()).stills_hosts_configured()
     added: List[Dict[str, Any]] = []
-    if mode == "shoot":
+    if mode == "shoot" or (mode == "scout" and not produce_render.family_supports_scout(produce_render.video_model(job_dir))):
+        board_wf = produce_render.board_workflow_id(produce_render.stills_model(job_dir))
         for idx, shot in enumerate(shots):
             if shot.get("still"):
                 continue
             host = hosts[idx % len(hosts)] if hosts else ""
-            added.append(enqueue(job_dir, "render_board", shot_id=str(shot.get("id") or ""), host=host))
+            added.append(
+                enqueue(
+                    job_dir,
+                    "render_board",
+                    shot_id=str(shot.get("id") or ""),
+                    host=host,
+                    workflow_id=board_wf,
+                )
+            )
     for shot in shots:
         if shot.get("clip"):
             continue
@@ -173,6 +182,7 @@ def enqueue_plan(job_dir: Path, *, router: Optional[CapabilityRouter] = None) ->
                 "render_take",
                 shot_id=str(shot.get("id") or ""),
                 mode=take_mode,
+                workflow_id=produce_render.workflow_for_take(produce_render.video_model(job_dir), take_mode),
             )
         )
     clips = produce_render.list_media(job_dir)["clips"]

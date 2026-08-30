@@ -275,6 +275,16 @@
     }
     .drop input { margin-top: 6px; }
     .eta { font-size: 12px; color: var(--mute); }
+    .pick { display: flex; flex-direction: column; gap: 2px; min-width: 148px; }
+    .pick span { font-size: 11px; color: var(--mute); font-weight: 500; }
+    .pick select {
+      border: 0; background: #f2f2f7; border-radius: 980px;
+      padding: 8px 12px; font: inherit; font-size: 13px; color: var(--ink);
+      max-width: 220px;
+    }
+    .takes { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    .takes button { border: 0; background: #f2f2f7; border-radius: 12px; padding: 4px; cursor: pointer; }
+    .takes img, .takes video { width: 72px; height: 40px; object-fit: cover; border-radius: 8px; display: block; }
     .meta { font-size: 12px; color: var(--mute); }
     .tl-clip .actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
     .tl-clip button {
@@ -305,7 +315,7 @@
   <main>
     <p class="eyebrow">Produce</p>
     <h1>What should we make?</h1>
-    <p class="lede">Hermes writes the story. 3090s paint the boards. Spark MiniMax H3 takes the shot. Queue waits if the machines are off.</p>
+    <p class="lede">Hermes writes the story. 3090s paint boards. Spark shoots the take. Pick Flux or H3, or any open-weight graph you dropped in workflows/.</p>
     <div class="composer">
     <textarea id="prompt" placeholder="A courier misses the last train and walks home through a wet city. Two minutes. Quiet. No dialogue."></textarea>
     <div class="row">
@@ -313,6 +323,12 @@
         <button class="chip on" id="mode-shoot" type="button">Shoot</button>
         <button class="chip" id="mode-scout" type="button">Scout</button>
       </div>
+      <label class="pick"><span>Boards · 3090s</span>
+        <select id="stills-model"></select>
+      </label>
+      <label class="pick"><span>Takes · Spark</span>
+        <select id="video-model"></select>
+      </label>
       <button class="primary" id="go" type="button">Produce</button>
     </div>
     <p id="status" style="padding: 4px 16px 0; min-height: 1.4em;"></p>
@@ -355,14 +371,14 @@
   <div class="pane" id="drawer">
     <form class="sheet" id="settings">
       <h2 style="letter-spacing:-0.03em;margin-bottom:8px;font-size:20px;">Connect</h2>
-      <p class="lede">Language model plus four hosts: Spark (H3 video), 3090 A/B (stills), LLM.</p>
+      <p class="lede">Language model plus four hosts. Spark runs video (H3, LTX, Wan, or a graph you drop in). 3090s run stills (Flux, Z-Image, ERNIE, or yours).</p>
       <label>Language model endpoint</label>
       <input id="llm-url" placeholder="http://localhost:1234/v1">
       <label>Model name</label>
       <input id="llm-model" placeholder="local model id, or openai/gpt-4.1">
       <label>API key</label>
       <input id="llm-key" type="password" placeholder="Leave blank for local">
-      <label>Spark (H3 video)</label>
+      <label>Spark (video)</label>
       <input id="spark-url" placeholder="http://localhost:8188">
       <label>3090 A (stills)</label>
       <input id="stills-a" placeholder="http://localhost:8189">
@@ -383,6 +399,10 @@
     let groupMode = false;
     let roster = [];
     let produceMode = "shoot";
+    let stillsModel = "flux2";
+    let videoModel = "h3";
+    let modelCatalog = { stills: [], video: [] };
+    let libraryElements = [];
     let lastEdit = [];
     let lastSnap = {};
     let selectedShotId = "";
@@ -409,6 +429,45 @@
     }
     $("mode-scout").onclick = () => setMode("scout");
     $("mode-shoot").onclick = () => setMode("shoot");
+
+    function fillSelect(el, rows, selected) {
+      if (!el) return;
+      el.innerHTML = (rows || []).map((row) => {
+        const miss = row.available ? "" : " (graph missing)";
+        return '<option value="' + escapeHtml(row.id) + '"' + (row.id === selected ? " selected" : "") + ">" +
+          escapeHtml(row.label) + miss + "</option>";
+      }).join("");
+    }
+
+    async function loadModels() {
+      const resp = await fetch("/api/produce/models");
+      const data = await resp.json();
+      modelCatalog = data;
+      stillsModel = stillsModel || (data.defaults && data.defaults.stills_model) || "flux2";
+      videoModel = videoModel || (data.defaults && data.defaults.video_model) || "h3";
+      fillSelect($("stills-model"), data.stills, stillsModel);
+      fillSelect($("video-model"), data.video, videoModel);
+    }
+
+    async function persistModels() {
+      stillsModel = $("stills-model").value || stillsModel;
+      videoModel = $("video-model").value || videoModel;
+      if (!jobId) return;
+      const resp = await fetch("/api/produce/" + encodeURIComponent(jobId) + "/options", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ stills_model: stillsModel, video_model: videoModel }),
+      });
+      if (resp.ok) render(await resp.json());
+    }
+    $("stills-model").onchange = persistModels;
+    $("video-model").onchange = persistModels;
+
+    async function loadElements() {
+      const resp = await fetch("/api/produce/elements");
+      const data = await resp.json();
+      libraryElements = data.elements || [];
+    }
 
     function lightRow(id, label, row) {
       const on = row && row.ok;
@@ -619,7 +678,13 @@
         const resp = await fetch("/api/produce/start", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt, profile: "producer", produce_mode: produceMode }),
+          body: JSON.stringify({
+            prompt,
+            profile: "producer",
+            produce_mode: produceMode,
+            stills_model: $("stills-model").value || stillsModel,
+            video_model: $("video-model").value || videoModel,
+          }),
         });
         const data = await resp.json();
         if (!resp.ok) throw new Error(apiError(data, "start failed"));
@@ -678,12 +743,19 @@
       const identity = data.identity || [];
       let identBlock = "";
       if (shots.length) {
-        identBlock = '<article><h2>Identity / voice</h2><div class="identity">' +
+          identBlock = '<article><h2>Identity / elements</h2><div class="identity">' +
           identity.filter((n) => /\.(png|jpg|jpeg|webp)$/i.test(n)).map((n) =>
             '<img src="/api/produce/' + jobId + "/file/" + encodeURIComponent(n) + '" alt="">'
           ).join("") +
           '</div><div class="row"><label class="drop">Face / location<input type="file" accept="image/*" data-up="identity" multiple></label>' +
-          '<label class="drop">Voice<input type="file" accept="audio/*" data-up="voice"></label></div></article>';
+          '<label class="drop">Voice<input type="file" accept="audio/*" data-up="voice"></label>' +
+          '<label class="drop">Library<input type="file" accept="image/*,audio/*" id="lib-file"></label></div>' +
+          (libraryElements.length
+            ? '<div class="row">' + libraryElements.map((el) =>
+                '<button type="button" class="chip" data-el="' + escapeHtml(el.id) + '">' + escapeHtml(el.label || el.id) + "</button>"
+              ).join("") + "</div>"
+            : '<p class="meta">Save a face once. Attach it to any job.</p>') +
+          "</article>";
       }
       const queue = data.queue || [];
       let queueBlock = "";
@@ -716,12 +788,16 @@
               '"></video><div class="actions"><button type="button" data-move="' + idx + ':-1">Up</button>' +
               '<button type="button" data-move="' + idx + ':1">Down</button>' +
               '<button type="button" data-mute="' + idx + '">' + (muted ? "Unmute" : "Mute") + "</button></div>" +
-              '<div class="meta">Range <input type="number" min="0" step="0.1" data-rng-in="' + idx + '" placeholder="in" style="width:4.2em">–' +
-              '<input type="number" min="0" step="0.1" data-rng-out="' + idx + '" placeholder="out" style="width:4.2em">' +
+              '<div class="meta">In/out <input type="number" min="0" step="0.1" data-rng-in="' + idx + '" placeholder="in" value="' +
+              escapeHtml(row.trim_in || "") + '" style="width:4.2em">–' +
+              '<input type="number" min="0" step="0.1" data-rng-out="' + idx + '" placeholder="out" value="' +
+              escapeHtml(row.trim_out || "") + '" style="width:4.2em">' +
+              '<button type="button" data-trim="' + idx + '">Trim</button>' +
               '<button type="button" data-range="' + idx + '">Retake</button></div></div>';
           }).join("") +
           '</div><div class="row"><button class="primary" type="button" id="assemble">Assemble cut</button>' +
           (data.cut ? '<a class="ghost" href="/api/produce/' + jobId + "/file/" + encodeURIComponent(data.cut) + '">Download cut</a>' : "") +
+          '<a class="ghost" href="/api/produce/' + jobId + '/export">Handoff zip</a>' +
           "</div></article>";
       }
       let media = "";
@@ -754,6 +830,17 @@
       $("work").querySelectorAll("[data-range]").forEach((btn) => {
         btn.onclick = () => rangeRetake(Number(btn.getAttribute("data-range")), edit);
       });
+      $("work").querySelectorAll("[data-trim]").forEach((btn) => {
+        btn.onclick = () => applyTrim(Number(btn.getAttribute("data-trim")), edit);
+      });
+      $("work").querySelectorAll("[data-el]").forEach((btn) => {
+        btn.onclick = () => attachElement(btn.getAttribute("data-el"));
+      });
+      $("work").querySelectorAll("[data-restore]").forEach((btn) => {
+        btn.onclick = () => restoreTake(btn.getAttribute("data-restore-shot"), btn.getAttribute("data-restore"));
+      });
+      const lib = $("lib-file");
+      if (lib) lib.onchange = () => saveLibrary(lib.files);
       $("work").querySelectorAll("[data-open-shot]").forEach((el) => {
         el.onclick = (ev) => {
           if (ev.target.closest("button")) return;
@@ -769,6 +856,25 @@
       const savePrompt = $("save-prompt");
       if (savePrompt) savePrompt.onclick = saveInspector;
       if (data.produce_mode) setMode(data.produce_mode);
+      if (data.stills_model) {
+        stillsModel = data.stills_model;
+        if ($("stills-model").value !== stillsModel) $("stills-model").value = stillsModel;
+      }
+      if (data.video_model) {
+        videoModel = data.video_model;
+        if ($("video-model").value !== videoModel) $("video-model").value = videoModel;
+      }
+    }
+
+    function takeBinHtml(data, shotId) {
+      const takes = (data.takes || []).filter((t) => t.shot_id === shotId);
+      if (!takes.length) return "";
+      return '<h2 style="margin-top:16px">Take bin</h2><div class="takes">' +
+        takes.map((t) =>
+          '<button type="button" data-restore="' + escapeHtml(t.clip) + '" data-restore-shot="' + escapeHtml(t.shot_id) +
+          '" title="Restore this take"><video src="/api/produce/' + jobId + "/file/" + encodeURIComponent(t.clip) +
+          '" muted></video></button>'
+        ).join("") + "</div>";
     }
 
     function inspectorHtml(data) {
@@ -789,11 +895,14 @@
         '<div class="row"><label class="drop">First<input type="file" accept="image/*" data-up="still"></label>' +
         '<label class="drop">Last<input type="file" accept="image/*" data-up="end_still"></label>' +
         '<label class="drop">Guide<input type="file" accept="image/*" data-up="guide"></label></div>' +
-        '<label>H3 prompt</label><textarea id="insp-prompt">' + escapeHtml(shot.h3_prompt || shot.visual || "") + "</textarea>" +
+        '<label>Shot prompt</label><textarea id="insp-prompt">' + escapeHtml(shot.h3_prompt || shot.visual || "") + "</textarea>" +
+        '<label>Camera</label><input id="insp-cam" value="' + escapeHtml(shot.camera || "") + '" placeholder="35mm, slow push in">' +
         '<label>Duration (sec)</label><input id="insp-dur" type="number" min="2" max="15" value="' + escapeHtml(shot.duration_sec || 5) + '">' +
         '<label>Mode</label><input id="insp-mode" value="' + escapeHtml(shot.h3_mode || "") + '" placeholder="i2va / fl2va / t2va / r2va">' +
+        '<label>Seed</label><input id="insp-seed" type="number" value="' + escapeHtml(shot.seed || "") + '" placeholder="optional">' +
         '<div class="row" style="margin-top:12px"><button class="primary" type="button" id="save-prompt">Save shot</button></div>' +
-        '<p class="eta">Click a board to inspect. Range retake lives on the timeline. Voice refs attach under Identity.</p></aside>';
+        takeBinHtml(data, selectedShotId) +
+        '<p class="eta">Click a board to inspect. Trim is local ffmpeg. Retake on the timeline sends a new take to Spark.</p></aside>';
     }
 
     async function saveInspector() {
@@ -805,6 +914,8 @@
           h3_prompt: $("insp-prompt") ? $("insp-prompt").value : "",
           duration_sec: $("insp-dur") ? Number($("insp-dur").value) : 5,
           h3_mode: $("insp-mode") ? $("insp-mode").value : "",
+          camera: $("insp-cam") ? $("insp-cam").value : "",
+          seed: $("insp-seed") && $("insp-seed").value ? Number($("insp-seed").value) : null,
         }),
       });
       render(await resp.json());
@@ -932,6 +1043,54 @@
       else render(data);
     }
 
+    async function applyTrim(idx, edit) {
+      const next = (edit || lastEdit || []).map((row, i) => Object.assign({}, row));
+      const row = next[idx];
+      if (!row) return;
+      const start = Number(document.querySelector('[data-rng-in="' + idx + '"]').value);
+      const end = Number(document.querySelector('[data-rng-out="' + idx + '"]').value);
+      row.trim_in = start || 0;
+      row.trim_out = end || 0;
+      const resp = await fetch("/api/produce/" + encodeURIComponent(jobId) + "/edit", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ shots: next }),
+      });
+      render(await resp.json());
+    }
+
+    async function attachElement(id) {
+      if (!jobId || !id) return;
+      const resp = await fetch("/api/produce/" + encodeURIComponent(jobId) + "/elements/attach", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: [id] }),
+      });
+      render(await resp.json());
+    }
+
+    async function saveLibrary(files) {
+      if (!files || !files.length) return;
+      for (const file of files) {
+        const body = new FormData();
+        body.append("file", file);
+        body.append("kind", file.type.startsWith("audio/") ? "voice" : "character");
+        body.append("label", file.name);
+        await fetch("/api/produce/elements", { method: "POST", body });
+      }
+      await loadElements();
+      if (lastSnap) render(lastSnap);
+    }
+
+    async function restoreTake(shotId, clip) {
+      const resp = await fetch("/api/produce/" + encodeURIComponent(jobId) + "/takes/restore", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ shot_id: shotId, clip }),
+      });
+      render(await resp.json());
+    }
+
     async function moveEdit(spec, edit) {
       const [idxRaw, dirRaw] = String(spec || "").split(":");
       const idx = Number(idxRaw);
@@ -978,6 +1137,8 @@
     loadRoster().catch(() => {});
     loadJobs().catch(() => {});
     loadSettings().catch(() => {});
+    loadModels().catch(() => {});
+    loadElements().catch(() => {});
     setInterval(() => {
       if (document.hidden) return;
       loadRoster().catch(() => {});

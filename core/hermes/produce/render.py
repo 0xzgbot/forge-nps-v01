@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import shutil
+import zipfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -12,6 +13,16 @@ from core.assembly.timeline_assembler import TimelineAssembler
 from core.character.identity_attach import resolve_anchor_paths
 from core.dispatch.capability_router import CapabilityRouter
 from core.dispatch.comfy_client import ComfyUIClient
+from core.dispatch.model_catalog import (
+    DEFAULT_STILLS_MODEL,
+    DEFAULT_VIDEO_MODEL,
+    board_workflow_id,
+    family_has_mode,
+    family_supports_scout,
+    normalize_stills_model,
+    normalize_video_model,
+    workflow_for_take,
+)
 from core.dispatch.workflows import (
     DEFAULT_BOARD_WORKFLOW_ID,
     take_workflow_for_mode,
@@ -98,10 +109,40 @@ def set_produce_mode(job_dir: Path, mode: str) -> str:
     return value
 
 
+def stills_model(job_dir: Path) -> str:
+    return normalize_stills_model(str(load_job_meta(job_dir).get("stills_model") or DEFAULT_STILLS_MODEL))
+
+
+def video_model(job_dir: Path) -> str:
+    return normalize_video_model(str(load_job_meta(job_dir).get("video_model") or DEFAULT_VIDEO_MODEL))
+
+
+def set_model_options(job_dir: Path, *, stills: str = "", video: str = "") -> Dict[str, str]:
+    meta: Dict[str, str] = {}
+    if stills:
+        meta["stills_model"] = normalize_stills_model(stills)
+    if video:
+        meta["video_model"] = normalize_video_model(video)
+    if meta:
+        save_job_meta(job_dir, meta)
+    return {"stills_model": stills_model(job_dir), "video_model": video_model(job_dir)}
+
+
+def coerce_take_mode(job_dir: Path, mode: str) -> str:
+    family = video_model(job_dir)
+    key = str(mode or "i2va").strip().lower()
+    if family_has_mode(family, key):
+        return key
+    for fallback in ("i2va", "t2va", "fl2va", "r2va"):
+        if family_has_mode(family, fallback):
+            return fallback
+    return key
+
+
 def resolve_take_mode(job_dir: Path, shot: Optional[Dict[str, Any]] = None, requested: str = "") -> str:
-    """Scout is always t2va. Shoot prefers FL2VA when an end still exists."""
-    if produce_mode(job_dir) == "scout":
-        return "t2va"
+    """Scout is t2va when the video family has T2V. Shoot prefers FL2VA when an end still exists."""
+    if produce_mode(job_dir) == "scout" and family_supports_scout(video_model(job_dir)):
+        return coerce_take_mode(job_dir, "t2va")
     aliases = {
         "t2v": "t2va",
         "t2va": "t2va",
@@ -115,16 +156,16 @@ def resolve_take_mode(job_dir: Path, shot: Optional[Dict[str, Any]] = None, requ
     }
     req = str(requested or "").strip().lower()
     if req in aliases:
-        return aliases[req]
+        return coerce_take_mode(job_dir, aliases[req])
     stored = str((shot or {}).get("h3_mode") or "").strip().lower()
     stored = aliases.get(stored, "")
     if stored in {"t2va", "r2va"}:
-        return stored
+        return coerce_take_mode(job_dir, stored)
     if (shot or {}).get("end_still"):
-        return "fl2va"
+        return coerce_take_mode(job_dir, "fl2va")
     if stored:
-        return stored
-    return "i2va"
+        return coerce_take_mode(job_dir, stored)
+    return coerce_take_mode(job_dir, "i2va")
 
 
 def get_shot(job_dir: Path, shot_id: str) -> Optional[Dict[str, Any]]:
@@ -202,6 +243,8 @@ def list_media(job_dir: Path) -> Dict[str, List[str]]:
         rel = _rel_or_name(job_dir, path)
         if rel.startswith("identity/") or "/identity/" in rel.replace("\\", "/"):
             continue
+        if rel.startswith("takes/") or "/takes/" in rel.replace("\\", "/"):
+            continue
         if path.suffix.lower() in IMAGE_EXTS:
             if rel in seen_stills:
                 continue
@@ -243,7 +286,13 @@ def ensure_edit_from_clips(job_dir: Path) -> List[Dict[str, Any]]:
     for shot in shots:
         clip = str(shot.get("clip") or "").strip()
         if clip:
-            rows.append({"shot_id": shot.get("id"), "clip": clip, "muted": bool(shot.get("muted"))})
+            rows.append({
+                "shot_id": shot.get("id"),
+                "clip": clip,
+                "muted": bool(shot.get("muted")),
+                "trim_in": shot.get("trim_in") or 0,
+                "trim_out": shot.get("trim_out") or 0,
+            })
     if not rows:
         for name in list_media(job_dir)["clips"]:
             rows.append({"shot_id": Path(name).stem, "clip": name, "muted": False})
@@ -314,6 +363,7 @@ SHOT_PATCH_FIELDS = {
     "voice_ref",
     "guides",
     "status",
+    "seed",
 }
 
 
@@ -434,7 +484,7 @@ async def render_board(
     job_dir: Path,
     shot_id: str,
     *,
-    workflow_id: str = DEFAULT_BOARD_WORKFLOW_ID,
+    workflow_id: str = "",
     wait: bool = False,
     host: str = "",
 ) -> Dict[str, Any]:
@@ -442,9 +492,13 @@ async def render_board(
     prompt = _shot_prompt(shot)
     if not prompt:
         return {"status": "error", "error": "shot_prompt_missing"}
-    wf = workflow_file_for_id(workflow_id or DEFAULT_BOARD_WORKFLOW_ID)
+    camera = str(shot.get("camera") or "").strip()
+    if camera:
+        prompt = prompt + "\nCamera: " + camera
+    chosen_wf = str(workflow_id or "").strip() or board_workflow_id(stills_model(job_dir))
+    wf = workflow_file_for_id(chosen_wf or DEFAULT_BOARD_WORKFLOW_ID)
     if not wf:
-        return {"status": "error", "error": f"workflow_missing:{workflow_id}"}
+        return {"status": "error", "error": f"workflow_missing:{chosen_wf}"}
     router = CapabilityRouter()
     chosen = str(host or "").strip()
     if chosen:
@@ -482,7 +536,7 @@ async def render_board(
         "status": "boarding" if submit.get("queued") else ("boarded" if submit.get("status") == "success" else "failed"),
         "board_prompt_id": submit.get("prompt_id"),
         "board_host": chosen,
-        "board_workflow_id": workflow_id or DEFAULT_BOARD_WORKFLOW_ID,
+        "board_workflow_id": chosen_wf,
         "board_error": submit.get("error") or "",
     }
     saved = [Path(p) for p in (submit.get("saved_files") or [])]
@@ -500,7 +554,7 @@ async def render_boards(
     job_dir: Path,
     shot_ids: Optional[List[str]] = None,
     *,
-    workflow_id: str = DEFAULT_BOARD_WORKFLOW_ID,
+    workflow_id: str = "",
     wait: bool = False,
 ) -> List[Dict[str, Any]]:
     """Paint boards in parallel across 3090 A/B."""
@@ -529,13 +583,17 @@ async def render_take(
 ) -> Dict[str, Any]:
     shot = get_shot(job_dir, shot_id) or upsert_shot(job_dir, shot_id)
     mode_key = resolve_take_mode(job_dir, shot, requested=mode)
-    workflow_id = take_workflow_for_mode(mode_key)
+    family = video_model(job_dir)
+    workflow_id = workflow_for_take(family, mode_key)
     wf = workflow_file_for_id(workflow_id)
     if not wf:
         return {"status": "error", "error": f"workflow_missing:{workflow_id}"}
     prompt = str(shot.get("h3_prompt") or shot.get("visual") or shot.get("purpose") or "").strip()
     if not prompt:
         return {"status": "error", "error": "shot_prompt_missing"}
+    camera = str(shot.get("camera") or "").strip()
+    if camera:
+        prompt = prompt + "\nCamera: " + camera
     guides = _guide_specs(job_dir, shot)
     duration = int(shot.get("duration_sec") or 5)
     still = shot.get("still") or ""
@@ -544,7 +602,7 @@ async def render_take(
         still_path = None
     needs_still = mode_key not in {"t2va", "t2v"}
     if needs_still and not still_path:
-        return {"status": "error", "error": "board_required", "message": "Approve a 3090 still before an H3 take, or use scout (t2va)."}
+        return {"status": "error", "error": "board_required", "message": "Approve a 3090 still before a take, or pick a T2V family (H3 / LTX) for Scout."}
     refs = identity_paths_for_job(job_dir, identity_pack)
     image_paths: List[str] = []
     if mode_key in {"r2va", "r2v"}:
@@ -553,7 +611,7 @@ async def render_take(
             image_paths.append(str(still_path))
         if not image_paths:
             return {"status": "error", "error": "identity_refs_missing"}
-        workflow_id = take_workflow_for_mode("r2va")
+        workflow_id = workflow_for_take(family, "r2va")
         wf = workflow_file_for_id(workflow_id) or wf
     elif mode_key in {"fl2va", "fl2v", "first_last"}:
         end_still = shot.get("end_still") or ""
@@ -582,9 +640,9 @@ async def render_take(
                 "message": "Spark is offline. Queue item stays waiting.",
             }
     else:
-        chosen = await router.host_for_workflow(workflow_id, require_h3="h3" in workflow_id)
+        chosen = await router.host_for_workflow(workflow_id, require_h3="h3" in workflow_id or "minimax" in workflow_id)
     if not chosen:
-        return {"status": "error", "error": "spark_unavailable", "waiting": True, "message": "H3 runs on Spark only."}
+        return {"status": "error", "error": "spark_unavailable", "waiting": True, "message": "Video runs on Spark only."}
     out_dir = job_dir / "clips"
     out_dir.mkdir(parents=True, exist_ok=True)
     client = ComfyUIClient(chosen)
@@ -618,6 +676,10 @@ async def render_take(
         saved = [Path(p) for p in (submit.get("saved_files") or [])]
     if saved:
         dest = out_dir / f"{shot_id}{saved[0].suffix}"
+        existing = get_shot(job_dir, shot_id) or {}
+        old_clip = str(existing.get("clip") or "").strip()
+        if old_clip:
+            archive_take(job_dir, shot_id, old_clip)
         shutil.copy2(saved[0], dest)
         updates["clip"] = _rel_or_name(job_dir, dest)
         updates["status"] = "shot"
@@ -637,6 +699,8 @@ def assemble_cut(
     edit_rows = rows if rows is not None else ensure_edit_from_clips(job_dir)
     if rows is not None:
         save_edit(job_dir, edit_rows)
+    assembler = TimelineAssembler()
+    work = job_dir / ".trim"
     clips: List[Path] = []
     muted_paths: List[Path] = []
     for item in edit_rows:
@@ -644,13 +708,27 @@ def assemble_cut(
         if not rel:
             continue
         path = (job_dir / rel).resolve()
-        if path.exists():
-            clips.append(path)
-            if item.get("muted"):
-                muted_paths.append(path)
+        if not path.exists():
+            continue
+        try:
+            trim_in = float(item.get("trim_in") or 0)
+        except (TypeError, ValueError):
+            trim_in = 0.0
+        try:
+            trim_out = float(item.get("trim_out") or 0)
+        except (TypeError, ValueError):
+            trim_out = 0.0
+        use = path
+        if trim_in > 0.04 or trim_out > trim_in + 0.04:
+            dest = work / f"{path.stem}_{int(trim_in * 10)}_{int(trim_out * 10)}{path.suffix}"
+            sliced = assembler.slice_clip(path, trim_in, trim_out if trim_out > 0 else None, dest)
+            if sliced.get("ok"):
+                use = Path(sliced["output"])
+        clips.append(use)
+        if item.get("muted"):
+            muted_paths.append(use)
     if not clips:
         return {"status": "error", "error": "no_clips"}
-    assembler = TimelineAssembler()
     out = job_dir / "cut.mp4"
     result = assembler.export_cut(clips, out, keep_audio=True, muted_paths=muted_paths)
     use_color = bool(load_job_meta(job_dir).get("color_pass")) if color_pass is None else bool(color_pass)
@@ -664,9 +742,89 @@ def assemble_cut(
             result["color_pass_error"] = grade.get("error")
     if result.get("ok"):
         (job_dir / "STATUS.md").write_text("edit — cut.mp4 assembled.\n", encoding="utf-8")
+        try:
+            from core.hermes.produce import queue as produce_queue
+            for item in produce_queue.load_queue(job_dir):
+                if item.get("action") == "assemble" and item.get("status") in {"pending", "waiting_for_host", "running"}:
+                    produce_queue.mark_done(job_dir, str(item.get("id") or ""), host="local")
+        except Exception:
+            pass
     return result
 
 
 def set_shot_status(job_dir: Path, shot_id: str, status: str) -> Dict[str, Any]:
     shot = upsert_shot(job_dir, shot_id, status=status)
     return {"status": "ok", "shot": shot}
+
+
+def archive_take(job_dir: Path, shot_id: str, clip_rel: str) -> str:
+    src = Path(job_dir) / str(clip_rel or "")
+    if not src.exists() or not src.is_file():
+        return ""
+    dest_dir = Path(job_dir) / "takes" / str(shot_id or "shot")
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    n = len([p for p in dest_dir.iterdir() if p.is_file()]) + 1
+    dest = dest_dir / f"{n:03d}{src.suffix}"
+    shutil.copy2(src, dest)
+    return _rel_or_name(job_dir, dest)
+
+
+def list_takes(job_dir: Path) -> List[Dict[str, str]]:
+    root = Path(job_dir) / "takes"
+    if not root.exists():
+        return []
+    rows: List[Dict[str, str]] = []
+    for shot_dir in sorted(root.iterdir()):
+        if not shot_dir.is_dir():
+            continue
+        for path in sorted(shot_dir.iterdir()):
+            if path.is_file() and path.suffix.lower() in VIDEO_EXTS:
+                rows.append({"shot_id": shot_dir.name, "clip": _rel_or_name(job_dir, path)})
+    return rows
+
+
+def restore_take(job_dir: Path, shot_id: str, clip_rel: str) -> Dict[str, Any]:
+    src = Path(job_dir) / str(clip_rel or "")
+    if not src.exists():
+        return {"ok": False, "error": "take_missing"}
+    current = get_shot(job_dir, shot_id) or {}
+    old = str(current.get("clip") or "").strip()
+    if old and (Path(job_dir) / old).resolve() != src.resolve() and (Path(job_dir) / old).exists():
+        archive_take(job_dir, shot_id, old)
+    dest = Path(job_dir) / "clips" / f"{shot_id}{src.suffix}"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(src, dest)
+    rel = _rel_or_name(job_dir, dest)
+    upsert_shot(job_dir, shot_id, clip=rel, status="shot")
+    edit = load_edit(job_dir)
+    found = False
+    for row in edit:
+        if str(row.get("shot_id") or "") == shot_id:
+            row["clip"] = rel
+            found = True
+    if not found:
+        edit.append({"shot_id": shot_id, "clip": rel, "muted": False})
+    save_edit(job_dir, edit)
+    return {"ok": True, "clip": rel, "shot": get_shot(job_dir, shot_id)}
+
+
+def export_package(job_dir: Path) -> Dict[str, Any]:
+    job_dir = Path(job_dir)
+    dest = job_dir / "handoff.zip"
+    names = [
+        "prompt.md", "story.md", "script.md", "storyboard.md", "shots.json",
+        "edit.json", "STATUS.md", "job.json", "queue.json", "cut.mp4",
+    ]
+    with zipfile.ZipFile(dest, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+        for name in names:
+            path = job_dir / name
+            if path.exists():
+                zf.write(path, name)
+        for folder in ("boards", "clips", "identity", "takes"):
+            root = job_dir / folder
+            if not root.exists():
+                continue
+            for path in root.rglob("*"):
+                if path.is_file():
+                    zf.write(path, str(path.relative_to(job_dir)))
+    return {"ok": True, "file": "handoff.zip", "bytes": dest.stat().st_size}

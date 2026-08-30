@@ -57,20 +57,29 @@ H3_TAKE_MODES = {
 
 
 def capability_for_workflow(workflow_id: str = "") -> str:
-    """spark = video (H3 / LTX); stills = Flux / Z-Image / character sheets."""
+    """spark = video (H3 / LTX / Wan / custom); stills = Flux / Z-Image / open-weight T2I."""
     wid = str(workflow_id or "").strip().lower()
     if not wid:
         return "stills"
-    still_markers = ("flux", "z_image", "z-image", "ernie", "klein", "character_sheet")
-    if any(token in wid for token in still_markers) and "video" not in wid:
+    still_markers = (
+        "flux", "z_image", "z-image", "ernie", "klein", "character_sheet",
+        "sdxl", "sd3", "qwen", "hidream", "chroma", "lumina", "pony", "illustrious",
+    )
+    if any(token in wid for token in still_markers) and "video" not in wid and "i2v" not in wid and "t2v" not in wid:
         return "stills"
-    video_markers = ("h3", "minimax", "ltx", "wan", "video", "i2v", "t2v", "first_last", "fl2v", "r2v")
+    video_markers = (
+        "h3", "minimax", "ltx", "ltxv", "wan", "hunyuan", "cogvideo", "mochi",
+        "video", "i2v", "t2v", "first_last", "fl2v", "r2v",
+    )
     if any(token in wid for token in video_markers):
         return "spark"
     return "stills"
 
 
-def take_workflow_for_mode(mode: str = "") -> str:
+def take_workflow_for_mode(mode: str = "", family: str = "") -> str:
+    if family:
+        from core.dispatch.model_catalog import workflow_for_take
+        return workflow_for_take(family, mode)
     key = str(mode or "").strip().lower() or "i2va"
     return H3_TAKE_MODES.get(key, DEFAULT_VIDEO_WORKFLOW_ID)
 
