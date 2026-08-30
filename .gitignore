@@ -31,6 +31,7 @@ logs/
 dashboard.log
 data/config.json.bak
 data/config.json
+data/produce/
 data/outputs/
 data/sessions/
 data/reasoning_logs/

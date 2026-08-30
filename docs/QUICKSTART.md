@@ -1,0 +1,62 @@
+# Produce in four minutes
+
+Home is **`/`**. Soft white, one prompt, four lights. Hermes directs. Dual 3090s paint boards. Spark MiniMax H3 shoots. ffmpeg cuts. **`/studio`** is the old campaign app.
+
+You do not need the GPUs on to learn the desk. Queue items wait. This page is the desk, not a second product.
+
+## 1. Launch
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.template .env
+./scripts/launch_cinesmith.sh --package
+# http://127.0.0.1:7000
+```
+
+Hermes stays in repo `hermes_home/`. Isolation is not optional.
+
+## 2. Connect
+
+Top right: **Connect**. Four fields, four lights in the header.
+
+| Light | Field | What it is |
+| --- | --- | --- |
+| Spark | Spark (H3 video) | MiniMax H3 only. Never stills by default. |
+| 3090A | 3090 A (stills) | Flux / Z-Image boards |
+| 3090B | 3090 B (stills) | Second board GPU, optional |
+| LLM | Language model | Any OpenAI-compatible endpoint |
+
+Green means `/system_stats` (or the LLM probe) answered. Grey means configured but down. H3 is never sent to a 3090. Boards do not require Spark.
+
+## 3. Scout or Shoot, then Produce
+
+Type a short film. Pick a mode. Press **Produce**.
+
+- **Shoot** — 3090 boards, you approve, then H3. First+last (`fl2va`) when a shot has an end still.
+- **Scout** — MiniMax H3 text-to-video. No stills. Fast tone check.
+
+Hermes writes `story.md`, `script.md`, and `shots.json` into `data/produce/<job>/`. GPU work goes in `queue.json`. If Spark or a 3090 is off, items stay **waiting_for_host**. Press **Run queue** when the boxes are up.
+
+Your Comfy presets in `workflows/` are called with the shot prompt. You do not edit the graph.
+
+## 4. Boards, takes, cut
+
+Once shots exist:
+
+1. Click a board → inspector (first/last frames, H3 prompt, duration, mode).
+2. Drop face/location stills and an optional voice wav under **Identity**.
+3. **Queue boards / takes** plans GPU work. **Run queue** submits it (only when you mean it).
+4. Timeline: reorder, mute (H3 stereo stays on unmuted clips), range retake (in/out seconds).
+5. Optional **Color pass**. **Assemble cut** writes `cut.mp4`.
+
+Crew chips (Producer, Story, Video, …) open a bot sheet. They talk through Hermes. They are not a JSON stage machine.
+
+## Do not
+
+- Do not send H3 to a 3090.
+- Do not paint boards with H3.
+- Do not point Hermes at `~/.hermes`.
+- Do not commit `data/config.json` or `data/produce/`.
+
+Full reference: [PRODUCE.md](PRODUCE.md).

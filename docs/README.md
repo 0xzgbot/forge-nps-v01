@@ -4,6 +4,7 @@ Primary operational docs live here so the repository root stays readable on GitH
 
 - [README.md](../README.md)
 - [PRODUCE.md](PRODUCE.md) — home app: prompt → 3090 boards → Spark H3 → cut
+- [QUICKSTART.md](QUICKSTART.md) — connect four lights, Scout/Shoot, queue, cut
 - [INSTALLATION_AGENT_GUIDE.md](INSTALLATION_AGENT_GUIDE.md)
 - [ARCHITECTURE.md](ARCHITECTURE.md)
 - [PIPELINE_CONTRACT_SUMMARY.md](PIPELINE_CONTRACT_SUMMARY.md)

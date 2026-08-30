@@ -4,6 +4,8 @@
 
 Home (`/`) is **Produce**. Hermes writes story/script/shots. 3090s paint boards. Spark MiniMax H3 shoots takes with native stereo. ffmpeg assembles `cut.mp4`. `/studio` is labeled legacy.
 
+- Apple-soft Produce UI (`#f5f5f7`, glass header, blue Produce CTA). Quick start: [QUICKSTART.md](QUICKSTART.md).
+
 - Capability router: Spark = H3/LTX video; `COMFYUI_STILLS_A` / `COMFYUI_STILLS_B` = stills. H3 never fails over to a 3090.
 - H3 workflows `20`–`23` (T2VA, I2VA, FL2VA, R2VA) plus official `h3-prompt-writing` skill.
 - Honest `queue.json` (GET snapshot never fires GPUs; offline hosts stay `waiting_for_host`).

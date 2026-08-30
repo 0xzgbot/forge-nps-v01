@@ -24,6 +24,8 @@
   ·
   <a href="marketing/app-ui.html"><strong>App UI Concept</strong></a>
   ·
+  <a href="docs/QUICKSTART.md"><strong>Quick start</strong></a>
+  ·
   <a href="docs/INSTALLATION_AGENT_GUIDE.md"><strong>Install Guide</strong></a>
   ·
   <a href="docs/CHANGELOG.md"><strong>Changelog</strong></a>
