@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-08-31 - Host labels: primary video / image-video
+
+Connect and header lights no longer say Spark / 3090. They are **Primary video model** (128 GB VRAM minimum), **Primary image/video model**, and **Secondary image/video**. Config keys are unchanged. Video graphs still stay on primary video.
+
 ## 2026-08-31 - Local desk: audit, script merge, finish, undo
 
 No GPU required. Text continuity audit vs `characters.md` / identity tokens / wardrobe words (not a vision model). Script scenes merge into the shot list without replacing Hermes shots. Export can burn captions, drop an end card, and pick a color preset (mild / warm / cool / contrast). Deleted shots land in `trash.json` for undo; shot cards reorder. Home shows Produce-flavored brief chips next to samples.

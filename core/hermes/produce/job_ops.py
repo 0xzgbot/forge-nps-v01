@@ -356,14 +356,14 @@ def next_action(job_dir: Path) -> Dict[str, Any]:
     if mode == "shoot" and missing_boards:
         return {
             "id": "boards",
-            "label": f"Board {missing_boards} shot(s) on the 3090s.",
+            "label": f"Board {missing_boards} shot(s) on primary image/video.",
             "cta": "Queue boards",
         }
     missing_takes = max(0, len(shots) - len(shot))
     if missing_takes:
         return {
             "id": "takes",
-            "label": f"Shoot {missing_takes} take(s) on Spark.",
+            "label": f"Shoot {missing_takes} take(s) on primary video.",
             "cta": "Queue takes",
         }
     if not cut:

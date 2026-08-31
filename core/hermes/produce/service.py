@@ -301,7 +301,7 @@ class ProduceService:
         grammar = (
             "Scout mode: no boards. Queue render_take with mode t2va."
             if produce_mode == "scout"
-            else "Shoot mode: queue render_board on the 3090s, then render_take. Use fl2va when a shot has end_still, else i2va. r2va when identity refs exist."
+            else "Shoot mode: queue render_board on primary image/video, then render_take. Use fl2va when a shot has end_still, else i2va. r2va when identity refs exist."
         )
         stills = produce_render.stills_model(path)
         video = produce_render.video_model(path)
@@ -313,13 +313,13 @@ class ProduceService:
             f"{brief}\n\n"
             f"Job directory (already created): {path}\n"
             f"Produce mode: {produce_mode}. {grammar}\n"
-            f"Boards (3090s): stills model `{stills}`. Takes (Spark): video model `{video}`.\n"
-            "Never send a video graph to a 3090. Never paint boards with MiniMax H3.\n"
+            f"Boards (primary image/video): stills model `{stills}`. Takes (primary video, 128GB VRAM min): video model `{video}`.\n"
+            "Never send a video graph to a 3090 / primary image/video host. Never paint boards with MiniMax H3.\n"
             f"Your usual artifact is {artifact}. The producer keeps STATUS.md honest.\n"
             "Write real files. Prefer appending GPU work to queue.json over hoping a curl lands:\n"
             "  queue.json = {items:[{id, action, shot_id, mode, status: pending}]}\n"
             "  actions: render_board | render_take | assemble\n"
-            "A worker drains queue.json when hosts are up. If Spark/3090s are down, items stay "
+            "A worker drains queue.json when hosts are up. If primary video or image/video hosts are down, items stay "
             "pending (waiting_for_host). Never mark done without a file on disk.\n"
             "You may also POST $CINESMITH_API:\n"
             f"  /api/produce/{path.name}/queue        {{action, shot_id, mode}}\n"

@@ -6,11 +6,11 @@
 
 ## Hardware
 
-| Host | Config key | Job |
+| Host (UI) | Config key | Job |
 | --- | --- | --- |
-| Spark | `COMFYUI_PRIMARY` | MiniMax H3 video (never stills by default) |
-| 3090 A | `COMFYUI_STILLS_A` or `COMFYUI_SECONDARY` | Flux / Z-Image boards |
-| 3090 B | `COMFYUI_STILLS_B` | Parallel boards |
+| Primary video model | `COMFYUI_PRIMARY` | MiniMax H3 video. **128 GB VRAM minimum.** Never stills by default. |
+| Primary image/video model | `COMFYUI_STILLS_A` or `COMFYUI_SECONDARY` | Flux / Z-Image boards |
+| Secondary image/video | `COMFYUI_STILLS_B` | Parallel boards |
 | LLM | `LLM_BASE_URL` / Settings | Any OpenAI-compatible model |
 
 H3 is not sent to a 3090. If both 3090s are down, Flux boards may use Spark. Video graphs never fail over to a 3090.
@@ -19,8 +19,8 @@ Produce model menus (also `GET /api/produce/models`):
 
 | Lane | Default | Also in the repo |
 | --- | --- | --- |
-| Boards · 3090s | Flux 2 | Flux Turbo, Klein 9B, Z-Image, ERNIE, character sheet |
-| Takes · Spark | MiniMax H3 | LTX 2.3, LTX NVFP4, Wan 2.2 |
+| Boards · primary image/video | Flux 2 | Flux Turbo, Klein 9B, Z-Image, ERNIE, character sheet |
+| Takes · primary video | MiniMax H3 | LTX 2.3, LTX NVFP4, Wan 2.2 |
 
 Drop any open-weight Comfy API graph in `workflows/` and it appears as a custom option. Video stays on Spark. Stills stay on the 3090s.
 

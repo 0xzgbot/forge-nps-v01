@@ -1,6 +1,6 @@
 # Produce in four minutes
 
-Home is **`/`**. Soft white, one prompt, four lights. Hermes directs. Dual 3090s paint boards. Spark MiniMax H3 shoots. ffmpeg cuts. **`/studio`** is the old campaign app.
+Home is **`/`**. Soft white, one prompt, four lights. Hermes directs. Primary image/video paints boards. Primary video (128 GB VRAM min) shoots. ffmpeg cuts. **`/studio`** is the old campaign app.
 
 You do not need the GPUs on to learn the desk. Queue items wait. This page is the desk, not a second product.
 
@@ -22,19 +22,19 @@ Top right: **Connect**. Four fields, four lights in the header.
 
 | Light | Field | What it is |
 | --- | --- | --- |
-| Spark | Spark (H3 video) | MiniMax H3 only. Never stills by default. |
-| 3090A | 3090 A (stills) | Flux / Z-Image boards |
-| 3090B | 3090 B (stills) | Second board GPU, optional |
+| Primary video | Primary video model | H3 / LTX / Wan. **128 GB VRAM minimum.** Never stills by default. |
+| Primary I/V | Primary image/video model | Flux / Z-Image boards (and image/video graphs you drop in) |
+| Secondary I/V | Secondary image/video | Second board host, optional |
 | LLM | Language model | Any OpenAI-compatible endpoint |
 
-Green means `/system_stats` answered. Grey means configured but down. Video graphs never go to a 3090. Boards do not require Spark.
+Green means `/system_stats` answered. Grey means configured but down. Video graphs stay on primary video. Boards do not require primary video.
 
 ## 3. Pick models, Scout or Shoot, then Produce
 
 Home has two menus:
 
-- **Boards · 3090s** — Flux 2 (default), Flux Turbo, Klein 9B, Z-Image, ERNIE, or any stills graph you drop in `workflows/`.
-- **Takes · Spark** — MiniMax H3 (default, stereo), LTX 2.3, Wan 2.2, or any video graph you drop in `workflows/`.
+- **Boards · primary image/video** — Flux 2 (default), Flux Turbo, Klein 9B, Z-Image, ERNIE, or any stills graph you drop in `workflows/`.
+- **Takes · primary video** — MiniMax H3 (default, stereo), LTX 2.3, Wan 2.2, or any video graph you drop in `workflows/`. 128 GB VRAM minimum.
 
 Wan 2.2 is I2V only. Scout on Wan will board first.
 

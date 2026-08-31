@@ -275,7 +275,7 @@
     }
     .drop input { margin-top: 6px; }
     .eta { font-size: 12px; color: var(--mute); }
-    .pick { display: flex; flex-direction: column; gap: 2px; min-width: 148px; }
+    .pick { display: flex; flex-direction: column; gap: 2px; min-width: 168px; }
     .pick span { font-size: 11px; color: var(--mute); font-weight: 500; }
     .pick select {
       border: 0; background: #f2f2f7; border-radius: 980px;
@@ -378,7 +378,7 @@
     <div class="brand"><span class="mark" aria-hidden="true"></span><strong>Cinesmith</strong></div>
     <nav>
       <span id="link-status">Checking connection…</span>
-      <div class="lights" id="lights" title="Spark / 3090 A / 3090 B / LLM"></div>
+      <div class="lights" id="lights" title="Primary video · Primary image/video · Secondary image/video · LLM"></div>
       <button type="button" class="nav-btn" id="open-settings">Connect</button>
       <a href="/studio" class="legacy">Studio</a>
     </nav>
@@ -394,7 +394,7 @@
   <main>
     <p class="eyebrow">Produce</p>
     <h1>What should we make?</h1>
-    <p class="lede">Hermes writes the story. 3090s paint boards. Spark shoots the take. Pick Flux or H3, or any open-weight graph you dropped in workflows/.</p>
+    <p class="lede">Hermes writes the story. Primary image/video paints boards. Primary video (128&nbsp;GB VRAM min) shoots the take. Pick Flux or H3, or any open-weight graph you dropped in workflows/.</p>
     <div class="samples" id="samples"></div>
     <div class="samples tips" id="suggestions"></div>
     <div class="composer">
@@ -404,10 +404,10 @@
         <button class="chip on" id="mode-shoot" type="button">Shoot</button>
         <button class="chip" id="mode-scout" type="button">Scout</button>
       </div>
-      <label class="pick"><span>Boards · 3090s</span>
+      <label class="pick"><span>Boards · primary image/video</span>
         <select id="stills-model"></select>
       </label>
-      <label class="pick"><span>Takes · Spark</span>
+      <label class="pick"><span>Takes · primary video</span>
         <select id="video-model"></select>
       </label>
       <button class="primary" id="go" type="button">Produce</button>
@@ -452,18 +452,19 @@
   <div class="pane" id="drawer">
     <form class="sheet" id="settings">
       <h2 style="letter-spacing:-0.03em;margin-bottom:8px;font-size:20px;">Connect</h2>
-      <p class="lede">Language model plus four hosts. Spark runs video (H3, LTX, Wan, or a graph you drop in). 3090s run stills (Flux, Z-Image, ERNIE, or yours).</p>
+      <p class="lede">Language model plus three GPU hosts. Primary video needs 128&nbsp;GB VRAM minimum (H3, LTX, Wan, or a graph you drop in). Primary and secondary image/video run boards (Flux, Z-Image, ERNIE, or yours). Video graphs stay on primary video.</p>
       <label>Language model endpoint</label>
       <input id="llm-url" placeholder="http://localhost:1234/v1">
       <label>Model name</label>
       <input id="llm-model" placeholder="local model id, or openai/gpt-4.1">
       <label>API key</label>
       <input id="llm-key" type="password" placeholder="Leave blank for local">
-      <label>Spark (video)</label>
+      <label>Primary video model</label>
       <input id="spark-url" placeholder="http://localhost:8188">
-      <label>3090 A (stills)</label>
+      <p class="meta">128 GB VRAM minimum. Never stills by default.</p>
+      <label>Primary image/video model</label>
       <input id="stills-a" placeholder="http://localhost:8189">
-      <label>3090 B (stills, optional)</label>
+      <label>Secondary image/video</label>
       <input id="stills-b" placeholder="http://host:8189">
       <div class="row" style="margin-top:22px;">
         <button class="primary" type="submit">Save</button>
@@ -978,9 +979,9 @@
         el.className = "";
       }
       $("lights").innerHTML =
-        lightRow("spark", "Spark", data.spark) +
-        lightRow("a", "3090A", data.stills_a) +
-        lightRow("b", "3090B", data.stills_b) +
+        lightRow("spark", "Primary video", data.spark) +
+        lightRow("a", "Primary I/V", data.stills_a) +
+        lightRow("b", "Secondary I/V", data.stills_b) +
         lightRow("llm", "LLM", {
           ok: !!llm.reachable,
           configured: !!(llm.configured || llm.ready),
@@ -1554,7 +1555,7 @@
         takeBinHtml(data, selectedShotId) +
         takeCompareHtml(data, selectedShotId) +
         commentHtml(data, selectedShotId) +
-        '<p class="eta">Click a board to inspect. Trim is local ffmpeg. Retake on the timeline sends a new take to Spark.</p></aside>';
+        '<p class="eta">Click a board to inspect. Trim is local ffmpeg. Retake on the timeline sends a new take to primary video.</p></aside>';
     }
 
     function commentHtml(data, shotId) {
