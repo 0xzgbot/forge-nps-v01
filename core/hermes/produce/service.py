@@ -117,6 +117,18 @@ class ProduceService:
         elif files.get("script.md") and stage == "story":
             stage = "script"
         action = produce_ops.next_action(path)
+        peek = produce_desk.peek_script(path)
+        scenes = peek.get("scenes") or []
+        if (
+            scenes
+            and len(shots) < len(scenes)
+            and action.get("id") in {"story", "boards"}
+        ):
+            action = {
+                "id": "import_script",
+                "label": f"Script has {len(scenes)} scene(s) and {len(shots)} shot(s). Merge the missing beats.",
+                "cta": "Import scenes",
+            }
         pending = produce_desk.pending_handoffs(path)
         if pending:
             row = pending[0]
@@ -156,13 +168,18 @@ class ProduceService:
             "music": bool(produce_ops.find_music(path)),
             "transition": str(meta.get("transition") or "cut"),
             "scorecard": produce_desk.scorecard(path),
-            "script": produce_desk.peek_script(path),
+            "script": peek,
             "cuts": produce_desk.list_cuts(path),
             "reviews": produce_desk.load_reviews(path),
             "last_assemble": produce_desk.last_assemble(path),
             "handoffs": produce_desk.load_handoffs(path),
             "identity_pack": meta.get("identity_pack") or {},
             "audio_manifest": "audio_manifest.json" if (path / "audio_manifest.json").exists() else "",
+            "audit": produce_desk.load_audit(path),
+            "trash": produce_ops.load_trash(path),
+            "burn_captions": bool(meta.get("burn_captions")),
+            "end_card": str(meta.get("end_card") or ""),
+            "color_preset": str(meta.get("color_preset") or ""),
             "identity": produce_render.list_identity(path),
             "cut": "cut.mp4" if (path / "cut.mp4").exists() else "",
             "error": meta.get("error") or "",

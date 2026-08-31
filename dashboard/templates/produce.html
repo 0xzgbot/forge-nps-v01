@@ -301,6 +301,11 @@
     .drop input { width: auto; background: transparent; border: 0; padding: 0; }
     body { -webkit-font-smoothing: antialiased; }
     .samples { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 22px; }
+    .samples.tips { margin-top: -10px; }
+    .samples.tips button { font-weight: 500; color: var(--mute, #6e6e73); }
+    .audit .finding { font-size: 13px; margin: 6px 0; color: var(--ink); }
+    .audit .finding.error { color: #b42318; }
+    .audit .finding.warn { color: #b54708; }
     .samples button {
       border: 1px solid var(--line); background: var(--card-solid); color: var(--ink);
       border-radius: 980px; padding: 8px 14px; font: inherit; font-size: 13px;
@@ -391,6 +396,7 @@
     <h1>What should we make?</h1>
     <p class="lede">Hermes writes the story. 3090s paint boards. Spark shoots the take. Pick Flux or H3, or any open-weight graph you dropped in workflows/.</p>
     <div class="samples" id="samples"></div>
+    <div class="samples tips" id="suggestions"></div>
     <div class="composer">
     <textarea id="prompt" placeholder="A courier misses the last train and walks home through a wet city. Two minutes. Quiet. No dialogue."></textarea>
     <div class="row">
@@ -486,6 +492,17 @@
         <option value="cut">Hard cut</option>
         <option value="crossfade">Crossfade</option>
       </select>
+      <label>Color</label>
+      <select id="export-color">
+        <option value="">None</option>
+        <option value="mild">Mild</option>
+        <option value="warm">Warm</option>
+        <option value="cool">Cool</option>
+        <option value="contrast">Contrast</option>
+      </select>
+      <label class="eta" style="display:block;margin-top:12px"><input type="checkbox" id="export-burn"> Burn captions on the cut</label>
+      <label>End card</label>
+      <input id="export-end" placeholder="Optional last-frame title">
       <p class="meta" id="export-music" style="margin-top:12px">No score yet. Drop a wav named music / bed / score under Identity.</p>
       <div class="row" style="margin-top:22px;">
         <button class="primary" type="button" id="export-save">Save &amp; assemble</button>
@@ -593,6 +610,30 @@
           $("prompt").focus();
         };
       });
+      loadSuggestions();
+    }
+
+    async function loadSuggestions() {
+      const box = $("suggestions");
+      if (!box) return;
+      const brief = $("prompt") ? $("prompt").value.trim() : "";
+      const resp = await fetch("/api/produce/suggestions?brief=" + encodeURIComponent(brief));
+      if (!resp.ok) return;
+      const data = await resp.json();
+      const rows = data.suggestions || [];
+      box.innerHTML = rows.map((s) =>
+        '<button type="button" data-sug="' + escapeHtml(s.id) + '" title="' + escapeHtml(s.body || "") + '">' +
+        escapeHtml(s.title || s.id) + "</button>"
+      ).join("");
+      box.querySelectorAll("[data-sug]").forEach((el) => {
+        el.onclick = () => {
+          const row = rows.find((s) => s.id === el.getAttribute("data-sug"));
+          if (!row) return;
+          if (row.prompt) $("prompt").value = row.prompt;
+          else if (row.body) $("prompt").placeholder = row.body;
+          $("prompt").focus();
+        };
+      });
     }
 
     function typing() {
@@ -610,6 +651,9 @@
         { id: "add", label: "Add shot", kbd: "N", run: () => addShot() },
         { id: "enhance", label: "Enhance selected shot", kbd: "", run: () => enhanceShot() },
         { id: "captions", label: "Regenerate captions", kbd: "", run: () => regenCaptions() },
+        { id: "audit", label: "Audit continuity (text)", kbd: "", run: () => runAudit() },
+        { id: "import", label: "Import script scenes", kbd: "", run: () => importScriptShots() },
+        { id: "undo", label: "Undo last deleted shot", kbd: "", run: () => undeleteShot() },
         { id: "dup", label: "Duplicate job", kbd: "", run: () => duplicateJob() },
         { id: "board", label: "Board selected shot", kbd: "B", run: () => selectedShotId && shotAction("board", selectedShotId) },
         { id: "take", label: "Take selected shot", kbd: "T", run: () => selectedShotId && shotAction("take", selectedShotId) },
@@ -695,6 +739,9 @@
       $("export-title").value = data.title || "";
       $("export-fade").value = data.fade_sec != null ? data.fade_sec : 0.3;
       if ($("export-transition")) $("export-transition").value = data.transition === "crossfade" ? "crossfade" : "cut";
+      if ($("export-color")) $("export-color").value = data.color_preset || "";
+      if ($("export-burn")) $("export-burn").checked = !!data.burn_captions;
+      if ($("export-end")) $("export-end").value = data.end_card || "";
       $("export-music").textContent = data.music
         ? "Score found in identity. It will mix under the cut."
         : "No score yet. Drop a wav named music / bed / score under Identity.";
@@ -716,6 +763,9 @@
           title: $("export-title").value,
           fade_sec: Number($("export-fade").value),
           transition: $("export-transition") ? $("export-transition").value : "cut",
+          color_preset: $("export-color") ? $("export-color").value : "",
+          burn_captions: $("export-burn") ? !!$("export-burn").checked : false,
+          end_card: $("export-end") ? $("export-end").value : "",
         }),
       });
       closePanes();
@@ -763,6 +813,48 @@
       const resp = await fetch("/api/produce/" + encodeURIComponent(jobId) + "/shots/" + encodeURIComponent(shotId), { method: "DELETE" });
       selectedShotId = "";
       render(await resp.json());
+    }
+
+    async function undeleteShot() {
+      if (!jobId) return;
+      const resp = await fetch("/api/produce/" + encodeURIComponent(jobId) + "/shots/undelete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const data = await resp.json();
+      if (!resp.ok) { $("err").textContent = apiError(data, "undo failed"); return; }
+      if (data.shot && data.shot.id) selectedShotId = data.shot.id;
+      render(data);
+    }
+
+    async function moveShot(shotId, dir) {
+      if (!jobId || !shotId) return;
+      const direction = dir === "down" ? 1 : -1;
+      const resp = await fetch("/api/produce/" + encodeURIComponent(jobId) + "/shots/" + encodeURIComponent(shotId) + "/move", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ direction }),
+      });
+      const data = await resp.json();
+      if (!resp.ok) { $("err").textContent = apiError(data, "move failed"); return; }
+      render(data);
+    }
+
+    async function importScriptShots() {
+      if (!jobId) return;
+      const resp = await fetch("/api/produce/" + encodeURIComponent(jobId) + "/shots/import-script", { method: "POST" });
+      const data = await resp.json();
+      if (!resp.ok) { $("err").textContent = apiError(data, "import failed"); return; }
+      render(data);
+    }
+
+    async function runAudit() {
+      if (!jobId) return;
+      const resp = await fetch("/api/produce/" + encodeURIComponent(jobId) + "/audit", { method: "POST" });
+      const data = await resp.json();
+      if (!resp.ok) { $("err").textContent = apiError(data, "audit failed"); return; }
+      render(data);
     }
 
     async function reviewShot(decision) {
@@ -1171,6 +1263,16 @@
       } else if (files["script.md"]) {
         blocks.push(card("Script", files["script.md"]));
       }
+      const audit = data.audit || {};
+      if ((audit.findings || []).length) {
+        blocks.unshift('<article class="audit"><h2>Continuity (text)</h2>' +
+          '<p class="meta">' + escapeHtml(audit.honest || "Text overlap only.") +
+          " · " + escapeHtml(audit.grade || "") + "</p>" +
+          audit.findings.map((f) =>
+            '<div class="finding ' + escapeHtml(f.severity || "") + '">' +
+            escapeHtml(f.detail || f.kind || "") + "</div>"
+          ).join("") + "</article>");
+      }
       if (files["storyboard.md"]) blocks.push(card("Storyboard", files["storyboard.md"]));
       const shots = data.shots || [];
       lastSnap = data;
@@ -1187,6 +1289,9 @@
           '<div class="row"><button class="ghost" type="button" id="board-all">Queue boards / takes</button>' +
           '<button class="ghost" type="button" id="run-queue">Run queue</button>' +
           '<button class="ghost" type="button" id="add-shot-inline">Add shot</button>' +
+          '<button class="ghost" type="button" id="import-script">Import scenes</button>' +
+          '<button class="ghost" type="button" id="run-audit">Audit text</button>' +
+          ((data.trash || []).length ? '<button class="ghost" type="button" id="undo-shot">Undo delete</button>' : "") +
           '<label class="eta"><input type="checkbox" id="color-pass"' + (data.color_pass ? " checked" : "") + "> Color pass</label>" +
           '<span class="kbd-hint">⌘K commands · B board · T take · A assemble</span></div>';
       }
@@ -1287,6 +1392,12 @@
       $("work").querySelectorAll("[data-shot-act]").forEach((btn) => {
         btn.onclick = () => shotAction(btn.getAttribute("data-shot-act"), btn.getAttribute("data-shot"));
       });
+      $("work").querySelectorAll("[data-shot-move]").forEach((btn) => {
+        btn.onclick = (ev) => {
+          ev.stopPropagation();
+          moveShot(btn.getAttribute("data-shot"), btn.getAttribute("data-shot-move"));
+        };
+      });
       const assemble = $("assemble");
       if (assemble) assemble.onclick = assembleCut;
       const boardAll = $("board-all");
@@ -1295,6 +1406,12 @@
       if (runQueue) runQueue.onclick = runQueueNow;
       const addInline = $("add-shot-inline");
       if (addInline) addInline.onclick = addShot;
+      const importBtn = $("import-script");
+      if (importBtn) importBtn.onclick = importScriptShots;
+      const auditBtn = $("run-audit");
+      if (auditBtn) auditBtn.onclick = runAudit;
+      const undoBtn = $("undo-shot");
+      if (undoBtn) undoBtn.onclick = undeleteShot;
       const exportInline = $("open-export-inline");
       if (exportInline) exportInline.onclick = openExport;
       const coachCta = $("coach-cta");
@@ -1304,6 +1421,7 @@
           if (id === "boards" || id === "takes") queuePlan();
           else if (id === "assemble") assembleCut();
           else if (id === "export") openExport();
+          else if (id === "import_script") importScriptShots();
           else if (id === "handoff") openBot((lastSnap.next_action || {}).bot || "video");
         };
       }
@@ -1523,6 +1641,8 @@
         '<div class="meta">' + escapeHtml(shot.status || "planned") +
         (shot.purpose ? " · " + escapeHtml(String(shot.purpose).slice(0, 80)) : "") + "</div>" +
         '<div class="actions">' +
+        '<button type="button" data-shot-move="up" data-shot="' + escapeHtml(id) + '">Up</button>' +
+        '<button type="button" data-shot-move="down" data-shot="' + escapeHtml(id) + '">Down</button>' +
         '<button type="button" data-shot-act="board" data-shot="' + escapeHtml(id) + '">Board</button>' +
         '<button type="button" data-shot-act="approve" data-shot="' + escapeHtml(id) + '">Approve</button>' +
         '<button type="button" data-shot-act="take" data-shot="' + escapeHtml(id) + '">Take</button>' +

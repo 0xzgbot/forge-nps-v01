@@ -440,6 +440,229 @@ def refresh_identity_pack(job_dir: Path) -> Dict[str, Any]:
     return pack
 
 
+AUDIT_STOP = {
+    "int", "ext", "scene", "shot", "cast", "notes", "character", "characters",
+    "product", "status", "the", "and", "for", "with", "from", "this", "that",
+    "script", "story", "board", "video", "editor", "producer",
+}
+NAME_LINE_RE = re.compile(
+    r"(?:^|\n)\s*(?:#{1,3}\s+|\-\s+\*{0,2}|\*\*)([A-Z][A-Za-z][A-Za-z' \-]{1,40})"
+)
+WARDROBE_RE = re.compile(
+    r"\b(red|blue|black|white|green|yellow|brown|grey|gray|navy|olive|gold|silver|"
+    r"crimson|ivory)\s+(coat|jacket|dress|shirt|suit|hat|hoodie|raincoat)\b",
+    re.IGNORECASE,
+)
+HAIR_RE = re.compile(
+    r"\b(blonde|blond|brunette|redhead|bald|black hair|brown hair|red hair|grey hair|gray hair)\b",
+    re.IGNORECASE,
+)
+
+
+def _read_text(job_dir: Path, name: str) -> str:
+    path = Path(job_dir) / name
+    if not path.exists() or not path.is_file():
+        return ""
+    try:
+        return path.read_text(encoding="utf-8")
+    except Exception:
+        return ""
+
+
+def _character_names(job_dir: Path) -> List[str]:
+    names: List[str] = []
+    for source in ("characters.md", "story.md"):
+        text = _read_text(job_dir, source)
+        for match in NAME_LINE_RE.finditer(text):
+            raw = match.group(1).strip().strip("*").strip(":").strip()
+            token = raw.split("(")[0].strip()
+            first = token.split()[0] if token else ""
+            if first.lower() in AUDIT_STOP or len(first) < 3:
+                continue
+            if token not in names:
+                names.append(token)
+    peek = peek_script(job_dir)
+    for name in peek.get("characters") or []:
+        label = str(name).strip()
+        if label and label not in names and label.split()[0].lower() not in AUDIT_STOP:
+            names.append(label)
+    return names[:24]
+
+
+def _identity_tokens(job_dir: Path) -> List[str]:
+    tokens: List[str] = []
+    pack = produce_render.load_job_meta(job_dir).get("identity_pack")
+    if isinstance(pack, dict):
+        for item in pack.get("identity_tokens") or []:
+            word = str(item).strip()
+            if word and word.lower() not in AUDIT_STOP and word not in tokens:
+                tokens.append(word)
+    for name in produce_render.list_identity(job_dir):
+        stem = Path(name).stem.replace("-", " ").replace("_", " ").strip()
+        if stem and stem.lower() not in {"music", "bed", "score", "voice"} and stem not in tokens:
+            tokens.append(stem)
+    ident = _read_text(job_dir, "identity.md")
+    for line in ident.splitlines():
+        word = line.strip().lstrip("-* ").strip()
+        if word and len(word) < 48 and word not in tokens:
+            tokens.append(word)
+    return tokens[:24]
+
+
+def _shot_corpus(job_dir: Path) -> str:
+    parts = [
+        _read_text(job_dir, "story.md"),
+        _read_text(job_dir, "script.md"),
+        _read_text(job_dir, "storyboard.md"),
+    ]
+    for shot in produce_render.load_shots(job_dir):
+        parts.append(str(shot.get("h3_prompt") or ""))
+        parts.append(str(shot.get("visual") or ""))
+        parts.append(str(shot.get("purpose") or ""))
+    return " ".join(parts).lower()
+
+
+def audit_continuity(job_dir: Path) -> Dict[str, Any]:
+    """Text lock check against characters / identity / wardrobe words. Not a vision model."""
+    job_dir = Path(job_dir)
+    findings: List[Dict[str, Any]] = []
+    names = _character_names(job_dir)
+    tokens = _identity_tokens(job_dir)
+    corpus = _shot_corpus(job_dir)
+    shot_text = " ".join(
+        str(s.get("h3_prompt") or s.get("visual") or "")
+        for s in produce_render.load_shots(job_dir)
+    ).lower()
+    for name in names:
+        needle = name.lower()
+        if needle not in corpus and needle.split()[0] not in corpus:
+            findings.append(
+                {
+                    "kind": "missing_character",
+                    "severity": "warn",
+                    "detail": f"{name} is listed but never appears in story, script, or shot prompts.",
+                }
+            )
+    for token in tokens:
+        needle = token.lower()
+        if needle not in shot_text and not any(part in shot_text for part in needle.split() if len(part) > 3):
+            findings.append(
+                {
+                    "kind": "identity_unlocked",
+                    "severity": "warn",
+                    "detail": f"Identity lock “{token}” is not in any shot prompt.",
+                }
+            )
+    wardrobe: Dict[str, set] = {}
+    hair: set = set()
+    for shot in produce_render.load_shots(job_dir):
+        body = str(shot.get("h3_prompt") or shot.get("visual") or "")
+        for match in WARDROBE_RE.finditer(body):
+            item = match.group(2).lower()
+            color = match.group(1).lower()
+            wardrobe.setdefault(item, set()).add(color)
+        for match in HAIR_RE.finditer(body):
+            hair.add(match.group(1).lower())
+    for item, colors in wardrobe.items():
+        if len(colors) > 1:
+            findings.append(
+                {
+                    "kind": "wardrobe_conflict",
+                    "severity": "error",
+                    "detail": f"{item} is described as both {' and '.join(sorted(colors))}.",
+                }
+            )
+    if len(hair) > 1:
+        findings.append(
+            {
+                "kind": "hair_conflict",
+                "severity": "error",
+                "detail": "Hair is described as " + " and ".join(sorted(hair)) + ".",
+            }
+        )
+    peek = peek_script(job_dir)
+    scenes = peek.get("scenes") or []
+    shots = produce_render.load_shots(job_dir)
+    if scenes and len(shots) < len(scenes):
+        findings.append(
+            {
+                "kind": "script_ahead",
+                "severity": "info",
+                "detail": f"Script has {len(scenes)} scene(s); shot list has {len(shots)}.",
+            }
+        )
+    errors = sum(1 for f in findings if f.get("severity") == "error")
+    warns = sum(1 for f in findings if f.get("severity") == "warn")
+    row = {
+        "ok": True,
+        "findings": findings,
+        "characters": names,
+        "identity_tokens": tokens,
+        "errors": errors,
+        "warnings": warns,
+        "grade": "tight" if not findings else ("held" if errors == 0 else "loose"),
+        "created_at": time.time(),
+        "honest": "Text overlap only. Does not look at frames.",
+    }
+    (job_dir / "audit.json").write_text(json.dumps(row, indent=2), encoding="utf-8")
+    return row
+
+
+def load_audit(job_dir: Path) -> Dict[str, Any]:
+    target = Path(job_dir) / "audit.json"
+    if not target.exists():
+        return {}
+    try:
+        data = json.loads(target.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def import_script_shots(job_dir: Path) -> Dict[str, Any]:
+    """Merge script scenes into the shot list. Does not replace Hermes shots."""
+    job_dir = Path(job_dir)
+    peek = peek_script(job_dir)
+    scenes = peek.get("scenes") or []
+    shots = produce_render.load_shots(job_dir)
+    existing = " ".join(
+        " ".join(str(s.get(k) or "") for k in ("id", "purpose", "visual", "h3_prompt"))
+        for s in shots
+    ).lower()
+    added: List[Dict[str, Any]] = []
+    skipped = 0
+    for scene in scenes:
+        heading = str(scene.get("id") or "").strip()
+        visual = str(scene.get("visual") or scene.get("action") or "").strip()
+        if not heading and not visual:
+            skipped += 1
+            continue
+        key = (heading + " " + visual).strip().lower()
+        heading_l = heading.lower()
+        if (heading_l and heading_l in existing) or (key and key in existing):
+            skipped += 1
+            continue
+        shot = produce_ops.add_shot(
+            job_dir,
+            purpose=heading or (visual[:80] or "Scene"),
+            visual=visual or heading,
+        )
+        produce_render.patch_shot(
+            job_dir,
+            shot["id"],
+            {"imported_from": "script", "h3_prompt": visual or heading},
+        )
+        added.append(produce_render.get_shot(job_dir, shot["id"]) or shot)
+        existing = existing + " " + key
+    return {
+        "ok": True,
+        "added": added,
+        "skipped": skipped,
+        "scenes": len(scenes),
+        "shots": produce_render.load_shots(job_dir),
+    }
+
+
 def write_audio_manifest(job_dir: Path) -> Path:
     from agents.audio.audio_agent import AudioAgent
 

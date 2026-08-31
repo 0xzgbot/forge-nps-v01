@@ -46,6 +46,8 @@ Drop any open-weight Comfy API graph in `workflows/` and it appears as a custom 
 | `cut.mp4` | Assembled film |
 | `cut.srt` | Captions from shot purpose/visual |
 | `comments.json` | Shot notes |
+| `audit.json` | Text continuity findings (not frames) |
+| `trash.json` | Last deleted shot(s) for undo |
 | `STATUS.md` | Honest one-liner |
 
 ## Queue
@@ -61,7 +63,7 @@ If Spark or a 3090 is down, items stay `waiting_for_host`. **Run queue** when th
 - Timeline: reorder, mute, **Trim** (local ffmpeg in/out), range **Retake** (Spark).
 - Project bar: rename, continuity grade, add shot, duplicate, **Export**.
 - Sample briefs, ⌘K command palette, keyboard B/T/A.
-- **Export** sheet: aspect (16:9 / 9:16 / 1:1 / 2.39), fade, title card, mix score. Assemble also writes `cut.srt`.
+- **Export** sheet: aspect (16:9 / 9:16 / 1:1 / 2.39), fade, title card, mix score, hard cut or crossfade, color preset, burn captions, end card. Assemble also writes `cut.srt`.
 - **Handoff zip** next to Assemble cut.
 - Queue panel with a rough ETA. Color pass optional.
 - Coach chip: next honest step (boards → takes → assemble → export).
@@ -70,20 +72,24 @@ If Spark or a 3090 is down, items stay `waiting_for_host`. **Run queue** when th
 - Script peek and a prompt-overlap scorecard. LLM light is reachable, not just configured.
 - Export transition: hard cut or crossfade.
 - Review notes queue for the matching Hermes profile (`@video` / `@storyboard` / `@story`). The bot sheet prefills; Send includes the job brief. Identity pack + `audio_manifest.json` travel with the handoff zip.
+- **Audit text** checks character names, identity tokens, and wardrobe/hair words. **Import scenes** merges script beats into the shot list. Shot cards have Up/Down. **Undo delete** restores the last trashed shot.
 
 ## API (selected)
 
 - `POST /api/produce/start` `{prompt, produce_mode, stills_model, video_model, title, aspect}`
 - `GET /api/produce/models`
 - `GET /api/produce/samples`
+- `GET /api/produce/suggestions`
 - `GET` / `POST /api/produce/elements`
 - `GET /api/produce/{job}`
 - `POST /api/produce/{job}/render-board` / `render-take` / `range-retake`
 - `POST /api/produce/{job}/queue` / `queue/plan` / `queue/run`
 - `POST` / `DELETE /api/produce/{job}/shots` / `shots/{shot_id}`
+- `POST /api/produce/{job}/shots/import-script` / `shots/undelete` / `shots/{shot_id}/move`
+- `POST /api/produce/{job}/audit`
 - `PUT /api/produce/{job}/shots/{shot_id}`
 - `POST /api/produce/{job}/upload`
-- `PUT /api/produce/{job}/options` `{color_pass, stills_model, video_model, title, aspect, fade_sec}`
+- `PUT /api/produce/{job}/options` `{color_pass, stills_model, video_model, title, aspect, fade_sec, transition, burn_captions, end_card, color_preset}`
 - `POST /api/produce/{job}/assemble`
 - `POST /api/produce/{job}/comments` / `duplicate` / `rename` / `captions`
 - `POST /api/produce/{job}/review` / `ab` / `enhance` / `grab-still` / `cuts/restore`

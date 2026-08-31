@@ -131,13 +131,165 @@ def add_shot(job_dir: Path, *, purpose: str = "", visual: str = "") -> Dict[str,
     return shot
 
 
+def trash_path(job_dir: Path) -> Path:
+    return Path(job_dir) / "trash.json"
+
+
+def load_trash(job_dir: Path) -> List[Dict[str, Any]]:
+    target = trash_path(job_dir)
+    if not target.exists():
+        return []
+    try:
+        data = json.loads(target.read_text(encoding="utf-8"))
+    except Exception:
+        return []
+    rows = data if isinstance(data, list) else data.get("trash")
+    if not isinstance(rows, list):
+        return []
+    return [row for row in rows if isinstance(row, dict)]
+
+
+def save_trash(job_dir: Path, rows: List[Dict[str, Any]]) -> None:
+    trash_path(job_dir).write_text(json.dumps(rows, indent=2), encoding="utf-8")
+
+
 def delete_shot(job_dir: Path, shot_id: str) -> Dict[str, Any]:
     wanted = str(shot_id or "").strip()
-    shots = [s for s in produce_render.load_shots(job_dir) if str(s.get("id")) != wanted]
-    produce_render.save_shots(job_dir, shots)
+    shots = produce_render.load_shots(job_dir)
+    kept: List[Dict[str, Any]] = []
+    removed: List[Dict[str, Any]] = []
+    for shot in shots:
+        if str(shot.get("id")) == wanted:
+            removed.append(shot)
+        else:
+            kept.append(shot)
+    if removed:
+        trash = load_trash(job_dir)
+        for shot in removed:
+            trash.append({"shot": shot, "deleted_at": time.time()})
+        save_trash(job_dir, trash)
+    produce_render.save_shots(job_dir, kept)
     edit = [row for row in produce_render.load_edit(job_dir) if str(row.get("shot_id")) != wanted]
     produce_render.save_edit(job_dir, edit)
-    return {"ok": True, "shot_id": wanted, "remaining": len(shots)}
+    return {"ok": True, "shot_id": wanted, "remaining": len(kept), "trashed": len(removed)}
+
+
+def undelete_shot(job_dir: Path, shot_id: str = "") -> Dict[str, Any]:
+    wanted = str(shot_id or "").strip()
+    trash = load_trash(job_dir)
+    if not trash:
+        return {"ok": False, "error": "trash_empty"}
+    idx = -1
+    if wanted:
+        for i, row in enumerate(trash):
+            shot = row.get("shot") if isinstance(row.get("shot"), dict) else {}
+            if str(shot.get("id")) == wanted:
+                idx = i
+                break
+        if idx < 0:
+            return {"ok": False, "error": "not_in_trash"}
+    else:
+        idx = len(trash) - 1
+    row = trash.pop(idx)
+    shot = dict(row.get("shot") or {})
+    if not shot.get("id"):
+        save_trash(job_dir, trash)
+        return {"ok": False, "error": "bad_trash"}
+    shots = produce_render.load_shots(job_dir)
+    if any(str(s.get("id")) == str(shot.get("id")) for s in shots):
+        n = len(shots) + 1
+        new_id = f"SHOT_{n:03d}"
+        while any(str(s.get("id")) == new_id for s in shots):
+            n += 1
+            new_id = f"SHOT_{n:03d}"
+        shot["id"] = new_id
+    shots.append(shot)
+    produce_render.save_shots(job_dir, shots)
+    save_trash(job_dir, trash)
+    return {"ok": True, "shot": shot, "remaining_trash": len(trash)}
+
+
+def move_shot(job_dir: Path, shot_id: str, direction: int) -> Dict[str, Any]:
+    wanted = str(shot_id or "").strip()
+    shots = produce_render.load_shots(job_dir)
+    idx = next((i for i, s in enumerate(shots) if str(s.get("id")) == wanted), -1)
+    if idx < 0:
+        return {"ok": False, "error": "shot_not_found"}
+    dest = idx + (1 if int(direction) > 0 else -1)
+    if dest < 0 or dest >= len(shots):
+        return {"ok": True, "moved": False, "shot_id": wanted, "index": idx}
+    shots[idx], shots[dest] = shots[dest], shots[idx]
+    produce_render.save_shots(job_dir, shots)
+    order = {str(s.get("id")): i for i, s in enumerate(shots)}
+    edit = produce_render.load_edit(job_dir)
+    if edit:
+        edit.sort(key=lambda row: order.get(str(row.get("shot_id")), 999))
+        produce_render.save_edit(job_dir, edit)
+    return {"ok": True, "moved": True, "shot_id": wanted, "index": dest}
+
+
+def brief_suggestions(*, brief: str = "", limit: int = 6) -> Dict[str, Any]:
+    """Produce-flavored chips. Wraps memory suggestions; never talks like Agency."""
+    from core.memory_suggestions import build_suggestions
+
+    raw = build_suggestions(brief=brief, limit=max(8, int(limit or 6)))
+    rows: List[Dict[str, Any]] = []
+    skip = {"tip_preset", "mem_resume_story"}
+    for item in raw.get("suggestions") or []:
+        sid = str(item.get("id") or "")
+        if sid in skip:
+            continue
+        body = str(item.get("body") or "")
+        body = (
+            body.replace("Open Stories", "Stay in Produce")
+            .replace("Agency", "Produce")
+            .replace("Script Studio", "Produce")
+        )
+        rows.append(
+            {
+                "id": sid,
+                "kind": item.get("kind") or "tip",
+                "title": item.get("title") or sid,
+                "body": body,
+                "prompt": "",
+            }
+        )
+    extras = [
+        {
+            "id": "tip_identity",
+            "kind": "continuity",
+            "title": "Lock a face first",
+            "body": "Drop a still under Identity before you spend Spark.",
+            "prompt": "",
+        },
+        {
+            "id": "tip_vertical",
+            "kind": "platform",
+            "title": "Vertical first frame",
+            "body": "Set 9:16 on export. Hook in the first two seconds.",
+            "prompt": SAMPLE_BRIEFS[4]["prompt"],
+        },
+        {
+            "id": "tip_quiet",
+            "kind": "workflow",
+            "title": "Quiet picture",
+            "body": "Two minutes. No dialogue. Hermes writes; you review.",
+            "prompt": SAMPLE_BRIEFS[0]["prompt"],
+        },
+    ]
+    seen = {str(r.get("id")) for r in rows}
+    for extra in extras:
+        if extra["id"] in seen:
+            continue
+        rows.append(extra)
+        seen.add(extra["id"])
+        if len(rows) >= int(limit or 6):
+            break
+    return {
+        "status": "ok",
+        "suggestions": rows[: max(1, int(limit or 6))],
+        "memory_events_scanned": raw.get("memory_events_scanned") or 0,
+    }
 
 
 def duplicate_job(src: Path, dest: Path) -> Path:

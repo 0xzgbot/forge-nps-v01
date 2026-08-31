@@ -85,6 +85,19 @@ def test_snapshot_includes_desk_fields(tmp_path: Path):
     assert out["script"]["format"] == "screenplay"
     assert out["transition"] == "cut"
     assert out["cuts"] == []
+    assert "audit" in out
+    assert "trash" in out
+    assert "burn_captions" in out
+
+
+def test_snapshot_suggests_import_when_script_ahead(tmp_path: Path):
+    service = ProduceService(tmp_path)
+    snap = service.start("Rain.", profile="producer")
+    job = service.job_dir(snap["job_id"])
+    (job / "script.md").write_text("INT. HALL — NIGHT\nA door.\n\nEXT. STREET — NIGHT\nHe walks.\n", encoding="utf-8")
+    produce_render.save_shots(job, [{"id": "SHOT_001", "visual": "door"}])
+    out = service.snapshot(snap["job_id"])
+    assert out["next_action"]["id"] == "import_script"
 
 
 def test_review_queues_video_handoff(tmp_path: Path):
@@ -134,6 +147,50 @@ def test_snapshot_handoff_becomes_next_action(tmp_path: Path):
     assert out["next_action"]["id"] == "handoff"
     assert out["next_action"]["bot"] == "video"
     assert out["handoffs"]
+
+
+def test_audit_flags_character_and_wardrobe(tmp_path: Path):
+    job = tmp_path / "job"
+    job.mkdir()
+    (job / "characters.md").write_text("- **Maya**: courier, black coat\n", encoding="utf-8")
+    produce_render.save_shots(
+        job,
+        [
+            {"id": "SHOT_001", "visual": "a man in a red coat walks the platform"},
+            {"id": "SHOT_002", "visual": "the same man in a blue coat under neon"},
+        ],
+    )
+    ident = job / "identity"
+    ident.mkdir()
+    (ident / "scar-left.png").write_bytes(b"png")
+    row = produce_desk.audit_continuity(job)
+    kinds = {f["kind"] for f in row["findings"]}
+    assert "missing_character" in kinds
+    assert "wardrobe_conflict" in kinds
+    assert "identity_unlocked" in kinds
+    assert (job / "audit.json").exists()
+    assert produce_desk.load_audit(job)["grade"] == "loose"
+
+
+def test_import_script_merges_without_replacing(tmp_path: Path):
+    job = tmp_path / "job"
+    job.mkdir()
+    produce_render.save_shots(
+        job,
+        [{"id": "SHOT_001", "purpose": "INT. PLATFORM — NIGHT", "visual": "Rain. Empty."}],
+    )
+    (job / "script.md").write_text(
+        "INT. PLATFORM — NIGHT\nRain. Empty.\n\nEXT. STREET — NIGHT\nHe walks.\n",
+        encoding="utf-8",
+    )
+    out = produce_desk.import_script_shots(job)
+    assert out["skipped"] >= 1
+    assert len(out["added"]) == 1
+    ids = [s["id"] for s in produce_render.load_shots(job)]
+    assert ids[0] == "SHOT_001"
+    assert "SHOT_002" in ids
+    again = produce_desk.import_script_shots(job)
+    assert again["added"] == []
 
 
 def test_assemble_archives_previous_cut(tmp_path: Path, monkeypatch):

@@ -93,6 +93,17 @@ class ProduceOptionsRequest(BaseModel):
     aspect: str = ""
     fade_sec: Optional[float] = None
     transition: str = ""
+    burn_captions: Optional[bool] = None
+    end_card: Optional[str] = None
+    color_preset: str = ""
+
+
+class ProduceMoveRequest(BaseModel):
+    direction: int = -1
+
+
+class ProduceUndeleteRequest(BaseModel):
+    shot_id: str = ""
 
 
 class ProduceQueueRunRequest(BaseModel):
@@ -228,6 +239,11 @@ async def produce_samples():
     }
 
 
+@router.get("/api/produce/suggestions")
+async def produce_suggestions(brief: str = ""):
+    return produce_ops.brief_suggestions(brief=brief, limit=6)
+
+
 @router.get("/api/produce/elements")
 async def produce_elements_list():
     return {"status": "ok", "elements": produce_elements.load_elements()}
@@ -270,6 +286,39 @@ async def produce_delete_shot(job_id: str, shot_id: str):
     path = _job_or_404(job_id)
     produce_ops.delete_shot(path, shot_id)
     return {"status": "ok", **_service.snapshot(job_id)}
+
+
+@router.post("/api/produce/{job_id}/shots/import-script")
+async def produce_import_script_shots(job_id: str):
+    path = _job_or_404(job_id)
+    result = produce_desk.import_script_shots(path)
+    return {"status": "ok", **result, **_service.snapshot(job_id)}
+
+
+@router.post("/api/produce/{job_id}/shots/{shot_id}/move")
+async def produce_move_shot(job_id: str, shot_id: str, req: Optional[ProduceMoveRequest] = None):
+    path = _job_or_404(job_id)
+    direction = req.direction if req else -1
+    result = produce_ops.move_shot(path, shot_id, direction)
+    if not result.get("ok"):
+        raise CinesmithAPIError(result.get("error") or "move_failed", status_code=400)
+    return {"status": "ok", **result, **_service.snapshot(job_id)}
+
+
+@router.post("/api/produce/{job_id}/shots/undelete")
+async def produce_undelete_shot(job_id: str, req: Optional[ProduceUndeleteRequest] = None):
+    path = _job_or_404(job_id)
+    result = produce_ops.undelete_shot(path, (req.shot_id if req else "") or "")
+    if not result.get("ok"):
+        raise CinesmithAPIError(result.get("error") or "undelete_failed", status_code=400)
+    return {"status": "ok", **result, **_service.snapshot(job_id)}
+
+
+@router.post("/api/produce/{job_id}/audit")
+async def produce_audit(job_id: str):
+    path = _job_or_404(job_id)
+    audit = produce_desk.audit_continuity(path)
+    return {"status": "ok", "audit": audit, **_service.snapshot(job_id)}
 
 
 @router.get("/api/produce/{job_id}/comments")
@@ -522,6 +571,13 @@ async def produce_options(job_id: str, req: ProduceOptionsRequest):
     if req.transition:
         key = str(req.transition).strip().lower()
         meta["transition"] = "crossfade" if key in {"crossfade", "dissolve", "fade"} else "cut"
+    if req.burn_captions is not None:
+        meta["burn_captions"] = bool(req.burn_captions)
+    if req.end_card is not None:
+        meta["end_card"] = str(req.end_card).strip()[:80]
+    if req.color_preset:
+        key = str(req.color_preset).strip().lower()
+        meta["color_preset"] = key if key in {"mild", "warm", "cool", "contrast", "off", "none"} else ""
     if meta:
         produce_render.save_job_meta(path, meta)
     return {"status": "ok", **_service.snapshot(job_id)}

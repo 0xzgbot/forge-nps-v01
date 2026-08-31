@@ -14,6 +14,14 @@ ASPECTS = {
     "2.39": (1920, 804),
 }
 
+DEFAULT_COLOR_VF = "eq=contrast=1.04:saturation=1.06:gamma=0.98"
+COLOR_PRESETS = {
+    "mild": "eq=contrast=1.02:saturation=1.04",
+    "warm": "eq=contrast=1.04:saturation=1.08:gamma_r=1.04:gamma_b=0.96",
+    "cool": "eq=contrast=1.03:saturation=1.02:gamma_b=1.06:gamma_r=0.96",
+    "contrast": "eq=contrast=1.12:saturation=1.06",
+}
+
 FONTS = (
     "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
     "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
@@ -249,6 +257,113 @@ def crossfade_concat(clips: List[Path], dest: Path, *, fade_sec: float = 0.25) -
     return result
 
 
+def color_vf(preset: str = "") -> str:
+    key = str(preset or "").strip().lower()
+    return COLOR_PRESETS.get(key) or DEFAULT_COLOR_VF
+
+
+def apply_color(src: Path, dest: Path, preset: str = "mild") -> Dict[str, Any]:
+    ffmpeg = _ffmpeg()
+    if not ffmpeg:
+        shutil.copy2(src, dest)
+        return {"ok": True, "output": str(dest), "skipped": True, "preset": preset}
+    vf = color_vf(preset)
+    cmd = [
+        ffmpeg, "-y", "-i", str(src), "-vf", vf,
+        "-c:v", "libx264", "-pix_fmt", "yuv420p",
+        "-c:a", "copy",
+        "-movflags", "+faststart", str(dest),
+    ]
+    result = _run(cmd)
+    if not result["ok"]:
+        fallback = "eq=contrast=1.04:saturation=1.04"
+        cmd = [
+            ffmpeg, "-y", "-i", str(src), "-vf", fallback,
+            "-c:v", "libx264", "-pix_fmt", "yuv420p",
+            "-c:a", "aac", "-ac", "2",
+            "-movflags", "+faststart", str(dest),
+        ]
+        result = _run(cmd)
+        result["fallback"] = "eq"
+    if result["ok"] and dest.exists():
+        result["output"] = str(dest)
+        result["preset"] = preset or "mild"
+    return result
+
+
+def _subtitles_path(path: Path) -> str:
+    raw = str(path.resolve()).replace("\\", "/").replace(":", r"\:").replace("'", r"\'")
+    return raw
+
+
+def burn_srt(src: Path, dest: Path, srt_path: Path) -> Dict[str, Any]:
+    ffmpeg = _ffmpeg()
+    if not ffmpeg:
+        shutil.copy2(src, dest)
+        return {"ok": True, "output": str(dest), "skipped": True, "error": "ffmpeg_not_installed"}
+    if not Path(srt_path).exists():
+        shutil.copy2(src, dest)
+        return {"ok": True, "output": str(dest), "skipped": True, "error": "srt_missing"}
+    vf = f"subtitles='{_subtitles_path(Path(srt_path))}'"
+    cmd = [
+        ffmpeg, "-y", "-i", str(src), "-vf", vf,
+        "-c:v", "libx264", "-pix_fmt", "yuv420p",
+        "-c:a", "copy",
+        "-movflags", "+faststart", str(dest),
+    ]
+    result = _run(cmd)
+    if not result["ok"]:
+        encode = [
+            ffmpeg, "-y", "-i", str(src), "-vf", vf,
+            "-c:v", "libx264", "-pix_fmt", "yuv420p",
+            "-c:a", "aac", "-ac", "2",
+            "-movflags", "+faststart", str(dest),
+        ]
+        result = _run(encode)
+    if result["ok"] and dest.exists():
+        result["output"] = str(dest)
+    return result
+
+
+def burn_end_card(src: Path, dest: Path, text: str, *, seconds: float = 2.4) -> Dict[str, Any]:
+    ffmpeg = _ffmpeg()
+    font = _font()
+    title = (text or "").replace("\\", " ").replace("'", "’")[:80]
+    if not ffmpeg:
+        shutil.copy2(src, dest)
+        return {"ok": True, "output": str(dest), "skipped": True, "error": "ffmpeg_not_installed"}
+    if not title or not font:
+        shutil.copy2(src, dest)
+        return {"ok": True, "output": str(dest), "skipped": True}
+    duration = probe_duration(src)
+    start = max(0.0, duration - max(0.6, float(seconds))) if duration else 0.0
+    end = duration if duration else max(0.6, float(seconds))
+    escaped = title.replace(":", "\\:").replace("%", "\\%")
+    vf = (
+        f"drawtext=fontfile={font}:text='{escaped}':fontsize=36:fontcolor=white:"
+        f"x=(w-text_w)/2:y=(h-text_h)/2:enable='between(t,{start:.3f},{end:.3f})':"
+        f"shadowcolor=black@0.7:shadowx=2:shadowy=2"
+    )
+    cmd = [
+        ffmpeg, "-y", "-i", str(src), "-vf", vf,
+        "-c:v", "libx264", "-pix_fmt", "yuv420p",
+        "-c:a", "copy",
+        "-movflags", "+faststart", str(dest),
+    ]
+    result = _run(cmd)
+    if not result["ok"]:
+        encode = [
+            ffmpeg, "-y", "-i", str(src), "-vf", vf,
+            "-c:v", "libx264", "-pix_fmt", "yuv420p",
+            "-c:a", "aac", "-ac", "2",
+            "-movflags", "+faststart", str(dest),
+        ]
+        result = _run(encode)
+    if result["ok"] and dest.exists():
+        result["output"] = str(dest)
+    return result
+
+
 def apply_finish(
     cut: Path,
     dest: Path,
@@ -257,6 +372,10 @@ def apply_finish(
     title: str = "",
     music: Optional[Path] = None,
     fade_sec: float = 0.3,
+    color_preset: str = "",
+    burn_captions: bool = False,
+    srt: Optional[Path] = None,
+    end_card: str = "",
 ) -> Dict[str, Any]:
     """Post-process an assembled cut into a deliverable."""
     work = dest.parent / ".finish"
@@ -280,6 +399,24 @@ def apply_finish(
         steps["title"] = r
         if r.get("ok"):
             current = titled
+    if color_preset:
+        graded = work / "graded.mp4"
+        r = apply_color(current, graded, preset=color_preset)
+        steps["color"] = r
+        if r.get("ok"):
+            current = graded
+    if burn_captions and srt and Path(srt).exists():
+        captioned = work / "captioned.mp4"
+        r = burn_srt(current, captioned, Path(srt))
+        steps["captions"] = r
+        if r.get("ok"):
+            current = captioned
+    if end_card:
+        ended = work / "endcard.mp4"
+        r = burn_end_card(current, ended, end_card)
+        steps["end_card"] = r
+        if r.get("ok"):
+            current = ended
     if music and Path(music).exists():
         mixed = work / "mixed.mp4"
         r = mix_music(current, Path(music), mixed)

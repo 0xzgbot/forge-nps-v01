@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-08-31 - Local desk: audit, script merge, finish, undo
+
+No GPU required. Text continuity audit vs `characters.md` / identity tokens / wardrobe words (not a vision model). Script scenes merge into the shot list without replacing Hermes shots. Export can burn captions, drop an end card, and pick a color preset (mild / warm / cool / contrast). Deleted shots land in `trash.json` for undo; shot cards reorder. Home shows Produce-flavored brief chips next to samples.
+
 ## 2026-08-30 - Review notes go to the matching Hermes profile
 
 Needs work / Reject queues a handoff for `@video` (or `@storyboard` / `@story` if there is no take). Opening or messaging that bot prepends the shot brief. Does not auto-run Hermes or GPUs. Identity pack tokens and an audio manifest land on the job for those bots to read.

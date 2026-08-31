@@ -367,6 +367,7 @@ SHOT_PATCH_FIELDS = {
     "negative_prompt",
     "review_status",
     "review_note",
+    "imported_from",
 }
 
 
@@ -758,16 +759,23 @@ def assemble_cut(
             result["transition_fallback"] = xf.get("error") or "xfade_failed"
     else:
         result = assembler.export_cut(clips, out, keep_audio=True, muted_paths=muted_paths)
-    use_color = bool(load_job_meta(job_dir).get("color_pass")) if color_pass is None else bool(color_pass)
-    if result.get("ok") and use_color:
+    preset = str(meta.get("color_preset") or "").strip().lower()
+    if preset in {"off", "none", "false"}:
+        preset = ""
+    want_color = bool(meta.get("color_pass")) if color_pass is None else bool(color_pass)
+    if preset in produce_finish.COLOR_PRESETS:
+        want_color = True
+    if result.get("ok") and want_color:
         graded = job_dir / "cut.grade.mp4"
-        grade = assembler.color_pass(out, graded)
+        grade = assembler.color_pass(out, graded, preset=preset)
         if grade.get("ok"):
             shutil.copy2(graded, out)
             result["color_pass"] = True
+            result["color_preset"] = preset or "mild"
         else:
             result["color_pass_error"] = grade.get("error")
     if result.get("ok"):
+        produce_ops.write_captions(job_dir)
         aspect = str(meta.get("aspect") or "16:9")
         title = str(meta.get("title") or "")
         try:
@@ -775,7 +783,10 @@ def assemble_cut(
         except (TypeError, ValueError):
             fade_sec = 0.0
         music = produce_ops.find_music(job_dir)
-        if aspect != "16:9" or title or music or fade_sec > 0.04:
+        burn = bool(meta.get("burn_captions"))
+        end_card = str(meta.get("end_card") or "").strip()
+        srt = job_dir / "cut.srt"
+        if aspect != "16:9" or title or music or fade_sec > 0.04 or burn or end_card:
             finished = job_dir / "cut_finish.mp4"
             fin = produce_finish.apply_finish(
                 out,
@@ -784,6 +795,10 @@ def assemble_cut(
                 title=title,
                 music=music,
                 fade_sec=fade_sec,
+                color_preset="",
+                burn_captions=burn,
+                srt=srt if burn else None,
+                end_card=end_card,
             )
             if fin.get("ok") and finished.exists():
                 shutil.copy2(finished, out)
@@ -791,15 +806,15 @@ def assemble_cut(
                 result["finish"]["steps_ok"] = {
                     name: bool(step.get("ok")) for name, step in (fin.get("steps") or {}).items()
                 }
-        produce_ops.write_captions(job_dir)
-        from core.hermes.produce import desk as produce_desk
-
         produce_desk.write_audio_manifest(job_dir)
         last = {
             "ok": True,
             "transition": transition,
             "color_pass": bool(result.get("color_pass")),
+            "color_preset": result.get("color_preset") or preset,
             "color_pass_error": result.get("color_pass_error") or "",
+            "burn_captions": burn,
+            "end_card": end_card,
             "finish": result.get("finish") or {},
         }
         save_job_meta(job_dir, {"last_assemble": last, "status": "ready", "stage": "edit"})

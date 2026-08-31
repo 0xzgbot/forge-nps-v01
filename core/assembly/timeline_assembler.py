@@ -234,14 +234,16 @@ class TimelineAssembler:
             return {"ok": False, "error": "nothing_to_stitch"}
         return self.export_cut(parts, Path(dest), keep_audio=True)
 
-    def color_pass(self, clip: Path, dest: Path) -> Dict[str, Any]:
+    def color_pass(self, clip: Path, dest: Path, *, preset: str = "") -> Dict[str, Any]:
         """Mild continuity grade. Does not replace H3 stereo."""
+        from core.hermes.produce.finish import color_vf
+
         ffmpeg = shutil.which("ffmpeg")
         if not ffmpeg:
             return {"ok": False, "error": "ffmpeg_not_installed"}
         dest = Path(dest)
         dest.parent.mkdir(parents=True, exist_ok=True)
-        vf = "eq=contrast=1.04:saturation=1.06:gamma=0.98"
+        vf = color_vf(preset)
         copy_cmd = [
             ffmpeg, "-y", "-i", str(clip), "-vf", vf,
             "-c:a", "copy", "-movflags", "+faststart", str(dest),

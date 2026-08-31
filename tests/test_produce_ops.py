@@ -112,6 +112,87 @@ def test_assemble_calls_finish_for_vertical(tmp_path: Path, monkeypatch):
     assert (job / "cut.srt").exists()
 
 
+def test_delete_undelete_and_move(tmp_path: Path):
+    job = tmp_path / "job"
+    job.mkdir()
+    produce_render.save_shots(
+        job,
+        [
+            {"id": "SHOT_001", "visual": "rain"},
+            {"id": "SHOT_002", "visual": "street"},
+            {"id": "SHOT_003", "visual": "door"},
+        ],
+    )
+    produce_ops.delete_shot(job, "SHOT_002")
+    assert [s["id"] for s in produce_render.load_shots(job)] == ["SHOT_001", "SHOT_003"]
+    assert produce_ops.load_trash(job)
+    back = produce_ops.undelete_shot(job)
+    assert back["ok"] is True
+    assert back["shot"]["id"] == "SHOT_002"
+    produce_ops.move_shot(job, "SHOT_002", -1)
+    assert [s["id"] for s in produce_render.load_shots(job)] == ["SHOT_001", "SHOT_002", "SHOT_003"]
+
+
+def test_brief_suggestions_are_produce_flavored():
+    out = produce_ops.brief_suggestions(brief="vertical reel", limit=6)
+    assert out["suggestions"]
+    blob = " ".join(str(s.get("body") or "") + str(s.get("title") or "") for s in out["suggestions"])
+    assert "Agency" not in blob
+    titles = {s["title"] for s in out["suggestions"]}
+    assert "Vertical first frame" in titles or "Vertical short detected" in titles
+
+
+def test_apply_finish_burn_and_end_card_without_ffmpeg(tmp_path: Path, monkeypatch):
+    monkeypatch.setattr("core.hermes.produce.finish._ffmpeg", lambda: "")
+    src = tmp_path / "in.mp4"
+    src.write_bytes(b"cut")
+    dest = tmp_path / "out.mp4"
+    srt = tmp_path / "cut.srt"
+    srt.write_text("1\n00:00:00,000 --> 00:00:01,000\nHi\n", encoding="utf-8")
+    result = produce_finish.apply_finish(
+        src,
+        dest,
+        aspect="16:9",
+        burn_captions=True,
+        srt=srt,
+        end_card="The End",
+        color_preset="warm",
+    )
+    assert result["ok"] is True
+    assert dest.read_bytes() == b"cut"
+
+
+def test_assemble_passes_burn_and_end_card(tmp_path: Path, monkeypatch):
+    job = tmp_path / "job"
+    job.mkdir()
+    (job / "a.mp4").write_bytes(b"clip")
+    produce_render.save_edit(job, [{"shot_id": "SHOT_001", "clip": "a.mp4"}])
+    produce_render.save_job_meta(job, {"burn_captions": True, "end_card": "Wet city", "color_preset": "warm"})
+    called = {}
+
+    class Result:
+        returncode = 0
+        stdout = ""
+        stderr = ""
+
+    def fake_run(cmd, capture_output, text):
+        Path(cmd[-1]).write_bytes(b"muxed")
+        return Result()
+
+    def fake_finish(cut, dest, **kwargs):
+        dest.write_bytes(b"finished")
+        called.update(kwargs)
+        return {"ok": True, "output": str(dest), "steps": {"captions": {"ok": True}}}
+
+    monkeypatch.setattr("core.assembly.timeline_assembler.shutil.which", lambda name: "/usr/bin/ffmpeg")
+    monkeypatch.setattr("core.assembly.timeline_assembler.subprocess.run", fake_run)
+    monkeypatch.setattr("core.hermes.produce.finish.apply_finish", fake_finish)
+    result = produce_render.assemble_cut(job)
+    assert result["ok"] is True
+    assert called.get("burn_captions") is True
+    assert called.get("end_card") == "Wet city"
+
+
 def test_score_upload_renames_music(tmp_path: Path):
     job = tmp_path / "job"
     job.mkdir()
